@@ -3,178 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apartment 4334 Listing</title>
+    <title>Apt 4334 (B5)</title>
     <style>
         :root {
-            --primary: #1e3a8a; /* Deep elegant blue */
-            --secondary: #0d9488; /* Teal accent */
-            --dark: #1f2937;
-            --light: #f3f4f6;
-            --white: #ffffff;
+            --reve-orange: #de5426;
+            --reve-text-dark: #333333;
+            --reve-text-muted: #555555;
+            --bg-gray: #f2f2f2;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: var(--dark);
-            background-color: var(--light);
+            background-color: var(--bg-gray);
             margin: 0;
-            padding: 20px;
+            padding: 20px 10px;
             display: flex;
             justify-content: center;
+            color: var(--reve-text-dark);
+            line-height: 1.4;
         }
-        .card {
-            background: var(--white);
-            max-width: 500px;
+        .flyer-card {
+            background-color: #ffffff;
+            max-width: 540px;
             width: 100%;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            overflow: hidden;
-            border: 1px solid #e5e7eb;
+            padding: 30px;
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
-        .header {
-            background: var(--primary);
-            color: var(--white);
-            padding: 24px;
-            text-align: center;
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
         }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
+        .title-area h1 {
+            color: var(--reve-orange);
+            font-size: 32px;
+            margin: 0 0 5px 0;
             font-weight: 700;
-            letter-spacing: -0.5px;
         }
-        .header p {
-            margin: 6px 0 0 0;
-            opacity: 0.9;
+        .title-area p {
+            margin: 0;
+            font-size: 15px;
+            color: var(--reve-text-muted);
+            font-weight: 500;
+        }
+        .brand-logo {
+            width: 55px;
+            height: auto;
+        }
+        .floorplan-container {
+            text-align: center;
+            margin: 25px 0;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            background: #ffffff;
+        }
+        .floorplan-img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
             font-size: 15px;
         }
-        .content {
-            padding: 24px;
+        .details-table td {
+            padding: 8px 0;
+            vertical-align: top;
         }
-        .meta-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            text-align: center;
-            margin-bottom: 20px;
-            background: var(--light);
-            padding: 12px;
-            border-radius: 8px;
+        .label-col {
+            width: 32%;
+            font-weight: 700;
+            color: var(--reve-text-muted);
         }
-        .meta-item span {
-            display: block;
-            font-size: 12px;
-            text-transform: uppercase;
-            color: #6b7280;
-            font-weight: 600;
+        .value-col {
+            width: 68%;
+            color: var(--reve-text-dark);
         }
-        .meta-item strong {
-            font-size: 16px;
-            color: var(--dark);
+        .price-highlight {
+            color: var(--reve-orange);
+            font-weight: 700;
         }
-        .price-section {
-            border-left: 4px solid var(--secondary);
-            padding-left: 15px;
-            margin-bottom: 24px;
-        }
-        .best-price {
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--secondary);
-            margin: 0;
-        }
-        .best-price-label {
-            font-size: 14px;
-            color: #4b5563;
-            margin: 0 0 10px 0;
-        }
-        .other-terms {
+        .lease-terms-list {
             margin: 0;
             padding: 0;
             list-style: none;
         }
-        .other-terms li {
-            font-size: 14px;
-            padding: 4px 0;
-            color: #4b5563;
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px dashed #e5e7eb;
+        .lease-terms-list li {
+            margin-bottom: 4px;
         }
-        .other-terms li:last-child {
-            border-bottom: none;
+        .lease-terms-list li::before {
+            content: "• ";
+            color: var(--reve-text-dark);
+            font-weight: bold;
         }
-        .location-box {
-            margin-bottom: 24px;
-            font-size: 14px;
+        .link-text {
+            color: var(--reve-orange);
+            text-decoration: underline;
+            font-weight: 500;
         }
-        .location-box p {
-            margin: 4px 0;
-        }
-        .btn {
-            display: block;
+        .footer-action {
             text-align: center;
-            padding: 14px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: 600;
+            margin-top: 30px;
+            border-top: 1px solid #eeeeee;
+            padding-top: 20px;
+        }
+        .footer-action p {
             font-size: 16px;
-            margin-bottom: 12px;
-            transition: background 0.2s;
+            font-weight: 500;
+            margin: 0 0 10px 0;
         }
-        .btn-primary {
-            background: var(--secondary);
-            color: var(--white);
-        }
-        .btn-primary:hover {
-            background: #0f766e;
-        }
-        .btn-secondary {
-            background: var(--white);
-            color: var(--primary);
-            border: 1px solid var(--primary);
-        }
-        .btn-secondary:hover {
-            background: #eff6ff;
+        .btn-apply {
+            display: inline-block;
+            color: var(--reve-orange);
+            font-size: 20px;
+            font-weight: 700;
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div class="header">
-        <h1>Apt 4334 (B5)</h1>
-        <p>Available: Wednesday, Oct 7th</p>
+<div class="flyer-card">
+    <div class="header-container">
+        <div class="title-area">
+            <h1>Apt 4334 (B5)</h1>
+            <p>2-Bed • 2-Bath • 1193 sq. ft.</p>
+        </div>
+        <!-- RÊVE Orange Logo -->
+        <svg class="brand-logo" viewBox="0 0 100 100" fill="none" xmlns="http://w3.org">
+            <path d="M20 20H55C70 20 80 30 80 42.5C80 52 73 60 62 63.5L82 85H62L45 65H35V85H20V20ZM35 34V51H53C61 51 65 47 65 42.5C65 38 61 34 53 34H35Z" fill="#de5426"/>
+            <path d="M25 25H30V60H25V25Z" fill="#ffffff" opacity="0.3"/>
+        </svg>
     </div>
-    
-    <div class="content">
-        <div class="meta-grid">
-            <div class="meta-item"><span>Beds</span><strong>2</strong></div>
-            <div class="meta-item"><span>Baths</span><strong>2</strong></div>
-            <div class="meta-item"><span>Size</span><strong>1,193 sq ft</strong></div>
-        </div>
 
-        <div class="price-section">
-            <p class="best-price-label">Best Price:</p>
-            <h2 class="best-price">$3,738 <span style="font-size: 16px; font-weight: 400; color: #4b5563;">/ mo (15-Month Lease)</span></h2>
-            
-            <p style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: #6b7280; margin: 15px 0 5px 0;">Other Lease Terms</p>
-            <ul class="other-terms">
-                <li><span>14-Month Lease</span><strong>$3,799/mo</strong></li>
-                <li><span>12-Month Lease</span><strong>$3,963/mo</strong></li>
-                <li><span>11-Month Lease</span><strong>$3,838/mo</strong></li>
-                <li><span>10-Month Lease</span><strong>$3,897/mo</strong></li>
-            </ul>
-        </div>
+    <!-- FLOOR PLAN CONTAINER -->
+    <div class="floorplan-container">
+        <!-- REPLACE 'floorplan.png' WITH YOUR ACTUAL IMAGE URL IF HOSTING SEPARATELY -->
+        <img src="floorplan.png" alt="Apt 4334 Floor Plan" class="floorplan-img">
+    </div>
 
-        <div class="location-box">
-            <p><strong>Location:</strong> 2120 Junction Place</p>
-            <p>• Third Floor • Facing North/West</p>
-        </div>
+    <!-- DATA SHEET LAYOUT -->
+    <table class="details-table">
+        <tr>
+            <td class="label-col">Earliest Available:</td>
+            <td class="value-col">Wednesday, Oct 7th</td>
+        </tr>
+        <tr>
+            <td class="label-col">Best Price:</td>
+            <td class="value-col <div class="price-highlight">$3738 (15-Month Lease)</div></td>
+        </tr>
+        <tr>
+            <td class="label-col">Other Lease Terms:</td>
+            <td class="value-col">
+                <ul class="lease-terms-list">
+                    <li>$3799 (14-Mo)</li>
+                    <li>$3838 (11-Mo)</li>
+                    <li>$3897 (10-Mo)</li>
+                    <li>$3963 (12-Mo)</li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td class="label-col">Location:</td>
+            <td class="value-col">2120 Junction Place • Third Floor • Facing North/West</td>
+        </tr>
+        <tr>
+            <td class="label-col">Video Tour:</td>
+            <td class="value-col">
+                <!-- INSERT YOUR ACTUAL VIDEO URL IN THE HREF -->
+                <a href="INSERT_VIDEO_URL" class="link-text">B4 VIDEO - Apt 4336 ** (Neighboring Unit Video Tour)</a>
+            </td>
+        </tr>
+    </table>
 
-        <!-- REPLACED WITH YOUR ACTUAL LINKS -->
-        <a href="INSERT_APPLY_NOW_URL_HERE" class="btn btn-primary">Apply Now - Apt 4334</a>
-        <a href="INSERT_VIDEO_TOUR_URL_HERE" class="btn btn-secondary">🎥 View Video Tour (Neighboring Unit)</a>
+    <div class="footer-action">
+        <p>Ready to secure your spot?</p>
+        <!-- INSERT YOUR ACTUAL APPLICATION LINK IN THE HREF -->
+        <a href="INSERT_APPLY_NOW_URL" class="btn-apply">Apply Now - Apt 4334 (B5)</a>
     </div>
 </div>
 
