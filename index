@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apartment 4334 Listing</title>
+    <style>
+        :root {
+            --primary: #1e3a8a; /* Deep elegant blue */
+            --secondary: #0d9488; /* Teal accent */
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --white: #ffffff;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background-color: var(--light);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .card {
+            background: var(--white);
+            max-width: 500px;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+        .header {
+            background: var(--primary);
+            color: var(--white);
+            padding: 24px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .header p {
+            margin: 6px 0 0 0;
+            opacity: 0.9;
+            font-size: 15px;
+        }
+        .content {
+            padding: 24px;
+        }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            background: var(--light);
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .meta-item span {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #6b7280;
+            font-weight: 600;
+        }
+        .meta-item strong {
+            font-size: 16px;
+            color: var(--dark);
+        }
+        .price-section {
+            border-left: 4px solid var(--secondary);
+            padding-left: 15px;
+            margin-bottom: 24px;
+        }
+        .best-price {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--secondary);
+            margin: 0;
+        }
+        .best-price-label {
+            font-size: 14px;
+            color: #4b5563;
+            margin: 0 0 10px 0;
+        }
+        .other-terms {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .other-terms li {
+            font-size: 14px;
+            padding: 4px 0;
+            color: #4b5563;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+        .other-terms li:last-child {
+            border-bottom: none;
+        }
+        .location-box {
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .location-box p {
+            margin: 4px 0;
+        }
+        .btn {
+            display: block;
+            text-align: center;
+            padding: 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 12px;
+            transition: background 0.2s;
+        }
+        .btn-primary {
+            background: var(--secondary);
+            color: var(--white);
+        }
+        .btn-primary:hover {
+            background: #0f766e;
+        }
+        .btn-secondary {
+            background: var(--white);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        .btn-secondary:hover {
+            background: #eff6ff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <h1>Apt 4334 (B5)</h1>
+        <p>Available: Wednesday, Oct 7th</p>
+    </div>
+    
+    <div class="content">
+        <div class="meta-grid">
+            <div class="meta-item"><span>Beds</span><strong>2</strong></div>
+            <div class="meta-item"><span>Baths</span><strong>2</strong></div>
+            <div class="meta-item"><span>Size</span><strong>1,193 sq ft</strong></div>
+        </div>
+
+        <div class="price-section">
+            <p class="best-price-label">Best Price:</p>
+            <h2 class="best-price">$3,738 <span style="font-size: 16px; font-weight: 400; color: #4b5563;">/ mo (15-Month Lease)</span></h2>
+            
+            <p style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: #6b7280; margin: 15px 0 5px 0;">Other Lease Terms</p>
+            <ul class="other-terms">
+                <li><span>14-Month Lease</span><strong>$3,799/mo</strong></li>
+                <li><span>12-Month Lease</span><strong>$3,963/mo</strong></li>
+                <li><span>11-Month Lease</span><strong>$3,838/mo</strong></li>
+                <li><span>10-Month Lease</span><strong>$3,897/mo</strong></li>
+            </ul>
+        </div>
+
+        <div class="location-box">
+            <p><strong>Location:</strong> 2120 Junction Place</p>
+            <p>• Third Floor • Facing North/West</p>
+        </div>
+
+        <!-- REPLACED WITH YOUR ACTUAL LINKS -->
+        <a href="INSERT_APPLY_NOW_URL_HERE" class="btn btn-primary">Apply Now - Apt 4334</a>
+        <a href="INSERT_VIDEO_TOUR_URL_HERE" class="btn btn-secondary">🎥 View Video Tour (Neighboring Unit)</a>
+    </div>
+</div>
+
+</body>
+</html>
