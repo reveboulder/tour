@@ -1,191 +1,856 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apt 4334 (B5)</title>
-    <style>
-        :root {
-            --reve-orange: #de5426;
-            --reve-text-dark: #333333;
-            --reve-text-muted: #555555;
-            --bg-gray: #f2f2f2;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-gray);
-            margin: 0;
-            padding: 20px 10px;
-            display: flex;
-            justify-content: center;
-            color: var(--reve-text-dark);
-            line-height: 1.4;
-        }
-        .flyer-card {
-            background-color: #ffffff;
-            max-width: 540px;
-            width: 100%;
-            padding: 30px;
-            box-sizing: border-box;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-        .header-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-        }
-        .title-area h1 {
-            color: var(--reve-orange);
-            font-size: 32px;
-            margin: 0 0 5px 0;
-            font-weight: 700;
-        }
-        .title-area p {
-            margin: 0;
-            font-size: 15px;
-            color: var(--reve-text-muted);
-            font-weight: 500;
-        }
-        .brand-logo {
-            width: 55px;
-            height: auto;
-        }
-        .floorplan-container {
-            text-align: center;
-            margin: 25px 0;
-            border: 1px solid #e0e0e0;
-            padding: 10px;
-            background: #ffffff;
-        }
-        .floorplan-img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 0 auto;
-        }
-        .details-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 25px;
-            font-size: 15px;
-        }
-        .details-table td {
-            padding: 8px 0;
-            vertical-align: top;
-        }
-        .label-col {
-            width: 32%;
-            font-weight: 700;
-            color: var(--reve-text-muted);
-        }
-        .value-col {
-            width: 68%;
-            color: var(--reve-text-dark);
-        }
-        .price-highlight {
-            color: var(--reve-orange);
-            font-weight: 700;
-        }
-        .lease-terms-list {
-            margin: 0;
-            padding: 0;
-            list-style: none;
-        }
-        .lease-terms-list li {
-            margin-bottom: 4px;
-        }
-        .lease-terms-list li::before {
-            content: "• ";
-            color: var(--reve-text-dark);
-            font-weight: bold;
-        }
-        .link-text {
-            color: var(--reve-orange);
-            text-decoration: underline;
-            font-weight: 500;
-        }
-        .footer-action {
-            text-align: center;
-            margin-top: 30px;
-            border-top: 1px solid #eeeeee;
-            padding-top: 20px;
-        }
-        .footer-action p {
-            font-size: 16px;
-            font-weight: 500;
-            margin: 0 0 10px 0;
-        }
-        .btn-apply {
-            display: inline-block;
-            color: var(--reve-orange);
-            font-size: 20px;
-            font-weight: 700;
-            text-decoration: underline;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RÊVE Tour Pamphlet Builder</title>
+<style>
+    :root {
+        --reve-orange: #de5426;
+        --reve-orange-dark: #b8431c;
+        --ink: #24211d;
+        --ink-soft: #6b655c;
+        --paper: #faf8f4;
+        --panel: #ffffff;
+        --line: #e6e1d8;
+        --line-soft: #f0ece3;
+        --good: #3f7d54;
+        --warn: #a8621f;
+        --mono: "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+        margin: 0;
+        font-family: var(--sans);
+        background: var(--paper);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---------- App shell ---------- */
+    .app {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        min-height: 100vh;
+    }
+    @media (max-width: 980px) {
+        .app { grid-template-columns: 1fr; }
+        .editor { border-right: none; border-bottom: 1px solid var(--line); }
+    }
+
+    .editor {
+        border-right: 1px solid var(--line);
+        background: var(--panel);
+        display: flex;
+        flex-direction: column;
+        max-height: 100vh;
+        overflow: hidden;
+    }
+    @media (max-width: 980px) { .editor { max-height: none; } }
+
+    .brand-strip {
+        padding: 18px 22px 16px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .brand-strip .mark {
+        width: 26px; height: 26px; flex: none;
+    }
+    .brand-strip h1 {
+        font-size: 15px;
+        margin: 0;
+        letter-spacing: 0.02em;
+        font-weight: 700;
+    }
+    .brand-strip .tag {
+        font-size: 11px;
+        color: var(--ink-soft);
+        margin-top: 1px;
+    }
+
+    .editor-scroll {
+        overflow-y: auto;
+        padding: 18px 22px 90px;
+        flex: 1;
+    }
+
+    .picker-block {
+        margin-bottom: 6px;
+    }
+    .picker-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    input[type="text"], input[type="date"], select, textarea {
+        width: 100%;
+        font-family: var(--sans);
+        font-size: 13.5px;
+        padding: 9px 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--ink);
+        outline: none;
+    }
+    input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus {
+        border-color: var(--reve-orange);
+        box-shadow: 0 0 0 3px rgba(222,84,38,0.12);
+    }
+    #unitSearch { font-family: var(--mono); font-size: 15px; letter-spacing: 0.02em; }
+
+    .unit-results {
+        max-height: 190px;
+        overflow-y: auto;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        margin-bottom: 4px;
+        display: none;
+        background: #fff;
+    }
+    .unit-results.open { display: block; }
+    .unit-result {
+        padding: 8px 10px;
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        border-bottom: 1px solid var(--line-soft);
+    }
+    .unit-result:last-child { border-bottom: none; }
+    .unit-result:hover, .unit-result.active { background: #fbeee8; }
+    .unit-result .u-num { font-family: var(--mono); font-weight: 700; }
+    .unit-result .u-meta { color: var(--ink-soft); font-size: 11.5px; }
+
+    .quick-filters {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+    .chip {
+        font-size: 11px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink-soft);
+        padding: 4px 9px;
+        border-radius: 999px;
+        cursor: pointer;
+    }
+    .chip:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+    .chip.active { background: var(--reve-orange); border-color: var(--reve-orange); color: #fff; }
+
+    .section-label {
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        font-weight: 700;
+        color: var(--ink-soft);
+        margin: 22px 0 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .section-label:first-child { margin-top: 0; }
+    .section-label .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--reve-orange); }
+
+    .field { margin-bottom: 12px; }
+    .field label {
+        display: block;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--ink);
+        margin-bottom: 4px;
+    }
+    .field .hint {
+        font-size: 10.5px;
+        color: var(--ink-soft);
+        font-weight: 400;
+        margin-left: 4px;
+    }
+    .field-row { display: flex; gap: 8px; }
+    .field-row .field { flex: 1; }
+
+    .readonly-card {
+        background: var(--line-soft);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        margin-bottom: 18px;
+        line-height: 1.55;
+    }
+    .readonly-card b { color: var(--ink); font-weight: 600; }
+    .readonly-card .rc-row { display: flex; justify-content: space-between; gap: 10px; }
+
+    .badge {
+        display: inline-block;
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 2px 7px;
+        border-radius: 4px;
+        margin-left: 6px;
+        vertical-align: middle;
+    }
+    .badge.ok { background: #e5f2e8; color: var(--good); }
+    .badge.warn { background: #fbeee0; color: var(--warn); }
+
+    .term-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 6px;
+        align-items: center;
+    }
+    .term-row input { flex: 1; }
+    .term-row input.term-price { flex: 0 0 92px; }
+    .icon-btn {
+        flex: none;
+        width: 30px; height: 34px;
+        border: 1px solid var(--line);
+        background: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 15px;
+        color: var(--ink-soft);
+        line-height: 1;
+    }
+    .icon-btn:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+    .add-term-btn {
+        width: 100%;
+        padding: 8px;
+        border: 1px dashed var(--line);
+        background: none;
+        border-radius: 6px;
+        color: var(--ink-soft);
+        font-size: 12.5px;
+        cursor: pointer;
+        margin-top: 2px;
+    }
+    .add-term-btn:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+
+    .action-bar {
+        border-top: 1px solid var(--line);
+        padding: 14px 22px;
+        background: var(--panel);
+        display: flex;
+        gap: 8px;
+        position: sticky;
+        bottom: 0;
+    }
+    .btn {
+        flex: 1;
+        padding: 11px 10px;
+        border-radius: 7px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: center;
+    }
+    .btn.primary {
+        background: var(--reve-orange);
+        border-color: var(--reve-orange);
+        color: #fff;
+    }
+    .btn.primary:hover { background: var(--reve-orange-dark); }
+    .btn:hover { border-color: var(--reve-orange); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .empty-note {
+        font-size: 10px;
+        color: var(--ink-soft);
+        margin-top: 4px;
+    }
+
+    /* ---------- Preview pane ---------- */
+    .preview-pane {
+        background: #ece8e0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 34px 20px 60px;
+        overflow-y: auto;
+    }
+    .preview-toolbar {
+        width: 100%;
+        max-width: 540px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+        font-size: 11.5px;
+        color: var(--ink-soft);
+    }
+    .preview-toolbar .status { display: flex; align-items: center; gap: 6px; }
+    .preview-toolbar .status .led { width: 7px; height: 7px; border-radius: 50%; background: var(--good); }
+
+    #flyerMount {
+        width: 100%;
+        max-width: 540px;
+        box-shadow: 0 12px 40px rgba(20,15,5,0.14);
+    }
+    .no-unit {
+        max-width: 540px;
+        width: 100%;
+        background: #fff;
+        border: 1px dashed var(--line);
+        border-radius: 4px;
+        padding: 60px 30px;
+        text-align: center;
+        color: var(--ink-soft);
+        font-size: 13.5px;
+    }
+
+    @media print {
+        .editor, .preview-toolbar, .app { display: block; }
+        .editor, .preview-toolbar { display: none !important; }
+        .preview-pane { padding: 0; background: #fff; }
+        #flyerMount { box-shadow: none; max-width: 100%; }
+    }
+
+    ::-webkit-scrollbar { width: 9px; height: 9px; }
+    ::-webkit-scrollbar-thumb { background: #d8d2c6; border-radius: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+</style>
 </head>
 <body>
 
-<div class="flyer-card">
+<div class="app">
+    <!-- ============ EDITOR ============ -->
+    <div class="editor">
+        <div class="brand-strip">
+            <svg class="mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 20H55C70 20 80 30 80 42.5C80 52 73 60 62 63.5L82 85H62L45 65H35V85H20V20ZM35 34V51H53C61 51 65 47 65 42.5C65 38 61 34 53 34H35Z" fill="#de5426"/>
+                <path d="M25 25H30V60H25V25Z" fill="#ffffff" opacity="0.5"/>
+            </svg>
+            <div>
+                <h1>RÊVE Tour Pamphlet Builder</h1>
+                <div class="tag">242 units loaded &middot; pricing &amp; images added per-flyer</div>
+            </div>
+        </div>
+
+        <div class="editor-scroll">
+
+            <div class="section-label"><span class="dot"></span>Find a unit</div>
+            <div class="picker-block">
+                <input type="text" id="unitSearch" placeholder="Type unit # (e.g. 4334) or floorplan (e.g. B5)" autocomplete="off">
+                <div class="unit-results" id="unitResults"></div>
+            </div>
+            <div class="quick-filters" id="bldgFilters"></div>
+
+            <div id="editorBody" style="display:none;">
+
+                <div class="readonly-card" id="specCard"></div>
+
+                <div class="section-label"><span class="dot"></span>Headline</div>
+                <div class="field">
+                    <label>Flyer title</label>
+                    <input type="text" id="fTitle">
+                </div>
+                <div class="field">
+                    <label>Subtitle (beds &middot; baths &middot; sq ft)</label>
+                    <input type="text" id="fSubtitle">
+                </div>
+
+                <div class="section-label"><span class="dot"></span>Availability &amp; pricing <span class="hint">not in your sheet &mdash; enter per unit</span></div>
+                <div class="field">
+                    <label>Earliest available</label>
+                    <input type="text" id="fAvailable" placeholder="e.g. Wednesday, Oct 7th">
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label>Best price</label>
+                        <input type="text" id="fBestPrice" placeholder="$3738">
+                    </div>
+                    <div class="field">
+                        <label>Term</label>
+                        <input type="text" id="fBestTerm" placeholder="15-Month Lease">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Other lease terms</label>
+                    <div id="termList"></div>
+                    <button type="button" class="add-term-btn" id="addTermBtn">+ Add lease term</button>
+                </div>
+
+                <div class="section-label"><span class="dot"></span>Location</div>
+                <div class="field">
+                    <label>Location line</label>
+                    <input type="text" id="fLocation">
+                </div>
+
+                <div class="section-label"><span class="dot"></span>Video tour</div>
+                <div class="field">
+                    <label>Link label</label>
+                    <input type="text" id="fVideoLabel">
+                </div>
+                <div class="field">
+                    <label>Video URL</label>
+                    <input type="text" id="fVideoUrl">
+                </div>
+
+                <div class="section-label"><span class="dot"></span>Media &amp; links <span class="hint">add later if not ready</span></div>
+                <div class="field">
+                    <label>Floorplan image URL</label>
+                    <input type="text" id="fFloorplanImg" placeholder="https://... .jpg / .png">
+                    <div class="empty-note">Auto-fills from the floorplans/ folder when a match exists. Overwrite with any URL, or leave blank for a placeholder.</div>
+                </div>
+                <div class="field">
+                    <label>Apply Now URL</label>
+                    <input type="text" id="fApplyUrl" placeholder="https://...">
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="action-bar">
+            <button class="btn" id="resetBtn" disabled>Reset unit</button>
+            <button class="btn" id="printBtn" disabled>Print / PDF</button>
+            <button class="btn primary" id="exportBtn" disabled>Download flyer</button>
+        </div>
+    </div>
+
+    <!-- ============ PREVIEW ============ -->
+    <div class="preview-pane">
+        <div class="preview-toolbar">
+            <span id="previewLabel">No unit selected</span>
+            <span class="status" id="saveStatus"></span>
+        </div>
+        <div id="flyerMount">
+            <div class="no-unit">Search for a unit on the left to start building its tour pamphlet.<br><br>Specs, sq&nbsp;ft, bed/bath, address, and video link auto-fill from your roster. Pricing, availability, and images are entered per flyer since they change often.</div>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   DATA — embedded from Untitled_spreadsheet_-_Sheet1.csv
+   ============================================================ */
+const UNITS = [{"unit": "1101", "sqft": "2471", "floorplan": "LW2", "videoName": "LW2 2471 VIDEO - Apt 1101", "videoLink": "https://www.dropbox.com/scl/fi/y02jikm5sgnhd6e1i3e4t/LW2-1101.mov?rlkey=m1njy7dv5jbnqljsu6jh5dvo0&st=k693vj20&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "1", "yardi": "RV-LW3", "bedBath": "2 / 1.5", "address": "3000 Pearl Parkway", "view": "South"}, {"unit": "1102", "sqft": "1968", "floorplan": "LW2", "videoName": "LW2 1968 - Apt 1102", "videoLink": "https://www.dropbox.com/scl/fi/obcw2330p832hqqqpruo7/LW2-1968-Apt-1102.mov?rlkey=8es61v2ybkrunboshc9ufabqb&st=kconhe5l&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "1", "yardi": "RV-LW2", "bedBath": "1.5 / 1.5", "address": "3000 Pearl Parkway", "view": "South"}, {"unit": "1103", "sqft": "2122", "floorplan": "LW1", "videoName": "LW1 2122 - Apt 1103", "videoLink": "https://www.dropbox.com/scl/fi/oei295yzf2lcd7u6ke9ey/LW1-1103.mov?rlkey=qa53amt5psmg3nte4syv4w8r6&st=1kv1y1sr&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "1", "yardi": "RV-LW1", "bedBath": "1 / 1.5", "address": "3000 Pearl Parkway", "view": "South/East"}, {"unit": "1104", "sqft": "2153", "floorplan": "TH2", "videoName": "TH2 2153 - Apt 1104", "videoLink": "https://www.dropbox.com/scl/fi/tguqxy0dvvleoynrkunak/TH2-1104.mov?rlkey=5xb22aodt2kihah11of234t47&st=vbuncuz2&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "1", "yardi": "RV-TH2", "bedBath": "2 / 2.5", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1105", "sqft": "2153", "floorplan": "TH2", "videoName": "TH2 2153 - Guest Suite Apt 1107", "videoLink": "https://www.dropbox.com/scl/fi/f9r3benqkvd7re00lsyhv/TH2-1107-Guest-Suite.mov?rlkey=3o1s7wmq69dban17hddtiidgi&st=j26377ke&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "1", "yardi": "RV-TH2", "bedBath": "2 / 2.5", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1106", "sqft": "2153", "floorplan": "TH2", "videoName": "TH2 2153 - Guest Suite Apt 1107", "videoLink": "https://www.dropbox.com/scl/fi/f9r3benqkvd7re00lsyhv/TH2-1107-Guest-Suite.mov?rlkey=3o1s7wmq69dban17hddtiidgi&st=j26377ke&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "1", "yardi": "RV-TH2", "bedBath": "2 / 2.5", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1107", "sqft": "2153", "floorplan": "TH2", "videoName": "TH2 2153 - Guest Suite Apt 1107", "videoLink": "https://www.dropbox.com/scl/fi/f9r3benqkvd7re00lsyhv/TH2-1107-Guest-Suite.mov?rlkey=3o1s7wmq69dban17hddtiidgi&st=j26377ke&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "1", "yardi": "RV-TH2", "bedBath": "2 / 2.5", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1201", "sqft": "1148", "floorplan": "B2", "videoName": "B2 VIDEO - Apt 1201", "videoLink": "https://www.dropbox.com/scl/fi/gj998e43kannq39t7zmzy/Reve-1201.mp4?rlkey=3ghuygbnw936utpv5k9rcvf4u&st=coc4lk25&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-B1.5", "bedBath": "2 / 2", "address": "3000 Pearl Parkway", "view": "South/West"}, {"unit": "1202", "sqft": "737", "floorplan": "A2", "videoName": "A2 VIDEO - Apt 1202", "videoLink": "https://www.dropbox.com/scl/fi/ife34lucnr4fendr57x0u/A2-1202.mp4?rlkey=02o7grdo4w0g2agai9507awt5&st=k6sugnf4&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A2.2", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "South/East"}, {"unit": "1203", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1209", "videoLink": "https://www.dropbox.com/scl/fi/supamtvjiiedmdbk1oomm/A3-1209.mp4?rlkey=lf5kcxhwm0o1qgpcobqwg8b8y&st=ipikwrt1&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1204", "sqft": "741", "floorplan": "A3", "videoName": "A3 741 VIDEO - Apt 1304", "videoLink": "https://www.dropbox.com/scl/fi/bx263ooa51wjmbmudtuzz/A3-1304.MOV?rlkey=zm1at19um3cdcku9p2grqij2c&st=bxnhmo7p&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1a", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1205", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1209", "videoLink": "https://www.dropbox.com/scl/fi/supamtvjiiedmdbk1oomm/A3-1209.mp4?rlkey=lf5kcxhwm0o1qgpcobqwg8b8y&st=ipikwrt1&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1206", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1340", "videoLink": "https://www.dropbox.com/scl/fi/vg27em221c2mrq7xadu4o/A3-1340.mp4?rlkey=j6vgihvq3dnhufmmfqswghd6q&st=a5fsfch2&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1207", "sqft": "983", "floorplan": "A7", "videoName": "A7 VIDEO - Apt 1207", "videoLink": "https://www.dropbox.com/scl/fi/nhu7scag62aohbxqzbxxp/A7-1207.MOV?rlkey=nzw4mn3rutic4r6bndldxfjdg&st=h5oa64pa&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A4.3", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1208", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1208", "videoLink": "https://www.dropbox.com/scl/fi/adzddlaqxwb01wwt0r3jz/S4-1208.mov?rlkey=1q2yfh77k0h0pbnzftgzhuwyc&st=ncfngdis&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1209", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1209", "videoLink": "https://www.dropbox.com/scl/fi/supamtvjiiedmdbk1oomm/A3-1209.mp4?rlkey=lf5kcxhwm0o1qgpcobqwg8b8y&st=ipikwrt1&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1210", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1210", "videoLink": "https://www.dropbox.com/scl/fi/dj16unos1ikw1dqx4it37/A3-1210.mov?rlkey=37azlb4z0vei2ofbe6lqgf9ff&st=iqi36als&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1211", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1211", "videoLink": "https://www.dropbox.com/scl/fi/i95gxfe04l7na1eiqohn4/A3-1211.mov?rlkey=d95wvj8i2n46u2yx1raasf9rn&st=77deqq03&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1212", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1340", "videoLink": "https://www.dropbox.com/scl/fi/vg27em221c2mrq7xadu4o/A3-1340.mp4?rlkey=j6vgihvq3dnhufmmfqswghd6q&st=a5fsfch2&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1213", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1213", "videoLink": "https://www.dropbox.com/scl/fi/y756ngdwv6xerzpdic381/A3-1213.mov?rlkey=l2898v8jvqeo9twxe6oi7yyci&st=p5a0mcfi&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1214", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1214", "videoLink": "https://www.dropbox.com/scl/fi/dnp53ffhdbeaw4xj2feok/S4-1214.mov?rlkey=qts7sx74t1b0nyiuxb78wgv9c&st=njq3ke3c&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1215", "sqft": "924", "floorplan": "A6", "videoName": "A6 VIDEO - Apt 1215", "videoLink": "https://www.dropbox.com/scl/fi/bg67r20124xmi3galwux1/A6-1215.MOV?rlkey=jyksceo1ztg2xretue587ba6a&st=si6zdhal&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A4.2", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North/West"}, {"unit": "1217", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1221", "videoLink": "https://www.dropbox.com/scl/fi/9asqefqnpr2mfa139x5wy/A3-1221.mp4?rlkey=ipi0du3obgjdy2xxffw43860e&st=q3ozg5p2&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1219", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1219", "videoLink": "https://www.dropbox.com/scl/fi/k7sis0l2nbgu97x9hpxxe/S4-1219.mp4?rlkey=rffymka1edq4wx0j2n9mlk6hy&st=d7tystge&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1221", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1221", "videoLink": "https://www.dropbox.com/scl/fi/9asqefqnpr2mfa139x5wy/A3-1221.mp4?rlkey=ipi0du3obgjdy2xxffw43860e&st=q3ozg5p2&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1223", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1223", "videoLink": "https://www.dropbox.com/scl/fi/zywkrzs9ruuobykr2qmi9/A3-1223.mp4?rlkey=ou18d7iuy2ecowlpvw294zirn&st=786ke2xq&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1225", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1223", "videoLink": "https://www.dropbox.com/scl/fi/zywkrzs9ruuobykr2qmi9/A3-1223.mp4?rlkey=ou18d7iuy2ecowlpvw294zirn&st=786ke2xq&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1227", "sqft": "1243", "floorplan": "B7", "videoName": "B7 VIDEO - Apt 1227", "videoLink": "https://www.dropbox.com/scl/fi/k53gw2oes0v672zjbu9fm/B7-1227.mov?rlkey=zpdbp4j7k5413mcs7sn425sbh&st=tg4zuqhu&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-B1.6", "bedBath": "2 / 2", "address": "3000 Pearl Parkway", "view": "North/East"}, {"unit": "1229", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1233", "videoLink": "https://www.dropbox.com/scl/fi/fk0uig682erayw9ccjoyi/A3-1233.MP4?rlkey=7g5p28497646louomsenerh5r&st=8z99okfm&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1231", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1231", "videoLink": "https://www.dropbox.com/scl/fi/krga5t45kke1mhk9pa7ig/S4-1231.mov?rlkey=r9xy8d6lnez2pg0ysgy7f16c2&st=rm94i2qp&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1233", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1233", "videoLink": "https://www.dropbox.com/scl/fi/fk0uig682erayw9ccjoyi/A3-1233.MP4?rlkey=7g5p28497646louomsenerh5r&st=8z99okfm&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1234", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1236", "videoLink": "https://www.dropbox.com/scl/fi/9mx3v35g5yx2l99pfyxv1/A3-1236.mov?rlkey=dnlqueajag3a8rbgaf49e440w&st=sfqcvm7r&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1235", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1235", "videoLink": "https://www.dropbox.com/scl/fi/1rg92tc3vj6ckzuhief55/A3-1235.mov?rlkey=4xtjsk1gf1lwh838zu69y0k6i&st=rlcwn4gl&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1236", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1236", "videoLink": "https://www.dropbox.com/scl/fi/9mx3v35g5yx2l99pfyxv1/A3-1236.mov?rlkey=dnlqueajag3a8rbgaf49e440w&st=sfqcvm7r&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1237", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1235", "videoLink": "https://www.dropbox.com/scl/fi/1rg92tc3vj6ckzuhief55/A3-1235.mov?rlkey=4xtjsk1gf1lwh838zu69y0k6i&st=rlcwn4gl&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1238", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1238", "videoLink": "https://www.dropbox.com/scl/fi/lyuzno0gjttd8ddvx5mxr/S4-1238.mov?rlkey=80wdlnp2vhnm92mbm36diadkh&st=8cjxrw2p&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1239", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1235", "videoLink": "https://www.dropbox.com/scl/fi/1rg92tc3vj6ckzuhief55/A3-1235.mov?rlkey=4xtjsk1gf1lwh838zu69y0k6i&st=rlcwn4gl&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1240", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1236", "videoLink": "https://www.dropbox.com/scl/fi/9mx3v35g5yx2l99pfyxv1/A3-1236.mov?rlkey=dnlqueajag3a8rbgaf49e440w&st=sfqcvm7r&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1241", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1241", "videoLink": "https://www.dropbox.com/scl/fi/u29x71souppjvwtr450dg/A3-1241.mov?rlkey=jx6ecahflbxkarq7bo1hkg86x&st=69ren7or&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1242", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1236", "videoLink": "https://www.dropbox.com/scl/fi/9mx3v35g5yx2l99pfyxv1/A3-1236.mov?rlkey=dnlqueajag3a8rbgaf49e440w&st=sfqcvm7r&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1243", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1243", "videoLink": "https://www.dropbox.com/scl/fi/e6qvjfbp7qx24v71usu1e/A3-1243.mov?rlkey=aq7yic2uo828aa0s3miwhopid&st=2d4ydj5d&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1244", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1236", "videoLink": "https://www.dropbox.com/scl/fi/9mx3v35g5yx2l99pfyxv1/A3-1236.mov?rlkey=dnlqueajag3a8rbgaf49e440w&st=sfqcvm7r&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1245", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1245", "videoLink": "https://www.dropbox.com/scl/fi/wlwd11v2uhrvgb8xvlaus/S4-1245.mov?rlkey=ty44z2wzqc1ncwat4tttb5maa&st=qw06ix34&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1247", "sqft": "827", "floorplan": "A4", "videoName": "A4 VIDEO - Apt 1247", "videoLink": "https://www.dropbox.com/scl/fi/4cxwmd999vn2sggg2nq4p/A4-1247.mp4?rlkey=93ckt0gfqflj70jg5019f698a&st=c9n5tuwo&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.3", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "South/East"}, {"unit": "1248", "sqft": "824", "floorplan": "A4", "videoName": "A4 VIDEO - Apt 1248", "videoLink": "https://www.dropbox.com/scl/fi/l5sad03922vcnjvvqgy6q/A4-1248.mov?rlkey=67qy620qutw2nqjrjtfrdkkz2&st=iovn3r90&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "2", "yardi": "RV-A3.3a", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "South/West"}, {"unit": "1301", "sqft": "1148", "floorplan": "B2", "videoName": "B2 VIDEO - Apt 1201", "videoLink": "https://www.dropbox.com/scl/fi/gj998e43kannq39t7zmzy/Reve-1201.mp4?rlkey=3ghuygbnw936utpv5k9rcvf4u&st=coc4lk25&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-B1.5", "bedBath": "2 / 2", "address": "3000 Pearl Parkway", "view": "South/West"}, {"unit": "1302", "sqft": "737", "floorplan": "A2", "videoName": "A2 VIDEO - Apt 1202", "videoLink": "https://www.dropbox.com/scl/fi/ife34lucnr4fendr57x0u/A2-1202.mp4?rlkey=02o7grdo4w0g2agai9507awt5&st=k6sugnf4&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A2.2", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "South"}, {"unit": "1303", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1305", "videoLink": "https://www.dropbox.com/scl/fi/qkouz3yfwtkm13kw4wc4v/A3-1305.mp4?rlkey=x6g042eulmu0t11oeunr8le8r&st=ycfabfoi&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1304", "sqft": "741", "floorplan": "A3", "videoName": "A3 741 VIDEO - Apt 1304", "videoLink": "https://www.dropbox.com/scl/fi/bx263ooa51wjmbmudtuzz/A3-1304.MOV?rlkey=zm1at19um3cdcku9p2grqij2c&st=bxnhmo7p&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1a", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1305", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1305", "videoLink": "https://www.dropbox.com/scl/fi/qkouz3yfwtkm13kw4wc4v/A3-1305.mp4?rlkey=x6g042eulmu0t11oeunr8le8r&st=ycfabfoi&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1306", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1306", "videoLink": "https://www.dropbox.com/scl/fi/7xi0w1nt7fre9aquxw2hf/A3-1306.mov?rlkey=ls05k8tug856dkp87jhq8l278&st=jrnolruy&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1307", "sqft": "983", "floorplan": "A7", "videoName": "A7 VIDEO - Apt 1307", "videoLink": "https://www.dropbox.com/scl/fi/p6cdpq85u00l8znvj059q/A7-1307.mov?rlkey=agl9voxy60ne7v3ybuobm4dbs&st=yhih6ctc&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A4.3", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1308", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1308", "videoLink": "https://www.dropbox.com/scl/fi/z40l7i15s0mtr24ry5ax6/S4-1308.mov?rlkey=hzys7jsebw0zlwht3nhbl14n0&st=n03k6s1g&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1309", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1305", "videoLink": "https://www.dropbox.com/scl/fi/qkouz3yfwtkm13kw4wc4v/A3-1305.mp4?rlkey=x6g042eulmu0t11oeunr8le8r&st=ycfabfoi&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1310", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1340", "videoLink": "https://www.dropbox.com/scl/fi/vg27em221c2mrq7xadu4o/A3-1340.mp4?rlkey=j6vgihvq3dnhufmmfqswghd6q&st=a5fsfch2&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1311", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1313", "videoLink": "https://www.dropbox.com/scl/fi/6fqm9rp8oqi1oahv3dsou/A3-1313.mov?rlkey=k6ta0vylpzrwfma4orzrcw0jb&st=2p4j3xql&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1312", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1312", "videoLink": "https://www.dropbox.com/scl/fi/oz1303iedawu5gxc0hnbp/A3-1312.mp4?rlkey=rrap5lg9ehltrq4eoazro1ef6&st=4bu0ijc8&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1313", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1313", "videoLink": "https://www.dropbox.com/scl/fi/6fqm9rp8oqi1oahv3dsou/A3-1313.mov?rlkey=k6ta0vylpzrwfma4orzrcw0jb&st=2p4j3xql&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1314", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1308", "videoLink": "https://www.dropbox.com/scl/fi/z40l7i15s0mtr24ry5ax6/S4-1308.mov?rlkey=hzys7jsebw0zlwht3nhbl14n0&st=n03k6s1g&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1315", "sqft": "924", "floorplan": "A6", "videoName": "A6 VIDEO - Apt 1215", "videoLink": "https://www.dropbox.com/scl/fi/bg67r20124xmi3galwux1/A6-1215.MOV?rlkey=jyksceo1ztg2xretue587ba6a&st=si6zdhal&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A4.2", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North/West"}, {"unit": "1317", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1317", "videoLink": "https://www.dropbox.com/scl/fi/c4kssvrhc6r95lnnhl8x5/A3-1317.mov?rlkey=dc8q3b0509bhxdyqcpwg7bcy5&st=xx8wz4e1&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1318", "sqft": "1716", "floorplan": "B8", "videoName": "B8 VIDEO - Apt 1318", "videoLink": "https://www.dropbox.com/scl/fi/5yczitjc9a52enkpophvc/B8-1318.MOV?rlkey=32vwdydygl12ja44f9q8jh9fo&st=qsv42tfj&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A7.5", "bedBath": "2 / 2", "address": "3000 Pearl Parkway", "view": "South"}, {"unit": "1319", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1319", "videoLink": "https://www.dropbox.com/scl/fi/6jysa83zwyxubbwnqhmdv/S4-1319.mov?rlkey=vm39e4txeg187t3xhnhl79jux&st=wc2o6di3&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1321", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1321", "videoLink": "https://www.dropbox.com/scl/fi/smf4e8zcvkgduztrtf4h8/A3-1321.mov?rlkey=tdull0tvrqvrdq6v8ukiq6ey1&st=8up352kk&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1322", "sqft": "647", "floorplan": "S3", "videoName": "S3 VIDEO - Apt 1322", "videoLink": "https://www.dropbox.com/scl/fi/w7nn7xopojm2zowlp1wl6/S3-1322.mov?rlkey=o0uc1crwn60tmz48n2gfwy4ha&st=7kpnj068&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A2.3", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "South"}, {"unit": "1323", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1321", "videoLink": "https://www.dropbox.com/scl/fi/smf4e8zcvkgduztrtf4h8/A3-1321.mov?rlkey=tdull0tvrqvrdq6v8ukiq6ey1&st=8up352kk&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1325", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1325", "videoLink": "https://www.dropbox.com/scl/fi/rxn28z0afiecnkltyv2xc/A3-1325.mov?rlkey=9jhibezrl4v8yyte2maatqd80&st=s55eg9cn&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1327", "sqft": "1243", "floorplan": "B7", "videoName": "B7 VIDEO - Apt 1327", "videoLink": "https://www.dropbox.com/scl/fi/4bs2i2grln7fx0avgbawa/B7-1327.MOV?rlkey=21ln4cx1idie15amdmnnnelme&st=cp40f61g&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-B1.6", "bedBath": "2 / 2", "address": "3000 Pearl Parkway", "view": "North/East"}, {"unit": "1329", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1329", "videoLink": "https://www.dropbox.com/scl/fi/25mfasd01im54e1akq9lp/A3-1329.mov?rlkey=omv1pbng9rwf4295ma8pctsma&st=x1c7cclz&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1331", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1331", "videoLink": "https://www.dropbox.com/scl/fi/nrzhfchy5o1he09z4wbi9/IMG_1290.mov?rlkey=3q82r2ldb98ea46j6ix6boq3s&st=v7n6ddse&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1332", "sqft": "686", "floorplan": "S4", "videoName": "S4 686 VIDEO - Apt 1332", "videoLink": "https://www.dropbox.com/s/h4f97i1gacnb1if/S4%20(686)%20-%201332.mp4?st=uyhkurj5&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A2.1a", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1333", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1333", "videoLink": "https://www.dropbox.com/scl/fi/2gnn5nsp334quh1bc8311/A3-1333.mov?rlkey=c238hi31ibez1p5gyrn9zr1c5&st=qfep37ik&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1334", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1336", "videoLink": "https://www.dropbox.com/scl/fi/fhio27ppz78uwpc6h5jgh/A3-1336.mov?rlkey=k6pg6uh3lsmtwrgyvwpq9cl3y&st=ifkrh3n3&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1335", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1329", "videoLink": "https://www.dropbox.com/scl/fi/25mfasd01im54e1akq9lp/A3-1329.mov?rlkey=omv1pbng9rwf4295ma8pctsma&st=x1c7cclz&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1336", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1336", "videoLink": "https://www.dropbox.com/scl/fi/fhio27ppz78uwpc6h5jgh/A3-1336.mov?rlkey=k6pg6uh3lsmtwrgyvwpq9cl3y&st=ifkrh3n3&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1337", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1343", "videoLink": "https://www.dropbox.com/scl/fi/yplxy93o28tosvns9y2k6/A3-1343-3.mp4?rlkey=3htc116z5zy49xutaqi3ek64i&st=f5hyfvvl&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1338", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1338", "videoLink": "https://www.dropbox.com/scl/fi/sngj69px2lo09fp9jq5cp/S4-1338.mp4?rlkey=9ny0kgvvxm0md44bpwny3iwnm&st=zj3shudi&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1339", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1343", "videoLink": "https://www.dropbox.com/scl/fi/yplxy93o28tosvns9y2k6/A3-1343-3.mp4?rlkey=3htc116z5zy49xutaqi3ek64i&st=f5hyfvvl&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1340", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1340", "videoLink": "https://www.dropbox.com/scl/fi/vg27em221c2mrq7xadu4o/A3-1340.mp4?rlkey=j6vgihvq3dnhufmmfqswghd6q&st=a5fsfch2&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1341", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1343", "videoLink": "https://www.dropbox.com/scl/fi/yplxy93o28tosvns9y2k6/A3-1343-3.mp4?rlkey=3htc116z5zy49xutaqi3ek64i&st=f5hyfvvl&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1342", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1340", "videoLink": "https://www.dropbox.com/scl/fi/vg27em221c2mrq7xadu4o/A3-1340.mp4?rlkey=j6vgihvq3dnhufmmfqswghd6q&st=a5fsfch2&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1343", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1343", "videoLink": "https://www.dropbox.com/scl/fi/yplxy93o28tosvns9y2k6/A3-1343-3.mp4?rlkey=3htc116z5zy49xutaqi3ek64i&st=f5hyfvvl&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1344", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1340", "videoLink": "https://www.dropbox.com/scl/fi/vg27em221c2mrq7xadu4o/A3-1340.mp4?rlkey=j6vgihvq3dnhufmmfqswghd6q&st=a5fsfch2&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1345", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1331", "videoLink": "https://www.dropbox.com/scl/fi/nrzhfchy5o1he09z4wbi9/IMG_1290.mov?rlkey=3q82r2ldb98ea46j6ix6boq3s&st=v7n6ddse&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1347", "sqft": "827", "floorplan": "A4", "videoName": "A4 VIDEO - Apt 1347", "videoLink": "https://www.dropbox.com/scl/fi/3o7minti7367irwp6jvau/IMG_0375.mov?rlkey=ct1ztub9k53r3krh7aues7fxo&st=0kcwyu10&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.3", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "South"}, {"unit": "1348", "sqft": "824", "floorplan": "A4", "videoName": "A4 VIDEO - Apt 1348", "videoLink": "https://www.dropbox.com/scl/fi/x2ro7vafysjgr95gnt1d5/A4-1348.mov?rlkey=rzw58w43de4gx6bgzn9cvfxu0&st=uywj3k6h&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "3", "yardi": "RV-A3.3a", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "South/West"}, {"unit": "1403", "sqft": "1285", "floorplan": "B5", "videoName": "B5 1285 Floorplan - Apt 1403", "videoLink": "https://www.dropbox.com/scl/fi/w32rw2eyo8a9vtwvz1urg/1403_floorplan.JPG?rlkey=iejz0xidfjbbmu7ibvp6axkyi&st=lqh3g7h5&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-B1.9", "bedBath": "2 / 2", "address": "3000 Pearl Parkway", "view": "South/West"}, {"unit": "1404", "sqft": "741", "floorplan": "A3", "videoName": "A3 741 VIDEO - Apt 1304", "videoLink": "https://www.dropbox.com/scl/fi/bx263ooa51wjmbmudtuzz/A3-1304.MOV?rlkey=zm1at19um3cdcku9p2grqij2c&st=bxnhmo7p&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1a", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "South/East"}, {"unit": "1405", "sqft": "664", "floorplan": "A3", "videoName": "A3 664 VIDEO - Apt 1405", "videoLink": "https://www.dropbox.com/scl/fi/niyxxj3ask91qkkgj99xf/A3-1405.mov?rlkey=6rvoj23dkaczmkk443r6a86o8&st=gacjbkkn&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.2", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1406", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1410", "videoLink": "https://www.dropbox.com/scl/fi/dme9xdbh9c938mesbyq5v/A3-1410.mov?rlkey=qusese32efi03htj59qjani9r&st=bsdfapoq&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1407", "sqft": "882", "floorplan": "A7", "videoName": "NO VIDEO", "videoLink": "", "correctVideo": null, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A4.4", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1408", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1408", "videoLink": "https://www.dropbox.com/scl/fi/2bcjtksl6njyfbzs2yq85/S4-Apt-1408.mov?rlkey=o0sxko7t7j0b8kgcs0xe6fgla&st=4lt1lyl6&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1409", "sqft": "664", "floorplan": "A3", "videoName": "A3 664 VIDEO - Apt 1409", "videoLink": "https://www.dropbox.com/scl/fi/niyxxj3ask91qkkgj99xf/A3-1405.mov?rlkey=6rvoj23dkaczmkk443r6a86o8&st=gacjbkkn&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.2", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1410", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1410", "videoLink": "https://www.dropbox.com/scl/fi/dme9xdbh9c938mesbyq5v/A3-1410.mov?rlkey=qusese32efi03htj59qjani9r&st=bsdfapoq&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1411", "sqft": "664", "floorplan": "A3", "videoName": "A3 664 VIDEO - Apt 1409", "videoLink": "https://www.dropbox.com/scl/fi/niyxxj3ask91qkkgj99xf/A3-1405.mov?rlkey=6rvoj23dkaczmkk443r6a86o8&st=gacjbkkn&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.2", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1412", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1410", "videoLink": "https://www.dropbox.com/scl/fi/dme9xdbh9c938mesbyq5v/A3-1410.mov?rlkey=qusese32efi03htj59qjani9r&st=bsdfapoq&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1413", "sqft": "664", "floorplan": "A3", "videoName": "A3 664 VIDEO - Apt 1405", "videoLink": "https://www.dropbox.com/scl/fi/niyxxj3ask91qkkgj99xf/A3-1405.mov?rlkey=6rvoj23dkaczmkk443r6a86o8&st=gacjbkkn&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.2", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1414", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1414", "videoLink": "https://www.dropbox.com/scl/fi/q5y0zl09h3pbbhgti8zn4/S4-1414.mp4?rlkey=f4v0euzxrjy0v10a44pxp15jc&st=wp4qragi&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1415", "sqft": "924", "floorplan": "A6", "videoName": "A6 VIDEO - Apt 1215", "videoLink": "https://www.dropbox.com/scl/fi/bg67r20124xmi3galwux1/A6-1215.MOV?rlkey=jyksceo1ztg2xretue587ba6a&st=si6zdhal&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A4.2", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North/West"}, {"unit": "1417", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1417", "videoLink": "https://www.dropbox.com/scl/fi/50gopmgzqyoo4j367vy27/A3-1417.mov?rlkey=9xs5kxeazf6aa04ggb2ia4pz5&st=uv2i3fr8&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1419", "sqft": "581", "floorplan": "S2", "videoName": "S2 VIDEO - Apt 1419", "videoLink": "https://www.dropbox.com/scl/fi/t9zbr796id2c1z8h1x6mh/S2-1419.mp4?rlkey=lrtm2sqglf1ff21i2jakhfblp&st=ytu3eb6z&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A2.5", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1420", "sqft": "1716", "floorplan": "B8", "videoName": "B8 VIDEO - Apt 1420", "videoLink": "https://www.dropbox.com/scl/fi/lag8rnpkbkzbkjt4mvpmy/B8-1420.mp4?rlkey=05wo6f1181byk6alja3cnjnko&st=90shzwow&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A7.5", "bedBath": "2 / 2", "address": "3000 Pearl Parkway", "view": "South"}, {"unit": "1421", "sqft": "664", "floorplan": "A3", "videoName": "A3 664 VIDEO - Apt 1421", "videoLink": "https://www.dropbox.com/scl/fi/0f9298vs37gg5iv1juslh/A3-1421.mp4?rlkey=3b5yadfdx9i6fcvuuz88hud16&st=064ewd4l&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.2", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1422", "sqft": "647", "floorplan": "S3", "videoName": "S3 VIDEO - Apt 1422", "videoLink": "https://www.dropbox.com/scl/fi/5fi3u4qvwwtseekug3mu1/S3-1422.mp4?rlkey=wu1vjqvgnuiqvqe2fgwlrfsy1&st=6tzpejjz&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A2.3", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "South"}, {"unit": "1423", "sqft": "664", "floorplan": "A3", "videoName": "A3 664 VIDEO - Apt 1421", "videoLink": "https://www.dropbox.com/scl/fi/0f9298vs37gg5iv1juslh/A3-1421.mp4?rlkey=3b5yadfdx9i6fcvuuz88hud16&st=064ewd4l&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.2", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1425", "sqft": "664", "floorplan": "A3", "videoName": "A3 664 VIDEO - Apt 1425", "videoLink": "https://www.dropbox.com/scl/fi/uu3qvgcmfl2u5xd77mg39/A3-1425.mp4?rlkey=sdeevpxie927cmbzklbl2gjqb&st=766qfn4o&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.2", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1427", "sqft": "1004", "floorplan": "A8", "videoName": "NO VIDEO", "videoLink": "", "correctVideo": null, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-B1.7", "bedBath": "1 / 1.5", "address": "3000 Pearl Parkway", "view": "North"}, {"unit": "1429", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1443", "videoLink": "https://www.dropbox.com/scl/fi/8f7gxfz0nl5xbi5arfem8/A3-1443.mp4?rlkey=w9rd4535miiymn2k0d259uquz&st=vd9i32ew&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1431", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1431", "videoLink": "https://www.dropbox.com/scl/fi/3a9cx5tv23f68te1ayqci/S4-1431.mp4?rlkey=squ28ch9xf6435wbhjdhayeog&st=wquvtsif&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1432", "sqft": "686", "floorplan": "S4", "videoName": "S4 686 VIDEO - Apt 1432", "videoLink": "https://www.dropbox.com/scl/fi/cig8oudu00c48l7btey29/S4-686-Apt-1432.mov?rlkey=ew80sic62otvo30fpeuo6cr9c&st=zvxft64p&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A2.1a", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1433", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1433", "videoLink": "https://www.dropbox.com/scl/fi/8f7gxfz0nl5xbi5arfem8/A3-1443.mp4?rlkey=w9rd4535miiymn2k0d259uquz&st=vd9i32ew&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1434", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1434", "videoLink": "https://www.dropbox.com/scl/fi/9fox9kkxdqdjjbeci5icy/A3-1434.mov?rlkey=r699d9tvayh6xdexmm1zz6o4m&st=fac80vpz&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1435", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1433", "videoLink": "https://www.dropbox.com/scl/fi/8f7gxfz0nl5xbi5arfem8/A3-1443.mp4?rlkey=w9rd4535miiymn2k0d259uquz&st=vd9i32ew&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1436", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1444", "videoLink": "https://www.dropbox.com/scl/fi/o8v8iu7czwj5sxm7lcsq3/A3-1444.mov?rlkey=23ubof4650joljlwwm36jh380&st=6acjlr31&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1437", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1437", "videoLink": "https://www.dropbox.com/scl/fi/9a5c5mf6szeped3vxwrd5/A3-1437.mp4?rlkey=8yhz2edy3ezml038g64onkr60&st=i2hm7mmj&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1438", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1438", "videoLink": "https://www.dropbox.com/scl/fi/i9ikuwf57sj808d13ikhf/S4-1438.mov?rlkey=zobix05k429axn4kdil9zzpum&st=w9szntf6&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1439", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1441", "videoLink": "https://www.dropbox.com/scl/fi/8dv4y6c52pqpd8vv3mpxf/A3-1441.mp4?rlkey=tz36w5a1enpduumfpfqci9ipa&st=a9a0liu0&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1440", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1440", "videoLink": "https://www.dropbox.com/scl/fi/l5rtks1g66ltl30ijgxot/A3-1440.mov?rlkey=dltz5qprp5qh50mslokzzqy93&st=zogr1tu6&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1441", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1441", "videoLink": "https://www.dropbox.com/scl/fi/8dv4y6c52pqpd8vv3mpxf/A3-1441.mp4?rlkey=tz36w5a1enpduumfpfqci9ipa&st=a9a0liu0&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1442", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1444", "videoLink": "https://www.dropbox.com/scl/fi/o8v8iu7czwj5sxm7lcsq3/A3-1444.mov?rlkey=23ubof4650joljlwwm36jh380&st=6acjlr31&dl=0", "correctVideo": false, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1443", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1443", "videoLink": "https://www.dropbox.com/scl/fi/8f7gxfz0nl5xbi5arfem8/A3-1443.mp4?rlkey=w9rd4535miiymn2k0d259uquz&st=vd9i32ew&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1444", "sqft": "767", "floorplan": "A3", "videoName": "A3 VIDEO - Apt 1444", "videoLink": "https://www.dropbox.com/scl/fi/o8v8iu7czwj5sxm7lcsq3/A3-1444.mov?rlkey=23ubof4650joljlwwm36jh380&st=6acjlr31&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A3.1", "bedBath": "1 / 1", "address": "3000 Pearl Parkway", "view": "West"}, {"unit": "1445", "sqft": "703", "floorplan": "S4", "videoName": "S4 VIDEO - Apt 1445", "videoLink": "https://www.dropbox.com/scl/fi/7oe1er3x9v7hyl92lhu7t/S4-1445.mov?rlkey=9vij740pcjyk6j87g7v70dylh&st=jmdwxddf&dl=0", "correctVideo": true, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-A2.1", "bedBath": "0 / 1", "address": "3000 Pearl Parkway", "view": "East"}, {"unit": "1447", "sqft": "1173", "floorplan": "B4", "videoName": "NO VIDEO", "videoLink": "", "correctVideo": null, "bldg": "Bldg 1", "floor": "4", "yardi": "RV-B1.8", "bedBath": "2 / 1", "address": "3000 Pearl Parkway", "view": "South/West"}, {"unit": "3103", "sqft": "1732", "floorplan": "LW1", "videoName": "LW1 1732 VIDEO - Apt 3103", "videoLink": "https://www.dropbox.com/scl/fi/3n8717oerrj4wzd5hyln8/LW1-3103.mp4?rlkey=wmqu6kcb1xfeqmc8vxanycxqu&st=k6tuwmij&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "1", "yardi": "RV-LW4", "bedBath": "1 / 1.5", "address": "2130 30th Street", "view": "West"}, {"unit": "3104", "sqft": "895", "floorplan": "A5", "videoName": "A5 FURNISHED MODEL VIDEO - Apt 3104", "videoLink": "https://www.dropbox.com/scl/fi/2xtqwc2vbxl8ti56bsw7m/A5-3104-Model.mp4?rlkey=rfv9q8mt6jzb5q0rgekt9c0mf&st=i9trjk2z&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "1", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3105", "sqft": "1732", "floorplan": "LW1", "videoName": "LW1 1732 VIDEO - Apt 3109", "videoLink": "https://www.dropbox.com/scl/fi/u1c352dwll165n0gl05xt/LW1-3109.mov?rlkey=rqfukpttu51jnjczh2oztnsaw&st=p0th4ysd&dl=0", "correctVideo": false, "bldg": "Bldg 3", "floor": "1", "yardi": "RV-LW4", "bedBath": "1 / 1.5", "address": "2130 30th Street", "view": "West"}, {"unit": "3106", "sqft": "548", "floorplan": "A1", "videoName": "A1 FURNISHED MODEL - Apt 3106", "videoLink": "https://www.dropbox.com/scl/fi/jywnaxkomebp7p3xww9a2/A1-3106-Guest-Suite.mov?rlkey=ji8phd4r2tsjy1x1i8qf2cif8&st=7fkgx8iv&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "1", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3107", "sqft": "1732", "floorplan": "LW1", "videoName": "LW1 1732 VIDEO - Apt 3107", "videoLink": "https://www.dropbox.com/scl/fi/fcdto4hgycf7keoo0ec7y/LW1-3107.mov?rlkey=slvjajd5zh1vquxzs7l22ovic&st=8vn039ye&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "1", "yardi": "RV-LW4", "bedBath": "1 / 1.5", "address": "2130 30th Street", "view": "West"}, {"unit": "3108", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 3308", "videoLink": "https://www.dropbox.com/scl/fi/b84xo3qza7p9tes878j7w/A5-3308.mp4?rlkey=b9je2bv0annsj37090lke921d&st=axz00651&dl=0", "correctVideo": false, "bldg": "Bldg 3", "floor": "1", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3109", "sqft": "1732", "floorplan": "LW1", "videoName": "LW1 1732 VIDEO - Apt 3109", "videoLink": "https://www.dropbox.com/scl/fi/u1c352dwll165n0gl05xt/LW1-3109.mov?rlkey=rqfukpttu51jnjczh2oztnsaw&st=p0th4ysd&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "1", "yardi": "RV-LW4", "bedBath": "1 / 1.5", "address": "2130 30th Street", "view": "West"}, {"unit": "3110", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 3110", "videoLink": "https://www.dropbox.com/scl/fi/m6tacjnjhrea3izqfs16f/A1-3110.mov?rlkey=292dcc42vvl8sx8uiwzdmzsgm&st=gjib8g8a&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "1", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3111", "sqft": "1732", "floorplan": "LW1", "videoName": "LW1 1732 VIDEO - Apt 3111", "videoLink": "https://www.dropbox.com/scl/fi/zqytgnrdm0pksjud3svi6/LW1-Apt-3111.mov?rlkey=7ec7pfc1kzfswm5e8esge0xbj&st=6jaood2b&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "1", "yardi": "RV-LW4", "bedBath": "1 / 1.5", "address": "2130 30th Street", "view": "West"}, {"unit": "3112", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 3112", "videoLink": "https://www.dropbox.com/scl/fi/29srd5g05mqsgmrgytelc/A1-3112.mov?rlkey=4aaol54btxlhthcab49m2l49m&st=79z7q4mh&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "1", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3113", "sqft": "1090", "floorplan": "A9", "videoName": "A9 VIDEO - Apt 3113", "videoLink": "https://www.dropbox.com/scl/fi/h48gfbchvfkaclipgh1g1/A9-3113.mp4?rlkey=wjsraafyt6m049vts433bg6z5&st=pb0dy3ng&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "1", "yardi": "RV-A7.1", "bedBath": "1.5 / 1", "address": "2130 30th Street", "view": "South/West"}, {"unit": "3114", "sqft": "1020", "floorplan": "B1", "videoName": "B1 VIDEO - Apt 3114", "videoLink": "https://www.dropbox.com/scl/fi/ngnerg61i69dn9kjoar4o/B1-3114.mov?rlkey=zg5y5w9hvmaq7owjvth3rezga&st=woq8nolo&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "1", "yardi": "RV-B1.3", "bedBath": "2 / 2", "address": "2130 30th Street", "view": "South"}, {"unit": "3202", "sqft": "2030", "floorplan": "C3", "videoName": "C3 VIDEO - Apt 3202", "videoLink": "https://www.dropbox.com/scl/fi/mxchrazw20p15fsmobk5d/3202-video-tour.MOV?rlkey=bvfsdyc27o5a95sacw5l2xgay&st=9bh5k6wv&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "2", "yardi": "RV-C3.1", "bedBath": "3 / 3.5", "address": "2130 30th Street", "view": "North/West"}, {"unit": "3204", "sqft": "895", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 3204", "videoLink": "https://www.dropbox.com/scl/fi/nlf2z8lpi1fhity13ozto/A5-3-204-1.mp4?rlkey=zvkkrkwuk8pjjvwl2hdnqrazi&st=vpjroumz&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "2", "yardi": "RV-A5.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3206", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 3206", "videoLink": "https://www.dropbox.com/scl/fi/0bzic89n3p11yl9jya6w6/A1-Apt-3206.mov?rlkey=j0v680h83bwjx28xh14y0mc9f&st=4ijcsz0w&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "2", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3208", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 3308", "videoLink": "https://www.dropbox.com/scl/fi/b84xo3qza7p9tes878j7w/A5-3308.mp4?rlkey=b9je2bv0annsj37090lke921d&st=axz00651&dl=0", "correctVideo": false, "bldg": "Bldg 3", "floor": "2", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3210", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 3206", "videoLink": "https://www.dropbox.com/scl/fi/0bzic89n3p11yl9jya6w6/A1-Apt-3206.mov?rlkey=j0v680h83bwjx28xh14y0mc9f&st=4ijcsz0w&dl=0", "correctVideo": false, "bldg": "Bldg 3", "floor": "2", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3212", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 3212", "videoLink": "https://www.dropbox.com/scl/fi/njp7w0v6j2ogsw8edstw8/A5-3212.mov?rlkey=prs2xqbcz6jvpye9vvec96is9&st=5wwjpn8b&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "2", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3213", "sqft": "1090", "floorplan": "A9", "videoName": "A9 VIDEO - Apt 3213", "videoLink": "https://www.dropbox.com/scl/fi/kkwslg2z1n6ckbisf1ev1/A9-3213.mov?rlkey=zfwmhzqxgg7a6ikb6av442cle&st=we8t6gcg&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "2", "yardi": "RV-A7.1", "bedBath": "1.5 / 1", "address": "2130 30th Street", "view": "South/West"}, {"unit": "3214", "sqft": "1020", "floorplan": "B1", "videoName": "B1 VIDEO - Apt 3214", "videoLink": "https://www.dropbox.com/scl/fi/zselj6wyxx8zqv14acln7/B1-3214.mp4?rlkey=47urrpebzjb1fsa627hqig04h&st=l4x6kxat&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "2", "yardi": "RV-B1.3", "bedBath": "2 / 2", "address": "2130 30th Street", "view": "South"}, {"unit": "3301", "sqft": "1150", "floorplan": "--", "videoName": "2D Floorplan - Apt 3301", "videoLink": "https://www.dropbox.com/scl/fi/sl7ymbh8udck3njq1vx40/3301_Floorplan.pdf?rlkey=awi10wgsa2j1vqr3gadbhoa5r&st=44epkasf&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "3", "yardi": "RV-A7.6", "bedBath": "1.5 / 1.5", "address": "2130 30th Street", "view": "North/West"}, {"unit": "3302", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 3302", "videoLink": "https://www.dropbox.com/scl/fi/wrqatotle9mppthxnk09b/A1-3302.mov?rlkey=xcj8s7pis532ecy27qwhjledl&st=jxbuolxm&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "3", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "North/East"}, {"unit": "3303", "sqft": "1062", "floorplan": "A9", "videoName": "A9 1.5 Bath VIDEO - Apt 4328", "videoLink": "https://www.dropbox.com/scl/fi/6dlvqwnn9yx4xdgcu8zy8/A9-4328.mp4?rlkey=w8flqr6kztut60e7gut7vr4bu&st=xney7vwr&dl=0", "correctVideo": null, "bldg": "Bldg 3", "floor": "3", "yardi": "RV-A7.2", "bedBath": "1.5 / 1.5", "address": "2130 30th Street", "view": "West"}, {"unit": "3304", "sqft": "895", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 3204", "videoLink": "https://www.dropbox.com/scl/fi/nlf2z8lpi1fhity13ozto/A5-3-204-1.mp4?rlkey=zvkkrkwuk8pjjvwl2hdnqrazi&st=vpjroumz&dl=0", "correctVideo": false, "bldg": "Bldg 3", "floor": "3", "yardi": "RV-A5.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3305", "sqft": "1740", "floorplan": "C2", "videoName": "C2 VIDEO - Apt 3307", "videoLink": "https://www.dropbox.com/scl/fi/o9f8b5jdtsu0jcvj24m52/C2-Apt-3307.mov?rlkey=1t26sphsh0v7e7mww2qedqjak&st=gfno6k6r&dl=0", "correctVideo": false, "bldg": "Bldg 3", "floor": "3", "yardi": "RV-C2.2", "bedBath": "3 / 2", "address": "2130 30th Street", "view": "West"}, {"unit": "3306", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 3306", "videoLink": "https://www.dropbox.com/scl/fi/vuyo4502e0ilp7a59zbmt/A1-3306.mov?rlkey=q3w22fpc8bxopfwvmsspzr0iq&st=nzh5c3ot&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "3", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3307", "sqft": "1740", "floorplan": "C2", "videoName": "C2 VIDEO - Apt 3307", "videoLink": "https://www.dropbox.com/scl/fi/o9f8b5jdtsu0jcvj24m52/C2-Apt-3307.mov?rlkey=1t26sphsh0v7e7mww2qedqjak&st=gfno6k6r&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "3", "yardi": "RV-C2.2", "bedBath": "3 / 2", "address": "2130 30th Street", "view": "West"}, {"unit": "3308", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 3308", "videoLink": "https://www.dropbox.com/scl/fi/b84xo3qza7p9tes878j7w/A5-3308.mp4?rlkey=b9je2bv0annsj37090lke921d&st=axz00651&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "3", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3309", "sqft": "1090", "floorplan": "A9", "videoName": "A9 - Apt 3309", "videoLink": "https://www.dropbox.com/scl/fi/0zawxdm7rzkc8g09cy4m6/A9-3309.mp4?rlkey=5vu5c98yia2kxwq70j12jrfz5&st=29ttm8dx&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "3", "yardi": "RV-A7.1", "bedBath": "1.5 / 1", "address": "2130 30th Street", "view": "South/West"}, {"unit": "3310", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 3110", "videoLink": "https://www.dropbox.com/scl/fi/m6tacjnjhrea3izqfs16f/A1-3110.mov?rlkey=292dcc42vvl8sx8uiwzdmzsgm&st=l4zukhse&dl=0", "correctVideo": false, "bldg": "Bldg 3", "floor": "3", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3312", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 3312", "videoLink": "https://www.dropbox.com/scl/fi/njp7w0v6j2ogsw8edstw8/A5-3212.mov?rlkey=prs2xqbcz6jvpye9vvec96is9&st=5wwjpn8b&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "3", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3314", "sqft": "940", "floorplan": "A7", "videoName": "A7 940 VIDEO - Apt 3314", "videoLink": "https://www.dropbox.com/scl/fi/a0czdlunuktp0cfcx6xxg/A7-3314.mp4?rlkey=wjsb08qk2n3tvtzrzdnwu87gt&st=pfccm0lg&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "3", "yardi": "RV-A7.4", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "South"}, {"unit": "3403", "sqft": "1890", "floorplan": "PH6", "videoName": "PH6", "videoLink": "https://www.reveboulder.com/floorplans/ph6-penthouse", "correctVideo": null, "bldg": "Bldg 3", "floor": "4", "yardi": "RV-PH4", "bedBath": "3 / 3", "address": "2130 30th Street", "view": "North/West"}, {"unit": "3404", "sqft": "895", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 3404", "videoLink": "https://www.dropbox.com/scl/fi/9cuu0zl7eyzdzrbdot5aa/A5-3404.mov?rlkey=79ffr9wcwu7ays7vsp4qz1mx4&st=2dff5n2a&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "4", "yardi": "RV-A5.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3405", "sqft": "1740", "floorplan": "C2", "videoName": "C2 VIDEO - Apt 3407", "videoLink": "https://www.dropbox.com/scl/fi/al1aq7b6owbinzatrzc3v/C1-3407.mp4?rlkey=ar466u6b09lhb40iwe4gkfnh7&st=rmtwtea8&dl=0", "correctVideo": false, "bldg": "Bldg 3", "floor": "4", "yardi": "RV-C2.2", "bedBath": "3 / 2", "address": "2130 30th Street", "view": "West"}, {"unit": "3406", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 3206", "videoLink": "https://www.dropbox.com/scl/fi/0bzic89n3p11yl9jya6w6/A1-3206.mov?rlkey=j0v680h83bwjx28xh14y0mc9f&st=iu0krdtp&dl=0", "correctVideo": false, "bldg": "Bldg 3", "floor": "4", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3407", "sqft": "1740", "floorplan": "C2", "videoName": "C2 VIDEO - Apt 3407", "videoLink": "https://www.dropbox.com/scl/fi/al1aq7b6owbinzatrzc3v/C1-3407.mp4?rlkey=ar466u6b09lhb40iwe4gkfnh7&st=rmtwtea8&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "4", "yardi": "RV-C2.2", "bedBath": "3 / 2", "address": "2130 30th Street", "view": "West"}, {"unit": "3408", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 3408", "videoLink": "https://www.dropbox.com/scl/fi/r6g3fjxfwm7sosmb4ncg0/A5-3408.mov?rlkey=srzxjnhvjj5rdosur7h9lyfal&st=94kps5wv&dl=0", "correctVideo": true, "bldg": "Bldg 3", "floor": "4", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3410", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 3206", "videoLink": "https://www.dropbox.com/scl/fi/0bzic89n3p11yl9jya6w6/A1-3206.mov?rlkey=j0v680h83bwjx28xh14y0mc9f&st=u2ciz29i&dl=0", "correctVideo": false, "bldg": "Bldg 3", "floor": "4", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3412", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 3212", "videoLink": "https://www.dropbox.com/scl/fi/njp7w0v6j2ogsw8edstw8/A5-3212.mov?rlkey=prs2xqbcz6jvpye9vvec96is9&st=5wwjpn8b&dl=0", "correctVideo": false, "bldg": "Bldg 3", "floor": "4", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2130 30th Street", "view": "East"}, {"unit": "3414", "sqft": "1800", "floorplan": "PH2", "videoName": "PH2 VIDEO - Apt 3414", "videoLink": "https://www.youtube.com/watch?v=ZRMGHGEWYwc&t=13s", "correctVideo": true, "bldg": "Bldg 3", "floor": "4", "yardi": "RV-PH2", "bedBath": "2 / 2", "address": "2130 30th Street", "view": "South/West"}, {"unit": "4116", "sqft": "1350", "floorplan": "TH1", "videoName": "TH1 VIDEO - Apt 4116", "videoLink": "https://www.dropbox.com/scl/fi/b5nemzvgf7q15al8iiu2t/TH1-4116.mp4?rlkey=x3apd54v8olw9ulubqguj1vf0&st=lb4csxb8&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-TH1", "bedBath": "1 / 1.5", "address": "2120 Junction Place", "view": "North"}, {"unit": "4118", "sqft": "1350", "floorplan": "TH1", "videoName": "TH1 VIDEO - Apt 4118", "videoLink": "https://www.dropbox.com/scl/fi/fo57wamebu0au8ede18xr/TH1-4118.mov?rlkey=q1nf4ksuxuztt2080vgy3qcwz&st=emjdegp2&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-TH1", "bedBath": "1 / 1.5", "address": "2120 Junction Place", "view": "North"}, {"unit": "4120", "sqft": "1240", "floorplan": "--", "videoName": "B6 VIDEO - Apt 4120", "videoLink": "https://www.dropbox.com/scl/fi/iq99apa25zl3j3g4zgajg/B2-4120.mp4?rlkey=vzgl0iroseyixah7lr35k3955&st=0stilu8i&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-B2.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "South"}, {"unit": "4121", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4121", "videoLink": "https://www.dropbox.com/scl/fi/v7n3kvoihz063nh1yn8vx/A5-4121.mov?rlkey=vx8hs4eimei9j52mkfr0ga8sq&st=zdpzs85v&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "South/East"}, {"unit": "4122", "sqft": "1211", "floorplan": "B5", "videoName": "B5 VIDEO - Apt 4122", "videoLink": "https://www.dropbox.com/scl/fi/ur2uhp4ijmebe51nfwtky/B5-Apt-4122.mov?rlkey=zqs9ufsromwuago6nlttmj7yw&st=6sdvk94e&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4123", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4123", "videoLink": "https://www.dropbox.com/scl/fi/92fffhrujh9rlo3fedc7d/A5-4123.mov?rlkey=jg59jnj4cs52kcqgvmxizuylt&st=t08tk3qv&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4124", "sqft": "1211", "floorplan": "B5", "videoName": "B5 VIDEO - Apt 4124", "videoLink": "https://www.dropbox.com/scl/fi/24al1pofqd4pnsgbjzbd6/B5-4124.mov?rlkey=xxwlukbt01k8vxvn0kx9ao6tq&st=nttjl52b&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4125", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4125", "videoLink": "https://www.dropbox.com/scl/fi/5ugi6hewm08v2zth1jd5x/A1-4125.mov?rlkey=56n5w09lr93q1vrqx02c8kh35&st=rtzc70oc&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4126", "sqft": "1211", "floorplan": "B5", "videoName": "B5 VIDEO - Apt 4126", "videoLink": "https://www.dropbox.com/scl/fi/f1702pxk2ox7le13befs4/B5-4126.mov?rlkey=x21v03ju2iqlrym3jyxie89dd&st=5gbuns47&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4127", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4123", "videoLink": "https://www.dropbox.com/scl/fi/92fffhrujh9rlo3fedc7d/A5-4123.mov?rlkey=jg59jnj4cs52kcqgvmxizuylt&st=t08tk3qv&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4128", "sqft": "1062", "floorplan": "A9", "videoName": "A9 1.5 Bath VIDEO - Apt 4128", "videoLink": "https://www.dropbox.com/scl/fi/8pl573mvmrepfwpmi6mcx/A9-4128.mp4?rlkey=bqgy67pbkdcw5136ihelu8flu&st=xbyeipg5&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-A7.2", "bedBath": "1.5 / 1.5", "address": "2120 Junction Place", "view": "West"}, {"unit": "4129", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4129", "videoLink": "https://www.dropbox.com/scl/fi/g8q5mhnikesdwzo9oml8p/A1-4129.mov?rlkey=3gtma19clmamro41va6jr17yc&st=6759ludj&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4130", "sqft": "1211", "floorplan": "B5", "videoName": "B5 VIDEO - Apt 4130", "videoLink": "https://www.dropbox.com/scl/fi/9atjsy7x3r0mnbnek57x4/B5-Apt-4130.mov?rlkey=yehsoneskfxpj2z2tlo43qgws&st=a07j5oln&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4131", "sqft": "895", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4131", "videoLink": "https://www.dropbox.com/scl/fi/7gt8eg9gv4m5h8yxbmwkz/A5-4131.mov?rlkey=2f3264y3n7gdd536of947ru08&st=0ungev7e&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-A5.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4132", "sqft": "1090", "floorplan": "A9", "videoName": "A9 VIDEO - Apt 4132", "videoLink": "https://www.dropbox.com/scl/fi/f7x6g79746eynvi53l0iu/A9-4132.mp4?rlkey=h1iemfx8enysld0ws6h79qd3y&st=2kudeaw9&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-A7.1", "bedBath": "1.5 / 1", "address": "2120 Junction Place", "view": "North/West"}, {"unit": "4134", "sqft": "1350", "floorplan": "TH1", "videoName": "TH1 VIDEO - Apt 4116", "videoLink": "https://www.dropbox.com/scl/fi/b5nemzvgf7q15al8iiu2t/TH1-4116.mp4?rlkey=x3apd54v8olw9ulubqguj1vf0&st=lb4csxb8&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-TH1", "bedBath": "1 / 1.5", "address": "2120 Junction Place", "view": "North/West"}, {"unit": "4136", "sqft": "1350", "floorplan": "TH1", "videoName": "TH1 VIDEO - Apt 4116", "videoLink": "https://www.dropbox.com/scl/fi/b5nemzvgf7q15al8iiu2t/TH1-4116.mp4?rlkey=x3apd54v8olw9ulubqguj1vf0&st=lb4csxb8&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-TH1", "bedBath": "1 / 1.5", "address": "2120 Junction Place", "view": "North"}, {"unit": "4138", "sqft": "1765", "floorplan": "TH2", "videoName": "TH2 1765 VIDEO - Apt 4138", "videoLink": "https://www.dropbox.com/scl/fi/3oh1473yy4iyzaxcczmyn/TH2-4138.MOV?rlkey=g0trouupbhexn0iqwfx2sus34&st=mduc1t84&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-TH1A", "bedBath": "2 / 2.5", "address": "2120 Junction Place", "view": "North/West"}, {"unit": "4139", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4139", "videoLink": "https://www.dropbox.com/scl/fi/rwtm59vfio4t3oba3tauc/A1-4139.mov?rlkey=fxnxbsagmn0aa16ttdzzu55yk&st=a5jrueg5&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "South"}, {"unit": "4140", "sqft": "1765", "floorplan": "TH2", "videoName": "TH2 1765 VIDEO - Apt 4140", "videoLink": "https://www.dropbox.com/scl/fi/5il2d0qotp1mgouqv4lgw/TH2-4140.mp4?rlkey=9259pos2sfbsjaurkiugylbzh&st=hdzto9e7&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-TH1A", "bedBath": "2 / 2.5", "address": "2120 Junction Place", "view": "North"}, {"unit": "4141", "sqft": "1150", "floorplan": "B3", "videoName": "B3 VIDEO - Apt 4141", "videoLink": "https://www.dropbox.com/scl/fi/80sl2e9cccvxxzz67s362/B3-4141.mp4?rlkey=9rgjmh9h7rn386rhfkk9ak95i&st=v1i16t62&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-B8.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "South"}, {"unit": "4144", "sqft": "1800", "floorplan": "TH2", "videoName": "TH2 1800 VIDEO - Apt 4144", "videoLink": "https://www.dropbox.com/scl/fi/0lznojl0ka1i3lm39clgl/TH2-Apt-4144.mov?rlkey=7hjvpvgxyxdb3rwtnjggnyb6b&st=jp3ffqgs&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-TH1B", "bedBath": "2 / 2.5", "address": "2120 Junction Place", "view": "North"}, {"unit": "4146", "sqft": "1050", "floorplan": "A7", "videoName": "VIDEO TOUR - Apt 4146", "videoLink": "https://www.dropbox.com/scl/fi/sh4fxqviolhfkt7rhd4sx/A4-4146.mp4?rlkey=7ebxp3jawib1yannsvf5axgwm&st=reew8pyc&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "1", "yardi": "RV-A7.3", "bedBath": "1.5 / 1", "address": "2120 Junction Place", "view": "North"}, {"unit": "4220", "sqft": "1521", "floorplan": "B6", "videoName": "B6 VIDEO - Apt 4322", "videoLink": "https://www.dropbox.com/scl/fi/x5t9i734os6xbgmbw5f2s/B6-Apt-4322.mov?rlkey=ioosfd6ipaib4k1xe4enj1sj7&st=tvxxhhdd&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-B3.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "South/West"}, {"unit": "4221", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4223", "videoLink": "https://www.dropbox.com/scl/fi/4czwte3f9j9b46jw4s4vb/A5-4223.mov?rlkey=uorytz9tgxur4olkec1g2retv&st=tjyf3bwv&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4222", "sqft": "1211", "floorplan": "B5", "videoName": "B5 MODEL (West View)", "videoLink": "https://www.dropbox.com/scl/fi/cy58q39pdcv431h35icet/B5-4230_Guest_Suite.MOV?rlkey=nubph86f2p6mfwork2sfka2rm&st=lbqwdr8x&dl=0", "correctVideo": null, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4223", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4223", "videoLink": "https://www.dropbox.com/scl/fi/4czwte3f9j9b46jw4s4vb/A5-4223.mov?rlkey=uorytz9tgxur4olkec1g2retv&st=tjyf3bwv&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4224", "sqft": "1211", "floorplan": "B5", "videoName": "B5 MODEL (West View)", "videoLink": "https://www.dropbox.com/scl/fi/cy58q39pdcv431h35icet/B5-4230_Guest_Suite.MOV?rlkey=nubph86f2p6mfwork2sfka2rm&st=lbqwdr8x&dl=0", "correctVideo": null, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4225", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4225", "videoLink": "https://www.dropbox.com/scl/fi/ii90rn9d3kl384ellecoa/A1-4225.mov?rlkey=zkjs4gtfwnqu80ukr6l2q27t2&st=y6jwf24j&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4226", "sqft": "1211", "floorplan": "B5", "videoName": "B5 MODEL (West View)", "videoLink": "https://www.dropbox.com/scl/fi/cy58q39pdcv431h35icet/B5-4230_Guest_Suite.MOV?rlkey=nubph86f2p6mfwork2sfka2rm&st=lbqwdr8x&dl=0", "correctVideo": null, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4227", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4227", "videoLink": "https://www.dropbox.com/scl/fi/b3evpnoebreirmfdc1rvv/A5-4227.mp4?rlkey=3bophhtm4eifypuf5vgpoeeer&st=n9dz80m4&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4228", "sqft": "1062", "floorplan": "A9", "videoName": "A9 1.5 Bath VIDEO - Apt 4328", "videoLink": "https://www.dropbox.com/scl/fi/6dlvqwnn9yx4xdgcu8zy8/A9-4328.mp4?rlkey=w8flqr6kztut60e7gut7vr4bu&st=xney7vwr&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-A7.2", "bedBath": "1.5 / 1.5", "address": "2120 Junction Place", "view": "West"}, {"unit": "4229", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4229", "videoLink": "https://www.dropbox.com/scl/fi/06unuiw4tzgnnzsbtco3s/A1-4229.mov?rlkey=rv35dtevquupghi609uzx2mlc&st=zvp18k7h&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4230", "sqft": "1211", "floorplan": "B5", "videoName": "B5 MODEL (West View) - Apt 4230", "videoLink": "https://www.dropbox.com/scl/fi/cy58q39pdcv431h35icet/B5-4230_Guest_Suite.MOV?rlkey=nubph86f2p6mfwork2sfka2rm&st=lbqwdr8x&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4231", "sqft": "895", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4231", "videoLink": "https://www.dropbox.com/scl/fi/dgmrf9iy7y0i5eg1ys7cd/A5-4231.mp4?rlkey=q1xc3r0i3fzddyh10ir2celjl&st=b9ve580h&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-A5.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4232", "sqft": "1090", "floorplan": "A9", "videoName": "A9 VIDEO - Apt 4232", "videoLink": "https://www.dropbox.com/scl/fi/7rezpo0lkhcs4ftotz50y/Apt-4232.mov?rlkey=n2whx940q498irgltxrweec92&st=sauylt9b&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-A7.1", "bedBath": "1.5 / 1", "address": "2120 Junction Place", "view": "North/West"}, {"unit": "4239", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4239", "videoLink": "https://www.dropbox.com/scl/fi/535gv793s0m1c2f69te0n/A1-Apt-4239.mov?rlkey=7u43au9v8zswus3za7442eeza&st=odkp31sc&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "South"}, {"unit": "4241", "sqft": "895", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4241", "videoLink": "https://www.dropbox.com/scl/fi/fn970mhw5gci7qiklv6qv/A5-4241.mov?rlkey=s8flswuvd2g21pt0xbbh14bqs&st=wc0qneiv&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-A5.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "South"}, {"unit": "4243", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4243", "videoLink": "https://www.dropbox.com/scl/fi/q52fts2nvg5wcl3lnccuh/A1-B4-South-4243.mov?rlkey=mv18cjt3qru3a90pdjo3zsc15&st=6fouh5kg&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "South"}, {"unit": "4245", "sqft": "530", "floorplan": "S1", "videoName": "S1 VIDEO - Apt 4245", "videoLink": "https://www.dropbox.com/scl/fi/v4hpyihu0nofrox8ali8k/S1-4245.mp4?rlkey=208w9hr006jvu2hszgml7d9z3&st=jmvvyov6&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-A1.2", "bedBath": "0 / 1", "address": "2120 Junction Place", "view": "South/East"}, {"unit": "4246", "sqft": "1211", "floorplan": "B5", "videoName": "B5 VIDEO - Apt 4246", "videoLink": "https://www.dropbox.com/scl/fi/yn79mavp2fhigongfp25p/B5-4246.mp4?rlkey=x2ckqegnrd3fy2w16pbrrks73&st=55jtvj2t&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "2", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "North/East"}, {"unit": "4320", "sqft": "2200", "floorplan": "B9", "videoName": "B9 VIDEO - Apt 4320", "videoLink": "https://www.dropbox.com/scl/fi/4jz0camfz1lo0wufmdv5f/B9-4-320.mp4?rlkey=wawpz0mstp6hpodw20ikhkik9&st=cvdd345h&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-B4.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "South/West"}, {"unit": "4322", "sqft": "1500", "floorplan": "B6", "videoName": "B6 VIDEO - Apt 4322", "videoLink": "https://www.dropbox.com/scl/fi/x5t9i734os6xbgmbw5f2s/B6-Apt-4322.mov?rlkey=ioosfd6ipaib4k1xe4enj1sj7&st=tvxxhhdd&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-B3.2", "bedBath": "2 / 2.5", "address": "2120 Junction Place", "view": "West"}, {"unit": "4323", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4323", "videoLink": "https://www.dropbox.com/scl/fi/o0ricbnmh7zq9z9kbtri8/A5-4323.mp4?rlkey=dv31rxxpc6o1fvf9md0i0nm09&st=0d3q31dy&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4324", "sqft": "1211", "floorplan": "B5", "videoName": "B5 VIDEO - Apt 4324", "videoLink": "https://www.dropbox.com/scl/fi/10crnv6lv9hcrtczxjxxu/B5-4324.mp4?rlkey=u0vu5ime8pwq4xd6j3lmb637e&st=kzzno9lr&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4325", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4329", "videoLink": "https://www.dropbox.com/scl/fi/c44a3msxpg7porwmkwp7n/A1-Apt-4329.mov?rlkey=n7p2myvzn97rgfh4p1rp5urrs&st=mwwcmd47&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4326", "sqft": "1211", "floorplan": "B5", "videoName": "B5 VIDEO - Apt 4324", "videoLink": "https://www.dropbox.com/scl/fi/10crnv6lv9hcrtczxjxxu/B5-4324.mp4?rlkey=u0vu5ime8pwq4xd6j3lmb637e&st=kzzno9lr&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4327", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4327", "videoLink": "https://www.dropbox.com/scl/fi/nlk7tou6yjk6oszy6oeiv/A5-4327.mp4?rlkey=627ireb8giqzp8ni2caq2njkb&st=ukq3174j&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4328", "sqft": "1062", "floorplan": "A9", "videoName": "A9 1.5 Bath VIDEO - Apt 4328", "videoLink": "https://www.dropbox.com/scl/fi/6dlvqwnn9yx4xdgcu8zy8/A9-4328.mp4?rlkey=w8flqr6kztut60e7gut7vr4bu&st=xney7vwr&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-A7.2", "bedBath": "1.5 / 1.5", "address": "2120 Junction Place", "view": "West"}, {"unit": "4329", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4329", "videoLink": "https://www.dropbox.com/scl/fi/c44a3msxpg7porwmkwp7n/A1-Apt-4329.mov?rlkey=n7p2myvzn97rgfh4p1rp5urrs&st=mwwcmd47&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4330", "sqft": "1211", "floorplan": "B5", "videoName": "B5 VIDEO - Apt 4330", "videoLink": "https://www.dropbox.com/scl/fi/obcvrjb254o0rfb1bbptp/B5-4330.mov?rlkey=siamxrtb5j7f7g42oq6k7sqin&st=u2ufi6af&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4331", "sqft": "895", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4331", "videoLink": "https://www.dropbox.com/scl/fi/9fonf4i69dmphod81hplu/A5-4331.mov?rlkey=bzf2byhmq8a7ivfzap1nlsk5k&st=xhw7nhpd&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-A5.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4332", "sqft": "1090", "floorplan": "A9", "videoName": "A9 VIDEO - Apt 4332", "videoLink": "https://www.dropbox.com/scl/fi/mw3z2tmdz6hd6uzbdmmuu/A9-4332.mov?rlkey=ma32b3izbfzs95xilxs4292aa&st=ow75p6n1&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-A7.1", "bedBath": "1.5 / 1", "address": "2120 Junction Place", "view": "North/West"}, {"unit": "4334", "sqft": "1193", "floorplan": "B4", "videoName": "B4 VIDEO - Apt 4336", "videoLink": "https://www.dropbox.com/scl/fi/p869mjbhi8av9h9yn2de1/B4-4336.mp4?rlkey=6mryalnsc3201jiuyz4yrx18o&st=wwjuyjqe&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-B1.2", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "North/West"}, {"unit": "4335", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4335", "videoLink": "https://www.dropbox.com/scl/fi/cwziwc54u1z0agvyyy7cx/A1-4335.mov?rlkey=ppzug1g9wdirhxmz5tpesi0wp&st=tnrqjmoc&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "South"}, {"unit": "4336", "sqft": "1193", "floorplan": "B4", "videoName": "B4 VIDEO - Apt 4336", "videoLink": "https://www.dropbox.com/scl/fi/p869mjbhi8av9h9yn2de1/B4-4336.mp4?rlkey=6mryalnsc3201jiuyz4yrx18o&st=wwjuyjqe&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-B1.2", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "North/West"}, {"unit": "4337", "sqft": "895", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4241", "videoLink": "https://www.dropbox.com/scl/fi/fn970mhw5gci7qiklv6qv/A5-4241.mov?rlkey=s8flswuvd2g21pt0xbbh14bqs&st=wc0qneiv&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-A5.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "South"}, {"unit": "4338", "sqft": "1193", "floorplan": "B4", "videoName": "B4 VIDEO - Apt 4336", "videoLink": "https://www.dropbox.com/scl/fi/p869mjbhi8av9h9yn2de1/B4-4336.mp4?rlkey=6mryalnsc3201jiuyz4yrx18o&st=wwjuyjqe&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-B1.2", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "North"}, {"unit": "4339", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4335", "videoLink": "https://www.dropbox.com/scl/fi/cwziwc54u1z0agvyyy7cx/A1-4335.mov?rlkey=ppzug1g9wdirhxmz5tpesi0wp&st=tnrqjmoc&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "South"}, {"unit": "4340", "sqft": "1211", "floorplan": "B5", "videoName": "B5 VIDEO - Apt 4340", "videoLink": "https://www.dropbox.com/scl/fi/ou9u2rfbp14mkun09ipjc/B5-Apt-4340.mov?rlkey=5509bj5qzku94qxag8qpxt1zr&st=yp113909&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "North/East"}, {"unit": "4341", "sqft": "530", "floorplan": "S1", "videoName": "S1 VIDEO - Apt 4341", "videoLink": "https://www.dropbox.com/scl/fi/ijy5m8v1o6liayr77j0h6/S1-4341.mov?rlkey=0yieah8g2vq1u5l43yon4zhbl&st=as6sfedi&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "3", "yardi": "RV-A1.2", "bedBath": "0 / 1", "address": "2120 Junction Place", "view": "South/East"}, {"unit": "4420", "sqft": "2150", "floorplan": "PH5", "videoName": "PH5 VIDEO - Apt 4420", "videoLink": "https://www.dropbox.com/scl/fi/unih8k4fcerb3mgvb0ikq/PH5-4420.mov?rlkey=txtvk2wl4vfros5nayfkjy68y&st=u0exlu1f&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-PH1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "South/West"}, {"unit": "4421", "sqft": "1211", "floorplan": "B5", "videoName": "B5 VIDEO - Apt 4425", "videoLink": "https://www.dropbox.com/scl/fi/jnj4wpx0gu1n6j9olnmtq/B5-4425.mov?rlkey=qopc70ms6h4ttjaarvdfzxuca&st=r4b6sepl&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4422", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4227", "videoLink": "https://www.dropbox.com/scl/fi/b3evpnoebreirmfdc1rvv/A5-4227.mp4?rlkey=3bophhtm4eifypuf5vgpoeeer&st=n9dz80m4&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4423", "sqft": "1211", "floorplan": "B5", "videoName": "B5 VIDEO - Apt 4425", "videoLink": "https://www.dropbox.com/scl/fi/jnj4wpx0gu1n6j9olnmtq/B5-4425.mov?rlkey=qopc70ms6h4ttjaarvdfzxuca&st=r4b6sepl&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4424", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4424", "videoLink": "https://www.dropbox.com/scl/fi/xx4u9nwqcix9qk56swe95/A1-4424.mov?rlkey=gvaag0fivb3cbqkc44vnbjk06&st=xfvvetgo&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4425", "sqft": "1211", "floorplan": "B5", "videoName": "B5 VIDEO - Apt 4425", "videoLink": "https://www.dropbox.com/scl/fi/jnj4wpx0gu1n6j9olnmtq/B5-4425.mov?rlkey=qopc70ms6h4ttjaarvdfzxuca&st=r4b6sepl&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-B1.1", "bedBath": "2 / 2", "address": "2120 Junction Place", "view": "West"}, {"unit": "4426", "sqft": "872", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4227", "videoLink": "https://www.dropbox.com/scl/fi/b3evpnoebreirmfdc1rvv/A5-4227.mp4?rlkey=3bophhtm4eifypuf5vgpoeeer&st=n9dz80m4&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-A4.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4427", "sqft": "1062", "floorplan": "A9", "videoName": "A9 1.5 Bath VIDEO - Apt 4328", "videoLink": "https://www.dropbox.com/scl/fi/6dlvqwnn9yx4xdgcu8zy8/A9-4328.mp4?rlkey=w8flqr6kztut60e7gut7vr4bu&st=xney7vwr&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-A7.2", "bedBath": "1.5 / 1.5", "address": "2120 Junction Place", "view": "West"}, {"unit": "4428", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4424", "videoLink": "https://www.dropbox.com/scl/fi/xx4u9nwqcix9qk56swe95/A1-4424.mov?rlkey=gvaag0fivb3cbqkc44vnbjk06&st=xfvvetgo&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4429", "sqft": "1870", "floorplan": "PH4", "videoName": "PH4 VIDEO - Apt 4429", "videoLink": "https://www.dropbox.com/scl/fi/taogumk7gkos8ge87dgtr/PH4-4429.MOV?rlkey=v9iei8pdvxbvezwkulrooz70i&st=8bc6bqlr&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-PH5", "bedBath": "3 / 2", "address": "2120 Junction Place", "view": "North/West"}, {"unit": "4430", "sqft": "895", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4231", "videoLink": "https://www.dropbox.com/scl/fi/dgmrf9iy7y0i5eg1ys7cd/A5-4231.mp4?rlkey=q1xc3r0i3fzddyh10ir2celjl&st=b9ve580h&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-A5.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "East"}, {"unit": "4431", "sqft": "1800", "floorplan": "PH3", "videoName": "PH3 VIDEO - Apt 4431", "videoLink": "https://www.dropbox.com/scl/fi/o4v96t3g4iwea9czqwa9d/PH3-Apt-4431.mov?rlkey=ou8aji7oamsd38bb2ulpf3c2b&st=hjmsx43d&dl=0", "correctVideo": true, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-PH6", "bedBath": "2 / 2.5", "address": "2120 Junction Place", "view": "North/West"}, {"unit": "4432", "sqft": "548", "floorplan": "A1", "videoName": "A1 VIDEO - Apt 4335", "videoLink": "https://www.dropbox.com/scl/fi/cwziwc54u1z0agvyyy7cx/A1-4335.mov?rlkey=ppzug1g9wdirhxmz5tpesi0wp&st=tnrqjmoc&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-A1.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "South"}, {"unit": "4433", "sqft": "1590", "floorplan": "C1", "videoName": "3-Bedroom ADA (3D TOUR) - Apt 4433", "videoLink": "https://www.reveboulder.com/floorplans/c1-3bedroom", "correctVideo": true, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-C2.1", "bedBath": "3 / 3", "address": "2120 Junction Place", "view": "North"}, {"unit": "4434", "sqft": "895", "floorplan": "A5", "videoName": "A5 VIDEO - Apt 4131", "videoLink": "https://www.dropbox.com/scl/fi/7gt8eg9gv4m5h8yxbmwkz/A5-4131.mov?rlkey=2f3264y3n7gdd536of947ru08&st=0ungev7e&dl=0", "correctVideo": false, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-A5.1", "bedBath": "1 / 1", "address": "2120 Junction Place", "view": "South"}, {"unit": "4435", "sqft": "1690", "floorplan": "PH1", "videoName": "PH1", "videoLink": "https://www.reveboulder.com/floorplans/ph1-penthouse", "correctVideo": null, "bldg": "Bldg 4", "floor": "4", "yardi": "RV-PH3", "bedBath": "3 / 2", "address": "2120 Junction Place", "view": "South/East"}];
+
+const byUnit = {};
+UNITS.forEach(u => byUnit[u.unit] = u);
+
+/* Unit -> floorplan image key, matched from the Print Files archive by
+   square footage (and, where sqft collided across floorplan types, by
+   floorplan code too — e.g. the 1800 sqft townhome vs the 1800 sqft
+   penthouse). 24 units have no print file in the archive and are left
+   unmapped; the editor shows those as "no floorplan on file". */
+const UNIT_IMAGE_MAP = {"1101": "LW3-2471", "1102": "LW2-1968", "1103": "LW1-2122", "1104": "TH2-2153", "1105": "TH2-2153", "1106": "TH2-2153", "1107": "TH2-2153", "1201": "B2-1148", "1202": "A2-737", "1203": "A3-741-767", "1204": "A3-741-767", "1205": "A3-741-767", "1206": "A3-741-767", "1208": "S4-686-703", "1209": "A3-741-767", "1210": "A3-741-767", "1211": "A3-741-767", "1212": "A3-741-767", "1213": "A3-741-767", "1214": "S4-686-703", "1215": "A6-924", "1217": "A3-741-767", "1219": "S4-686-703", "1221": "A3-741-767", "1223": "A3-741-767", "1225": "A3-741-767", "1227": "B7-1243", "1229": "A3-741-767", "1231": "S4-686-703", "1233": "A3-741-767", "1234": "A3-741-767", "1235": "A3-741-767", "1236": "A3-741-767", "1237": "A3-741-767", "1238": "S4-686-703", "1239": "A3-741-767", "1240": "A3-741-767", "1241": "A3-741-767", "1242": "A3-741-767", "1243": "A3-741-767", "1244": "A3-741-767", "1245": "S4-686-703", "1247": "A4-824", "1248": "A4-824", "1301": "B2-1148", "1302": "A2-737", "1303": "A3-741-767", "1304": "A3-741-767", "1305": "A3-741-767", "1306": "A3-741-767", "1308": "S4-686-703", "1309": "A3-741-767", "1310": "A3-741-767", "1311": "A3-741-767", "1312": "A3-741-767", "1313": "A3-741-767", "1314": "S4-686-703", "1315": "A6-924", "1317": "A3-741-767", "1318": "B8-1716", "1319": "S4-686-703", "1321": "A3-741-767", "1322": "S3-647", "1323": "A3-741-767", "1325": "A3-741-767", "1327": "B7-1243", "1329": "A3-741-767", "1331": "S4-686-703", "1332": "S4-686-703", "1333": "A3-741-767", "1334": "A3-741-767", "1335": "A3-741-767", "1336": "A3-741-767", "1337": "A3-741-767", "1338": "S4-686-703", "1339": "A3-741-767", "1340": "A3-741-767", "1341": "A3-741-767", "1342": "A3-741-767", "1343": "A3-741-767", "1344": "A3-741-767", "1345": "S4-686-703", "1347": "A4-824", "1348": "A4-824", "1404": "A3-741-767", "1406": "A3-741-767", "1408": "S4-686-703", "1410": "A3-741-767", "1412": "A3-741-767", "1414": "S4-686-703", "1415": "A6-924", "1417": "A3-741-767", "1419": "S2-581", "1420": "B8-1716", "1422": "S3-647", "1427": "A8-1004", "1429": "A3-741-767", "1431": "S4-686-703", "1432": "S4-686-703", "1433": "A3-741-767", "1434": "A3-741-767", "1435": "A3-741-767", "1436": "A3-741-767", "1437": "A3-741-767", "1438": "S4-686-703", "1439": "A3-741-767", "1440": "A3-741-767", "1441": "A3-741-767", "1442": "A3-741-767", "1443": "A3-741-767", "1444": "A3-741-767", "1445": "S4-686-703", "1447": "B4-1173", "3103": "LW4-1732", "3104": "A5-872-895", "3105": "LW4-1732", "3106": "A1-548", "3107": "LW4-1732", "3108": "A5-872-895", "3109": "LW4-1732", "3110": "A1-548", "3111": "LW4-1732", "3112": "A1-548", "3113": "A9-1090", "3114": "B1-1020", "3202": "C3-2030", "3204": "A5-872-895", "3206": "A1-548", "3208": "A5-872-895", "3210": "A1-548", "3212": "A5-872-895", "3213": "A9-1090", "3214": "B1-1020", "3301": "B3-1150", "3302": "A1-548", "3304": "A5-872-895", "3305": "C2-1740", "3306": "A1-548", "3307": "C2-1740", "3308": "A5-872-895", "3309": "A9-1090", "3310": "A1-548", "3312": "A5-872-895", "3404": "A5-872-895", "3405": "C2-1740", "3406": "A1-548", "3407": "C2-1740", "3408": "A5-872-895", "3410": "A1-548", "3412": "A5-872-895", "3414": "PH2-1800", "4116": "TH1-1350", "4118": "TH1-1350", "4120": "B6-1240", "4121": "A5-872-895", "4122": "B5-1211", "4123": "A5-872-895", "4124": "B5-1211", "4125": "A1-548", "4126": "B5-1211", "4127": "A5-872-895", "4129": "A1-548", "4130": "B5-1211", "4131": "A5-872-895", "4132": "A9-1090", "4134": "TH1-1350", "4136": "TH1-1350", "4138": "TH2-1765", "4139": "A1-548", "4140": "TH2-1765", "4141": "B3-1150", "4144": "TH2-1800", "4146": "A7-1050", "4221": "A5-872-895", "4222": "B5-1211", "4223": "A5-872-895", "4224": "B5-1211", "4225": "A1-548", "4226": "B5-1211", "4227": "A5-872-895", "4229": "A1-548", "4230": "B5-1211", "4231": "A5-872-895", "4232": "A9-1090", "4239": "A1-548", "4241": "A5-872-895", "4243": "A1-548", "4245": "S1-530", "4246": "B5-1211", "4320": "B9-2200", "4323": "A5-872-895", "4324": "B5-1211", "4325": "A1-548", "4326": "B5-1211", "4327": "A5-872-895", "4329": "A1-548", "4330": "B5-1211", "4331": "A5-872-895", "4332": "A9-1090", "4335": "A1-548", "4337": "A5-872-895", "4339": "A1-548", "4340": "B5-1211", "4341": "S1-530", "4420": "PH1-2150", "4421": "B5-1211", "4422": "A5-872-895", "4423": "B5-1211", "4424": "A1-548", "4425": "B5-1211", "4426": "A5-872-895", "4428": "A1-548", "4430": "A5-872-895", "4431": "PH2-1800", "4432": "A1-548", "4433": "C1-1590", "4434": "A5-872-895", "4435": "PH3-1690"};
+
+function floorplanPathForUnit(u) {
+    const key = UNIT_IMAGE_MAP[u.unit];
+    return key ? `floorplans/${key}.jpg` : '';
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let currentUnit = null;
+let draft = null; // editable draft object for currentUnit
+
+function storageKey(unit) { return 'reve-pamphlet:' + unit; }
+
+function defaultDraft(u) {
+    return {
+        title: `Apt ${u.unit} (${u.floorplan})`,
+        subtitle: bedBathSqftLine(u),
+        available: '',
+        bestPrice: '',
+        bestTerm: '',
+        otherTerms: [],
+        location: locationLine(u),
+        videoLabel: u.videoName && u.videoName !== 'NO VIDEO' ? u.videoName : '',
+        videoUrl: u.videoLink || '',
+        floorplanImg: floorplanPathForUnit(u),
+        applyUrl: ''
+    };
+}
+
+function bedBathSqftLine(u) {
+    const bb = (u.bedBath || '').split('/').map(s => s.trim());
+    const beds = bb[0] || '?';
+    const baths = bb[1] || '?';
+    return `${beds}-Bed \u2022 ${baths}-Bath \u2022 ${u.sqft} sq. ft.`;
+}
+function locationLine(u) {
+    const floorWord = ordinalFloor(u.floor);
+    return `${u.address} \u2022 ${floorWord} Floor \u2022 Facing ${u.view || 'N/A'}`;
+}
+function ordinalFloor(f) {
+    const n = parseInt(f, 10);
+    if (isNaN(n)) return f;
+    const s = ["th","st","nd","rd"], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function loadDraft(unit) {
+    const raw = localStorage.getItem(storageKey(unit));
+    if (raw) {
+        try {
+            const parsed = JSON.parse(raw);
+            const base = defaultDraft(byUnit[unit]);
+            return Object.assign(base, parsed);
+        } catch (e) { /* fall through */ }
+    }
+    return defaultDraft(byUnit[unit]);
+}
+function saveDraft() {
+    if (!currentUnit) return;
+    localStorage.setItem(storageKey(currentUnit), JSON.stringify(draft));
+    flashSaved();
+}
+let saveTimer = null;
+function flashSaved() {
+    const el = document.getElementById('saveStatus');
+    el.innerHTML = '<span class="led"></span> saved';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => { el.innerHTML = ''; }, 1400);
+}
+
+/* ============================================================
+   UNIT SEARCH
+   ============================================================ */
+const searchInput = document.getElementById('unitSearch');
+const resultsBox = document.getElementById('unitResults');
+const bldgFilterBox = document.getElementById('bldgFilters');
+
+const buildings = [...new Set(UNITS.map(u => u.bldg))].sort();
+let activeBldgFilter = null;
+
+buildings.forEach(b => {
+    const chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.type = 'button';
+    chip.textContent = b.replace('Bldg ', 'Building ');
+    chip.addEventListener('click', () => {
+        activeBldgFilter = (activeBldgFilter === b) ? null : b;
+        [...bldgFilterBox.children].forEach(c => c.classList.remove('active'));
+        if (activeBldgFilter) chip.classList.add('active');
+        runSearch();
+    });
+    bldgFilterBox.appendChild(chip);
+});
+
+function runSearch() {
+    const q = searchInput.value.trim().toLowerCase();
+    let list = UNITS;
+    if (activeBldgFilter) list = list.filter(u => u.bldg === activeBldgFilter);
+    if (q) {
+        list = list.filter(u =>
+            u.unit.toLowerCase().includes(q) ||
+            u.floorplan.toLowerCase().includes(q) ||
+            u.yardi.toLowerCase().includes(q)
+        );
+    }
+    list = list.slice(0, 40);
+    renderResults(list);
+}
+
+function renderResults(list) {
+    if (!list.length) {
+        resultsBox.innerHTML = '<div class="unit-result"><span class="u-meta">No matching units</span></div>';
+        resultsBox.classList.add('open');
+        return;
+    }
+    resultsBox.innerHTML = list.map(u => `
+        <div class="unit-result" data-unit="${u.unit}">
+            <span class="u-num">Apt ${u.unit}</span>
+            <span class="u-meta">${u.floorplan} &middot; ${u.bedBath} &middot; ${u.sqft} sf &middot; ${u.bldg}</span>
+        </div>
+    `).join('');
+    resultsBox.classList.add('open');
+    [...resultsBox.querySelectorAll('.unit-result')].forEach(row => {
+        row.addEventListener('click', () => selectUnit(row.getAttribute('data-unit')));
+    });
+}
+
+searchInput.addEventListener('focus', runSearch);
+searchInput.addEventListener('input', runSearch);
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.picker-block')) resultsBox.classList.remove('open');
+});
+
+/* ============================================================
+   SELECT UNIT / BIND FORM
+   ============================================================ */
+const editorBody = document.getElementById('editorBody');
+const specCard = document.getElementById('specCard');
+const previewLabel = document.getElementById('previewLabel');
+
+const fields = ['fTitle','fSubtitle','fAvailable','fBestPrice','fBestTerm','fLocation','fVideoLabel','fVideoUrl','fFloorplanImg','fApplyUrl'];
+const fieldMap = {
+    fTitle: 'title', fSubtitle: 'subtitle', fAvailable: 'available',
+    fBestPrice: 'bestPrice', fBestTerm: 'bestTerm', fLocation: 'location',
+    fVideoLabel: 'videoLabel', fVideoUrl: 'videoUrl',
+    fFloorplanImg: 'floorplanImg', fApplyUrl: 'applyUrl'
+};
+
+fields.forEach(id => {
+    document.getElementById(id).addEventListener('input', (e) => {
+        draft[fieldMap[id]] = e.target.value;
+        saveDraft();
+        renderPreview();
+    });
+});
+
+function selectUnit(unit) {
+    const u = byUnit[unit];
+    if (!u) return;
+    currentUnit = unit;
+    draft = loadDraft(unit);
+    searchInput.value = '';
+    resultsBox.classList.remove('open');
+
+    editorBody.style.display = 'block';
+    document.getElementById('resetBtn').disabled = false;
+    document.getElementById('printBtn').disabled = false;
+    document.getElementById('exportBtn').disabled = false;
+    previewLabel.textContent = `Apt ${u.unit} (${u.floorplan}) \u2014 ${u.bldg}`;
+
+    specCard.innerHTML = `
+        <div class="rc-row"><span>Floorplan / Yardi</span><b>${u.floorplan} &middot; ${u.yardi}</b></div>
+        <div class="rc-row"><span>Bed / Bath</span><b>${u.bedBath}</b></div>
+        <div class="rc-row"><span>Square feet</span><b>${u.sqft} sf</b></div>
+        <div class="rc-row"><span>Building</span><b>${u.bldg} &middot; Floor ${u.floor}</b></div>
+        <div class="rc-row"><span>Address</span><b>${u.address}</b></div>
+        <div class="rc-row"><span>View</span><b>${u.view || '\u2014'}</b></div>
+        ${videoBadgeRow(u)}
+        ${floorplanBadgeRow(u)}
+    `;
+
+    fields.forEach(id => {
+        document.getElementById(id).value = draft[fieldMap[id]] || '';
+    });
+    renderTermList();
+    renderPreview();
+}
+
+function videoBadgeRow(u) {
+    if (!u.videoLink) {
+        return `<div class="rc-row"><span>Video on file</span><b>None <span class="badge warn">no video</span></b></div>`;
+    }
+    if (u.correctVideo === true) {
+        return `<div class="rc-row"><span>Video on file</span><b>This exact unit <span class="badge ok">confirmed</span></b></div>`;
+    }
+    return `<div class="rc-row"><span>Video on file</span><b>Similar floorplan <span class="badge warn">verify</span></b></div>`;
+}
+
+function floorplanBadgeRow(u) {
+    const key = UNIT_IMAGE_MAP[u.unit];
+    if (key) {
+        return `<div class="rc-row"><span>Floorplan image</span><b>${key}.jpg <span class="badge ok">on file</span></b></div>`;
+    }
+    return `<div class="rc-row"><span>Floorplan image</span><b>None in print archive <span class="badge warn">add manually</span></b></div>`;
+}
+
+/* ---------- lease term rows ---------- */
+function renderTermList() {
+    const box = document.getElementById('termList');
+    box.innerHTML = '';
+    draft.otherTerms.forEach((t, i) => {
+        const row = document.createElement('div');
+        row.className = 'term-row';
+        row.innerHTML = `
+            <input type="text" class="term-price" placeholder="$3799" value="${escapeAttr(t.price)}">
+            <input type="text" placeholder="14-Mo" value="${escapeAttr(t.term)}">
+            <button type="button" class="icon-btn" title="Remove">&times;</button>
+        `;
+        const [priceInput, termInput, removeBtn] = row.children;
+        priceInput.addEventListener('input', e => { draft.otherTerms[i].price = e.target.value; saveDraft(); renderPreview(); });
+        termInput.addEventListener('input', e => { draft.otherTerms[i].term = e.target.value; saveDraft(); renderPreview(); });
+        removeBtn.addEventListener('click', () => { draft.otherTerms.splice(i, 1); renderTermList(); saveDraft(); renderPreview(); });
+        box.appendChild(row);
+    });
+}
+document.getElementById('addTermBtn').addEventListener('click', () => {
+    draft.otherTerms.push({ price: '', term: '' });
+    renderTermList();
+    saveDraft();
+    renderPreview();
+});
+
+function escapeAttr(s) { return (s || '').replace(/"/g, '&quot;'); }
+function escapeHtml(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ============================================================
+   PREVIEW / EXPORT — flyer template
+   ============================================================ */
+function flyerHTML(u, d, standalone) {
+    const terms = (d.otherTerms || []).filter(t => t.price || t.term);
+    const termsHtml = terms.length
+        ? `<ul class="lease-terms-list">${terms.map(t => `<li>${escapeHtml(t.price)}${t.price && t.term ? ' ' : ''}${t.term ? '(' + escapeHtml(t.term) + ')' : ''}</li>`).join('')}</ul>`
+        : `<p class="muted-line">Add other lease terms in the editor.</p>`;
+
+    const floorplanBlock = d.floorplanImg
+        ? `<img src="${escapeAttr(d.floorplanImg)}" alt="${escapeAttr(u.unit)} Floor Plan" class="floorplan-img">`
+        : `<div class="floorplan-placeholder">Floorplan image not added yet</div>`;
+
+    const priceBlock = (d.bestPrice || d.bestTerm)
+        ? `<span class="price-highlight">${escapeHtml(d.bestPrice)}${d.bestPrice && d.bestTerm ? ' ' : ''}${d.bestTerm ? '(' + escapeHtml(d.bestTerm) + ')' : ''}</span>`
+        : `<span class="muted-line">Add best price</span>`;
+
+    const videoRow = d.videoUrl
+        ? `<a href="${escapeAttr(d.videoUrl)}" class="link-text" target="_blank" rel="noopener">${escapeHtml(d.videoLabel || 'Video Tour')}</a>`
+        : `<span class="muted-line">No video tour link added</span>`;
+
+    const applyHref = d.applyUrl ? escapeAttr(d.applyUrl) : '#';
+    const applyDisabled = d.applyUrl ? '' : ' style="pointer-events:none;opacity:0.45;"';
+
+    return `<div class="flyer-card">
     <div class="header-container">
         <div class="title-area">
-            <h1>Apt 4334 (B5)</h1>
-            <p>2-Bed • 2-Bath • 1193 sq. ft.</p>
+            <h1>${escapeHtml(d.title)}</h1>
+            <p>${escapeHtml(d.subtitle)}</p>
         </div>
-        <!-- RÊVE Orange Logo -->
-        <svg class="brand-logo" viewBox="0 0 100 100" fill="none" xmlns="http://w3.org">
+        <svg class="brand-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M20 20H55C70 20 80 30 80 42.5C80 52 73 60 62 63.5L82 85H62L45 65H35V85H20V20ZM35 34V51H53C61 51 65 47 65 42.5C65 38 61 34 53 34H35Z" fill="#de5426"/>
-            <path d="M25 25H30V60H25V25Z" fill="#ffffff" opacity="0.3"/>
+            <path d="M25 25H30V60H25V25Z" fill="#ffffff" opacity="0.5"/>
         </svg>
     </div>
 
-    <!-- FLOOR PLAN CONTAINER -->
     <div class="floorplan-container">
-        <!-- REPLACE 'floorplan.png' WITH YOUR ACTUAL IMAGE URL IF HOSTING SEPARATELY -->
-        <img src="floorplan.png" alt="Apt 4334 Floor Plan" class="floorplan-img">
+        ${floorplanBlock}
     </div>
 
-    <!-- DATA SHEET LAYOUT -->
     <table class="details-table">
         <tr>
             <td class="label-col">Earliest Available:</td>
-            <td class="value-col">Wednesday, Oct 7th</td>
+            <td class="value-col">${d.available ? escapeHtml(d.available) : '<span class="muted-line">Add availability date</span>'}</td>
         </tr>
         <tr>
             <td class="label-col">Best Price:</td>
-            <td class="value-col <div class="price-highlight">$3738 (15-Month Lease)</div></td>
+            <td class="value-col">${priceBlock}</td>
         </tr>
         <tr>
             <td class="label-col">Other Lease Terms:</td>
-            <td class="value-col">
-                <ul class="lease-terms-list">
-                    <li>$3799 (14-Mo)</li>
-                    <li>$3838 (11-Mo)</li>
-                    <li>$3897 (10-Mo)</li>
-                    <li>$3963 (12-Mo)</li>
-                </ul>
-            </td>
+            <td class="value-col">${termsHtml}</td>
         </tr>
         <tr>
             <td class="label-col">Location:</td>
-            <td class="value-col">2120 Junction Place • Third Floor • Facing North/West</td>
+            <td class="value-col">${escapeHtml(d.location)}</td>
         </tr>
         <tr>
             <td class="label-col">Video Tour:</td>
-            <td class="value-col">
-                <!-- INSERT YOUR ACTUAL VIDEO URL IN THE HREF -->
-                <a href="INSERT_VIDEO_URL" class="link-text">B4 VIDEO - Apt 4336 ** (Neighboring Unit Video Tour)</a>
-            </td>
+            <td class="value-col">${videoRow}</td>
         </tr>
     </table>
 
     <div class="footer-action">
         <p>Ready to secure your spot?</p>
-        <!-- INSERT YOUR ACTUAL APPLICATION LINK IN THE HREF -->
-        <a href="INSERT_APPLY_NOW_URL" class="btn-apply">Apply Now - Apt 4334 (B5)</a>
+        <a href="${applyHref}" class="btn-apply"${applyDisabled} target="_blank" rel="noopener">Apply Now - ${escapeHtml(d.title)}</a>
     </div>
-</div>
+</div>`;
+}
 
+const FLYER_STYLE = `
+:root {
+    --reve-orange: #de5426;
+    --reve-text-dark: #333333;
+    --reve-text-muted: #555555;
+    --bg-gray: #f2f2f2;
+}
+.flyer-body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-gray);
+    margin: 0;
+    padding: 20px 10px;
+    display: flex;
+    justify-content: center;
+    color: var(--reve-text-dark);
+    line-height: 1.4;
+}
+.flyer-card {
+    background-color: #ffffff;
+    max-width: 540px;
+    width: 100%;
+    padding: 30px;
+    box-sizing: border-box;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+.header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+.title-area h1 { color: var(--reve-orange); font-size: 32px; margin: 0 0 5px 0; font-weight: 700; }
+.title-area p { margin: 0; font-size: 15px; color: var(--reve-text-muted); font-weight: 500; }
+.brand-logo { width: 55px; height: auto; flex: none; }
+.floorplan-container { text-align: center; margin: 25px 0; border: 1px solid #e0e0e0; padding: 10px; background: #ffffff; }
+.floorplan-img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+.floorplan-placeholder { padding: 50px 10px; color: #a8a29a; font-size: 13px; border: 1px dashed #ccc; }
+.details-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 15px; }
+.details-table td { padding: 8px 0; vertical-align: top; }
+.label-col { width: 32%; font-weight: 700; color: var(--reve-text-muted); }
+.value-col { width: 68%; color: var(--reve-text-dark); }
+.price-highlight { color: var(--reve-orange); font-weight: 700; }
+.muted-line { color: #b0aaa0; font-style: italic; font-size: 13.5px; }
+.lease-terms-list { margin: 0; padding: 0; list-style: none; }
+.lease-terms-list li { margin-bottom: 4px; }
+.lease-terms-list li::before { content: "\\2022  "; color: var(--reve-text-dark); font-weight: bold; }
+.link-text { color: var(--reve-orange); text-decoration: underline; font-weight: 500; }
+.footer-action { text-align: center; margin-top: 30px; border-top: 1px solid #eeeeee; padding-top: 20px; }
+.footer-action p { font-size: 16px; font-weight: 500; margin: 0 0 10px 0; }
+.btn-apply { display: inline-block; color: var(--reve-orange); font-size: 20px; font-weight: 700; text-decoration: underline; }
+`;
+
+function renderPreview() {
+    if (!currentUnit) return;
+    const u = byUnit[currentUnit];
+    document.getElementById('flyerMount').innerHTML =
+        `<style>${FLYER_STYLE}</style><div class="flyer-body" style="padding:0;">${flyerHTML(u, draft, false)}</div>`;
+}
+
+/* ---------- export standalone file ---------- */
+function buildStandaloneDoc(u, d) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(d.title)}</title>
+<style>${FLYER_STYLE}</style>
+</head>
+<body class="flyer-body">
+${flyerHTML(u, d, true)}
+</body>
+</html>`;
+}
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+    if (!currentUnit) return;
+    const u = byUnit[currentUnit];
+    const doc = buildStandaloneDoc(u, draft);
+    const blob = new Blob([doc], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `apt-${u.unit}-pamphlet.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+});
+
+document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+    if (!currentUnit) return;
+    if (!confirm(`Clear all entered pricing, availability, and images for Apt ${currentUnit}? This can't be undone.`)) return;
+    localStorage.removeItem(storageKey(currentUnit));
+    draft = defaultDraft(byUnit[currentUnit]);
+    fields.forEach(id => { document.getElementById(id).value = draft[fieldMap[id]] || ''; });
+    renderTermList();
+    renderPreview();
+});
+</script>
 </body>
 </html>
