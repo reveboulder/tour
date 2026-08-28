@@ -1257,8 +1257,8 @@ function flyerHTML(u, d, standalone) {
     </table>
 
     <div class="footer-action">
-        <svg class="footer-accent" viewBox="76.79 0 32.64 11.69" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <polygon points="76.79 11.69 109.43 11.69 93.11 0" fill="#de5426"/>
+        <svg class="footer-accent" viewBox="0 0 32.64 11.69" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <polygon points="0 11.69 32.64 11.69 16.32 0" fill="#de5426"/>
         </svg>
         <p>Ready to secure your spot?</p>
         <a href="${applyHref}" class="btn-apply"${applyDisabled} target="_blank" rel="noopener">Apply Now - ${escapeHtml(d.title)}</a>
@@ -1303,7 +1303,7 @@ const FLYER_STYLE = `
     height: 400px;
     right: -110px;
     bottom: -70px;
-    opacity: 0.045;
+    opacity: 0.09;
     transform: rotate(-7deg);
     pointer-events: none;
     z-index: 0;
@@ -1426,7 +1426,9 @@ document.getElementById('exportPdfBtn').addEventListener('click', async () => {
 
         if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
         const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        // PNG (lossless) rather than JPEG — JPEG's chroma subsampling was
+        // crushing the very subtle watermark tint to invisible.
+        const imgData = canvas.toDataURL('image/png');
 
         const { jsPDF } = window.jspdf;
         const pageW = 612, pageH = 792; // US Letter, points
@@ -1445,7 +1447,7 @@ document.getElementById('exportPdfBtn').addEventListener('click', async () => {
         const y = margin;
 
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pageW, pageH] });
-        pdf.addImage(imgData, 'JPEG', x, y, wPt, hPt);
+        pdf.addImage(imgData, 'PNG', x, y, wPt, hPt);
 
         // Overlay real clickable link annotations on top of the flat image,
         // scaled by the same CSS-px -> PDF-pt factor used for the image.
