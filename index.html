@@ -239,9 +239,16 @@
         padding: 14px 22px;
         background: var(--panel);
         display: flex;
+        flex-direction: column;
         gap: 8px;
         position: sticky;
         bottom: 0;
+    }
+    .action-row { display: flex; gap: 8px; }
+    .action-note {
+        font-size: 10px;
+        color: var(--ink-soft);
+        text-align: center;
     }
     .btn {
         flex: 1;
@@ -263,6 +270,65 @@
     .btn.primary:hover { background: var(--reve-orange-dark); }
     .btn:hover { border-color: var(--reve-orange); }
     .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn.small { flex: none; padding: 7px 10px; font-size: 11.5px; }
+
+    .pricing-block {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--line-soft);
+        margin-bottom: 4px;
+    }
+    .pricing-block .pb-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .pricing-status-text {
+        font-size: 12px;
+        color: var(--ink-soft);
+        line-height: 1.4;
+        flex: 1 1 200px;
+    }
+    .pricing-status-text b { color: var(--ink); }
+    .file-label {
+        display: inline-block;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #fff;
+        background: var(--reve-orange);
+        padding: 7px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    .file-label:hover { background: var(--reve-orange-dark); }
+    #pricingFileInput { display: none; }
+    .pricing-clear {
+        font-size: 11px;
+        color: var(--ink-soft);
+        text-decoration: underline;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        margin-top: 6px;
+    }
+    .sync-btn {
+        width: 100%;
+        margin-top: 8px;
+        padding: 7px;
+        font-size: 11.5px;
+        font-weight: 700;
+        border: 1px solid var(--reve-orange);
+        color: var(--reve-orange);
+        background: #fff;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    .sync-btn:hover { background: #fbeee8; }
 
     .empty-note {
         font-size: 10px;
@@ -320,6 +386,8 @@
     ::-webkit-scrollbar-thumb { background: #d8d2c6; border-radius: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -338,6 +406,16 @@
         </div>
 
         <div class="editor-scroll">
+
+            <div class="section-label" style="margin-top:0;"><span class="dot"></span>Daily pricing sheet</div>
+            <div class="pricing-block">
+                <div class="pb-row">
+                    <div class="pricing-status-text" id="pricingStatus">No pricing sheet loaded &mdash; upload today's export to auto-fill price &amp; availability.</div>
+                    <label class="file-label" for="pricingFileInput">Upload CSV</label>
+                    <input type="file" id="pricingFileInput" accept=".csv">
+                </div>
+                <button type="button" class="pricing-clear" id="pricingClearBtn" style="display:none;">Clear pricing sheet</button>
+            </div>
 
             <div class="section-label"><span class="dot"></span>Find a unit</div>
             <div class="picker-block">
@@ -360,7 +438,7 @@
                     <input type="text" id="fSubtitle">
                 </div>
 
-                <div class="section-label"><span class="dot"></span>Availability &amp; pricing <span class="hint">not in your sheet &mdash; enter per unit</span></div>
+                <div class="section-label"><span class="dot"></span>Availability &amp; pricing <span class="hint">auto-fills when the daily sheet covers this unit</span></div>
                 <div class="field">
                     <label>Earliest available</label>
                     <input type="text" id="fAvailable" placeholder="e.g. Wednesday, Oct 7th">
@@ -381,6 +459,8 @@
                     <div id="termList"></div>
                     <button type="button" class="add-term-btn" id="addTermBtn">+ Add lease term</button>
                 </div>
+                <button type="button" class="sync-btn" id="syncPricingBtn" style="display:none;">Refill from pricing sheet</button>
+
 
                 <div class="section-label"><span class="dot"></span>Location</div>
                 <div class="field">
@@ -414,9 +494,13 @@
         </div>
 
         <div class="action-bar">
-            <button class="btn" id="resetBtn" disabled>Reset unit</button>
-            <button class="btn" id="printBtn" disabled>Print / PDF</button>
-            <button class="btn primary" id="exportBtn" disabled>Download flyer</button>
+            <div class="action-row">
+                <button class="btn" id="resetBtn" disabled>Reset unit</button>
+                <button class="btn" id="printBtn" disabled>Print</button>
+                <button class="btn primary" id="exportPdfBtn" disabled>Download PDF</button>
+            </div>
+            <button class="btn" id="exportBtn" disabled style="width:100%;">Download flyer HTML</button>
+            <div class="action-note">Download PDF renders a clean, single-page file &mdash; no browser date, title, or URL.</div>
         </div>
     </div>
 
@@ -454,6 +538,218 @@ function floorplanPathForUnit(u) {
 }
 
 /* ============================================================
+   DAILY PRICING SHEET
+   Uploaded as a Yardi-style CSV: one row per unit/lease-term/
+   move-in-date. We resolve each unit's *earliest available* date,
+   pull that date's rent for lease terms 11–15 (the range Justin
+   markets on flyers), and rank them so the cheapest term becomes
+   "Best Price" and the rest fill "Other Lease Terms".
+   ============================================================ */
+const PRICING_META_KEY = 'reve-pricing-meta';
+const PRICING_DATA_KEY = 'reve-pricing-summary';
+const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MARKETED_TERMS = [11, 12, 13, 14, 15];
+
+let PRICING_SUMMARY = {}; // unit -> { available, bestPrice, bestTerm, otherTerms: [{price,term}] }
+let PRICING_META = null;  // { filename, uploadedAt, unitCount }
+
+function parseCSVText(text) {
+    const rows = [];
+    let i = 0, field = '', row = [], inQuotes = false;
+    const pushField = () => { row.push(field); field = ''; };
+    const pushRow = () => { pushField(); rows.push(row); row = []; };
+    while (i < text.length) {
+        const c = text[i];
+        if (inQuotes) {
+            if (c === '"') {
+                if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+                inQuotes = false; i++; continue;
+            }
+            field += c; i++; continue;
+        }
+        if (c === '"') { inQuotes = true; i++; continue; }
+        if (c === ',') { pushField(); i++; continue; }
+        if (c === '\r') { i++; continue; }
+        if (c === '\n') { pushRow(); i++; continue; }
+        field += c; i++;
+    }
+    if (field.length || row.length) pushRow();
+    return rows;
+}
+
+function csvRowsToObjects(rows) {
+    if (!rows.length) return [];
+    const headers = rows[0];
+    return rows.slice(1).filter(r => r.length > 1 || r[0]).map(r => {
+        const obj = {};
+        headers.forEach((h, idx) => { obj[h] = r[idx] !== undefined ? r[idx] : ''; });
+        return obj;
+    });
+}
+
+function dateKeyRank(key, refMonthIdx) {
+    const day = parseInt(key.slice(0, key.length - 3), 10);
+    const mon = key.slice(-3);
+    const idx = MONTH_ABBR.indexOf(mon);
+    if (idx === -1 || isNaN(day)) return Infinity;
+    let offset = idx - refMonthIdx;
+    if (offset < 0) offset += 12;
+    return offset * 31 + day;
+}
+
+function earliestDateKey(keys) {
+    const refMonthIdx = new Date().getMonth();
+    let best = null, bestRank = Infinity;
+    keys.forEach(k => {
+        const r = dateKeyRank(k, refMonthIdx);
+        if (r < bestRank) { bestRank = r; best = k; }
+    });
+    return best;
+}
+
+function formatAvailableDate(status) {
+    const s = (status || '').trim();
+    if (!s || /immediate/i.test(s)) return 'Immediately';
+    const parts = s.split('/');
+    if (parts.length !== 3) return s;
+    let [m, d, y] = parts.map(p => parseInt(p, 10));
+    if (isNaN(m) || isNaN(d) || isNaN(y)) return s;
+    y = y < 100 ? 2000 + y : y;
+    const dt = new Date(y, m - 1, d);
+    if (isNaN(dt.getTime())) return s;
+    const weekday = dt.toLocaleDateString('en-US', { weekday: 'long' });
+    const monthName = dt.toLocaleDateString('en-US', { month: 'short' });
+    const day = dt.getDate();
+    const sfx = ["th", "st", "nd", "rd"], v = day % 100;
+    const suffix = sfx[(v - 20) % 10] || sfx[v] || sfx[0];
+    return `${weekday}, ${monthName} ${day}${suffix}`;
+}
+
+function buildPricingSummary(objRows) {
+    const byUnitEntry = {};
+    objRows.forEach(r => {
+        const unitField = r['Unit'] || '';
+        const m = unitField.match(/(\d{3,4})\s*$/);
+        if (!m) return;
+        const apt = m[1];
+        if (!byUnitEntry[apt]) {
+            byUnitEntry[apt] = { status: r['Status'] || '', dates: {} };
+        }
+        const dateKey = r['Move in Date'];
+        const term = parseInt(r['Term'], 10);
+        const val = parseFloat(r['Value']);
+        if (!dateKey || isNaN(term) || isNaN(val)) return;
+        if (!byUnitEntry[apt].dates[dateKey]) byUnitEntry[apt].dates[dateKey] = {};
+        byUnitEntry[apt].dates[dateKey][term] = val;
+    });
+
+    const summary = {};
+    Object.keys(byUnitEntry).forEach(apt => {
+        const entry = byUnitEntry[apt];
+        const allKeys = Object.keys(entry.dates);
+        if (!allKeys.length) return;
+
+        let targetKey = null;
+        const s = (entry.status || '').trim();
+        if (s && !/immediate/i.test(s)) {
+            const parts = s.split('/');
+            if (parts.length === 3) {
+                const m = parseInt(parts[0], 10), d = parseInt(parts[1], 10);
+                if (!isNaN(m) && !isNaN(d)) {
+                    const candidate = String(d).padStart(2, '0') + MONTH_ABBR[m - 1];
+                    if (entry.dates[candidate]) targetKey = candidate;
+                }
+            }
+        }
+        if (!targetKey) targetKey = earliestDateKey(allKeys);
+
+        const termsAtDate = entry.dates[targetKey] || {};
+        const ranked = MARKETED_TERMS
+            .filter(t => termsAtDate[t] !== undefined)
+            .map(t => ({ term: t, price: termsAtDate[t] }))
+            .sort((a, b) => a.price - b.price);
+
+        if (!ranked.length) return;
+        const best = ranked[0];
+        summary[apt] = {
+            available: formatAvailableDate(entry.status),
+            bestPrice: `$${Math.round(best.price)}`,
+            bestTerm: `${best.term}-Month Lease`,
+            otherTerms: ranked.slice(1).map(r => ({ price: `$${Math.round(r.price)}`, term: `${r.term}-Month Lease` }))
+        };
+    });
+    return summary;
+}
+
+function persistPricing() {
+    localStorage.setItem(PRICING_DATA_KEY, JSON.stringify(PRICING_SUMMARY));
+    localStorage.setItem(PRICING_META_KEY, JSON.stringify(PRICING_META));
+}
+
+function restorePricing() {
+    try {
+        const meta = localStorage.getItem(PRICING_META_KEY);
+        const data = localStorage.getItem(PRICING_DATA_KEY);
+        if (meta && data) {
+            PRICING_META = JSON.parse(meta);
+            PRICING_SUMMARY = JSON.parse(data);
+        }
+    } catch (e) { /* ignore corrupt cache */ }
+    renderPricingStatus();
+}
+
+function renderPricingStatus() {
+    const el = document.getElementById('pricingStatus');
+    const clearBtn = document.getElementById('pricingClearBtn');
+    if (PRICING_META) {
+        const when = new Date(PRICING_META.uploadedAt);
+        const whenText = when.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        el.innerHTML = `<b>${PRICING_META.unitCount} units</b> loaded from ${escapeHtml(PRICING_META.filename)}<br>Uploaded ${whenText}`;
+        clearBtn.style.display = 'inline-block';
+    } else {
+        el.textContent = "No pricing sheet loaded — upload today's export to auto-fill price & availability.";
+        clearBtn.style.display = 'none';
+    }
+}
+
+document.getElementById('pricingFileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const rows = parseCSVText(String(reader.result));
+            const objRows = csvRowsToObjects(rows);
+            PRICING_SUMMARY = buildPricingSummary(objRows);
+            PRICING_META = {
+                filename: file.name,
+                uploadedAt: new Date().toISOString(),
+                unitCount: Object.keys(PRICING_SUMMARY).length
+            };
+            persistPricing();
+            renderPricingStatus();
+            if (currentUnit) {
+                selectUnit(currentUnit); // refresh spec card badge + sync button visibility
+            }
+        } catch (err) {
+            alert('Could not read that CSV. Make sure it\'s the daily Yardi pricing export.');
+        }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+});
+
+document.getElementById('pricingClearBtn').addEventListener('click', () => {
+    if (!confirm("Clear the loaded pricing sheet? Units won't auto-fill price/availability until you upload a new one.")) return;
+    PRICING_SUMMARY = {};
+    PRICING_META = null;
+    localStorage.removeItem(PRICING_DATA_KEY);
+    localStorage.removeItem(PRICING_META_KEY);
+    renderPricingStatus();
+    if (currentUnit) selectUnit(currentUnit);
+});
+
+/* ============================================================
    STATE
    ============================================================ */
 let currentUnit = null;
@@ -462,13 +758,14 @@ let draft = null; // editable draft object for currentUnit
 function storageKey(unit) { return 'reve-pamphlet:' + unit; }
 
 function defaultDraft(u) {
+    const p = PRICING_SUMMARY[u.unit];
     return {
         title: `Apt ${u.unit} (${u.floorplan})`,
         subtitle: bedBathSqftLine(u),
-        available: '',
-        bestPrice: '',
-        bestTerm: '',
-        otherTerms: [],
+        available: p ? p.available : '',
+        bestPrice: p ? p.bestPrice : '',
+        bestTerm: p ? p.bestTerm : '',
+        otherTerms: p ? p.otherTerms.map(t => ({ ...t })) : [],
         location: locationLine(u),
         videoLabel: u.videoName && u.videoName !== 'NO VIDEO' ? u.videoName : '',
         videoUrl: u.videoLink || '',
@@ -616,6 +913,7 @@ function selectUnit(unit) {
     document.getElementById('resetBtn').disabled = false;
     document.getElementById('printBtn').disabled = false;
     document.getElementById('exportBtn').disabled = false;
+    document.getElementById('exportPdfBtn').disabled = false;
     previewLabel.textContent = `Apt ${u.unit} (${u.floorplan}) \u2014 ${u.bldg}`;
 
     specCard.innerHTML = `
@@ -627,7 +925,10 @@ function selectUnit(unit) {
         <div class="rc-row"><span>View</span><b>${u.view || '\u2014'}</b></div>
         ${videoBadgeRow(u)}
         ${floorplanBadgeRow(u)}
+        ${pricingBadgeRow(u)}
     `;
+
+    document.getElementById('syncPricingBtn').style.display = PRICING_SUMMARY[u.unit] ? 'block' : 'none';
 
     fields.forEach(id => {
         document.getElementById(id).value = draft[fieldMap[id]] || '';
@@ -652,6 +953,16 @@ function floorplanBadgeRow(u) {
         return `<div class="rc-row"><span>Floorplan image</span><b>${key}.jpg <span class="badge ok">on file</span></b></div>`;
     }
     return `<div class="rc-row"><span>Floorplan image</span><b>None in print archive <span class="badge warn">add manually</span></b></div>`;
+}
+
+function pricingBadgeRow(u) {
+    if (PRICING_SUMMARY[u.unit]) {
+        return `<div class="rc-row"><span>Pricing sheet</span><b>Matched <span class="badge ok">on file</span></b></div>`;
+    }
+    if (PRICING_META) {
+        return `<div class="rc-row"><span>Pricing sheet</span><b>Not in today's sheet <span class="badge warn">enter manually</span></b></div>`;
+    }
+    return `<div class="rc-row"><span>Pricing sheet</span><b>None uploaded yet</b></div>`;
 }
 
 /* ---------- lease term rows ---------- */
@@ -840,7 +1151,67 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     URL.revokeObjectURL(url);
 });
 
-document.getElementById('printBtn').addEventListener('click', () => window.print());
+document.getElementById('printBtn').addEventListener('click', () => {
+    const prevTitle = document.title;
+    document.title = currentUnit ? `Apt ${currentUnit}` : '';
+    window.addEventListener('afterprint', () => { document.title = prevTitle; }, { once: true });
+    window.print();
+});
+
+/* ---------- clean single-page PDF (no browser header/footer) ---------- */
+document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+    if (!currentUnit) return;
+    const btn = document.getElementById('exportPdfBtn');
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+    try {
+        const node = document.querySelector('#flyerMount .flyer-card');
+        const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+        const { jsPDF } = window.jspdf;
+        const pageW = 612, pageH = 792; // US Letter, points
+        const margin = 24;
+        const maxW = pageW - margin * 2;
+        const maxH = pageH - margin * 2;
+
+        // node.offsetWidth/Height are CSS px; 1 CSS px = 0.75pt at 96dpi
+        let wPt = node.offsetWidth * 0.75;
+        let hPt = node.offsetHeight * 0.75;
+        const fitScale = Math.min(maxW / wPt, maxH / hPt, 1); // shrink to fit one page, never enlarge
+        wPt *= fitScale;
+        hPt *= fitScale;
+
+        const x = (pageW - wPt) / 2;
+        const y = margin;
+
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pageW, pageH] });
+        pdf.addImage(imgData, 'JPEG', x, y, wPt, hPt);
+        pdf.save(`apt-${currentUnit}-pamphlet.pdf`);
+    } catch (err) {
+        alert('Could not generate the PDF. Try again, or use the Print button instead.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+    }
+});
+
+document.getElementById('syncPricingBtn').addEventListener('click', () => {
+    if (!currentUnit) return;
+    const p = PRICING_SUMMARY[currentUnit];
+    if (!p) return;
+    const hasExisting = draft.available || draft.bestPrice || draft.bestTerm || draft.otherTerms.length;
+    if (hasExisting && !confirm(`Replace the current availability/price fields for Apt ${currentUnit} with today's pricing sheet values?`)) return;
+    draft.available = p.available;
+    draft.bestPrice = p.bestPrice;
+    draft.bestTerm = p.bestTerm;
+    draft.otherTerms = p.otherTerms.map(t => ({ ...t }));
+    fields.forEach(id => { document.getElementById(id).value = draft[fieldMap[id]] || ''; });
+    renderTermList();
+    saveDraft();
+    renderPreview();
+});
 
 document.getElementById('resetBtn').addEventListener('click', () => {
     if (!currentUnit) return;
@@ -851,6 +1222,8 @@ document.getElementById('resetBtn').addEventListener('click', () => {
     renderTermList();
     renderPreview();
 });
+
+restorePricing();
 </script>
 </body>
 </html>
