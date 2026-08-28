@@ -439,13 +439,16 @@
                 </div>
 
                 <div class="section-label"><span class="dot"></span>Availability &amp; pricing <span class="hint">auto-fills when the daily sheet covers this unit</span></div>
+                <div class="field" id="availabilityNote" style="display:none;">
+                    <div class="empty-note" style="color:var(--warn);">This unit isn't currently available &mdash; availability shows as N/A, price as an estimate you enter manually, and lease terms are hidden on the flyer.</div>
+                </div>
                 <div class="field">
-                    <label>Earliest available</label>
+                    <label id="fAvailableLabel">Earliest available</label>
                     <input type="text" id="fAvailable" placeholder="e.g. Wednesday, Oct 7th">
                 </div>
                 <div class="field-row">
                     <div class="field">
-                        <label>Best price</label>
+                        <label id="fBestPriceLabel">Best price</label>
                         <input type="text" id="fBestPrice" placeholder="$3738">
                     </div>
                     <div class="field">
@@ -454,7 +457,7 @@
                     </div>
                 </div>
 
-                <div class="field">
+                <div class="field" id="otherTermsField">
                     <label>Other lease terms</label>
                     <div id="termList"></div>
                     <button type="button" class="add-term-btn" id="addTermBtn">+ Add lease term</button>
@@ -958,6 +961,14 @@ function selectUnit(unit) {
 
     document.getElementById('syncPricingBtn').style.display = PRICING_SUMMARY[u.unit] ? 'block' : 'none';
 
+    const isAvailable = AVAILABLE_UNITS.has(u.unit);
+    document.getElementById('availabilityNote').style.display = isAvailable ? 'none' : 'block';
+    document.getElementById('fAvailableLabel').textContent = isAvailable ? 'Earliest available' : 'Earliest available (shows as N/A)';
+    document.getElementById('fBestPriceLabel').textContent = isAvailable ? 'Best price' : 'Estimated best rent';
+    document.getElementById('fAvailable').placeholder = isAvailable ? 'e.g. Wednesday, Oct 7th' : 'N/A on flyer';
+    document.getElementById('fBestPrice').placeholder = isAvailable ? '$3738' : 'e.g. $2900 (estimate)';
+    document.getElementById('otherTermsField').style.display = isAvailable ? 'block' : 'none';
+
     fields.forEach(id => {
         document.getElementById(id).value = draft[fieldMap[id]] || '';
     });
@@ -1035,6 +1046,8 @@ function escapeHtml(s) {
    PREVIEW / EXPORT — flyer template
    ============================================================ */
 function flyerHTML(u, d, standalone) {
+    const isAvailable = AVAILABLE_UNITS.has(u.unit);
+
     const terms = (d.otherTerms || []).filter(t => t.price || t.term);
     const termsHtml = terms.length
         ? `<ul class="lease-terms-list">${terms.map(t => `<li>${escapeHtml(t.price)}${t.price && t.term ? ' ' : ''}${t.term ? '(' + escapeHtml(t.term) + ')' : ''}</li>`).join('')}</ul>`
@@ -1046,7 +1059,20 @@ function flyerHTML(u, d, standalone) {
 
     const priceBlock = (d.bestPrice || d.bestTerm)
         ? `<span class="price-highlight">${escapeHtml(d.bestPrice)}${d.bestPrice && d.bestTerm ? ' ' : ''}${d.bestTerm ? '(' + escapeHtml(d.bestTerm) + ')' : ''}</span>`
-        : `<span class="muted-line">Add best price</span>`;
+        : `<span class="muted-line">${isAvailable ? 'Add best price' : 'Add estimated rent'}</span>`;
+
+    const availableText = isAvailable
+        ? (d.available ? escapeHtml(d.available) : '<span class="muted-line">Add availability date</span>')
+        : 'N/A';
+
+    const priceLabel = isAvailable ? 'Best Price:' : 'Estimated Best Rent:';
+
+    const otherTermsRow = isAvailable
+        ? `<tr>
+            <td class="label-col">Other Lease Terms:</td>
+            <td class="value-col">${termsHtml}</td>
+        </tr>`
+        : '';
 
     const videoRow = d.videoUrl
         ? `<a href="${escapeAttr(d.videoUrl)}" class="link-text" target="_blank" rel="noopener">${escapeHtml(d.videoLabel || 'Video Tour')}</a>`
@@ -1074,16 +1100,13 @@ function flyerHTML(u, d, standalone) {
     <table class="details-table">
         <tr>
             <td class="label-col">Earliest Available:</td>
-            <td class="value-col">${d.available ? escapeHtml(d.available) : '<span class="muted-line">Add availability date</span>'}</td>
+            <td class="value-col">${availableText}</td>
         </tr>
         <tr>
-            <td class="label-col">Best Price:</td>
+            <td class="label-col">${priceLabel}</td>
             <td class="value-col">${priceBlock}</td>
         </tr>
-        <tr>
-            <td class="label-col">Other Lease Terms:</td>
-            <td class="value-col">${termsHtml}</td>
-        </tr>
+        ${otherTermsRow}
         <tr>
             <td class="label-col">Location:</td>
             <td class="value-col">${escapeHtml(d.location)}</td>
@@ -1202,6 +1225,25 @@ document.getElementById('exportPdfBtn').addEventListener('click', async () => {
     btn.textContent = 'Generating…';
     try {
         const node = document.querySelector('#flyerMount .flyer-card');
+        const nodeRect = node.getBoundingClientRect();
+
+        // Capture link positions (relative to the card) before rasterizing,
+        // so the PDF can carry real clickable link annotations on top of
+        // the flat image — a rasterized PDF has no hyperlinks otherwise.
+        const linkTargets = [];
+        node.querySelectorAll('a[href]').forEach(a => {
+            const href = a.getAttribute('href');
+            if (!href || href === '#') return; // disabled/placeholder link
+            const r = a.getBoundingClientRect();
+            linkTargets.push({
+                href,
+                left: r.left - nodeRect.left,
+                top: r.top - nodeRect.top,
+                width: r.width,
+                height: r.height
+            });
+        });
+
         const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
         const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
@@ -1223,6 +1265,20 @@ document.getElementById('exportPdfBtn').addEventListener('click', async () => {
 
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pageW, pageH] });
         pdf.addImage(imgData, 'JPEG', x, y, wPt, hPt);
+
+        // Overlay real clickable link annotations on top of the flat image,
+        // scaled by the same CSS-px -> PDF-pt factor used for the image.
+        const linkScale = 0.75 * fitScale;
+        linkTargets.forEach(t => {
+            pdf.link(
+                x + t.left * linkScale,
+                y + t.top * linkScale,
+                t.width * linkScale,
+                t.height * linkScale,
+                { url: t.href }
+            );
+        });
+
         pdf.save(`apt-${currentUnit}-pamphlet.pdf`);
     } catch (err) {
         alert('Could not generate the PDF. Try again, or use the Print button instead.');
