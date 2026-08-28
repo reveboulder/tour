@@ -397,6 +397,9 @@
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -1169,14 +1172,63 @@ function flyerHTML(u, d, standalone) {
     const applyDisabled = d.applyUrl ? '' : ' style="pointer-events:none;opacity:0.45;"';
 
     return `<div class="flyer-card">
+    <svg class="brand-watermark" viewBox="0 0 288 288" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M214.16,172.35c14.51-13.55,22.49-32.25,22.49-52.67c0-18.23-8.08-36.37-22.18-49.77
+	c-14.55-13.84-33.88-21.46-54.41-21.46c-19.35,0-107.73-0.11-108.62-0.11l0,0.42h-0.07v46.8h0.02l0,1.19l-0.06,0.05l0.06,0.07
+	l0,0.06c0.01,0,0.03,0,0.05,0l39.51,47.23H51.35v6.83h0.03v88.39h6.83v-75.04c1.53,0,3.88,0,6.88,0.01v75.04h6.83V178.9h6.88v60.46
+	h6.83v-45.9h6.99v45.9h6.83v-45.9h32.52l38.68,46.2h8.39l0.31-0.26l-38.46-45.94h9.73l38.76,46.2h8.92l-38.8-46.25
+	c3.02-0.07,6.01-0.28,8.94-0.63l39.33,46.88h8.92l-40.41-48.16c2.77-0.58,5.49-1.28,8.15-2.11l42.17,50.27h8.92l-44.25-52.74
+	C199.81,183.39,207.58,178.5,214.16,172.35z M85.62,150.98h6.99v6.55c-2.39,0-4.73,0-6.99-0.01V150.98z M78.79,157.51
+	c-2.44,0-4.73,0-6.88-0.01v-6.53h6.88V157.51z M160.97,150.98c18.99,0,33.3-13.33,33.3-31.02c0-16.27-14.71-30.01-32.11-30.01
+	c-4.03,0-34.68,0.04-62.72,0.08v-6.66c27.43-0.01,57.55-0.02,63.55-0.02c21.41,0,39.51,16.65,39.51,36.36
+	c0,21.94-17.36,37.87-41.28,37.87c-4.74,0-34.96-0.02-61.77-0.05v-6.55H160.97z M58.21,83.38c1.95,0,4.26,0,6.88,0l0,6.69
+	c-2.61,0-4.93,0.01-6.88,0.01V83.38z M155.36,144.15l-39.69-47.31c22.6-0.03,43.24-0.06,46.49-0.06c13.71,0,25.28,10.62,25.28,23.18
+	c0,14.02-11.13,24.19-26.47,24.19H155.36z M106.76,96.85l39.68,47.3h-9.92L96.86,96.86C100.13,96.85,103.44,96.85,106.76,96.85z
+	 M85.62,90.04v-6.67c2.28,0,4.62,0,6.99,0v6.66C90.24,90.04,87.9,90.04,85.62,90.04z M78.79,90.05c-2.39,0-4.7,0.01-6.88,0.01
+	l0-6.69c2.18,0,4.48,0,6.88,0V90.05z M87.95,96.87l39.66,47.28h-9.47L78.49,96.88C81.51,96.88,84.68,96.88,87.95,96.87z
+	 M92.61,164.35v7.72h-6.99v-7.72C87.89,164.35,90.22,164.35,92.61,164.35z M99.44,164.36c26.81,0.02,57.03,0.05,61.77,0.05
+	c13.41,0,25.66-4.53,34.47-12.77c8.8-8.22,13.64-19.56,13.64-31.93c0-11.08-4.9-22.09-13.45-30.22
+	c-8.8-8.37-20.48-12.98-32.89-12.98c-7.03,0-47.24,0.01-77.37,0.02V69.2c28.68-0.01,66.42-0.03,75.75-0.03
+	c14.72,0,28.57,5.45,38.98,15.35c9.98,9.49,15.71,22.28,15.71,35.08c0,30.4-24.01,52.47-57.1,52.47H99.44V164.36z M78.79,76.55
+	c-2.4,0-4.7,0-6.88,0l0-7.34c2.18,0,4.48,0,6.88,0V76.55z M65.09,76.55c-2.61,0-4.93,0-6.88,0v-7.34c1.95,0,4.26,0,6.88,0
+	L65.09,76.55z M58.21,62.38v-7.21c1.95,0,4.26,0.01,6.88,0.01l0,7.19C62.47,62.38,60.16,62.38,58.21,62.38z M60.35,96.91
+	c2.63,0,5.75-0.01,9.24-0.01l39.64,47.25h-9.36L60.35,96.91z M58.21,157.49v-6.52h6.88v6.52C62.09,157.5,59.74,157.5,58.21,157.49z
+	 M71.92,172.07v-7.74c2.14,0,4.44,0,6.88,0.01v7.73H71.92z M85.62,186.63v-7.73h6.99v7.73H85.62z M99.44,178.9h59.52
+	c17.85,0,34.13-6.02,45.84-16.96c11.66-10.89,18.09-25.93,18.09-42.34c0-14.67-6.5-29.26-17.83-40.03
+	c-11.69-11.11-27.2-17.23-43.69-17.23c-10.92,0-60.77,0.02-89.45,0.04l0-7.18c27.55,0.03,74.65,0.09,88.16,0.09
+	c18.77,0,36.42,6.95,49.7,19.58c12.75,12.12,20.06,28.45,20.06,44.82c0,38.8-30.61,66.96-72.79,66.96h-57.6V178.9z" fill="var(--reve-orange)"/>
+    </svg>
+    <div class="flyer-content">
     <div class="header-container">
         <div class="title-area">
             <h1>${escapeHtml(d.title)}</h1>
             <p>${escapeHtml(d.subtitle)}</p>
         </div>
-        <svg class="brand-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 20H55C70 20 80 30 80 42.5C80 52 73 60 62 63.5L82 85H62L45 65H35V85H20V20ZM35 34V51H53C61 51 65 47 65 42.5C65 38 61 34 53 34H35Z" fill="#de5426"/>
-            <path d="M25 25H30V60H25V25Z" fill="#ffffff" opacity="0.5"/>
+        <svg class="brand-logo" viewBox="0 0 288 288" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M214.16,172.35c14.51-13.55,22.49-32.25,22.49-52.67c0-18.23-8.08-36.37-22.18-49.77
+	c-14.55-13.84-33.88-21.46-54.41-21.46c-19.35,0-107.73-0.11-108.62-0.11l0,0.42h-0.07v46.8h0.02l0,1.19l-0.06,0.05l0.06,0.07
+	l0,0.06c0.01,0,0.03,0,0.05,0l39.51,47.23H51.35v6.83h0.03v88.39h6.83v-75.04c1.53,0,3.88,0,6.88,0.01v75.04h6.83V178.9h6.88v60.46
+	h6.83v-45.9h6.99v45.9h6.83v-45.9h32.52l38.68,46.2h8.39l0.31-0.26l-38.46-45.94h9.73l38.76,46.2h8.92l-38.8-46.25
+	c3.02-0.07,6.01-0.28,8.94-0.63l39.33,46.88h8.92l-40.41-48.16c2.77-0.58,5.49-1.28,8.15-2.11l42.17,50.27h8.92l-44.25-52.74
+	C199.81,183.39,207.58,178.5,214.16,172.35z M85.62,150.98h6.99v6.55c-2.39,0-4.73,0-6.99-0.01V150.98z M78.79,157.51
+	c-2.44,0-4.73,0-6.88-0.01v-6.53h6.88V157.51z M160.97,150.98c18.99,0,33.3-13.33,33.3-31.02c0-16.27-14.71-30.01-32.11-30.01
+	c-4.03,0-34.68,0.04-62.72,0.08v-6.66c27.43-0.01,57.55-0.02,63.55-0.02c21.41,0,39.51,16.65,39.51,36.36
+	c0,21.94-17.36,37.87-41.28,37.87c-4.74,0-34.96-0.02-61.77-0.05v-6.55H160.97z M58.21,83.38c1.95,0,4.26,0,6.88,0l0,6.69
+	c-2.61,0-4.93,0.01-6.88,0.01V83.38z M155.36,144.15l-39.69-47.31c22.6-0.03,43.24-0.06,46.49-0.06c13.71,0,25.28,10.62,25.28,23.18
+	c0,14.02-11.13,24.19-26.47,24.19H155.36z M106.76,96.85l39.68,47.3h-9.92L96.86,96.86C100.13,96.85,103.44,96.85,106.76,96.85z
+	 M85.62,90.04v-6.67c2.28,0,4.62,0,6.99,0v6.66C90.24,90.04,87.9,90.04,85.62,90.04z M78.79,90.05c-2.39,0-4.7,0.01-6.88,0.01
+	l0-6.69c2.18,0,4.48,0,6.88,0V90.05z M87.95,96.87l39.66,47.28h-9.47L78.49,96.88C81.51,96.88,84.68,96.88,87.95,96.87z
+	 M92.61,164.35v7.72h-6.99v-7.72C87.89,164.35,90.22,164.35,92.61,164.35z M99.44,164.36c26.81,0.02,57.03,0.05,61.77,0.05
+	c13.41,0,25.66-4.53,34.47-12.77c8.8-8.22,13.64-19.56,13.64-31.93c0-11.08-4.9-22.09-13.45-30.22
+	c-8.8-8.37-20.48-12.98-32.89-12.98c-7.03,0-47.24,0.01-77.37,0.02V69.2c28.68-0.01,66.42-0.03,75.75-0.03
+	c14.72,0,28.57,5.45,38.98,15.35c9.98,9.49,15.71,22.28,15.71,35.08c0,30.4-24.01,52.47-57.1,52.47H99.44V164.36z M78.79,76.55
+	c-2.4,0-4.7,0-6.88,0l0-7.34c2.18,0,4.48,0,6.88,0V76.55z M65.09,76.55c-2.61,0-4.93,0-6.88,0v-7.34c1.95,0,4.26,0,6.88,0
+	L65.09,76.55z M58.21,62.38v-7.21c1.95,0,4.26,0.01,6.88,0.01l0,7.19C62.47,62.38,60.16,62.38,58.21,62.38z M60.35,96.91
+	c2.63,0,5.75-0.01,9.24-0.01l39.64,47.25h-9.36L60.35,96.91z M58.21,157.49v-6.52h6.88v6.52C62.09,157.5,59.74,157.5,58.21,157.49z
+	 M71.92,172.07v-7.74c2.14,0,4.44,0,6.88,0.01v7.73H71.92z M85.62,186.63v-7.73h6.99v7.73H85.62z M99.44,178.9h59.52
+	c17.85,0,34.13-6.02,45.84-16.96c11.66-10.89,18.09-25.93,18.09-42.34c0-14.67-6.5-29.26-17.83-40.03
+	c-11.69-11.11-27.2-17.23-43.69-17.23c-10.92,0-60.77,0.02-89.45,0.04l0-7.18c27.55,0.03,74.65,0.09,88.16,0.09
+	c18.77,0,36.42,6.95,49.7,19.58c12.75,12.12,20.06,28.45,20.06,44.82c0,38.8-30.61,66.96-72.79,66.96h-57.6V178.9z" fill="#de5426"/>
         </svg>
     </div>
 
@@ -1205,8 +1257,12 @@ function flyerHTML(u, d, standalone) {
     </table>
 
     <div class="footer-action">
+        <svg class="footer-accent" viewBox="76.79 0 32.64 11.69" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <polygon points="76.79 11.69 109.43 11.69 93.11 0" fill="var(--reve-orange)"/>
+        </svg>
         <p>Ready to secure your spot?</p>
         <a href="${applyHref}" class="btn-apply"${applyDisabled} target="_blank" rel="noopener">Apply Now - ${escapeHtml(d.title)}</a>
+    </div>
     </div>
 </div>`;
 }
@@ -1214,9 +1270,12 @@ function flyerHTML(u, d, standalone) {
 const FLYER_STYLE = `
 :root {
     --reve-orange: #de5426;
-    --reve-text-dark: #333333;
-    --reve-text-muted: #555555;
-    --bg-gray: #f2f2f2;
+    --reve-charcoal: #2f2d2f;
+    --reve-text-dark: #2f2d2f;
+    --reve-text-muted: #6b6664;
+    --reve-offwhite: #f7f5ef;
+    --reve-tint: #e5e4e0;
+    --bg-gray: #f7f5ef;
 }
 .flyer-body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -1229,6 +1288,8 @@ const FLYER_STYLE = `
     line-height: 1.4;
 }
 .flyer-card {
+    position: relative;
+    overflow: hidden;
     background-color: #ffffff;
     max-width: 540px;
     width: 100%;
@@ -1236,16 +1297,44 @@ const FLYER_STYLE = `
     box-sizing: border-box;
     box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
+.brand-watermark {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    right: -110px;
+    bottom: -70px;
+    opacity: 0.045;
+    transform: rotate(-7deg);
+    pointer-events: none;
+    z-index: 0;
+}
+.flyer-content { position: relative; z-index: 1; }
 .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-.title-area h1 { color: var(--reve-orange); font-size: 32px; margin: 0 0 5px 0; font-weight: 700; }
+.title-area h1 {
+    color: var(--reve-orange);
+    font-family: 'Oswald', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: 30px;
+    margin: 0 0 6px 0;
+    font-weight: 600;
+}
 .title-area p { margin: 0; font-size: 15px; color: var(--reve-text-muted); font-weight: 500; }
-.brand-logo { width: 55px; height: auto; flex: none; }
-.floorplan-container { text-align: center; margin: 25px 0; border: 1px solid #e0e0e0; padding: 10px; background: #ffffff; }
+.brand-logo { width: 50px; height: auto; flex: none; }
+.floorplan-container { text-align: center; margin: 25px 0; border: 1px solid var(--reve-tint); padding: 10px; background: var(--reve-offwhite); }
 .floorplan-img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
 .floorplan-placeholder { padding: 50px 10px; color: #a8a29a; font-size: 13px; border: 1px dashed #ccc; }
 .details-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 15px; }
 .details-table td { padding: 8px 0; vertical-align: top; }
-.label-col { width: 32%; font-weight: 700; color: var(--reve-text-muted); }
+.label-col {
+    width: 32%;
+    font-family: 'Oswald', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--reve-text-muted);
+}
 .value-col { width: 68%; color: var(--reve-text-dark); }
 .price-highlight { color: var(--reve-orange); font-weight: 700; }
 .muted-line { color: #b0aaa0; font-style: italic; font-size: 13.5px; }
@@ -1253,7 +1342,8 @@ const FLYER_STYLE = `
 .lease-terms-list li { margin-bottom: 4px; }
 .lease-terms-list li::before { content: "\\2022  "; color: var(--reve-text-dark); font-weight: bold; }
 .link-text { color: var(--reve-orange); text-decoration: underline; font-weight: 500; }
-.footer-action { text-align: center; margin-top: 30px; border-top: 1px solid #eeeeee; padding-top: 20px; }
+.footer-action { text-align: center; margin-top: 30px; border-top: 1px solid var(--reve-tint); padding-top: 18px; }
+.footer-accent { display: block; width: 20px; height: auto; margin: 0 auto 10px; }
 .footer-action p { font-size: 16px; font-weight: 500; margin: 0 0 10px 0; }
 .btn-apply { display: inline-block; color: var(--reve-orange); font-size: 20px; font-weight: 700; text-decoration: underline; }
 `;
@@ -1273,6 +1363,9 @@ function buildStandaloneDoc(u, d) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escapeHtml(d.title)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&display=swap" rel="stylesheet">
 <style>${FLYER_STYLE}</style>
 </head>
 <body class="flyer-body">
@@ -1331,6 +1424,7 @@ document.getElementById('exportPdfBtn').addEventListener('click', async () => {
             });
         });
 
+        if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
         const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
         const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
