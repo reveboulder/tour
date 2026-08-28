@@ -131,7 +131,16 @@
         display: flex;
         gap: 6px;
         flex-wrap: wrap;
-        margin-bottom: 18px;
+        margin-bottom: 14px;
+    }
+    .filter-group { margin-bottom: 2px; }
+    .filter-caption {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--ink-soft);
+        font-weight: 700;
+        margin-bottom: 5px;
     }
     .chip {
         font-size: 11px;
@@ -422,7 +431,22 @@
                 <input type="text" id="unitSearch" placeholder="Type unit # (e.g. 4334) or floorplan (e.g. B5)" autocomplete="off">
                 <div class="unit-results" id="unitResults"></div>
             </div>
-            <div class="quick-filters" id="bldgFilters"></div>
+            <div class="filter-group">
+                <div class="filter-caption">Building</div>
+                <div class="quick-filters" id="bldgFilters"></div>
+            </div>
+            <div class="filter-group">
+                <div class="filter-caption">Floor</div>
+                <div class="quick-filters" id="floorFilters"></div>
+            </div>
+            <div class="filter-group">
+                <div class="filter-caption">Type</div>
+                <div class="quick-filters" id="typeFilters"></div>
+            </div>
+            <div class="filter-group">
+                <div class="filter-caption">View</div>
+                <div class="quick-filters" id="viewFilters"></div>
+            </div>
 
             <div id="editorBody" style="display:none;">
 
@@ -836,58 +860,121 @@ function flashSaved() {
 }
 
 /* ============================================================
-   UNIT SEARCH
+   UNIT SEARCH & FILTERS
    ============================================================ */
 const searchInput = document.getElementById('unitSearch');
 const resultsBox = document.getElementById('unitResults');
 const bldgFilterBox = document.getElementById('bldgFilters');
+const floorFilterBox = document.getElementById('floorFilters');
+const typeFilterBox = document.getElementById('typeFilters');
+const viewFilterBox = document.getElementById('viewFilters');
+
+/* "Marketed" = appears in today's uploaded pricing sheet — i.e. actually
+   vacant or on notice, available to apply for now or on a future move-in
+   date. This is what populates the dropdown. It's distinct from
+   AVAILABLE_UNITS (whether the unit has a live application UnitID at all,
+   used for the Apply link / N/A-rent flyer logic) — most occupied units
+   still carry a live UnitID for waitlist purposes, so that set alone is
+   too broad to use as "available to view apartments right now". */
+function marketedUnits() {
+    return new Set(Object.keys(PRICING_SUMMARY));
+}
+
+/* Boulder's Flatirons sit west of downtown, so units facing those
+   directions are tagged as mountain-view by default. Edit this set if
+   your actual sightlines differ per building. */
+const MOUNTAIN_VIEW_DIRECTIONS = new Set(['West', 'North/West', 'South/West']);
+function isMountainView(u) { return MOUNTAIN_VIEW_DIRECTIONS.has(u.view); }
+
+function unitTypeCategory(u) {
+    if (u.floorplan.startsWith('TH')) return 'Townhome';
+    if (u.floorplan.startsWith('LW')) return 'Live/Work';
+    const bedNum = parseFloat((u.bedBath || '0/0').split('/')[0]);
+    if (isNaN(bedNum) || bedNum <= 0) return 'Studio';
+    if (bedNum < 2) return '1-Bed';
+    if (bedNum < 3) return '2-Bed';
+    return '3-Bed';
+}
 
 const buildings = [...new Set(UNITS.map(u => u.bldg))].sort();
-let activeBldgFilter = null;
+const floors = [...new Set(UNITS.map(u => u.floor))].sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+const typeOrder = ['Studio', '1-Bed', '2-Bed', '3-Bed', 'Townhome', 'Live/Work'];
 
-buildings.forEach(b => {
-    const chip = document.createElement('button');
-    chip.className = 'chip';
-    chip.type = 'button';
-    chip.textContent = b.replace('Bldg ', 'Building ');
-    chip.addEventListener('click', () => {
-        activeBldgFilter = (activeBldgFilter === b) ? null : b;
-        [...bldgFilterBox.children].forEach(c => c.classList.remove('active'));
-        if (activeBldgFilter) chip.classList.add('active');
-        runSearch();
+let activeBldgFilter = null;
+let activeFloorFilter = null;
+let activeTypeFilter = null;
+let activeMountainView = false;
+
+function buildChipRow(box, values, labelFn, getActive, setActive) {
+    box.innerHTML = '';
+    values.forEach(v => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.type = 'button';
+        chip.textContent = labelFn(v);
+        chip.addEventListener('click', () => {
+            setActive(getActive() === v ? null : v);
+            [...box.children].forEach(c => c.classList.remove('active'));
+            if (getActive() === v) chip.classList.add('active');
+            runSearch();
+        });
+        box.appendChild(chip);
     });
-    bldgFilterBox.appendChild(chip);
+}
+
+buildChipRow(bldgFilterBox, buildings, b => b.replace('Bldg ', 'Building '), () => activeBldgFilter, v => activeBldgFilter = v);
+buildChipRow(floorFilterBox, floors, f => `Floor ${f}`, () => activeFloorFilter, v => activeFloorFilter = v);
+buildChipRow(typeFilterBox, typeOrder, t => t, () => activeTypeFilter, v => activeTypeFilter = v);
+
+const mountainChip = document.createElement('button');
+mountainChip.className = 'chip';
+mountainChip.type = 'button';
+mountainChip.textContent = 'Mountain View';
+mountainChip.addEventListener('click', () => {
+    activeMountainView = !activeMountainView;
+    mountainChip.classList.toggle('active', activeMountainView);
+    runSearch();
 });
+viewFilterBox.appendChild(mountainChip);
 
 function runSearch() {
     const q = searchInput.value.trim().toLowerCase();
-    let list = UNITS.filter(u => AVAILABLE_UNITS.has(u.unit));
+    const marketed = marketedUnits();
+    let list = UNITS.filter(u => marketed.has(u.unit));
     if (activeBldgFilter) list = list.filter(u => u.bldg === activeBldgFilter);
+    if (activeFloorFilter) list = list.filter(u => u.floor === activeFloorFilter);
+    if (activeTypeFilter) list = list.filter(u => unitTypeCategory(u) === activeTypeFilter);
+    if (activeMountainView) list = list.filter(u => isMountainView(u));
     if (q) {
         list = list.filter(u =>
             u.unit.toLowerCase().includes(q) ||
             u.floorplan.toLowerCase().includes(q) ||
             u.yardi.toLowerCase().includes(q)
         );
-        // An exact unit-number match always surfaces, even if not
-        // currently available — Justin can still open and edit it.
-        const exact = byUnit[searchInput.value.trim()];
-        if (exact && !list.includes(exact)) list = [exact, ...list];
     }
+    // An exact unit-number match always surfaces and always works, even
+    // outside today's pricing sheet or the active filters — Justin can
+    // still open and edit any valid unit directly.
+    const exact = byUnit[searchInput.value.trim()];
+    if (exact && !list.includes(exact)) list = [exact, ...list];
+
     list = list.slice(0, 40);
-    renderResults(list);
+    renderResults(list, marketed);
 }
 
-function renderResults(list) {
+function renderResults(list, marketed) {
     if (!list.length) {
-        resultsBox.innerHTML = '<div class="unit-result"><span class="u-meta">No matching available units &mdash; type the full unit number to open it anyway</span></div>';
+        const msg = marketed.size === 0
+            ? "Upload today's pricing sheet to populate this list, or type a unit number directly."
+            : 'No matching units in today\'s pricing sheet &mdash; type the full unit number to open it anyway.';
+        resultsBox.innerHTML = `<div class="unit-result"><span class="u-meta">${msg}</span></div>`;
         resultsBox.classList.add('open');
         return;
     }
     resultsBox.innerHTML = list.map(u => `
         <div class="unit-result" data-unit="${u.unit}">
             <span class="u-num">Apt ${u.unit}</span>
-            <span class="u-meta">${u.floorplan} &middot; ${u.bedBath} &middot; ${u.sqft} sf &middot; ${u.bldg}${AVAILABLE_UNITS.has(u.unit) ? '' : ' &middot; not available'}</span>
+            <span class="u-meta">${u.floorplan} &middot; ${u.bedBath} &middot; ${u.sqft} sf &middot; ${u.bldg}${marketed.has(u.unit) ? '' : ' &middot; not in today\'s sheet'}</span>
         </div>
     `).join('');
     resultsBox.classList.add('open');
