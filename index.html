@@ -1183,7 +1183,6 @@ function concessionBlock(u, d) {
     const n = candidates.length;
     const termHeaderCells = candidates.map(c => `<td>${c.termNum} months</td>`).join('');
     const rentCells = candidates.map(c => `<td>${formatMoney(c.price)}</td>`).join('');
-    const proratedHeaderCells = candidates.map(c => `<td>PRORATED ${c.termNum} months</td>`).join('');
     const resultCells = candidates.map(c => {
         const eff = effectiveRent(c.price, c.termNum, weeks);
         return `<td class="cc-result">${eff !== null ? formatMoney(eff) : '&mdash;'}</td>`;
@@ -1196,7 +1195,7 @@ function concessionBlock(u, d) {
             <tr><td class="cc-unit" rowspan="3">${escapeHtml(u.unit)}</td>${termHeaderCells}</tr>
             <tr><td class="cc-subheader" colspan="${n}">RENT</td></tr>
             <tr>${rentCells}</tr>
-            <tr><td class="cc-label">CONCESSION</td>${proratedHeaderCells}</tr>
+            <tr><td class="cc-label">CONCESSION</td><td class="cc-subheader" colspan="${n}">EFFECTIVE MONTHLY PAYMENT</td></tr>
             <tr><td class="cc-concess-val">${escapeHtml(String(weeks))} weeks</td>${resultCells}</tr>
         </table>
     </div>`;
@@ -1287,7 +1286,6 @@ function flyerHTML(u, d, standalone) {
     const applyDisabled = d.applyUrl ? '' : ' style="pointer-events:none;opacity:0.45;"';
 
     return `<div class="flyer-card">
-    <img class="brand-watermark" src="${WATERMARK_IMG_SRC}" alt="" aria-hidden="true">
     <div class="flyer-content">
     <div class="header-container">
         <div class="title-area">
@@ -1326,25 +1324,28 @@ function flyerHTML(u, d, standalone) {
         ${floorplanBlock}
     </div>
 
-    <table class="details-table">
-        <tr>
-            <td class="label-col">Earliest Available:</td>
-            <td class="value-col">${availableText}</td>
-        </tr>
-        <tr>
-            <td class="label-col">${priceLabel}</td>
-            <td class="value-col">${priceBlock}</td>
-        </tr>
-        ${otherTermsRow}
-        <tr>
-            <td class="label-col">Location:</td>
-            <td class="value-col">${escapeHtml(d.location)}</td>
-        </tr>
-        <tr>
-            <td class="label-col">Video Tour:</td>
-            <td class="value-col">${videoRow}</td>
-        </tr>
-    </table>
+    <div class="details-wrap">
+        <img class="brand-watermark" src="${WATERMARK_IMG_SRC}" alt="" aria-hidden="true">
+        <table class="details-table">
+            <tr>
+                <td class="label-col">Earliest Available:</td>
+                <td class="value-col">${availableText}</td>
+            </tr>
+            <tr>
+                <td class="label-col">${priceLabel}</td>
+                <td class="value-col">${priceBlock}</td>
+            </tr>
+            ${otherTermsRow}
+            <tr>
+                <td class="label-col">Location:</td>
+                <td class="value-col">${escapeHtml(d.location)}</td>
+            </tr>
+            <tr>
+                <td class="label-col">Video Tour:</td>
+                <td class="value-col">${videoRow}</td>
+            </tr>
+        </table>
+    </div>
 
     ${concessionBlock(u, d)}
 
@@ -1387,12 +1388,13 @@ const FLYER_STYLE = `
     box-sizing: border-box;
     box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
+.details-wrap { position: relative; overflow: hidden; }
 .brand-watermark {
     position: absolute;
-    width: 400px;
-    height: 400px;
-    right: -110px;
-    bottom: -70px;
+    width: 260px;
+    height: 260px;
+    right: -50px;
+    bottom: -55px;
     opacity: 0.104;
     transform: rotate(-7deg);
     pointer-events: none;
@@ -1414,7 +1416,7 @@ const FLYER_STYLE = `
 .floorplan-container { text-align: center; margin: 25px 0; border: 1px solid var(--reve-tint); padding: 10px; background: var(--reve-offwhite); }
 .floorplan-img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
 .floorplan-placeholder { padding: 50px 10px; color: #a8a29a; font-size: 13px; border: 1px dashed #ccc; }
-.details-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 15px; }
+.details-table { position: relative; z-index: 1; width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 15px; }
 .details-table td { padding: 8px 0; vertical-align: top; }
 .label-col {
     width: 32%;
@@ -1511,7 +1513,32 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 document.getElementById('printBtn').addEventListener('click', () => {
     const prevTitle = document.title;
     document.title = currentUnit ? `Apt ${currentUnit}` : '';
-    window.addEventListener('afterprint', () => { document.title = prevTitle; }, { once: true });
+
+    // Shrink the card to fit one physical page height, no matter how much
+    // content it holds (floorplan size, concession section, etc.) — the
+    // browser's own print pagination has no such guarantee on its own.
+    const card = document.querySelector('#flyerMount .flyer-card');
+    let prevTransform = '', prevTransformOrigin = '', prevMarginBottom = '';
+    if (card) {
+        prevTransform = card.style.transform;
+        prevTransformOrigin = card.style.transformOrigin;
+        prevMarginBottom = card.style.marginBottom;
+        const printablePagePx = 960; // ~10in usable height at 96dpi, a conservative default-margin estimate
+        const scale = Math.min(1, printablePagePx / card.offsetHeight);
+        card.style.transformOrigin = 'top center';
+        card.style.transform = `scale(${scale})`;
+        // Compensate the layout gap that scaling leaves behind.
+        card.style.marginBottom = `${card.offsetHeight * (scale - 1)}px`;
+    }
+
+    window.addEventListener('afterprint', () => {
+        document.title = prevTitle;
+        if (card) {
+            card.style.transform = prevTransform;
+            card.style.transformOrigin = prevTransformOrigin;
+            card.style.marginBottom = prevMarginBottom;
+        }
+    }, { once: true });
     window.print();
 });
 
