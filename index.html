@@ -182,6 +182,8 @@
         font-weight: 400;
         margin-left: 4px;
     }
+    .checkbox-label { display: flex !important; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; }
+    .checkbox-label input[type="checkbox"] { width: auto; margin: 0; accent-color: var(--reve-orange); cursor: pointer; }
     .field-row { display: flex; gap: 8px; }
     .field-row .field { flex: 1; }
 
@@ -491,6 +493,18 @@
                 </div>
                 <button type="button" class="sync-btn" id="syncPricingBtn" style="display:none;">Refill from pricing sheet</button>
 
+                <div class="section-label"><span class="dot"></span>Concession</div>
+                <div class="field">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="fConcessionEnabled">
+                        Show concession calculator on flyer
+                    </label>
+                </div>
+                <div class="field" id="concessionWeeksField" style="display:none;">
+                    <label>Concession length (weeks free)</label>
+                    <input type="text" id="fConcessionWeeks" placeholder="4">
+                    <div class="empty-note">Uses this unit's 3 cheapest 12&ndash;15 month rates from the pricing sheet. Hides itself on the flyer if none qualify.</div>
+                </div>
 
                 <div class="section-label"><span class="dot"></span>Location</div>
                 <div class="field">
@@ -817,7 +831,9 @@ function defaultDraft(u) {
         videoLabel: u.videoName && u.videoName !== 'NO VIDEO' ? u.videoName : '',
         videoUrl: u.videoLink || '',
         floorplanImg: floorplanPathForUnit(u),
-        applyUrl: applyLinkForUnit(u)
+        applyUrl: applyLinkForUnit(u),
+        concessionEnabled: false,
+        concessionWeeks: '4'
     };
 }
 
@@ -1005,12 +1021,13 @@ const editorBody = document.getElementById('editorBody');
 const specCard = document.getElementById('specCard');
 const previewLabel = document.getElementById('previewLabel');
 
-const fields = ['fTitle','fSubtitle','fAvailable','fBestPrice','fBestTerm','fLocation','fVideoLabel','fVideoUrl','fFloorplanImg','fApplyUrl'];
+const fields = ['fTitle','fSubtitle','fAvailable','fBestPrice','fBestTerm','fLocation','fVideoLabel','fVideoUrl','fFloorplanImg','fApplyUrl','fConcessionWeeks'];
 const fieldMap = {
     fTitle: 'title', fSubtitle: 'subtitle', fAvailable: 'available',
     fBestPrice: 'bestPrice', fBestTerm: 'bestTerm', fLocation: 'location',
     fVideoLabel: 'videoLabel', fVideoUrl: 'videoUrl',
-    fFloorplanImg: 'floorplanImg', fApplyUrl: 'applyUrl'
+    fFloorplanImg: 'floorplanImg', fApplyUrl: 'applyUrl',
+    fConcessionWeeks: 'concessionWeeks'
 };
 
 fields.forEach(id => {
@@ -1019,6 +1036,13 @@ fields.forEach(id => {
         saveDraft();
         renderPreview();
     });
+});
+
+document.getElementById('fConcessionEnabled').addEventListener('change', (e) => {
+    draft.concessionEnabled = e.target.checked;
+    document.getElementById('concessionWeeksField').style.display = e.target.checked ? 'block' : 'none';
+    saveDraft();
+    renderPreview();
 });
 
 function selectUnit(unit) {
@@ -1062,6 +1086,8 @@ function selectUnit(unit) {
     fields.forEach(id => {
         document.getElementById(id).value = draft[fieldMap[id]] || '';
     });
+    document.getElementById('fConcessionEnabled').checked = !!draft.concessionEnabled;
+    document.getElementById('concessionWeeksField').style.display = draft.concessionEnabled ? 'block' : 'none';
     renderTermList();
     renderPreview();
 }
@@ -1099,6 +1125,81 @@ function applyBadgeRow(u) {
         return `<div class="rc-row"><span>Apply link</span><b>Available <span class="badge ok">live link</span></b></div>`;
     }
     return `<div class="rc-row"><span>Apply link</span><b>Not available <span class="badge warn">waitlist link</span></b></div>`;
+}
+
+/* ============================================================
+   CONCESSION CALCULATOR
+   Ports the general logic of Justin's spreadsheet formula (not the
+   specific cell references): among a unit's marketed lease terms,
+   only 12–15 month terms qualify. Take the 3 cheapest of those, and
+   for each, prorate a free-rent concession (expressed in weeks) across
+   the term to get an "effective" monthly rent:
+     effectiveRent = round((rent*termMonths - (weeks/4)*rent) / termMonths)
+   The (weeks/4) treats 4 weeks as one month's worth of free rent.
+   ============================================================ */
+function parsePriceNum(str) {
+    const n = parseFloat(String(str || '').replace(/[^0-9.]/g, ''));
+    return isNaN(n) ? 0 : n;
+}
+function parseTermNum(str) {
+    const m = String(str || '').match(/(\d+)/);
+    return m ? parseInt(m[1], 10) : 0;
+}
+
+function concessionCandidates(unit) {
+    const p = PRICING_SUMMARY[unit];
+    if (!p) return [];
+    const all = [{ term: p.bestTerm, price: p.bestPrice }, ...p.otherTerms];
+    const qualifying = all
+        .map(t => ({ termNum: parseTermNum(t.term), price: parsePriceNum(t.price) }))
+        .filter(t => t.termNum >= 12 && t.termNum <= 15 && t.price > 0);
+    qualifying.sort((a, b) => a.price - b.price); // cheapest first
+    return qualifying.slice(0, 3);
+}
+
+function effectiveRent(rent, termMonths, weeks) {
+    if (!rent || !termMonths || !weeks) return null;
+    const total = rent * termMonths;
+    const concessionValue = (weeks / 4) * rent;
+    return Math.round((total - concessionValue) / termMonths);
+}
+
+function formatMoney(n) {
+    return '$' + Math.round(n).toLocaleString('en-US') + '.00';
+}
+
+function concessionBlock(u, d) {
+    if (!d.concessionEnabled) return '';
+    const weeks = parseFloat(d.concessionWeeks);
+    const candidates = concessionCandidates(u.unit);
+
+    if (!candidates.length || !weeks) {
+        return `<div class="concession-section">
+            <div class="concession-title">Concession Calculator:</div>
+            <p class="muted-line">Add a concession length, and make sure this unit has 12&ndash;15 month pricing on file, to calculate.</p>
+        </div>`;
+    }
+
+    const n = candidates.length;
+    const termHeaderCells = candidates.map(c => `<td>${c.termNum} months</td>`).join('');
+    const rentCells = candidates.map(c => `<td>${formatMoney(c.price)}</td>`).join('');
+    const proratedHeaderCells = candidates.map(c => `<td>PRORATED ${c.termNum} months</td>`).join('');
+    const resultCells = candidates.map(c => {
+        const eff = effectiveRent(c.price, c.termNum, weeks);
+        return `<td class="cc-result">${eff !== null ? formatMoney(eff) : '&mdash;'}</td>`;
+    }).join('');
+
+    return `<div class="concession-section">
+        <div class="concession-title">Concession Calculator:</div>
+        <table class="concession-table">
+            <tr><th class="cc-label">UNIT</th><th class="cc-subheader" colspan="${n}">TERM</th></tr>
+            <tr><td class="cc-unit" rowspan="3">${escapeHtml(u.unit)}</td>${termHeaderCells}</tr>
+            <tr><td class="cc-subheader" colspan="${n}">RENT</td></tr>
+            <tr>${rentCells}</tr>
+            <tr><td class="cc-label">CONCESSION</td>${proratedHeaderCells}</tr>
+            <tr><td class="cc-concess-val">${escapeHtml(String(weeks))} weeks</td>${resultCells}</tr>
+        </table>
+    </div>`;
 }
 
 /* ---------- lease term rows ---------- */
@@ -1245,6 +1346,8 @@ function flyerHTML(u, d, standalone) {
         </tr>
     </table>
 
+    ${concessionBlock(u, d)}
+
     <div class="footer-action">
         <img class="footer-accent" src="${FOOTER_ACCENT_IMG_SRC}" alt="" aria-hidden="true">
         <p>Ready to secure your spot?</p>
@@ -1290,7 +1393,7 @@ const FLYER_STYLE = `
     height: 400px;
     right: -110px;
     bottom: -70px;
-    opacity: 0.09;
+    opacity: 0.104;
     transform: rotate(-7deg);
     pointer-events: none;
     z-index: 0;
@@ -1333,6 +1436,35 @@ const FLYER_STYLE = `
 .footer-accent { display: block; width: 20px; height: auto; margin: 0 auto 10px; }
 .footer-action p { font-size: 16px; font-weight: 500; margin: 0 0 10px 0; }
 .btn-apply { display: inline-block; color: var(--reve-orange); font-size: 20px; font-weight: 700; text-decoration: underline; }
+.concession-section { margin: 22px 0 4px; }
+.concession-title {
+    font-family: 'Oswald', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--reve-orange);
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+}
+.concession-table { width: 100%; border-collapse: collapse; font-size: 13px; border: 1px solid var(--reve-tint); }
+.concession-table td, .concession-table th {
+    border: 1px solid var(--reve-tint);
+    padding: 7px 8px;
+    text-align: center;
+    color: var(--reve-text-dark);
+}
+.concession-table th, .concession-table .cc-label, .concession-table .cc-subheader {
+    background: var(--reve-offwhite);
+    font-family: 'Oswald', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-weight: 500;
+    font-size: 11.5px;
+    color: var(--reve-text-muted);
+}
+.concession-table .cc-unit { font-size: 22px; font-weight: 700; color: var(--reve-text-dark); vertical-align: middle; }
+.concession-table .cc-concess-val { background: var(--reve-tint); font-weight: 700; }
+.concession-table .cc-result { color: var(--reve-orange); font-weight: 700; background: #fdf3ee; }
 `;
 
 function renderPreview() {
@@ -1480,6 +1612,8 @@ document.getElementById('resetBtn').addEventListener('click', () => {
     localStorage.removeItem(storageKey(currentUnit));
     draft = defaultDraft(byUnit[currentUnit]);
     fields.forEach(id => { document.getElementById(id).value = draft[fieldMap[id]] || ''; });
+    document.getElementById('fConcessionEnabled').checked = false;
+    document.getElementById('concessionWeeksField').style.display = 'none';
     renderTermList();
     renderPreview();
 });
