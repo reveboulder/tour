@@ -1774,9 +1774,11 @@ async function exportPdf(printable) {
 
         if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
         const canvas = await html2canvas(captureNode, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
-        // PNG (lossless) rather than JPEG — JPEG's chroma subsampling was
-        // crushing the very subtle watermark tint to invisible.
-        const imgData = canvas.toDataURL('image/png');
+        // JPEG, not PNG — the watermark's earlier invisibility turned out
+        // to be an unrelated SVG rendering bug (since fixed by rasterizing
+        // it ahead of time), not JPEG compression, so JPEG is safe again
+        // here and cuts file size dramatically for photo-heavy floorplans.
+        const imgData = canvas.toDataURL('image/jpeg', 0.88);
 
         const { jsPDF } = window.jspdf;
         const pageW = 612, pageH = 792; // US Letter, points
@@ -1794,8 +1796,8 @@ async function exportPdf(printable) {
         const x = (pageW - wPt) / 2;
         const y = margin;
 
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pageW, pageH] });
-        pdf.addImage(imgData, 'PNG', x, y, wPt, hPt);
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pageW, pageH], compress: true });
+        pdf.addImage(imgData, 'JPEG', x, y, wPt, hPt);
 
         if (!printable) {
             // Overlay real clickable link annotations on top of the flat
