@@ -569,6 +569,7 @@
                     <select id="fBestTermPicker" class="term-picker">
                         <option value="">Autofill best price from a term&hellip;</option>
                     </select>
+                    <div class="empty-note" id="bestTermStaleNote" style="display:none;color:var(--warn);">Re-upload today's pricing sheet (see above) to enable per-term price autofill for this unit.</div>
                 </div>
 
                 <div class="field" id="otherTermsField">
@@ -699,6 +700,10 @@ function applyLinkForUnit(u) {
    ============================================================ */
 const PRICING_META_KEY = 'reve-pricing-meta';
 const PRICING_DATA_KEY = 'reve-pricing-summary';
+// Bump when the shape of a PRICING_SUMMARY entry changes, so cached data
+// from before the change is detected and the user is told to re-upload
+// rather than silently missing new fields (e.g. per-term autofill).
+const PRICING_SCHEMA_VERSION = 2;
 const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MARKETED_TERMS = [11, 12, 13, 14, 15];
 
@@ -860,13 +865,21 @@ function restorePricing() {
     renderPricingStatus();
 }
 
+function pricingIsStale() {
+    return !!PRICING_META && PRICING_META.schemaVersion !== PRICING_SCHEMA_VERSION;
+}
+
 function renderPricingStatus() {
     const el = document.getElementById('pricingStatus');
     const clearBtn = document.getElementById('pricingClearBtn');
     if (PRICING_META) {
         const when = new Date(PRICING_META.uploadedAt);
         const whenText = when.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-        el.innerHTML = `<b>${PRICING_META.unitCount} units</b> loaded from ${escapeHtml(PRICING_META.filename)}<br>Uploaded ${whenText}`;
+        let html = `<b>${PRICING_META.unitCount} units</b> loaded from ${escapeHtml(PRICING_META.filename)}<br>Uploaded ${whenText}`;
+        if (pricingIsStale()) {
+            html += `<br><b style="color:var(--warn);">Re-upload this file</b> to enable per-term price autofill (added since this was loaded).`;
+        }
+        el.innerHTML = html;
         clearBtn.style.display = 'inline-block';
     } else {
         el.textContent = "No pricing sheet loaded — upload today's export to auto-fill price & availability.";
@@ -886,7 +899,8 @@ document.getElementById('pricingFileInput').addEventListener('change', (e) => {
             PRICING_META = {
                 filename: file.name,
                 uploadedAt: new Date().toISOString(),
-                unitCount: Object.keys(PRICING_SUMMARY).length
+                unitCount: Object.keys(PRICING_SUMMARY).length,
+                schemaVersion: PRICING_SCHEMA_VERSION
             };
             persistPricing();
             renderPricingStatus();
@@ -1305,32 +1319,74 @@ function populateTermPickers(unit) {
     const p = PRICING_SUMMARY[unit];
     const bestField = document.getElementById('bestTermPickerField');
     const bestPicker = document.getElementById('fBestTermPicker');
+    const staleNote = document.getElementById('bestTermStaleNote');
     const otherPicker = document.getElementById('fOtherTermPicker');
 
     if (!p || !p.allTerms) {
-        bestField.style.display = 'none';
+        if (p && pricingIsStale()) {
+            // Data exists but predates the allTerms field.
+            bestField.style.display = 'block';
+            bestPicker.style.display = 'none';
+            staleNote.style.display = 'block';
+        } else {
+            bestField.style.display = 'none';
+        }
         otherPicker.style.display = 'none';
         return;
     }
-
-    const optionsHtml = (placeholder) => {
-        let html = `<option value="">${placeholder}</option>`;
-        for (let t = 3; t <= 15; t++) {
-            const price = p.allTerms[t];
-            if (price !== undefined) {
-                html += `<option value="${t}">${t} months &mdash; $${Math.round(price).toLocaleString('en-US')}</option>`;
-            }
-        }
-        return html;
-    };
 
     const hasAny = Object.keys(p.allTerms).length > 0;
     bestField.style.display = hasAny ? 'block' : 'none';
     otherPicker.style.display = hasAny ? 'block' : 'none';
     if (!hasAny) return;
 
-    bestPicker.innerHTML = optionsHtml('Autofill best price from a term\u2026');
-    otherPicker.innerHTML = optionsHtml('+ Add term from pricing sheet\u2026');
+    bestPicker.style.display = 'block';
+    staleNote.style.display = 'none';
+
+    // Best-price picker: exclude whichever term is currently the best
+    // price (re-selecting it would be a no-op), and underline the
+    // cheapest of what's left as the "next best deal". Picking that term
+    // makes it the new best price, and the picker refreshes to exclude
+    // it and underline the next-cheapest after that — a progressive
+    // "step down" through the pricing sheet, cheapest to priciest.
+    const currentBestTerm = parseTermNum(draft.bestTerm);
+    const currentBestPrice = p.allTerms[currentBestTerm];
+    const remaining = [];
+    for (let t = 3; t <= 15; t++) {
+        if (p.allTerms[t] === undefined || t === currentBestTerm) continue;
+        // Exclude anything at or below the current best's price too, not
+        // just the exact matching term — otherwise stepping to a pricier
+        // option can make an already-passed cheaper one reappear as
+        // "next best", cycling backward instead of walking forward.
+        if (currentBestPrice !== undefined && p.allTerms[t] <= currentBestPrice) continue;
+        remaining.push({ term: t, price: p.allTerms[t] });
+    }
+    let nextBestTerm = null;
+    remaining.forEach(r => {
+        if (nextBestTerm === null || r.price < remaining.find(x => x.term === nextBestTerm).price) {
+            nextBestTerm = r.term;
+        }
+    });
+
+    let bestHtml = `<option value="">Autofill best price from a term\u2026</option>`;
+    remaining.sort((a, b) => a.term - b.term).forEach(r => {
+        const isNextBest = r.term === nextBestTerm;
+        const style = isNextBest ? ' style="text-decoration:underline;font-weight:700;"' : '';
+        const label = `${r.term} months \u2014 $${Math.round(r.price).toLocaleString('en-US')}${isNextBest ? ' (next best)' : ''}`;
+        bestHtml += `<option value="${r.term}"${style}>${label}</option>`;
+    });
+    bestPicker.innerHTML = bestHtml;
+
+    // "Other lease terms" picker keeps the full 3–15 list — it's adding
+    // rows, not replacing the best price, so there's no term to exclude.
+    let otherHtml = `<option value="">+ Add term from pricing sheet\u2026</option>`;
+    for (let t = 3; t <= 15; t++) {
+        const price = p.allTerms[t];
+        if (price !== undefined) {
+            otherHtml += `<option value="${t}">${t} months &mdash; $${Math.round(price).toLocaleString('en-US')}</option>`;
+        }
+    }
+    otherPicker.innerHTML = otherHtml;
 }
 
 document.getElementById('fBestTermPicker').addEventListener('change', (e) => {
@@ -1345,7 +1401,7 @@ document.getElementById('fBestTermPicker').addEventListener('change', (e) => {
     document.getElementById('fBestTerm').value = draft.bestTerm;
     saveDraft();
     renderPreview();
-    e.target.value = '';
+    populateTermPickers(currentUnit); // refresh: exclude the new best, underline the next one down
 });
 
 document.getElementById('fOtherTermPicker').addEventListener('change', (e) => {
