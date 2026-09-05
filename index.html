@@ -244,6 +244,22 @@
         margin-top: 2px;
     }
     .add-term-btn:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+    .term-row-buttons { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+    .term-row-buttons .add-term-btn { margin-top: 0; }
+    .term-picker {
+        width: 100%;
+        font-family: var(--sans);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 8px 9px;
+        border: 1px solid var(--reve-orange);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--reve-orange);
+        cursor: pointer;
+    }
+    .term-picker:hover { background: #fbeee8; }
+    .term-picker option:disabled { color: var(--ink-soft); }
 
     .action-bar {
         border-top: 1px solid var(--line);
@@ -549,11 +565,21 @@
                         <input type="text" id="fBestTerm" placeholder="15-Month Lease">
                     </div>
                 </div>
+                <div class="field" id="bestTermPickerField" style="display:none;">
+                    <select id="fBestTermPicker" class="term-picker">
+                        <option value="">Autofill best price from a term&hellip;</option>
+                    </select>
+                </div>
 
                 <div class="field" id="otherTermsField">
                     <label>Other lease terms</label>
                     <div id="termList"></div>
-                    <button type="button" class="add-term-btn" id="addTermBtn">+ Add lease term</button>
+                    <div class="term-row-buttons">
+                        <button type="button" class="add-term-btn" id="addTermBtn">+ Add blank term</button>
+                        <select id="fOtherTermPicker" class="term-picker" style="display:none;">
+                            <option value="">+ Add term from pricing sheet&hellip;</option>
+                        </select>
+                    </div>
                 </div>
                 <button type="button" class="sync-btn" id="syncPricingBtn" style="display:none;">Refill from pricing sheet</button>
 
@@ -797,11 +823,21 @@ function buildPricingSummary(objRows) {
 
         if (!ranked.length) return;
         const best = ranked[0];
+
+        // Full 3–15 month term->price map at this unit's target date, for
+        // the "autofill from a specific term" pickers (separate from the
+        // 11–15-only ranking used for Best Price / Other Lease Terms).
+        const allTerms = {};
+        for (let t = 3; t <= 15; t++) {
+            if (termsAtDate[t] !== undefined) allTerms[t] = termsAtDate[t];
+        }
+
         summary[apt] = {
             available: formatAvailableDate(entry.status),
             bestPrice: `$${Math.round(best.price)}`,
             bestTerm: `${best.term}-Month Lease`,
-            otherTerms: ranked.slice(1).map(r => ({ price: `$${Math.round(r.price)}`, term: `${r.term}-Month Lease` }))
+            otherTerms: ranked.slice(1).map(r => ({ price: `$${Math.round(r.price)}`, term: `${r.term}-Month Lease` })),
+            allTerms
         };
     });
     return summary;
@@ -1177,6 +1213,7 @@ function populateEditorForUnit(unit) {
     document.getElementById('fConcessionEnabled').checked = !!draft.concessionEnabled;
     document.getElementById('concessionWeeksField').style.display = draft.concessionEnabled ? 'block' : 'none';
     renderTermList();
+    populateTermPickers(u.unit);
 }
 
 function renderUnitTabs() {
@@ -1260,6 +1297,70 @@ function floorplanBadgeRow(u) {
     }
     return `<div class="rc-row"><span>Floorplan image</span><b>None in print archive <span class="badge warn">add manually</span></b></div>`;
 }
+
+/* ============================================================
+   TERM-PRICE AUTOFILL PICKERS (3–15 months, from the pricing sheet)
+   ============================================================ */
+function populateTermPickers(unit) {
+    const p = PRICING_SUMMARY[unit];
+    const bestField = document.getElementById('bestTermPickerField');
+    const bestPicker = document.getElementById('fBestTermPicker');
+    const otherPicker = document.getElementById('fOtherTermPicker');
+    const isAvailable = AVAILABLE_UNITS.has(unit);
+
+    if (!p || !p.allTerms || !isAvailable) {
+        bestField.style.display = 'none';
+        otherPicker.style.display = 'none';
+        return;
+    }
+
+    const optionsHtml = (placeholder) => {
+        let html = `<option value="">${placeholder}</option>`;
+        for (let t = 3; t <= 15; t++) {
+            const price = p.allTerms[t];
+            if (price !== undefined) {
+                html += `<option value="${t}">${t} months &mdash; $${Math.round(price).toLocaleString('en-US')}</option>`;
+            }
+        }
+        return html;
+    };
+
+    const hasAny = Object.keys(p.allTerms).length > 0;
+    bestField.style.display = hasAny ? 'block' : 'none';
+    otherPicker.style.display = hasAny ? 'block' : 'none';
+    if (!hasAny) return;
+
+    bestPicker.innerHTML = optionsHtml('Autofill best price from a term\u2026');
+    otherPicker.innerHTML = optionsHtml('+ Add term from pricing sheet\u2026');
+}
+
+document.getElementById('fBestTermPicker').addEventListener('change', (e) => {
+    const term = e.target.value;
+    if (!term || !currentUnit) return;
+    const p = PRICING_SUMMARY[currentUnit];
+    const price = p && p.allTerms ? p.allTerms[term] : undefined;
+    if (price === undefined) return;
+    draft.bestPrice = `$${Math.round(price)}`;
+    draft.bestTerm = `${term}-Month Lease`;
+    document.getElementById('fBestPrice').value = draft.bestPrice;
+    document.getElementById('fBestTerm').value = draft.bestTerm;
+    saveDraft();
+    renderPreview();
+    e.target.value = '';
+});
+
+document.getElementById('fOtherTermPicker').addEventListener('change', (e) => {
+    const term = e.target.value;
+    if (!term || !currentUnit) return;
+    const p = PRICING_SUMMARY[currentUnit];
+    const price = p && p.allTerms ? p.allTerms[term] : undefined;
+    if (price === undefined) return;
+    draft.otherTerms.push({ price: `$${Math.round(price)}`, term: `${term}-Month Lease` });
+    renderTermList();
+    saveDraft();
+    renderPreview();
+    e.target.value = '';
+});
 
 function pricingBadgeRow(u) {
     if (PRICING_SUMMARY[u.unit]) {
