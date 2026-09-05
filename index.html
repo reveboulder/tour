@@ -1306,9 +1306,8 @@ function populateTermPickers(unit) {
     const bestField = document.getElementById('bestTermPickerField');
     const bestPicker = document.getElementById('fBestTermPicker');
     const otherPicker = document.getElementById('fOtherTermPicker');
-    const isAvailable = AVAILABLE_UNITS.has(unit);
 
-    if (!p || !p.allTerms || !isAvailable) {
+    if (!p || !p.allTerms) {
         bestField.style.display = 'none';
         otherPicker.style.display = 'none';
         return;
