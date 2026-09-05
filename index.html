@@ -655,13 +655,9 @@
         </div>
 
         <div class="action-bar">
-            <div class="action-row">
-                <button class="btn" id="resetBtn" disabled>Reset unit</button>
-                <button class="btn" id="printBtn" disabled>Print</button>
-            </div>
+            <button class="btn" id="resetBtn" disabled style="width:100%;">Reset unit</button>
             <button class="btn primary" id="exportPdfBtn" disabled style="width:100%;">Download PDF</button>
             <button class="btn" id="exportPrintablePdfBtn" disabled style="width:100%;">Download Printable PDF</button>
-            <button class="btn" id="exportBtn" disabled style="width:100%;">Download flyer HTML</button>
             <div class="action-note">Download PDF keeps clickable Video Tour &amp; Apply links, for email. Download Printable PDF drops both, for physical handouts. Neither has a browser date, title, or URL.</div>
         </div>
     </div>
@@ -1000,16 +996,24 @@ function ordinalFloor(f) {
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
+// Fields tied to the daily pricing sheet. These always come from a fresh
+// defaultDraft() computation — never from a previously saved draft — so
+// reselecting a unit can't resurface a stale price/term from an earlier
+// day's pricing sheet (or an old manual edit) alongside today's data.
+const PRICING_FIELDS = ['available', 'bestPrice', 'bestTerm', 'otherTerms'];
+
 function loadDraft(unit) {
+    const base = defaultDraft(byUnit[unit]); // always today's best-5, fresh
     const raw = localStorage.getItem(storageKey(unit));
     if (raw) {
         try {
             const parsed = JSON.parse(raw);
-            const base = defaultDraft(byUnit[unit]);
-            return Object.assign(base, parsed);
-        } catch (e) { /* fall through */ }
+            Object.keys(parsed).forEach(key => {
+                if (!PRICING_FIELDS.includes(key)) base[key] = parsed[key];
+            });
+        } catch (e) { /* ignore corrupt cache, base already has fresh defaults */ }
     }
-    return defaultDraft(byUnit[unit]);
+    return base;
 }
 function saveDraft() {
     if (!currentUnit) return;
@@ -1270,8 +1274,6 @@ function populateEditorForUnit(unit) {
 
     editorBody.style.display = 'block';
     document.getElementById('resetBtn').disabled = false;
-    document.getElementById('printBtn').disabled = false;
-    document.getElementById('exportBtn').disabled = false;
     document.getElementById('exportPdfBtn').disabled = false;
     document.getElementById('exportPrintablePdfBtn').disabled = false;
     previewLabel.textContent = selectedUnits.length > 1
@@ -1346,8 +1348,6 @@ function removeSelectedUnit(unit) {
         draft = null;
         editorBody.style.display = 'none';
         document.getElementById('resetBtn').disabled = true;
-        document.getElementById('printBtn').disabled = true;
-        document.getElementById('exportBtn').disabled = true;
         document.getElementById('exportPdfBtn').disabled = true;
         document.getElementById('exportPrintablePdfBtn').disabled = true;
         previewLabel.textContent = 'No unit selected';
@@ -1880,76 +1880,6 @@ function renderPreview() {
     }).join('');
     mount.innerHTML = `<style>${FLYER_STYLE}</style><div class="multi-flyer-row" id="multiFlyerRow">${cardsHtml}</div>`;
 }
-
-/* ---------- export standalone file ---------- */
-function buildStandaloneDoc(u, d) {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${escapeHtml(d.title)}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&display=swap" rel="stylesheet">
-<style>${FLYER_STYLE}</style>
-</head>
-<body class="flyer-body">
-${flyerHTML(u, d, {})}
-</body>
-</html>`;
-}
-
-document.getElementById('exportBtn').addEventListener('click', () => {
-    if (!currentUnit) return;
-    const u = byUnit[currentUnit];
-    const doc = buildStandaloneDoc(u, draft);
-    const blob = new Blob([doc], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `apt-${u.unit}-pamphlet.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-});
-
-document.getElementById('printBtn').addEventListener('click', () => {
-    const prevTitle = document.title;
-    document.title = currentUnit ? `Apt ${currentUnit}` : '';
-
-    // Shrink to fit one physical page height, no matter how much content
-    // it holds (floorplan size, concession section, multiple units side
-    // by side, etc.) — the browser's own print pagination has no such
-    // guarantee on its own. Targets the multi-unit row when more than
-    // one unit is selected, or the single card otherwise.
-    const card = selectedUnits.length > 1
-        ? document.getElementById('multiFlyerRow')
-        : document.querySelector('#flyerMount .flyer-card');
-    let prevTransform = '', prevTransformOrigin = '', prevMarginBottom = '';
-    if (card) {
-        prevTransform = card.style.transform;
-        prevTransformOrigin = card.style.transformOrigin;
-        prevMarginBottom = card.style.marginBottom;
-        const printablePagePx = 960; // ~10in usable height at 96dpi, a conservative default-margin estimate
-        const scale = Math.min(1, printablePagePx / card.offsetHeight);
-        card.style.transformOrigin = 'top center';
-        card.style.transform = `scale(${scale})`;
-        // Compensate the layout gap that scaling leaves behind.
-        card.style.marginBottom = `${card.offsetHeight * (scale - 1)}px`;
-    }
-
-    window.addEventListener('afterprint', () => {
-        document.title = prevTitle;
-        if (card) {
-            card.style.transform = prevTransform;
-            card.style.transformOrigin = prevTransformOrigin;
-            card.style.marginBottom = prevMarginBottom;
-        }
-    }, { once: true });
-    window.print();
-});
 
 /* ---------- clean single-page PDF (no browser header/footer) ----------
    Builds its markup fresh in an off-screen holder (rather than reusing
