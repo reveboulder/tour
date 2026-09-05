@@ -133,15 +133,36 @@
         flex-wrap: wrap;
         margin-bottom: 14px;
     }
+    .quick-filters.collapsed { display: none; }
     .filter-group { margin-bottom: 2px; }
     .filter-caption {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        width: 100%;
+        font-family: var(--sans);
         font-size: 10px;
         text-transform: uppercase;
         letter-spacing: 0.07em;
         color: var(--ink-soft);
         font-weight: 700;
         margin-bottom: 5px;
+        background: none;
+        border: none;
+        padding: 4px 0;
+        cursor: pointer;
+        text-align: left;
     }
+    .filter-caption:hover { color: var(--reve-orange); }
+    .filter-caption.has-active { color: var(--reve-orange); }
+    .fc-chevron {
+        display: inline-block;
+        font-size: 13px;
+        line-height: 1;
+        transition: transform 0.15s ease;
+        transform: rotate(90deg);
+    }
+    .filter-caption.expanded .fc-chevron { transform: rotate(270deg); }
     .chip {
         font-size: 11px;
         border: 1px solid var(--line);
@@ -516,20 +537,24 @@
                 <div class="unit-results" id="unitResults"></div>
             </div>
             <div class="filter-group">
-                <div class="filter-caption">Building</div>
-                <div class="quick-filters" id="bldgFilters"></div>
+                <button type="button" class="filter-caption" data-target="bldgFilters">Building <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="bldgFilters"></div>
             </div>
             <div class="filter-group">
-                <div class="filter-caption">Floor</div>
-                <div class="quick-filters" id="floorFilters"></div>
+                <button type="button" class="filter-caption" data-target="floorFilters">Floor <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="floorFilters"></div>
             </div>
             <div class="filter-group">
-                <div class="filter-caption">Type</div>
-                <div class="quick-filters" id="typeFilters"></div>
+                <button type="button" class="filter-caption" data-target="typeFilters">Type <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="typeFilters"></div>
             </div>
             <div class="filter-group">
-                <div class="filter-caption">View</div>
-                <div class="quick-filters" id="viewFilters"></div>
+                <button type="button" class="filter-caption" data-target="viewFilters">View <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="viewFilters"></div>
+            </div>
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="floorplanFilters">Floorplan <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="floorplanFilters"></div>
             </div>
 
             <div id="editorBody" style="display:none;">
@@ -863,6 +888,7 @@ function restorePricing() {
         }
     } catch (e) { /* ignore corrupt cache */ }
     renderPricingStatus();
+    rebuildFloorplanFilter();
 }
 
 function pricingIsStale() {
@@ -904,6 +930,7 @@ document.getElementById('pricingFileInput').addEventListener('change', (e) => {
             };
             persistPricing();
             renderPricingStatus();
+            rebuildFloorplanFilter();
             if (currentUnit) {
                 selectUnit(currentUnit); // refresh spec card badge + sync button visibility
             }
@@ -922,6 +949,7 @@ document.getElementById('pricingClearBtn').addEventListener('click', () => {
     localStorage.removeItem(PRICING_DATA_KEY);
     localStorage.removeItem(PRICING_META_KEY);
     renderPricingStatus();
+    rebuildFloorplanFilter();
     if (currentUnit) selectUnit(currentUnit);
 });
 
@@ -1005,6 +1033,7 @@ const bldgFilterBox = document.getElementById('bldgFilters');
 const floorFilterBox = document.getElementById('floorFilters');
 const typeFilterBox = document.getElementById('typeFilters');
 const viewFilterBox = document.getElementById('viewFilters');
+const floorplanFilterBox = document.getElementById('floorplanFilters');
 
 /* "Marketed" = appears in today's uploaded pricing sheet — i.e. actually
    vacant or on notice, available to apply for now or on a future move-in
@@ -1041,6 +1070,7 @@ let activeBldgFilter = null;
 let activeFloorFilter = null;
 let activeTypeFilter = null;
 let activeMountainView = false;
+let activeFloorplanFilter = null;
 
 function buildChipRow(box, values, labelFn, getActive, setActive) {
     box.innerHTML = '';
@@ -1049,10 +1079,12 @@ function buildChipRow(box, values, labelFn, getActive, setActive) {
         chip.className = 'chip';
         chip.type = 'button';
         chip.textContent = labelFn(v);
+        if (getActive() === v) chip.classList.add('active');
         chip.addEventListener('click', () => {
             setActive(getActive() === v ? null : v);
             [...box.children].forEach(c => c.classList.remove('active'));
             if (getActive() === v) chip.classList.add('active');
+            updateFilterCaptionStates();
             runSearch();
         });
         box.appendChild(chip);
@@ -1070,9 +1102,55 @@ mountainChip.textContent = 'Mountain View';
 mountainChip.addEventListener('click', () => {
     activeMountainView = !activeMountainView;
     mountainChip.classList.toggle('active', activeMountainView);
+    updateFilterCaptionStates();
     runSearch();
 });
 viewFilterBox.appendChild(mountainChip);
+
+/* Floorplan filter: unique "Web FP" (roster floorplan) codes among units
+   that are actually in today's uploaded pricing sheet — i.e. the join is
+   pricing-sheet unit -> UNITS table -> that unit's floorplan code. Rebuilt
+   whenever the pricing sheet is uploaded or cleared, since which
+   floorplans are "available" changes day to day. */
+function rebuildFloorplanFilter() {
+    const marketed = marketedUnits();
+    const codes = [...new Set(
+        [...marketed].map(unit => byUnit[unit] && byUnit[unit].floorplan).filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    if (activeFloorplanFilter && !codes.includes(activeFloorplanFilter)) activeFloorplanFilter = null;
+
+    if (!codes.length) {
+        floorplanFilterBox.innerHTML = `<span class="empty-note">No pricing sheet loaded yet.</span>`;
+        updateFilterCaptionStates();
+        return;
+    }
+    buildChipRow(floorplanFilterBox, codes, c => c, () => activeFloorplanFilter, v => activeFloorplanFilter = v);
+    updateFilterCaptionStates();
+}
+
+/* ---------- collapsible filter sections ---------- */
+function updateFilterCaptionStates() {
+    const map = [
+        ['bldgFilters', !!activeBldgFilter],
+        ['floorFilters', !!activeFloorFilter],
+        ['typeFilters', !!activeTypeFilter],
+        ['viewFilters', activeMountainView],
+        ['floorplanFilters', !!activeFloorplanFilter]
+    ];
+    map.forEach(([id, isActive]) => {
+        const caption = document.querySelector(`.filter-caption[data-target="${id}"]`);
+        if (caption) caption.classList.toggle('has-active', isActive);
+    });
+}
+
+[...document.querySelectorAll('.filter-caption')].forEach(btn => {
+    btn.addEventListener('click', () => {
+        const target = document.getElementById(btn.getAttribute('data-target'));
+        const nowCollapsed = target.classList.toggle('collapsed');
+        btn.classList.toggle('expanded', !nowCollapsed);
+    });
+});
 
 function runSearch() {
     const q = searchInput.value.trim().toLowerCase();
@@ -1082,6 +1160,7 @@ function runSearch() {
     if (activeFloorFilter) list = list.filter(u => u.floor === activeFloorFilter);
     if (activeTypeFilter) list = list.filter(u => unitTypeCategory(u) === activeTypeFilter);
     if (activeMountainView) list = list.filter(u => isMountainView(u));
+    if (activeFloorplanFilter) list = list.filter(u => u.floorplan === activeFloorplanFilter);
     if (q) {
         list = list.filter(u =>
             u.unit.toLowerCase().includes(q) ||
@@ -1153,6 +1232,7 @@ fields.forEach(id => {
         draft[fieldMap[id]] = e.target.value;
         saveDraft();
         renderPreview();
+        if (id === 'fBestTerm' && currentUnit) populateTermPickers(currentUnit);
     });
 });
 
@@ -1343,22 +1423,22 @@ function populateTermPickers(unit) {
     bestPicker.style.display = 'block';
     staleNote.style.display = 'none';
 
-    // Best-price picker: exclude whichever term is currently the best
-    // price (re-selecting it would be a no-op), and underline the
-    // cheapest of what's left as the "next best deal". Picking that term
-    // makes it the new best price, and the picker refreshes to exclude
-    // it and underline the next-cheapest after that — a progressive
-    // "step down" through the pricing sheet, cheapest to priciest.
-    const currentBestTerm = parseTermNum(draft.bestTerm);
-    const currentBestPrice = p.allTerms[currentBestTerm];
+    // Exclude every term already visible on the flyer — the best price
+    // AND all four "Other lease terms" rows, not just the best. This
+    // dropdown is for bringing in a term that ISN'T already shown (most
+    // often something in the 3–10 month range, since the default 5 are
+    // always drawn from 11–15), not re-offering what's already on screen.
+    const shownTerms = new Set();
+    const bestTermNum = parseTermNum(draft.bestTerm);
+    if (bestTermNum) shownTerms.add(bestTermNum);
+    (draft.otherTerms || []).forEach(t => {
+        const tn = parseTermNum(t.term);
+        if (tn) shownTerms.add(tn);
+    });
+
     const remaining = [];
     for (let t = 3; t <= 15; t++) {
-        if (p.allTerms[t] === undefined || t === currentBestTerm) continue;
-        // Exclude anything at or below the current best's price too, not
-        // just the exact matching term — otherwise stepping to a pricier
-        // option can make an already-passed cheaper one reappear as
-        // "next best", cycling backward instead of walking forward.
-        if (currentBestPrice !== undefined && p.allTerms[t] <= currentBestPrice) continue;
+        if (p.allTerms[t] === undefined || shownTerms.has(t)) continue;
         remaining.push({ term: t, price: p.allTerms[t] });
     }
     let nextBestTerm = null;
@@ -1368,25 +1448,24 @@ function populateTermPickers(unit) {
         }
     });
 
-    let bestHtml = `<option value="">Autofill best price from a term\u2026</option>`;
-    remaining.sort((a, b) => a.term - b.term).forEach(r => {
-        const isNextBest = r.term === nextBestTerm;
-        const style = isNextBest ? ' style="text-decoration:underline;font-weight:700;"' : '';
-        const label = `${r.term} months \u2014 $${Math.round(r.price).toLocaleString('en-US')}${isNextBest ? ' (next best)' : ''}`;
-        bestHtml += `<option value="${r.term}"${style}>${label}</option>`;
-    });
-    bestPicker.innerHTML = bestHtml;
+    const buildOptions = (placeholder, markNextBest) => {
+        let html = `<option value="">${placeholder}</option>`;
+        remaining.sort((a, b) => a.term - b.term).forEach(r => {
+            const isNextBest = markNextBest && r.term === nextBestTerm;
+            // The marker lives in the text itself, not just CSS — <option>
+            // style support (underline, bold) is unreliable across
+            // browsers, so the star + label is the real signal.
+            const style = isNextBest ? ' style="text-decoration:underline;font-weight:700;"' : '';
+            const label = isNextBest
+                ? `\u2605 ${r.term} months \u2014 $${Math.round(r.price).toLocaleString('en-US')} (next best)`
+                : `${r.term} months \u2014 $${Math.round(r.price).toLocaleString('en-US')}`;
+            html += `<option value="${r.term}"${style}>${label}</option>`;
+        });
+        return html;
+    };
 
-    // "Other lease terms" picker keeps the full 3–15 list — it's adding
-    // rows, not replacing the best price, so there's no term to exclude.
-    let otherHtml = `<option value="">+ Add term from pricing sheet\u2026</option>`;
-    for (let t = 3; t <= 15; t++) {
-        const price = p.allTerms[t];
-        if (price !== undefined) {
-            otherHtml += `<option value="${t}">${t} months &mdash; $${Math.round(price).toLocaleString('en-US')}</option>`;
-        }
-    }
-    otherPicker.innerHTML = otherHtml;
+    bestPicker.innerHTML = buildOptions('Autofill best price from a term\u2026', true);
+    otherPicker.innerHTML = buildOptions('+ Add term from pricing sheet\u2026', true);
 }
 
 document.getElementById('fBestTermPicker').addEventListener('change', (e) => {
@@ -1414,7 +1493,7 @@ document.getElementById('fOtherTermPicker').addEventListener('change', (e) => {
     renderTermList();
     saveDraft();
     renderPreview();
-    e.target.value = '';
+    populateTermPickers(currentUnit); // refresh: newly-added term drops out of both pickers
 });
 
 function pricingBadgeRow(u) {
@@ -1522,8 +1601,8 @@ function renderTermList() {
         `;
         const [priceInput, termInput, removeBtn] = row.children;
         priceInput.addEventListener('input', e => { draft.otherTerms[i].price = e.target.value; saveDraft(); renderPreview(); });
-        termInput.addEventListener('input', e => { draft.otherTerms[i].term = e.target.value; saveDraft(); renderPreview(); });
-        removeBtn.addEventListener('click', () => { draft.otherTerms.splice(i, 1); renderTermList(); saveDraft(); renderPreview(); });
+        termInput.addEventListener('input', e => { draft.otherTerms[i].term = e.target.value; saveDraft(); renderPreview(); populateTermPickers(currentUnit); });
+        removeBtn.addEventListener('click', () => { draft.otherTerms.splice(i, 1); renderTermList(); saveDraft(); renderPreview(); populateTermPickers(currentUnit); });
         box.appendChild(row);
     });
 }
@@ -1532,6 +1611,7 @@ document.getElementById('addTermBtn').addEventListener('click', () => {
     renderTermList();
     saveDraft();
     renderPreview();
+    populateTermPickers(currentUnit);
 });
 
 function escapeAttr(s) { return (s || '').replace(/"/g, '&quot;'); }
@@ -1998,6 +2078,7 @@ document.getElementById('syncPricingBtn').addEventListener('click', () => {
     renderTermList();
     saveDraft();
     renderPreview();
+    populateTermPickers(currentUnit);
 });
 
 document.getElementById('resetBtn').addEventListener('click', () => {
@@ -2010,6 +2091,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
     document.getElementById('concessionWeeksField').style.display = 'none';
     renderTermList();
     renderPreview();
+    populateTermPickers(currentUnit);
 });
 
 restorePricing();
