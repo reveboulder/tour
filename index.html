@@ -29,6 +29,30 @@
         -webkit-font-smoothing: antialiased;
     }
 
+    /* ---------- Top-level tabs ---------- */
+    .top-tabs {
+        display: flex;
+        gap: 2px;
+        background: var(--ink);
+        padding: 0 14px;
+    }
+    .top-tab {
+        font-family: var(--sans);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: rgba(255,255,255,0.6);
+        background: none;
+        border: none;
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+    }
+    .top-tab:hover { color: #fff; }
+    .top-tab.active { color: #fff; border-bottom-color: var(--reve-orange); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
     /* ---------- App shell ---------- */
     .app {
         display: grid;
@@ -496,15 +520,185 @@
     ::-webkit-scrollbar { width: 9px; height: 9px; }
     ::-webkit-scrollbar-thumb { background: #d8d2c6; border-radius: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
+
+    /* ---------- Availability & Expiring tabs (shared shell) ---------- */
+    .avail-app {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        min-height: calc(100vh - 41px);
+    }
+    @media (max-width: 980px) {
+        .avail-app { grid-template-columns: 1fr; }
+    }
+    .avail-sidebar {
+        border-right: 1px solid var(--line);
+        background: var(--panel);
+        overflow-y: auto;
+    }
+    .avail-main {
+        background: #ece8e0;
+        overflow-y: auto;
+        padding: 20px;
+    }
+
+    /* -- Calendar -- */
+    .avail-cal-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 14px;
+    }
+    .cal-nav-btn {
+        width: 30px; height: 30px;
+        border: 1px solid var(--line);
+        background: #fff;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        color: var(--ink-soft);
+    }
+    .cal-nav-btn:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+    .cal-month-label {
+        font-family: 'Oswald', var(--sans);
+        font-weight: 600;
+        font-size: 17px;
+        letter-spacing: 0.02em;
+        flex: 1;
+        text-align: center;
+    }
+    .cal-today-btn {
+        font-size: 11px;
+        font-weight: 700;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink-soft);
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    .cal-today-btn:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+
+    .avail-cal-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+    }
+    .cal-dow {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--ink-soft);
+        font-weight: 700;
+        text-align: center;
+        padding-bottom: 4px;
+    }
+    .cal-day {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        min-height: 92px;
+        padding: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+    .cal-day.empty { background: transparent; border: none; }
+    .cal-day.today { border-color: var(--reve-orange); box-shadow: 0 0 0 1px var(--reve-orange) inset; }
+    .cal-day-num { font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+    .cal-day.today .cal-day-num { color: var(--reve-orange); }
+    .cal-unit-pill {
+        font-size: 10px;
+        font-weight: 700;
+        font-family: var(--mono);
+        background: #fbeee8;
+        color: var(--reve-orange-dark);
+        border-radius: 4px;
+        padding: 2px 5px;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .cal-unit-pill:hover { background: var(--reve-orange); color: #fff; }
+    .cal-day-more { font-size: 9.5px; color: var(--ink-soft); padding: 1px 5px; }
+
+    /* -- Expiring list -- */
+    .exp-toolbar {
+        font-size: 12.5px;
+        color: var(--ink-soft);
+        margin-bottom: 12px;
+    }
+    .exp-row {
+        display: grid;
+        grid-template-columns: 90px 90px 1fr 90px 130px 110px;
+        gap: 10px;
+        align-items: center;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 6px;
+        font-size: 12.5px;
+    }
+    .exp-row.header {
+        background: transparent;
+        border: none;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 700;
+        color: var(--ink-soft);
+        padding: 0 14px;
+        margin-bottom: 8px;
+    }
+    .exp-unit { font-family: var(--mono); font-weight: 700; }
+    .exp-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+    .exp-badge {
+        font-size: 9.5px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        white-space: nowrap;
+    }
+    .exp-badge.mountain { background: #e5f2e8; color: var(--good); }
+    .exp-badge.corner { background: #e6eefb; color: #2a5db0; }
+    .exp-badge.status-notice { background: #fbeee0; color: var(--warn); }
+    .exp-badge.status-current { background: var(--line-soft); color: var(--ink-soft); }
+    .legend-swatch {
+        display: inline-block;
+        width: 9px; height: 9px;
+        border-radius: 2px;
+        margin-right: 3px;
+        vertical-align: middle;
+    }
+    .legend-mountain { background: var(--good); }
+    .legend-corner { background: #2a5db0; }
+
+    @media (max-width: 700px) {
+        .exp-row, .exp-row.header { grid-template-columns: 70px 1fr 80px; }
+        .exp-row .exp-col-hide-sm { display: none; }
+    }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&display=swap" rel="stylesheet">
 </head>
 <body>
 
+<div class="top-tabs">
+    <button type="button" class="top-tab active" data-tab="tour">Tour</button>
+    <button type="button" class="top-tab" data-tab="availability">Availability</button>
+    <button type="button" class="top-tab" data-tab="expiring">Expiring</button>
+</div>
+
+<div class="tab-panel active" id="tab-tour">
 <div class="app">
     <!-- ============ EDITOR ============ -->
     <div class="editor">
@@ -673,6 +867,122 @@
             <div class="no-unit">Search for a unit on the left to start building its tour pamphlet.<br><br>Specs, sq&nbsp;ft, bed/bath, address, and video link auto-fill from your roster. Pricing, availability, and images are entered per flyer since they change often.</div>
         </div>
     </div>
+</div>
+</div>
+
+<!-- ============ AVAILABILITY TAB ============ -->
+<div class="tab-panel" id="tab-availability">
+<div class="avail-app">
+    <div class="avail-sidebar">
+        <div class="brand-strip">
+            <svg class="mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 20H55C70 20 80 30 80 42.5C80 52 73 60 62 63.5L82 85H62L45 65H35V85H20V20ZM35 34V51H53C61 51 65 47 65 42.5C65 38 61 34 53 34H35Z" fill="#de5426"/>
+                <path d="M25 25H30V60H25V25Z" fill="#ffffff" opacity="0.5"/>
+            </svg>
+            <div>
+                <h1>Availability Calendar</h1>
+                <div class="tag" id="availSourceNote">Uses the pricing sheet uploaded on the Tour tab</div>
+            </div>
+        </div>
+        <div class="editor-scroll">
+            <div class="section-label" style="margin-top:0;"><span class="dot"></span>Square footage</div>
+            <div class="field-row">
+                <div class="field"><label>Min</label><input type="text" id="availSqftMin" placeholder="e.g. 600"></div>
+                <div class="field"><label>Max</label><input type="text" id="availSqftMax" placeholder="e.g. 1200"></div>
+            </div>
+
+            <div class="section-label"><span class="dot"></span>Price</div>
+            <div class="field-row">
+                <div class="field"><label>Min</label><input type="text" id="availPriceMin" placeholder="e.g. 2000"></div>
+                <div class="field"><label>Max</label><input type="text" id="availPriceMax" placeholder="e.g. 4000"></div>
+            </div>
+
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="availTypeFilters">Floorplan type <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="availTypeFilters"></div>
+            </div>
+
+            <button type="button" class="add-term-btn" id="availClearBtn" style="margin-top:14px;">Clear filters</button>
+        </div>
+    </div>
+
+    <div class="avail-main">
+        <div class="avail-cal-toolbar">
+            <button type="button" class="cal-nav-btn" id="calPrevBtn">&lsaquo;</button>
+            <div class="cal-month-label" id="calMonthLabel">Month Year</div>
+            <button type="button" class="cal-nav-btn" id="calNextBtn">&rsaquo;</button>
+            <button type="button" class="cal-today-btn" id="calTodayBtn">Today</button>
+        </div>
+        <div class="avail-cal-grid" id="calGrid"></div>
+    </div>
+</div>
+</div>
+
+<!-- ============ EXPIRING TAB ============ -->
+<div class="tab-panel" id="tab-expiring">
+<div class="avail-app">
+    <div class="avail-sidebar">
+        <div class="brand-strip">
+            <svg class="mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 20H55C70 20 80 30 80 42.5C80 52 73 60 62 63.5L82 85H62L45 65H35V85H20V20ZM35 34V51H53C61 51 65 47 65 42.5C65 38 61 34 53 34H35Z" fill="#de5426"/>
+                <path d="M25 25H30V60H25V25Z" fill="#ffffff" opacity="0.5"/>
+            </svg>
+            <div>
+                <h1>Lease Expirations</h1>
+                <div class="tag">Future potential availability</div>
+            </div>
+        </div>
+        <div class="editor-scroll">
+            <div class="pricing-block">
+                <div class="pb-row">
+                    <div class="pricing-status-text" id="expiringStatus">No lease expiration report loaded yet &mdash; upload the export to populate this list.</div>
+                    <label class="file-label" for="expiringFileInput">Upload file</label>
+                    <input type="file" id="expiringFileInput" accept=".xlsx,.xls,.csv">
+                </div>
+                <button type="button" class="pricing-clear" id="expiringClearBtn" style="display:none;">Clear lease report</button>
+            </div>
+
+            <div class="section-label"><span class="dot"></span>Desired move-in date</div>
+            <div class="field">
+                <label>Show expirations on or before</label>
+                <input type="date" id="expiringMoveInDate">
+                <div class="empty-note">Leave blank to show all upcoming expirations.</div>
+            </div>
+
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="expTypeFilters">Floorplan type <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="expTypeFilters"></div>
+            </div>
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="expNameFilters">Floorplan name <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="expNameFilters"></div>
+            </div>
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="expFloorFilters">Floor <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="expFloorFilters"></div>
+            </div>
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="expBldgFilters">Building <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="expBldgFilters"></div>
+            </div>
+
+            <button type="button" class="add-term-btn" id="expClearFiltersBtn" style="margin-top:14px;">Clear filters</button>
+
+            <div class="section-label">Legend</div>
+            <div class="empty-note">
+                <span class="legend-swatch legend-mountain"></span> Mountain view unit&nbsp;&nbsp;
+                <span class="legend-swatch legend-corner"></span> Corner unit
+            </div>
+        </div>
+    </div>
+
+    <div class="avail-main">
+        <div class="exp-toolbar">
+            <span id="expiringCountLabel">No lease report loaded</span>
+        </div>
+        <div id="expiringList"></div>
+    </div>
+</div>
 </div>
 
 <script>
@@ -944,6 +1254,7 @@ document.getElementById('pricingFileInput').addEventListener('change', (e) => {
             persistPricing();
             renderPricingStatus();
             rebuildFloorplanFilter();
+            renderCalendar();
             if (currentUnit) {
                 selectUnit(currentUnit); // refresh spec card badge + sync button visibility
             }
@@ -963,6 +1274,7 @@ document.getElementById('pricingClearBtn').addEventListener('click', () => {
     localStorage.removeItem(PRICING_META_KEY);
     renderPricingStatus();
     rebuildFloorplanFilter();
+    renderCalendar();
     if (currentUnit) selectUnit(currentUnit);
 });
 
@@ -1067,11 +1379,11 @@ function marketedUnits() {
     return new Set(Object.keys(PRICING_SUMMARY));
 }
 
-/* Boulder's Flatirons sit west of downtown, so units facing those
-   directions are tagged as mountain-view by default. Edit this set if
-   your actual sightlines differ per building. */
-const MOUNTAIN_VIEW_DIRECTIONS = new Set(['West', 'North/West', 'South/West']);
-function isMountainView(u) { return MOUNTAIN_VIEW_DIRECTIONS.has(u.view); }
+/* Definitive mountain-view and corner-unit lists (Justin's ground truth,
+   supersedes the earlier direction-based guess this app used to make). */
+const MOUNTAIN_VIEW_UNITS = new Set(['1203','1205','1207','1209','1211','1213','1215','1301','1303','1305','1307','1309','1311','1313','1315','1317','1321','1323','1325','1403','1404','1405','1407','1409','1411','1413','1415','1417','1419','1421','1423','1425','1427','1447','3202','3301','3309','3314','3403','3407','3414','4220','4245','4320','4322','4332','4334','4339','4341','4420','4429','4434','4435']);
+const CORNER_UNITS = new Set(['1101','1103','1201','1215','1227','1247','1248','1301','1315','1327','1347','1348','1415','1447','3113','3202','3213','3301','3309','3403','3414','4121','4132','4138','4140','4232','4320','4332','4420','4429','4431','4435']);
+function isMountainView(u) { return MOUNTAIN_VIEW_UNITS.has(u.unit); }
 
 function unitTypeCategory(u) {
     if (u.floorplan.startsWith('TH')) return 'Townhome';
@@ -2058,7 +2370,482 @@ document.getElementById('resetBtn').addEventListener('click', () => {
     populateTermPickers(currentUnit);
 });
 
+/* ============================================================
+   TOP-LEVEL TABS
+   ============================================================ */
+function switchTab(name) {
+    document.querySelectorAll('.top-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === name);
+    });
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === 'tab-' + name);
+    });
+    if (name === 'availability') renderCalendar();
+    if (name === 'expiring') renderExpiringList();
+}
+[...document.querySelectorAll('.top-tab')].forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
+});
+
+/* Generic chip-row builder for the Availability/Expiring tabs — same
+   look as the Tour tab's chips, but takes its own onChange callback
+   instead of being hardwired to runSearch(), since these two tabs
+   re-render something else entirely. */
+function buildFilterChips(box, values, labelFn, getActive, setActive, onChange, captionUpdateFn) {
+    box.innerHTML = '';
+    values.forEach(v => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.type = 'button';
+        chip.textContent = labelFn(v);
+        if (getActive() === v) chip.classList.add('active');
+        chip.addEventListener('click', () => {
+            setActive(getActive() === v ? null : v);
+            [...box.children].forEach(c => c.classList.remove('active'));
+            if (getActive() === v) chip.classList.add('active');
+            if (captionUpdateFn) captionUpdateFn();
+            onChange();
+        });
+        box.appendChild(chip);
+    });
+}
+
+/* Floorplan-type categorization that also splits out Penthouse as its
+   own bucket — the Tour tab's own Type filter groups PH units by bed
+   count instead, and that stays untouched; this is only for the new
+   Availability/Expiring filters, which asked for PH explicitly. */
+function unitTypeCategoryPH(u) {
+    if (u.floorplan.startsWith('TH')) return 'Townhome';
+    if (u.floorplan.startsWith('LW')) return 'Live/Work';
+    if (u.floorplan.startsWith('PH')) return 'Penthouse';
+    const bedNum = parseFloat((u.bedBath || '0/0').split('/')[0]);
+    if (isNaN(bedNum) || bedNum <= 0) return 'Studio';
+    if (bedNum < 2) return '1-Bed';
+    if (bedNum < 3) return '2-Bed';
+    return '3-Bed';
+}
+const typeOrderPH = ['Studio', '1-Bed', '2-Bed', '3-Bed', 'Townhome', 'Live/Work', 'Penthouse'];
+
+/* ============================================================
+   AVAILABILITY TAB — monthly calendar of upcoming availability,
+   built from the same pricing sheet uploaded on the Tour tab.
+   ============================================================ */
+let calViewDate = new Date();
+calViewDate.setDate(1);
+let activeAvailType = null;
+
+const availTypeBox = document.getElementById('availTypeFilters');
+buildFilterChips(availTypeBox, typeOrderPH, t => t, () => activeAvailType, v => activeAvailType = v, renderCalendar, updateAvailCaptionState);
+
+function updateAvailCaptionState() {
+    const cap = document.querySelector('.filter-caption[data-target="availTypeFilters"]');
+    if (cap) cap.classList.toggle('has-active', !!activeAvailType);
+}
+
+function availNumBounds(minId, maxId) {
+    const min = parseFloat(document.getElementById(minId).value);
+    const max = parseFloat(document.getElementById(maxId).value);
+    return { min: isNaN(min) ? -Infinity : min, max: isNaN(max) ? Infinity : max };
+}
+
+function availFilteredUnits() {
+    const marketed = marketedUnits();
+    const sqftB = availNumBounds('availSqftMin', 'availSqftMax');
+    const priceB = availNumBounds('availPriceMin', 'availPriceMax');
+    return [...marketed].map(unit => byUnit[unit]).filter(Boolean).filter(u => {
+        const sqft = parseFloat(u.sqft);
+        if (!isNaN(sqft) && (sqft < sqftB.min || sqft > sqftB.max)) return false;
+        const p = PRICING_SUMMARY[u.unit];
+        const price = p ? parsePriceNum(p.bestPrice) : null;
+        if (price !== null && (price < priceB.min || price > priceB.max)) return false;
+        if (activeAvailType && unitTypeCategoryPH(u) !== activeAvailType) return false;
+        return true;
+    });
+}
+
+function renderCalendar() {
+    const grid = document.getElementById('calGrid');
+    const label = document.getElementById('calMonthLabel');
+    if (!grid || !label) return;
+    const y = calViewDate.getFullYear(), m = calViewDate.getMonth();
+    label.textContent = calViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    const units = availFilteredUnits();
+    const byDay = {};
+    units.forEach(u => {
+        const p = PRICING_SUMMARY[u.unit];
+        if (!p || p.availableSortKey === undefined || !isFinite(p.availableSortKey)) return;
+        const d = new Date(p.availableSortKey);
+        if (d.getFullYear() === y && d.getMonth() === m) {
+            const day = d.getDate();
+            (byDay[day] = byDay[day] || []).push(u);
+        }
+    });
+
+    const firstDow = new Date(y, m, 1).getDay();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const todayStr = new Date().toDateString();
+
+    let html = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="cal-dow">${d}</div>`).join('');
+    for (let i = 0; i < firstDow; i++) html += `<div class="cal-day empty"></div>`;
+    for (let day = 1; day <= daysInMonth; day++) {
+        const cellDate = new Date(y, m, day);
+        const isToday = cellDate.toDateString() === todayStr;
+        const dayUnits = (byDay[day] || []).sort((a, b) => a.unit.localeCompare(b.unit, undefined, { numeric: true }));
+        const shown = dayUnits.slice(0, 3);
+        const extra = dayUnits.length - shown.length;
+        html += `<div class="cal-day${isToday ? ' today' : ''}">
+            <div class="cal-day-num">${day}</div>
+            ${shown.map(u => `<div class="cal-unit-pill" data-unit="${u.unit}" title="Apt ${u.unit} \u2014 ${u.floorplan} \u2014 ${u.sqft} sf">Apt ${u.unit}</div>`).join('')}
+            ${extra > 0 ? `<div class="cal-day-more">+${extra} more</div>` : ''}
+        </div>`;
+    }
+    grid.innerHTML = html;
+    [...grid.querySelectorAll('.cal-unit-pill')].forEach(pill => {
+        pill.addEventListener('click', () => {
+            const unit = pill.getAttribute('data-unit');
+            switchTab('tour');
+            selectUnit(unit);
+        });
+    });
+}
+
+document.getElementById('calPrevBtn').addEventListener('click', () => {
+    calViewDate.setMonth(calViewDate.getMonth() - 1);
+    renderCalendar();
+});
+document.getElementById('calNextBtn').addEventListener('click', () => {
+    calViewDate.setMonth(calViewDate.getMonth() + 1);
+    renderCalendar();
+});
+document.getElementById('calTodayBtn').addEventListener('click', () => {
+    calViewDate = new Date();
+    calViewDate.setDate(1);
+    renderCalendar();
+});
+['availSqftMin', 'availSqftMax', 'availPriceMin', 'availPriceMax'].forEach(id => {
+    document.getElementById(id).addEventListener('input', renderCalendar);
+});
+document.getElementById('availClearBtn').addEventListener('click', () => {
+    document.getElementById('availSqftMin').value = '';
+    document.getElementById('availSqftMax').value = '';
+    document.getElementById('availPriceMin').value = '';
+    document.getElementById('availPriceMax').value = '';
+    activeAvailType = null;
+    [...availTypeBox.children].forEach(c => c.classList.remove('active'));
+    updateAvailCaptionState();
+    renderCalendar();
+});
+
+/* ============================================================
+   EXPIRING TAB — future lease expirations as potential availability,
+   from a separately-uploaded resident lease expirations export
+   (.xlsx/.xls/.csv), re-uploadable any time to refresh natively.
+   ============================================================ */
+const EXPIRING_META_KEY = 'reve-expiring-meta';
+const EXPIRING_DATA_KEY = 'reve-expiring-data';
+let EXPIRING_UNITS = [];
+let EXPIRING_META = null;
+let activeExpType = null, activeExpFloorplan = null, activeExpFloor = null, activeExpBldg = null;
+
+// Excel's epoch is 1899-12-30 (keeps the historical Feb 29 1900 bug intact).
+function excelSerialToDate(serial) {
+    const utcDays = Math.floor(serial - 25569);
+    const utcValue = utcDays * 86400;
+    const d = new Date(utcValue * 1000);
+    return isNaN(d.getTime()) ? null : d;
+}
+function parseLeaseDateCell(v) {
+    if (v === null || v === undefined || v === '') return null;
+    if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+    if (typeof v === 'number') return excelSerialToDate(v);
+    const s = String(v).trim();
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) {
+        const d = new Date(parseInt(m[3], 10), parseInt(m[1], 10) - 1, parseInt(m[2], 10));
+        return isNaN(d.getTime()) ? null : d;
+    }
+    return null;
+}
+
+const EXPIRING_SECTION_NAMES = ['Expiring Leases', 'M-to-M', 'Notice With Rented', 'Proposed', 'Scheduled Renewals'];
+
+// Row-based parse: locate the header row (title/date-range rows precede
+// it), then walk down tracking which named section each data row falls
+// under, skipping section headers and "Total for ..." subtotal rows.
+function parseExpirationRows(rows) {
+    let headerIdx = -1, colIdx = {};
+    for (let i = 0; i < rows.length; i++) {
+        const row = (rows[i] || []).map(c => String(c === null || c === undefined ? '' : c).trim());
+        if (row.includes('Unit') && row.some(c => c.toLowerCase().indexOf('resident status') !== -1)) {
+            headerIdx = i;
+            row.forEach((c, idx) => { colIdx[c] = idx; });
+            break;
+        }
+    }
+    if (headerIdx === -1) return { rawRows: [], error: 'Could not find the header row (expected a "Unit" column with "Resident Status").' };
+
+    const getCell = (row, name) => {
+        const idx = colIdx[name];
+        if (idx === undefined) return '';
+        const v = row[idx];
+        return v === undefined || v === null ? '' : v;
+    };
+
+    let currentSection = null;
+    const rawRows = [];
+    for (let i = headerIdx + 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.every(c => c === '' || c === null || c === undefined)) continue;
+        const firstCell = String(getCell(row, 'Unit')).trim();
+        if (!firstCell) continue;
+
+        if (!/^\d+$/.test(firstCell)) {
+            if (EXPIRING_SECTION_NAMES.indexOf(firstCell) !== -1) currentSection = firstCell;
+            continue; // section header or "Total for ..." subtotal row
+        }
+
+        rawRows.push({
+            unit: firstCell,
+            unitType: String(getCell(row, 'Unit Type') || '').trim(),
+            status: String(getCell(row, 'Resident Status') || '').trim(),
+            leaseToDate: parseLeaseDateCell(getCell(row, 'Lease To')),
+            sqftRaw: getCell(row, 'Unit SqFt'),
+            section: currentSection
+        });
+    }
+    return { rawRows };
+}
+
+// Business rule for "genuine potential future availability": only the
+// main Expiring Leases section, only residents currently occupying
+// (Current) or already confirmed leaving (Notice) — excluding "Past"
+// (already resolved) — and excluding any unit that's already been
+// re-rented (Notice With Rented) or confirmed renewing (Scheduled
+// Renewals). M-to-M is excluded entirely since those "Lease To" dates
+// are stale leftovers from the original term, not real future dates.
+function buildExpiringDataset(rawRows) {
+    const notRented = new Set(rawRows.filter(r => r.section === 'Notice With Rented').map(r => r.unit));
+    const scheduledRenew = new Set(rawRows.filter(r => r.section === 'Scheduled Renewals').map(r => r.unit));
+
+    const candidates = rawRows.filter(r =>
+        r.section === 'Expiring Leases' &&
+        (r.status === 'Current' || r.status === 'Notice') &&
+        r.leaseToDate &&
+        !notRented.has(r.unit) &&
+        !scheduledRenew.has(r.unit)
+    );
+
+    const joined = candidates.map(r => {
+        const u = byUnit[r.unit];
+        return {
+            unit: r.unit,
+            status: r.status,
+            leaseTo: r.leaseToDate,
+            floorplan: u ? u.floorplan : (r.unitType || '?'),
+            bedBath: u ? u.bedBath : '',
+            sqft: u ? u.sqft : (r.sqftRaw || ''),
+            bldg: u ? u.bldg : '',
+            floor: u ? u.floor : ''
+        };
+    });
+    joined.sort((a, b) => a.leaseTo - b.leaseTo);
+    return joined;
+}
+
+function persistExpiring() {
+    const serializable = EXPIRING_UNITS.map(r => Object.assign({}, r, { leaseTo: r.leaseTo.toISOString() }));
+    localStorage.setItem(EXPIRING_DATA_KEY, JSON.stringify(serializable));
+    localStorage.setItem(EXPIRING_META_KEY, JSON.stringify(EXPIRING_META));
+}
+function restoreExpiring() {
+    try {
+        const meta = localStorage.getItem(EXPIRING_META_KEY);
+        const data = localStorage.getItem(EXPIRING_DATA_KEY);
+        if (meta && data) {
+            EXPIRING_META = JSON.parse(meta);
+            EXPIRING_UNITS = JSON.parse(data).map(r => Object.assign({}, r, { leaseTo: new Date(r.leaseTo) }));
+        }
+    } catch (e) { /* ignore corrupt cache */ }
+    renderExpiringStatus();
+    rebuildExpiringFilters();
+}
+
+function renderExpiringStatus() {
+    const el = document.getElementById('expiringStatus');
+    const clearBtn = document.getElementById('expiringClearBtn');
+    if (EXPIRING_META) {
+        const when = new Date(EXPIRING_META.uploadedAt);
+        const whenText = when.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        el.innerHTML = `<b>${EXPIRING_META.count} potential</b> from ${escapeHtml(EXPIRING_META.filename)}<br>Uploaded ${whenText}`;
+        clearBtn.style.display = 'inline-block';
+    } else {
+        el.textContent = "No lease expiration report loaded yet \u2014 upload the export to populate this list.";
+        clearBtn.style.display = 'none';
+    }
+}
+
+document.getElementById('expiringFileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const isCSV = /\.csv$/i.test(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            let rows;
+            if (isCSV) {
+                rows = parseCSVText(String(reader.result));
+            } else {
+                const wb = XLSX.read(new Uint8Array(reader.result), { type: 'array', cellDates: true });
+                const wsName = wb.SheetNames[0];
+                rows = XLSX.utils.sheet_to_json(wb.Sheets[wsName], { header: 1, raw: true, defval: '' });
+            }
+            const { rawRows, error } = parseExpirationRows(rows);
+            if (error) { alert(error); return; }
+            EXPIRING_UNITS = buildExpiringDataset(rawRows);
+            EXPIRING_META = { filename: file.name, uploadedAt: new Date().toISOString(), count: EXPIRING_UNITS.length };
+            persistExpiring();
+            renderExpiringStatus();
+            rebuildExpiringFilters();
+            renderExpiringList();
+        } catch (err) {
+            alert("Could not read that file. Make sure it's the resident lease expirations export.");
+        }
+    };
+    if (isCSV) reader.readAsText(file); else reader.readAsArrayBuffer(file);
+    e.target.value = '';
+});
+
+document.getElementById('expiringClearBtn').addEventListener('click', () => {
+    if (!confirm('Clear the loaded lease expiration report?')) return;
+    EXPIRING_UNITS = [];
+    EXPIRING_META = null;
+    localStorage.removeItem(EXPIRING_DATA_KEY);
+    localStorage.removeItem(EXPIRING_META_KEY);
+    renderExpiringStatus();
+    rebuildExpiringFilters();
+    renderExpiringList();
+});
+
+function updateExpCaptionStates() {
+    const map = [
+        ['expTypeFilters', !!activeExpType],
+        ['expNameFilters', !!activeExpFloorplan],
+        ['expFloorFilters', !!activeExpFloor],
+        ['expBldgFilters', !!activeExpBldg]
+    ];
+    map.forEach(([id, isActive]) => {
+        const cap = document.querySelector(`.filter-caption[data-target="${id}"]`);
+        if (cap) cap.classList.toggle('has-active', isActive);
+    });
+}
+
+function rebuildExpiringFilters() {
+    const floorplanCodes = [...new Set(EXPIRING_UNITS.map(r => r.floorplan).filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const floorCodes = [...new Set(EXPIRING_UNITS.map(r => r.floor).filter(Boolean))].sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+    const bldgCodes = [...new Set(EXPIRING_UNITS.map(r => r.bldg).filter(Boolean))].sort();
+
+    if (activeExpFloorplan && floorplanCodes.indexOf(activeExpFloorplan) === -1) activeExpFloorplan = null;
+    if (activeExpFloor && floorCodes.indexOf(activeExpFloor) === -1) activeExpFloor = null;
+    if (activeExpBldg && bldgCodes.indexOf(activeExpBldg) === -1) activeExpBldg = null;
+
+    buildFilterChips(document.getElementById('expTypeFilters'), typeOrderPH, t => t, () => activeExpType, v => activeExpType = v, renderExpiringList, updateExpCaptionStates);
+
+    const nameBox = document.getElementById('expNameFilters');
+    if (floorplanCodes.length) {
+        buildFilterChips(nameBox, floorplanCodes, c => c, () => activeExpFloorplan, v => activeExpFloorplan = v, renderExpiringList, updateExpCaptionStates);
+    } else {
+        nameBox.innerHTML = '<span class="empty-note">No report loaded yet.</span>';
+    }
+
+    const floorBox = document.getElementById('expFloorFilters');
+    if (floorCodes.length) {
+        buildFilterChips(floorBox, floorCodes, f => `Floor ${f}`, () => activeExpFloor, v => activeExpFloor = v, renderExpiringList, updateExpCaptionStates);
+    } else {
+        floorBox.innerHTML = '<span class="empty-note">No report loaded yet.</span>';
+    }
+
+    const bldgBox = document.getElementById('expBldgFilters');
+    if (bldgCodes.length) {
+        buildFilterChips(bldgBox, bldgCodes, b => b.replace('Bldg ', 'Building '), () => activeExpBldg, v => activeExpBldg = v, renderExpiringList, updateExpCaptionStates);
+    } else {
+        bldgBox.innerHTML = '<span class="empty-note">No report loaded yet.</span>';
+    }
+
+    updateExpCaptionStates();
+}
+
+document.getElementById('expiringMoveInDate').addEventListener('input', renderExpiringList);
+document.getElementById('expClearFiltersBtn').addEventListener('click', () => {
+    document.getElementById('expiringMoveInDate').value = '';
+    activeExpType = null; activeExpFloorplan = null; activeExpFloor = null; activeExpBldg = null;
+    rebuildExpiringFilters();
+    renderExpiringList();
+});
+
+function renderExpiringList() {
+    const mount = document.getElementById('expiringList');
+    const countLabel = document.getElementById('expiringCountLabel');
+    if (!mount || !countLabel) return;
+
+    if (!EXPIRING_UNITS.length) {
+        countLabel.textContent = 'No lease report loaded';
+        mount.innerHTML = `<div class="no-unit">Upload the lease expiration export on the left to see upcoming potential availability.</div>`;
+        return;
+    }
+
+    const moveInVal = document.getElementById('expiringMoveInDate').value;
+    const moveInDate = moveInVal ? new Date(moveInVal + 'T23:59:59') : null;
+
+    const list = EXPIRING_UNITS.filter(r => {
+        if (moveInDate && r.leaseTo > moveInDate) return false;
+        if (activeExpFloorplan && r.floorplan !== activeExpFloorplan) return false;
+        if (activeExpFloor && r.floor !== activeExpFloor) return false;
+        if (activeExpBldg && r.bldg !== activeExpBldg) return false;
+        if (activeExpType) {
+            const u = byUnit[r.unit];
+            if (!u || unitTypeCategoryPH(u) !== activeExpType) return false;
+        }
+        return true;
+    });
+
+    countLabel.textContent = `${list.length} of ${EXPIRING_UNITS.length} potential availability, soonest first`;
+
+    if (!list.length) {
+        mount.innerHTML = `<div class="no-unit">No expiring units match these filters.</div>`;
+        return;
+    }
+
+    const header = `<div class="exp-row header">
+        <span>Unit</span><span class="exp-col-hide-sm">Floorplan</span><span>Bed/Bath &middot; Sqft</span><span class="exp-col-hide-sm">Building/Floor</span><span>Expires</span><span class="exp-col-hide-sm">Status &amp; Tags</span>
+    </div>`;
+
+    const rows = list.map(r => {
+        const isMtn = MOUNTAIN_VIEW_UNITS.has(r.unit);
+        const isCorner = CORNER_UNITS.has(r.unit);
+        const statusClass = r.status === 'Notice' ? 'status-notice' : 'status-current';
+        const leaseToText = r.leaseTo.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        return `<div class="exp-row">
+            <span class="exp-unit">Apt ${r.unit}</span>
+            <span class="exp-col-hide-sm">${escapeHtml(r.floorplan)}</span>
+            <span>${escapeHtml(r.bedBath)} &middot; ${escapeHtml(String(r.sqft))} sf</span>
+            <span class="exp-col-hide-sm">${escapeHtml(r.bldg)} &middot; Fl ${escapeHtml(r.floor)}</span>
+            <span>${leaseToText}</span>
+            <span class="exp-badges exp-col-hide-sm">
+                <span class="exp-badge ${statusClass}">${escapeHtml(r.status)}</span>
+                ${isMtn ? '<span class="exp-badge mountain">Mountain View</span>' : ''}
+                ${isCorner ? '<span class="exp-badge corner">Corner</span>' : ''}
+            </span>
+        </div>`;
+    }).join('');
+
+    mount.innerHTML = header + rows;
+}
+
 restorePricing();
+renderCalendar();
+restoreExpiring();
+renderExpiringList();
 </script>
 </body>
 </html>
