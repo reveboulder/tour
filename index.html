@@ -724,7 +724,7 @@ const PRICING_DATA_KEY = 'reve-pricing-summary';
 // Bump when the shape of a PRICING_SUMMARY entry changes, so cached data
 // from before the change is detected and the user is told to re-upload
 // rather than silently missing new fields (e.g. per-term autofill).
-const PRICING_SCHEMA_VERSION = 2;
+const PRICING_SCHEMA_VERSION = 3;
 const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const MARKETED_TERMS = [11, 12, 13, 14, 15];
 
@@ -803,6 +803,22 @@ function formatAvailableDate(status) {
     return `${weekday}, ${monthName} ${day}${suffix}`;
 }
 
+// A sortable timestamp for the same status string formatAvailableDate()
+// renders as text — "Immediately" sorts as right now (earliest), a dated
+// status sorts on its actual date, and anything unparseable sorts last
+// rather than breaking the sort.
+function availableSortKey(status) {
+    const s = (status || '').trim();
+    if (!s || /immediate/i.test(s)) return Date.now();
+    const parts = s.split('/');
+    if (parts.length !== 3) return Infinity;
+    let [m, d, y] = parts.map(p => parseInt(p, 10));
+    if (isNaN(m) || isNaN(d) || isNaN(y)) return Infinity;
+    y = y < 100 ? 2000 + y : y;
+    const dt = new Date(y, m - 1, d);
+    return isNaN(dt.getTime()) ? Infinity : dt.getTime();
+}
+
 function buildPricingSummary(objRows) {
     const byUnitEntry = {};
     objRows.forEach(r => {
@@ -860,6 +876,7 @@ function buildPricingSummary(objRows) {
 
         summary[apt] = {
             available: formatAvailableDate(entry.status),
+            availableSortKey: availableSortKey(entry.status),
             bestPrice: `$${Math.round(best.price)}`,
             bestTerm: `${best.term}-Month Lease`,
             otherTerms: ranked.slice(1).map(r => ({ price: `$${Math.round(r.price)}`, term: `${r.term}-Month Lease` })),
@@ -899,7 +916,7 @@ function renderPricingStatus() {
         const whenText = when.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
         let html = `<b>${PRICING_META.unitCount} units</b> loaded from ${escapeHtml(PRICING_META.filename)}<br>Uploaded ${whenText}`;
         if (pricingIsStale()) {
-            html += `<br><b style="color:var(--warn);">Re-upload this file</b> to enable per-term price autofill (added since this was loaded).`;
+            html += `<br><b style="color:var(--warn);">Re-upload this file</b> for full functionality (per-term price autofill, date-sorted search — added since this was loaded).`;
         }
         el.innerHTML = html;
         clearBtn.style.display = 'inline-block';
@@ -1172,11 +1189,24 @@ function runSearch() {
             u.yardi.toLowerCase().includes(q)
         );
     }
-    // An exact unit-number match always surfaces and always works, even
-    // outside today's pricing sheet or the active filters — Justin can
-    // still open and edit any valid unit directly.
+
+    // Sort by earliest available date rather than unit number — the point
+    // of this list is "what can be shown soonest". Anything without a
+    // resolvable date (shouldn't happen for marketed units, but just in
+    // case) sorts to the end rather than breaking the order.
+    list.sort((a, b) => {
+        const ka = PRICING_SUMMARY[a.unit] ? PRICING_SUMMARY[a.unit].availableSortKey : Infinity;
+        const kb = PRICING_SUMMARY[b.unit] ? PRICING_SUMMARY[b.unit].availableSortKey : Infinity;
+        return (ka === undefined ? Infinity : ka) - (kb === undefined ? Infinity : kb);
+    });
+
+    // An exact unit-number match always surfaces at the very top and
+    // always works, even outside today's pricing sheet or the active
+    // filters — Justin can still open and edit any valid unit directly.
     const exact = byUnit[searchInput.value.trim()];
-    if (exact && !list.includes(exact)) list = [exact, ...list];
+    if (exact) {
+        list = [exact, ...list.filter(u => u.unit !== exact.unit)];
+    }
 
     list = list.slice(0, 40);
     renderResults(list, marketed);
@@ -1191,12 +1221,16 @@ function renderResults(list, marketed) {
         resultsBox.classList.add('open');
         return;
     }
-    resultsBox.innerHTML = list.map(u => `
+    resultsBox.innerHTML = list.map(u => {
+        const p = PRICING_SUMMARY[u.unit];
+        const availText = (marketed.has(u.unit) && p && p.available) ? ` (${p.available})` : '';
+        return `
         <div class="unit-result" data-unit="${u.unit}">
-            <span class="u-num">Apt ${u.unit}</span>
+            <span class="u-num">Apt ${u.unit}${availText}</span>
             <span class="u-meta">${u.floorplan} &middot; ${u.bedBath} &middot; ${u.sqft} sf &middot; ${u.bldg}${marketed.has(u.unit) ? '' : ' &middot; not in today\'s sheet'}</span>
         </div>
-    `).join('');
+    `;
+    }).join('');
     resultsBox.classList.add('open');
     [...resultsBox.querySelectorAll('.unit-result')].forEach(row => {
         row.addEventListener('click', () => selectUnit(row.getAttribute('data-unit')));
