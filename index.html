@@ -752,6 +752,51 @@
         .exp-row, .exp-row.header { grid-template-columns: 70px 1fr 80px; }
         .exp-row .exp-col-hide-sm { display: none; }
     }
+
+    /* -- Renewals tab table -- */
+    .renewal-table {
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+        border-collapse: collapse;
+        background: #fff;
+        font-size: 12.5px;
+    }
+    .renewal-table th, .renewal-table td {
+        border: 1px solid var(--line);
+        padding: 8px 10px;
+        text-align: left;
+        vertical-align: middle;
+    }
+    .renewal-table th {
+        background: var(--line-soft);
+        font-family: 'Oswald', var(--sans);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ink);
+    }
+    .renewal-table td.renewal-unit { font-family: var(--mono); font-weight: 700; }
+    .renewal-table .renewal-check-cell { text-align: center; }
+    .renewal-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--reve-orange); }
+    .renewal-notes-input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        font-family: var(--sans);
+        font-size: 12px;
+        resize: vertical;
+        padding: 3px;
+        min-height: 34px;
+    }
+    .renewal-notes-input:focus { outline: 1px solid var(--reve-orange); background: #fff; border-radius: 3px; }
+    .renewal-table tr.renewed td.strike-cell,
+    .renewal-table tr.renewed .renewal-unit { text-decoration: line-through; color: var(--good); }
+    .renewal-table tr.renewed .renewal-notes-input { color: var(--good); }
+    .renewal-table tr.notice td.strike-cell,
+    .renewal-table tr.notice .renewal-unit { text-decoration: line-through; color: #c0392b; }
+    .renewal-table tr.notice .renewal-notes-input { color: #c0392b; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -766,6 +811,7 @@
     <button type="button" class="top-tab active" data-tab="tour">Tour</button>
     <button type="button" class="top-tab" data-tab="availability">Availability</button>
     <button type="button" class="top-tab" data-tab="expiring">Expiring</button>
+    <button type="button" class="top-tab" data-tab="renewals">Renewals</button>
 </div>
 
 <div class="tab-panel active" id="tab-tour">
@@ -1067,6 +1113,53 @@
             <span id="expiringCountLabel">No lease report loaded</span>
         </div>
         <div id="expiringList"></div>
+    </div>
+</div>
+</div>
+
+<!-- ============ RENEWALS TAB ============ -->
+<div class="tab-panel" id="tab-renewals">
+<div class="avail-app">
+    <div class="avail-sidebar">
+        <div class="brand-strip">
+            <svg class="mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 20H55C70 20 80 30 80 42.5C80 52 73 60 62 63.5L82 85H62L45 65H35V85H20V20ZM35 34V51H53C61 51 65 47 65 42.5C65 38 61 34 53 34H35Z" fill="#de5426"/>
+                <path d="M25 25H30V60H25V25Z" fill="#ffffff" opacity="0.5"/>
+            </svg>
+            <div>
+                <h1>Renewals</h1>
+                <div class="tag">Pending renewal decisions</div>
+            </div>
+        </div>
+        <div class="editor-scroll">
+            <div class="pricing-block">
+                <div class="pb-row">
+                    <div class="pricing-status-text" id="renewalStatus">No renewal report loaded yet &mdash; upload the export to populate this list.</div>
+                    <label class="file-label" for="renewalFileInput">Upload file</label>
+                    <input type="file" id="renewalFileInput" accept=".csv,.xlsx,.xls">
+                </div>
+                <button type="button" class="pricing-clear" id="renewalClearBtn" style="display:none;">Clear renewal report</button>
+                <div class="empty-note" style="margin-top:6px;">Checkbox and notes entries are kept separately and survive re-uploads &mdash; only expiration/rate data refreshes.</div>
+            </div>
+
+            <div class="section-label"><span class="dot"></span>Create Renewal Offer</div>
+            <div class="picker-block">
+                <input type="text" id="renewalUnitSearch" placeholder="Search unit number&hellip;" autocomplete="off">
+                <div class="unit-results" id="renewalUnitResults"></div>
+            </div>
+            <div class="field" id="renewalNameField" style="display:none;">
+                <label>Resident name</label>
+                <input type="text" id="renewalResidentName" placeholder="e.g. Lucy Campbell">
+            </div>
+            <button type="button" class="btn primary" id="renewalGenerateBtn" disabled style="width:100%;">Generate Renewal Offer PDF</button>
+        </div>
+    </div>
+
+    <div class="avail-main">
+        <div class="exp-toolbar">
+            <span id="renewalCountLabel">No renewal report loaded</span>
+        </div>
+        <div id="renewalList"></div>
     </div>
 </div>
 </div>
@@ -3091,11 +3184,408 @@ function renderExpiringList() {
     });
 }
 
+/* ============================================================
+   RENEWALS TAB — pending lease-renewal decisions tracked from a
+   Renewal Offer Analysis export (re-uploadable to refresh), plus a
+   "Create Renewal Offer" letter generator pulling from that same data.
+   ============================================================ */
+const RENEWAL_META_KEY = 'reve-renewal-meta';
+const RENEWAL_DATA_KEY = 'reve-renewal-data';
+const RENEWAL_STATE_KEY = 'reve-renewal-state'; // renewed/notice/notes — survives re-uploads on purpose
+
+let RENEWAL_UNITS = [];
+let RENEWAL_META = null;
+let RENEWAL_STATE = {};
+let renewalSelectedUnit = null;
+
+// "12/18/26" or "1/5/2026" style — 1–2 digit month/day, 2- or 4-digit year.
+function parseShortDate(s) {
+    const m = String(s || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (!m) return null;
+    let [, mo, da, yr] = m;
+    yr = parseInt(yr, 10);
+    if (yr < 100) yr += 2000;
+    const d = new Date(yr, parseInt(mo, 10) - 1, parseInt(da, 10));
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function buildRenewalDataset(objRows) {
+    const byUnitRows = {};
+    objRows.forEach(r => {
+        const unit = String(r['Unit'] || '').trim();
+        if (!unit) return;
+        (byUnitRows[unit] = byUnitRows[unit] || []).push(r);
+    });
+
+    const list = [];
+    Object.keys(byUnitRows).forEach(unit => {
+        const rows = byUnitRows[unit];
+        const first = rows[0];
+        const expiration = parseShortDate(first['Current Lease | Expiration']);
+        const currentRent = parseFloat(first['Current Lease | Gross Rent']);
+        const mtmRow = rows.find(r => String(r['Term'] || '').trim().toUpperCase() === 'MTM');
+        const mtmRate = mtmRow ? parseFloat(mtmRow['Renewal Offers | Rent']) : NaN;
+        const termOffers = rows
+            .map(r => ({ term: parseInt(r['Term'], 10), rate: parseFloat(r['Renewal Offers | Rent']) }))
+            .filter(t => !isNaN(t.term) && !isNaN(t.rate));
+
+        list.push({
+            unit,
+            unitType: (first['Unit Type'] || '').trim(),
+            expiration,
+            expirationRaw: (first['Current Lease | Expiration'] || '').trim(),
+            currentRent: isNaN(currentRent) ? null : currentRent,
+            mtmRate: isNaN(mtmRate) ? null : mtmRate,
+            termOffers
+        });
+    });
+
+    list.sort((a, b) => {
+        const ka = a.expiration ? a.expiration.getTime() : Infinity;
+        const kb = b.expiration ? b.expiration.getTime() : Infinity;
+        return ka - kb;
+    });
+    return list;
+}
+
+function persistRenewals() {
+    const serializable = RENEWAL_UNITS.map(u => Object.assign({}, u, { expiration: u.expiration ? u.expiration.toISOString() : null }));
+    localStorage.setItem(RENEWAL_DATA_KEY, JSON.stringify(serializable));
+    localStorage.setItem(RENEWAL_META_KEY, JSON.stringify(RENEWAL_META));
+}
+function saveRenewalState() {
+    localStorage.setItem(RENEWAL_STATE_KEY, JSON.stringify(RENEWAL_STATE));
+}
+function restoreRenewals() {
+    try {
+        const meta = localStorage.getItem(RENEWAL_META_KEY);
+        const data = localStorage.getItem(RENEWAL_DATA_KEY);
+        if (meta && data) {
+            RENEWAL_META = JSON.parse(meta);
+            RENEWAL_UNITS = JSON.parse(data).map(u => Object.assign({}, u, { expiration: u.expiration ? new Date(u.expiration) : null }));
+        }
+        const state = localStorage.getItem(RENEWAL_STATE_KEY);
+        if (state) RENEWAL_STATE = JSON.parse(state);
+    } catch (e) { /* ignore corrupt cache */ }
+    renderRenewalStatus();
+    renderRenewalTable();
+}
+
+function renderRenewalStatus() {
+    const el = document.getElementById('renewalStatus');
+    const clearBtn = document.getElementById('renewalClearBtn');
+    if (RENEWAL_META) {
+        const when = new Date(RENEWAL_META.uploadedAt);
+        const whenText = when.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        el.innerHTML = `<b>${RENEWAL_META.count} pending</b> from ${escapeHtml(RENEWAL_META.filename)}<br>Uploaded ${whenText}`;
+        clearBtn.style.display = 'inline-block';
+    } else {
+        el.textContent = "No renewal report loaded yet \u2014 upload the export to populate this list.";
+        clearBtn.style.display = 'none';
+    }
+}
+
+document.getElementById('renewalFileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const isCSV = /\.csv$/i.test(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            let rows;
+            if (isCSV) {
+                rows = parseCSVText(String(reader.result));
+            } else {
+                const wb = XLSX.read(new Uint8Array(reader.result), { type: 'array', cellDates: true });
+                rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' });
+            }
+            const objRows = csvRowsToObjects(rows);
+            RENEWAL_UNITS = buildRenewalDataset(objRows);
+            RENEWAL_META = { filename: file.name, uploadedAt: new Date().toISOString(), count: RENEWAL_UNITS.length };
+            persistRenewals();
+            renderRenewalStatus();
+            renderRenewalTable();
+            if (renewalSelectedUnit && !RENEWAL_UNITS.some(u => u.unit === renewalSelectedUnit)) {
+                renewalSelectedUnit = null;
+                document.getElementById('renewalNameField').style.display = 'none';
+                document.getElementById('renewalGenerateBtn').disabled = true;
+            }
+        } catch (err) {
+            alert("Could not read that file. Make sure it's the Renewal Offer Analysis export.");
+        }
+    };
+    if (isCSV) reader.readAsText(file); else reader.readAsArrayBuffer(file);
+    e.target.value = '';
+});
+
+document.getElementById('renewalClearBtn').addEventListener('click', () => {
+    if (!confirm('Clear the loaded renewal report? Saved checkboxes and notes will be kept in case these units come back in a future upload.')) return;
+    RENEWAL_UNITS = [];
+    RENEWAL_META = null;
+    localStorage.removeItem(RENEWAL_DATA_KEY);
+    localStorage.removeItem(RENEWAL_META_KEY);
+    renderRenewalStatus();
+    renderRenewalTable();
+});
+
+function renewalRowState(unit) {
+    return RENEWAL_STATE[unit] || { renewed: false, notice: false, notes: '' };
+}
+
+function renderRenewalTable() {
+    const mount = document.getElementById('renewalList');
+    const countLabel = document.getElementById('renewalCountLabel');
+    if (!RENEWAL_UNITS.length) {
+        countLabel.textContent = 'No renewal report loaded';
+        mount.innerHTML = `<div class="no-unit">Upload the Renewal Offer Analysis export on the left to start tracking pending renewals.</div>`;
+        return;
+    }
+    countLabel.textContent = `${RENEWAL_UNITS.length} pending renewal${RENEWAL_UNITS.length === 1 ? '' : 's'}, soonest first`;
+
+    const rows = RENEWAL_UNITS.map(u => {
+        const state = renewalRowState(u.unit);
+        const rowClass = state.renewed ? 'renewed' : (state.notice ? 'notice' : '');
+        const expText = u.expiration
+            ? `${u.expiration.getMonth() + 1}/${u.expiration.getDate()}/${u.expiration.getFullYear()}`
+            : escapeHtml(u.expirationRaw);
+        const mtmText = u.mtmRate !== null ? formatMoney(u.mtmRate) : '\u2014';
+        return `<tr class="${rowClass}" data-unit="${escapeAttr(u.unit)}">
+            <td class="strike-cell renewal-unit">${escapeHtml(u.unit)}</td>
+            <td class="strike-cell">${expText}</td>
+            <td class="strike-cell">${mtmText}</td>
+            <td class="renewal-check-cell"><input type="checkbox" class="renewal-checkbox" data-field="renewed" ${state.renewed ? 'checked' : ''}></td>
+            <td class="renewal-check-cell"><input type="checkbox" class="renewal-checkbox" data-field="notice" ${state.notice ? 'checked' : ''}></td>
+            <td><textarea class="renewal-notes-input" rows="2" data-field="notes" placeholder="Add a note&hellip;">${escapeHtml(state.notes)}</textarea></td>
+        </tr>`;
+    }).join('');
+
+    mount.innerHTML = `<table class="renewal-table">
+        <thead><tr><th>Unit</th><th>Expiration</th><th>MTM Rate</th><th>Renewed?</th><th>Notice?</th><th>Notes</th></tr></thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+
+    [...mount.querySelectorAll('.renewal-checkbox')].forEach(cb => {
+        cb.addEventListener('change', (e) => {
+            const tr = e.target.closest('tr');
+            const unit = tr.getAttribute('data-unit');
+            const field = e.target.getAttribute('data-field');
+            const state = RENEWAL_STATE[unit] = RENEWAL_STATE[unit] || { renewed: false, notice: false, notes: '' };
+            state[field] = e.target.checked;
+            // Mutually exclusive — a unit is either renewing or giving notice, not both.
+            if (field === 'renewed' && e.target.checked) state.notice = false;
+            if (field === 'notice' && e.target.checked) state.renewed = false;
+            saveRenewalState();
+            renderRenewalTable();
+        });
+    });
+    [...mount.querySelectorAll('.renewal-notes-input')].forEach(inp => {
+        inp.addEventListener('input', (e) => {
+            const tr = e.target.closest('tr');
+            const unit = tr.getAttribute('data-unit');
+            const state = RENEWAL_STATE[unit] = RENEWAL_STATE[unit] || { renewed: false, notice: false, notes: '' };
+            state.notes = e.target.value;
+            saveRenewalState();
+        });
+    });
+}
+
+/* ---------- Create Renewal Offer: unit search ---------- */
+const renewalSearchInput = document.getElementById('renewalUnitSearch');
+const renewalResultsBox = document.getElementById('renewalUnitResults');
+
+function renewalRunSearch() {
+    const q = renewalSearchInput.value.trim().toLowerCase();
+    let list = RENEWAL_UNITS;
+    if (q) list = list.filter(u => u.unit.toLowerCase().indexOf(q) !== -1);
+    list = list.slice(0, 20);
+
+    if (!list.length) {
+        const msg = RENEWAL_UNITS.length
+            ? 'No matching units in the renewal report.'
+            : 'Upload the renewal report first.';
+        renewalResultsBox.innerHTML = `<div class="unit-result"><span class="u-meta">${msg}</span></div>`;
+        renewalResultsBox.classList.add('open');
+        return;
+    }
+    renewalResultsBox.innerHTML = list.map(u => {
+        const expText = u.expiration ? `${u.expiration.getMonth() + 1}/${u.expiration.getDate()}/${u.expiration.getFullYear()}` : (u.expirationRaw || '');
+        return `<div class="unit-result" data-unit="${escapeAttr(u.unit)}">
+            <span class="u-num">Apt ${escapeHtml(u.unit)}</span>
+            <span class="u-meta">Expires ${expText}</span>
+        </div>`;
+    }).join('');
+    renewalResultsBox.classList.add('open');
+    [...renewalResultsBox.querySelectorAll('.unit-result[data-unit]')].forEach(row => {
+        row.addEventListener('click', () => {
+            renewalSelectedUnit = row.getAttribute('data-unit');
+            renewalSearchInput.value = `Apt ${renewalSelectedUnit}`;
+            renewalResultsBox.classList.remove('open');
+            document.getElementById('renewalNameField').style.display = 'block';
+            document.getElementById('renewalGenerateBtn').disabled = false;
+        });
+    });
+}
+renewalSearchInput.addEventListener('focus', renewalRunSearch);
+renewalSearchInput.addEventListener('input', () => {
+    renewalSelectedUnit = null;
+    document.getElementById('renewalNameField').style.display = 'none';
+    document.getElementById('renewalGenerateBtn').disabled = true;
+    renewalRunSearch();
+});
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#renewalUnitSearch') && !e.target.closest('#renewalUnitResults')) {
+        renewalResultsBox.classList.remove('open');
+    }
+});
+
+/* ---------- Renewal offer letter (matches the reference PDF layout) ---------- */
+const RENEWAL_LETTER_STYLE = `
+:root { --reve-orange: #de5426; }
+.rl-page {
+    width: 760px;
+    box-sizing: border-box;
+    padding: 50px 60px 40px;
+    background: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #222;
+    font-size: 13.5px;
+    line-height: 1.55;
+}
+.rl-header { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; }
+.rl-header img { width: 46px; height: auto; }
+.rl-header .rl-wordmark { font-size: 22px; font-weight: 700; letter-spacing: 0.05em; color: #2f2d2f; }
+.rl-title { text-align: center; font-size: 15px; font-weight: 700; margin-bottom: 26px; }
+.rl-meta-row { display: flex; gap: 14px; margin-bottom: 14px; }
+.rl-meta-row .rl-label { flex: 0 0 60px; font-weight: 400; }
+.rl-page p { margin: 0 0 14px 0; }
+.rl-italic { font-style: italic; }
+.rl-bold-italic { font-style: italic; font-weight: 700; }
+.rl-offers-table { width: 100%; border-collapse: collapse; margin: 4px 0 20px; font-size: 13px; }
+.rl-offers-table th { background: #fff; border: 1px solid #999; padding: 6px 10px; font-weight: 700; text-align: center; }
+.rl-offers-table td { border: 1px solid #999; padding: 7px 10px; }
+.rl-checkbox-cell { width: 30px; text-align: center; }
+.rl-checkbox { display: inline-block; width: 12px; height: 12px; border: 1.4px solid #333; }
+.rl-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 34px; }
+.rl-footer-contact { font-size: 10.5px; color: #777; text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.7; }
+.rl-footer img { width: 34px; height: auto; }
+`;
+
+function buildRenewalLetterHtml(unitRec, residentName) {
+    const u = byUnit[unitRec.unit];
+    const today = new Date();
+    const validThrough = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate() - 1);
+    const mtmEffective = unitRec.expiration ? new Date(unitRec.expiration.getFullYear(), unitRec.expiration.getMonth(), unitRec.expiration.getDate() + 1) : null;
+
+    const fmtDate = (d) => d ? `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}` : '';
+
+    // The 3 cheapest 11–15 month offers, same "marketed range, cheapest
+    // first" convention already used for the Tour tab's flyer pricing —
+    // not something the source data or reference letter specified
+    // explicitly, just kept consistent with how this app already prices
+    // everywhere else.
+    const offers = unitRec.termOffers
+        .filter(t => t.term >= 11 && t.term <= 15)
+        .sort((a, b) => a.rate - b.rate || a.term - b.term)
+        .slice(0, 3);
+
+    const offerRowsHtml = offers.map(o => `
+        <tr>
+            <td class="rl-checkbox-cell"><span class="rl-checkbox"></span></td>
+            <td>${o.term}</td>
+            <td>month term for</td>
+            <td>${formatMoney(o.rate)}</td>
+        </tr>`).join('');
+
+    const firstName = escapeHtml((residentName || '').trim().split(/\s+/)[0] || residentName);
+    const address = u ? escapeHtml(u.address) : '';
+
+    return `<div class="rl-page">
+        <div class="rl-header">
+            <img src="${WATERMARK_IMG_SRC}" alt="">
+            <div class="rl-wordmark">R\u00caVE</div>
+        </div>
+        <div class="rl-title">Lease Renewal Offer</div>
+
+        <div class="rl-meta-row"><span class="rl-label">Date:</span><span>${fmtDate(today)}</span></div>
+        <div class="rl-meta-row"><span class="rl-label">To:</span><span>${escapeHtml(residentName)} and all occupants<br>${address} Apt #${escapeHtml(unitRec.unit)}<br>Boulder, CO 80301</span></div>
+
+        <p>Dear ${firstName} and all occupants:</p>
+        <p>Congratulations on your anniversary with Reve Boulder! We enjoy having you as a resident and are dedicated to providing you with a wonderful place to call home. Our records indicate your lease is expiring on ${fmtDate(unitRec.expiration)}.  We are currently offering the lease renewal rates and terms (subject to availability) shown below.</p>
+
+        <table class="rl-offers-table">
+            <tr><th colspan="4">Renewal Offers:</th></tr>
+            <tr><th colspan="4">Valid ${fmtDate(today)} through ${fmtDate(validThrough)}</th></tr>
+            ${offerRowsHtml}
+        </table>
+
+        <p>This renewal offer letter will be valid through ${fmtDate(validThrough)}. If you intend to renew, we need written confirmation no later than ${fmtDate(validThrough)}. Other lease terms may be available. If these do not meet your needs, please call us with any questions. These offers are for the base or market rent for your apartment home only and do not include any additional rental items such as parking, storage rooms etc.</p>
+        <p>To renew your lease, please contact the leasing office. We may require all residents to provide proof of renter's insurance upon renewal. We have enjoyed your stay with us and sincerely hope that you will continue to make Reve Boulder your home.</p>
+        <p class="rl-italic">Should you choose to vacate your apartment home, please remember that in accordance with your Lease Contract, you are required to provide us a <b>60-day written notice</b> of your intent to move out, including your forwarding address. You may prefer the flexibility of continuing to reside with us on a month-to-month basis.</p>
+        <p class="rl-bold-italic">Should you choose a month-to-month lease, please note that your new rental rate will be ${unitRec.mtmRate !== null ? formatMoney(unitRec.mtmRate) : 'TBD'}.</p>
+        <p class="rl-italic">This rate will become effective on ${fmtDate(mtmEffective)}, and all the other terms and conditions of your last lease contract will continue unchanged. If we do not hear from you before your current lease expires, your lease will automatically renew at the month-to-month rate shown above.</p>
+
+        <div class="rl-footer">
+            <div class="rl-footer-contact">303.530.3046<br>reveboulder.com<br>3000 Pearl Pkwy, Boulder, CO 80301</div>
+            <img src="${WATERMARK_IMG_SRC}" alt="">
+        </div>
+    </div>`;
+}
+
+document.getElementById('renewalGenerateBtn').addEventListener('click', async () => {
+    if (!renewalSelectedUnit) return;
+    const nameInput = document.getElementById('renewalResidentName');
+    const residentName = nameInput.value.trim();
+    if (!residentName) { alert('Please enter the resident name first.'); nameInput.focus(); return; }
+
+    const unitRec = RENEWAL_UNITS.find(u => u.unit === renewalSelectedUnit);
+    if (!unitRec) return;
+
+    const btn = document.getElementById('renewalGenerateBtn');
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generating\u2026';
+
+    const holder = document.createElement('div');
+    holder.style.position = 'fixed';
+    holder.style.left = '-10000px';
+    holder.style.top = '0';
+    holder.innerHTML = `<style>${RENEWAL_LETTER_STYLE}</style>${buildRenewalLetterHtml(unitRec, residentName)}`;
+    document.body.appendChild(holder);
+
+    try {
+        const node = holder.querySelector('.rl-page');
+        if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
+        const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+
+        const { jsPDF } = window.jspdf;
+        const pageW = 612, pageH = 792;
+        let wPt = node.offsetWidth * 0.75;
+        let hPt = node.offsetHeight * 0.75;
+        const fitScale = Math.min(pageW / wPt, pageH / hPt, 1);
+        wPt *= fitScale;
+        hPt *= fitScale;
+        const x = (pageW - wPt) / 2;
+        const y = 0;
+
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pageW, pageH], compress: true });
+        pdf.addImage(imgData, 'JPEG', x, y, wPt, hPt);
+        pdf.save(`renewal-offer-apt-${unitRec.unit}.pdf`);
+    } catch (err) {
+        alert('Could not generate the renewal offer PDF. Please try again.');
+    } finally {
+        document.body.removeChild(holder);
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+    }
+});
+
 restorePricing();
 rebuildAvailFilters();
 renderCalendar();
 restoreExpiring();
 renderExpiringList();
+restoreRenewals();
 </script>
 </body>
 </html>
