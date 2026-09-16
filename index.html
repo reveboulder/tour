@@ -562,14 +562,19 @@
         color: var(--ink-soft);
     }
     .cal-nav-btn:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+    .cal-month-block { flex: 1; text-align: center; }
     .cal-month-label {
         font-family: 'Oswald', var(--sans);
         font-weight: 600;
         font-size: 17px;
         letter-spacing: 0.02em;
-        flex: 1;
-        text-align: center;
     }
+    .cal-month-summary {
+        font-size: 11px;
+        color: var(--ink-soft);
+        margin-top: 2px;
+    }
+    .cal-month-summary b { color: var(--ink); font-weight: 700; }
     .cal-today-btn {
         font-size: 11px;
         font-weight: 700;
@@ -596,6 +601,11 @@
         display: grid;
         grid-template-columns: repeat(7, 1fr);
         gap: 6px;
+    }
+    .avail-cal-grid.day-mode {
+        display: block;
+        max-width: 640px;
+        margin: 0 auto;
     }
     .cal-dow {
         font-size: 10px;
@@ -635,6 +645,48 @@
     }
     .cal-unit-pill:hover { background: var(--reve-orange); color: #fff; }
     .cal-day-more { font-size: 9.5px; color: var(--ink-soft); padding: 1px 5px; }
+    .cal-day.has-units { cursor: pointer; }
+    .cal-day.has-units:hover { border-color: var(--reve-orange); box-shadow: 0 0 0 1px var(--reve-orange) inset; }
+
+    /* -- Day-focus detail view -- */
+    .cal-day-view-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+    }
+    .cal-back-btn {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--reve-orange);
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px 0;
+    }
+    .cal-back-btn:hover { text-decoration: underline; }
+    .cal-day-view-title {
+        font-family: 'Oswald', var(--sans);
+        font-weight: 600;
+        font-size: 16px;
+    }
+    .cal-unit-card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        cursor: pointer;
+    }
+    .cal-unit-card:hover { border-color: var(--reve-orange); }
+    .cal-unit-card-main { font-size: 13.5px; font-weight: 700; }
+    .cal-unit-card-meta { font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; }
+    .cal-unit-card-price { font-size: 13px; font-weight: 700; color: var(--reve-orange); text-align: right; white-space: nowrap; }
+    .cal-unit-card-price small { display: block; font-weight: 500; color: var(--ink-soft); font-size: 10.5px; }
 
     /* -- Expiring list -- */
     .exp-toolbar {
@@ -683,6 +735,9 @@
     .exp-badge.corner { background: #e6eefb; color: #2a5db0; }
     .exp-badge.status-notice { background: #fbeee0; color: var(--warn); }
     .exp-badge.status-current { background: var(--line-soft); color: var(--ink-soft); }
+    .exp-badge.open-tour { background: #fbeee8; color: var(--reve-orange-dark); }
+    .exp-row.clickable { cursor: pointer; }
+    .exp-row.clickable:hover { border-color: var(--reve-orange); background: #fffaf7; }
     .legend-swatch {
         display: inline-block;
         width: 9px; height: 9px;
@@ -916,6 +971,18 @@
                 <button type="button" class="filter-caption" data-target="availTypeFilters">Floorplan type <span class="fc-chevron">&rsaquo;</span></button>
                 <div class="quick-filters collapsed" id="availTypeFilters"></div>
             </div>
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="availNameFilters">Floorplan name <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="availNameFilters"></div>
+            </div>
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="availFloorFilters">Floor <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="availFloorFilters"></div>
+            </div>
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="availBldgFilters">Building <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="availBldgFilters"></div>
+            </div>
 
             <button type="button" class="add-term-btn" id="availClearBtn" style="margin-top:14px;">Clear filters</button>
         </div>
@@ -924,7 +991,10 @@
     <div class="avail-main">
         <div class="avail-cal-toolbar">
             <button type="button" class="cal-nav-btn" id="calPrevBtn">&lsaquo;</button>
-            <div class="cal-month-label" id="calMonthLabel">Month Year</div>
+            <div class="cal-month-block">
+                <div class="cal-month-label" id="calMonthLabel">Month Year</div>
+                <div class="cal-month-summary" id="calMonthSummary"></div>
+            </div>
             <button type="button" class="cal-nav-btn" id="calNextBtn">&rsaquo;</button>
             <button type="button" class="cal-today-btn" id="calTodayBtn">Today</button>
         </div>
@@ -1270,6 +1340,7 @@ document.getElementById('pricingFileInput').addEventListener('change', (e) => {
             persistPricing();
             renderPricingStatus();
             rebuildFloorplanFilter();
+            rebuildAvailFilters();
             renderCalendar();
             if (currentUnit) {
                 selectUnit(currentUnit); // refresh spec card badge + sync button visibility
@@ -1290,6 +1361,7 @@ document.getElementById('pricingClearBtn').addEventListener('click', () => {
     localStorage.removeItem(PRICING_META_KEY);
     renderPricingStatus();
     rebuildFloorplanFilter();
+    rebuildAvailFilters();
     renderCalendar();
     if (currentUnit) selectUnit(currentUnit);
 });
@@ -2448,14 +2520,58 @@ const typeOrderPH = ['Studio', '1-Bed', '2-Bed', '3-Bed', 'Townhome', 'Live/Work
    ============================================================ */
 let calViewDate = new Date();
 calViewDate.setDate(1);
-let activeAvailType = null;
+let calFocusedDay = null; // null = month view; otherwise the JS Date being focused
+let activeAvailType = null, activeAvailFloorplan = null, activeAvailFloor = null, activeAvailBldg = null;
 
 const availTypeBox = document.getElementById('availTypeFilters');
-buildFilterChips(availTypeBox, typeOrderPH, t => t, () => activeAvailType, v => activeAvailType = v, renderCalendar, updateAvailCaptionState);
+buildFilterChips(availTypeBox, typeOrderPH, t => t, () => activeAvailType, v => activeAvailType = v, renderCalendar, updateAvailCaptionStates);
 
-function updateAvailCaptionState() {
-    const cap = document.querySelector('.filter-caption[data-target="availTypeFilters"]');
-    if (cap) cap.classList.toggle('has-active', !!activeAvailType);
+function updateAvailCaptionStates() {
+    const map = [
+        ['availTypeFilters', !!activeAvailType],
+        ['availNameFilters', !!activeAvailFloorplan],
+        ['availFloorFilters', !!activeAvailFloor],
+        ['availBldgFilters', !!activeAvailBldg]
+    ];
+    map.forEach(([id, isActive]) => {
+        const cap = document.querySelector(`.filter-caption[data-target="${id}"]`);
+        if (cap) cap.classList.toggle('has-active', isActive);
+    });
+}
+
+// Floorplan name / floor / building chips are scoped to today's marketed
+// units (like the Tour tab's own floorplan filter), so they only ever
+// offer choices that could actually appear on this calendar. Rebuilt
+// whenever the pricing sheet changes.
+function rebuildAvailFilters() {
+    const marketed = [...marketedUnits()].map(unit => byUnit[unit]).filter(Boolean);
+    const floorplanCodes = [...new Set(marketed.map(u => u.floorplan))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const floorCodes = [...new Set(marketed.map(u => u.floor))].sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+    const bldgCodes = [...new Set(marketed.map(u => u.bldg))].sort();
+
+    if (activeAvailFloorplan && floorplanCodes.indexOf(activeAvailFloorplan) === -1) activeAvailFloorplan = null;
+    if (activeAvailFloor && floorCodes.indexOf(activeAvailFloor) === -1) activeAvailFloor = null;
+    if (activeAvailBldg && bldgCodes.indexOf(activeAvailBldg) === -1) activeAvailBldg = null;
+
+    const nameBox = document.getElementById('availNameFilters');
+    if (floorplanCodes.length) {
+        buildFilterChips(nameBox, floorplanCodes, c => c, () => activeAvailFloorplan, v => activeAvailFloorplan = v, renderCalendar, updateAvailCaptionStates);
+    } else {
+        nameBox.innerHTML = '<span class="empty-note">No pricing sheet loaded yet.</span>';
+    }
+    const floorBox = document.getElementById('availFloorFilters');
+    if (floorCodes.length) {
+        buildFilterChips(floorBox, floorCodes, f => `Floor ${f}`, () => activeAvailFloor, v => activeAvailFloor = v, renderCalendar, updateAvailCaptionStates);
+    } else {
+        floorBox.innerHTML = '<span class="empty-note">No pricing sheet loaded yet.</span>';
+    }
+    const bldgBox = document.getElementById('availBldgFilters');
+    if (bldgCodes.length) {
+        buildFilterChips(bldgBox, bldgCodes, b => b.replace('Bldg ', 'Building '), () => activeAvailBldg, v => activeAvailBldg = v, renderCalendar, updateAvailCaptionStates);
+    } else {
+        bldgBox.innerHTML = '<span class="empty-note">No pricing sheet loaded yet.</span>';
+    }
+    updateAvailCaptionStates();
 }
 
 function availNumBounds(minId, maxId) {
@@ -2475,13 +2591,29 @@ function availFilteredUnits() {
         const price = p ? parsePriceNum(p.bestPrice) : null;
         if (price !== null && (price < priceB.min || price > priceB.max)) return false;
         if (activeAvailType && unitTypeCategoryPH(u) !== activeAvailType) return false;
+        if (activeAvailFloorplan && u.floorplan !== activeAvailFloorplan) return false;
+        if (activeAvailFloor && u.floor !== activeAvailFloor) return false;
+        if (activeAvailBldg && u.bldg !== activeAvailBldg) return false;
         return true;
     });
+}
+
+// Plain bed-count bucketing for the summary line specifically — Studio
+// /1-Bed/2-Bed/3-Bed only, regardless of TH/LW/PH prefix, so the four
+// counts always add up to the total (matches what was asked for, as
+// distinct from the 7-category Type filter used elsewhere on this tab).
+function bedCountBucket(u) {
+    const bedNum = parseFloat((u.bedBath || '0/0').split('/')[0]);
+    if (isNaN(bedNum) || bedNum <= 0) return 'Studio';
+    if (bedNum < 2) return '1-Bed';
+    if (bedNum < 3) return '2-Bed';
+    return '3-Bed';
 }
 
 function renderCalendar() {
     const grid = document.getElementById('calGrid');
     const label = document.getElementById('calMonthLabel');
+    const summaryEl = document.getElementById('calMonthSummary');
     const banner = document.getElementById('availBanner');
     if (!grid || !label) return;
     const y = calViewDate.getFullYear(), m = calViewDate.getMonth();
@@ -2492,6 +2624,7 @@ function renderCalendar() {
         banner.innerHTML = "No pricing sheet loaded yet. Upload today's export on the Tour tab to populate this calendar.";
         banner.classList.remove('warn');
         grid.innerHTML = '';
+        summaryEl.textContent = '';
         return;
     }
     if (pricingIsStale()) {
@@ -2499,12 +2632,14 @@ function renderCalendar() {
         banner.classList.add('warn');
         banner.innerHTML = "The loaded pricing sheet predates this calendar feature. <b>Re-upload today's file on the Tour tab</b> to populate it.";
         grid.innerHTML = '';
+        summaryEl.textContent = '';
         return;
     }
     banner.style.display = 'none';
 
     const units = availFilteredUnits();
     const byDay = {};
+    const monthUnits = [];
     units.forEach(u => {
         const p = PRICING_SUMMARY[u.unit];
         if (!p || p.availableSortKey === undefined || !isFinite(p.availableSortKey)) return;
@@ -2512,8 +2647,21 @@ function renderCalendar() {
         if (d.getFullYear() === y && d.getMonth() === m) {
             const day = d.getDate();
             (byDay[day] = byDay[day] || []).push(u);
+            monthUnits.push(u);
         }
     });
+
+    // Summary line next to the month title, for this month's filtered set.
+    const bucketCounts = { Studio: 0, '1-Bed': 0, '2-Bed': 0, '3-Bed': 0 };
+    monthUnits.forEach(u => { bucketCounts[bedCountBucket(u)]++; });
+    summaryEl.innerHTML = `<b>${monthUnits.length}</b> Total Availabilities &middot; <b>${bucketCounts.Studio}</b> Studios &middot; <b>${bucketCounts['1-Bed']}</b> 1-Beds &middot; <b>${bucketCounts['2-Bed']}</b> 2-Beds &middot; <b>${bucketCounts['3-Bed']}</b> 3-Beds`;
+
+    // If a specific day is focused and still falls within the displayed
+    // month, show that day's detail list instead of the month grid.
+    if (calFocusedDay && calFocusedDay.getFullYear() === y && calFocusedDay.getMonth() === m) {
+        renderDayView(calFocusedDay, byDay[calFocusedDay.getDate()] || []);
+        return;
+    }
 
     const firstDow = new Date(y, m, 1).getDay();
     const daysInMonth = new Date(y, m + 1, 0).getDate();
@@ -2527,16 +2675,69 @@ function renderCalendar() {
         const dayUnits = (byDay[day] || []).sort((a, b) => a.unit.localeCompare(b.unit, undefined, { numeric: true }));
         const shown = dayUnits.slice(0, 3);
         const extra = dayUnits.length - shown.length;
-        html += `<div class="cal-day${isToday ? ' today' : ''}">
+        const clickable = dayUnits.length > 0;
+        html += `<div class="cal-day${isToday ? ' today' : ''}${clickable ? ' has-units' : ''}" data-day="${clickable ? day : ''}">
             <div class="cal-day-num">${day}</div>
-            ${shown.map(u => `<div class="cal-unit-pill" data-unit="${u.unit}" title="Apt ${u.unit} \u2014 ${u.floorplan} \u2014 ${u.sqft} sf">Apt ${u.unit}</div>`).join('')}
+            ${shown.map(u => `<div class="cal-unit-pill" data-unit="${u.unit}" title="Apt ${u.unit} \u2014 ${u.floorplan} \u2014 ${u.sqft} sf">Apt ${u.unit} (${u.floorplan})</div>`).join('')}
             ${extra > 0 ? `<div class="cal-day-more">+${extra} more</div>` : ''}
         </div>`;
     }
+    grid.classList.remove('day-mode');
     grid.innerHTML = html;
+
+    // Clicking a pill still jumps straight to the Tour tab. Clicking
+    // anywhere else on a day that has units opens that day's detail view.
     [...grid.querySelectorAll('.cal-unit-pill')].forEach(pill => {
-        pill.addEventListener('click', () => {
+        pill.addEventListener('click', (e) => {
+            e.stopPropagation();
             const unit = pill.getAttribute('data-unit');
+            switchTab('tour');
+            selectUnit(unit);
+        });
+    });
+    [...grid.querySelectorAll('.cal-day.has-units')].forEach(cell => {
+        cell.addEventListener('click', () => {
+            const day = parseInt(cell.getAttribute('data-day'), 10);
+            calFocusedDay = new Date(y, m, day);
+            renderCalendar();
+        });
+    });
+}
+
+function renderDayView(dateObj, dayUnits) {
+    const grid = document.getElementById('calGrid');
+    grid.classList.add('day-mode');
+
+    const dateLabel = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    const sorted = [...dayUnits].sort((a, b) => a.unit.localeCompare(b.unit, undefined, { numeric: true }));
+
+    const cards = sorted.map(u => {
+        const p = PRICING_SUMMARY[u.unit] || {};
+        return `<div class="cal-unit-card" data-unit="${u.unit}">
+            <div>
+                <div class="cal-unit-card-main">Apt ${u.unit} (${u.floorplan})</div>
+                <div class="cal-unit-card-meta">${u.bedBath} &middot; ${u.sqft} sf &middot; ${u.bldg} &middot; Floor ${u.floor}</div>
+            </div>
+            <div class="cal-unit-card-price">${p.bestPrice || '\u2014'}<small>${p.bestTerm || ''}</small></div>
+        </div>`;
+    }).join('');
+
+    grid.innerHTML = `
+        <div class="cal-day-view-header">
+            <button type="button" class="cal-back-btn" id="calBackBtn">&lsaquo; Back to calendar</button>
+            <div class="cal-day-view-title">${dateLabel}</div>
+            <span></span>
+        </div>
+        ${cards || '<div class="no-unit">No matching units on this day.</div>'}
+    `;
+
+    document.getElementById('calBackBtn').addEventListener('click', () => {
+        calFocusedDay = null;
+        renderCalendar();
+    });
+    [...grid.querySelectorAll('.cal-unit-card')].forEach(card => {
+        card.addEventListener('click', () => {
+            const unit = card.getAttribute('data-unit');
             switchTab('tour');
             selectUnit(unit);
         });
@@ -2544,14 +2745,17 @@ function renderCalendar() {
 }
 
 document.getElementById('calPrevBtn').addEventListener('click', () => {
+    calFocusedDay = null;
     calViewDate.setMonth(calViewDate.getMonth() - 1);
     renderCalendar();
 });
 document.getElementById('calNextBtn').addEventListener('click', () => {
+    calFocusedDay = null;
     calViewDate.setMonth(calViewDate.getMonth() + 1);
     renderCalendar();
 });
 document.getElementById('calTodayBtn').addEventListener('click', () => {
+    calFocusedDay = null;
     calViewDate = new Date();
     calViewDate.setDate(1);
     renderCalendar();
@@ -2564,9 +2768,9 @@ document.getElementById('availClearBtn').addEventListener('click', () => {
     document.getElementById('availSqftMax').value = '';
     document.getElementById('availPriceMin').value = '';
     document.getElementById('availPriceMax').value = '';
-    activeAvailType = null;
+    activeAvailType = null; activeAvailFloorplan = null; activeAvailFloor = null; activeAvailBldg = null;
     [...availTypeBox.children].forEach(c => c.classList.remove('active'));
-    updateAvailCaptionState();
+    rebuildAvailFilters();
     renderCalendar();
 });
 
@@ -2856,9 +3060,13 @@ function renderExpiringList() {
     const rows = list.map(r => {
         const isMtn = MOUNTAIN_VIEW_UNITS.has(r.unit);
         const isCorner = CORNER_UNITS.has(r.unit);
-        const statusClass = r.status === 'Notice' ? 'status-notice' : 'status-current';
+        const isNotice = r.status === 'Notice';
+        const statusClass = isNotice ? 'status-notice' : 'status-current';
         const leaseToText = r.leaseTo.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        return `<div class="exp-row">
+        // "Notice" means the resident is confirmed leaving — worth being
+        // able to jump straight into building that unit's tour pamphlet.
+        // "Current" residents might renew, so those rows stay inert.
+        return `<div class="exp-row${isNotice ? ' clickable' : ''}"${isNotice ? ` data-unit="${r.unit}" title="Open Apt ${r.unit} in the Tour tab"` : ''}>
             <span class="exp-unit">Apt ${r.unit}</span>
             <span class="exp-col-hide-sm">${escapeHtml(r.floorplan)}</span>
             <span>${escapeHtml(r.bedBath)} &middot; ${escapeHtml(String(r.sqft))} sf</span>
@@ -2868,14 +3076,23 @@ function renderExpiringList() {
                 <span class="exp-badge ${statusClass}">${escapeHtml(r.status)}</span>
                 ${isMtn ? '<span class="exp-badge mountain">Mountain View</span>' : ''}
                 ${isCorner ? '<span class="exp-badge corner">Corner</span>' : ''}
+                ${isNotice ? '<span class="exp-badge open-tour">Open in Tour &rsaquo;</span>' : ''}
             </span>
         </div>`;
     }).join('');
 
     mount.innerHTML = header + rows;
+    [...mount.querySelectorAll('.exp-row.clickable')].forEach(row => {
+        row.addEventListener('click', () => {
+            const unit = row.getAttribute('data-unit');
+            switchTab('tour');
+            selectUnit(unit);
+        });
+    });
 }
 
 restorePricing();
+rebuildAvailFilters();
 renderCalendar();
 restoreExpiring();
 renderExpiringList();
