@@ -1276,6 +1276,23 @@
         </div>
         <div class="empty-note" id="modeStatusNote" style="margin-top:10px;">Currently in <b>Live</b> mode.</div>
     </div>
+
+    <div class="settings-card" style="margin-top:18px;">
+        <div class="section-label" style="margin-top:0;"><span class="dot"></span>Shared Backend (Google Sheet)</div>
+        <p class="empty-note" style="font-size:12.5px;">
+            Without this, every upload and every renewal checkbox/note lives only in your own browser &mdash; other agents can't see it. Paste in your deployed Apps Script Web App URL below (same URL for everyone on the team) to share the pricing sheet, expiring report, renewal report, and renewal tracker notes across all agents automatically.
+        </p>
+        <div class="field">
+            <label>Web App URL</label>
+            <input type="text" id="backendUrlInput" placeholder="https://script.google.com/macros/s/XXXXXXXX/exec">
+        </div>
+        <div class="action-row" style="margin-top:8px;">
+            <button type="button" class="btn" id="backendSaveBtn">Save</button>
+            <button type="button" class="btn" id="backendTestBtn">Test Connection</button>
+        </div>
+        <div class="empty-note" id="backendStatusNote" style="margin-top:10px;">Not configured &mdash; data stays local to this browser only.</div>
+        <div class="empty-note" id="backendSetupHint" style="margin-top:10px;">Need this set up? Ask Claude for the Apps Script code and step-by-step deployment instructions &mdash; it's a one-time, ~5 minute setup on a Google Sheet you control.</div>
+    </div>
 </div>
 </div>
 
@@ -1548,6 +1565,7 @@ document.getElementById('pricingFileInput').addEventListener('change', (e) => {
                 schemaVersion: PRICING_SCHEMA_VERSION
             };
             persistPricing();
+            if (BACKEND_URL) backendPush('pricing-summary', { summary: PRICING_SUMMARY, meta: PRICING_META });
             renderPricingStatus();
             rebuildFloorplanFilter();
             rebuildAvailFilters();
@@ -3154,6 +3172,7 @@ document.getElementById('expiringFileInput').addEventListener('change', (e) => {
             EXPIRING_UNITS = buildExpiringDataset(rawRows);
             EXPIRING_META = { filename: file.name, uploadedAt: new Date().toISOString(), count: EXPIRING_UNITS.length };
             persistExpiring();
+            if (BACKEND_URL) backendPush('expiring-units', { units: EXPIRING_UNITS.map(r => Object.assign({}, r, { leaseTo: r.leaseTo.toISOString() })), meta: EXPIRING_META });
             renderExpiringStatus();
             rebuildExpiringFilters();
             renderExpiringList();
@@ -3377,6 +3396,15 @@ function saveRenewalState() {
     // them overwrite the real persisted annotations.
     if (APP_MODE === 'test') return;
     localStorage.setItem(RENEWAL_STATE_KEY, JSON.stringify(RENEWAL_STATE));
+    if (BACKEND_URL) backendPush('renewal-state', RENEWAL_STATE);
+}
+// For the notes textarea specifically — saves locally on every keystroke
+// (cheap) but only pushes to the shared backend 900ms after typing stops,
+// so a sentence in progress doesn't fire a network request per character.
+function saveRenewalStateDebounced() {
+    if (APP_MODE === 'test') return;
+    localStorage.setItem(RENEWAL_STATE_KEY, JSON.stringify(RENEWAL_STATE));
+    if (BACKEND_URL) pushRenewalStateDebounced();
 }
 function restoreRenewals() {
     RENEWAL_META = null;
@@ -3427,6 +3455,7 @@ document.getElementById('renewalFileInput').addEventListener('change', (e) => {
             RENEWAL_UNITS = buildRenewalDataset(objRows);
             RENEWAL_META = { filename: file.name, uploadedAt: new Date().toISOString(), count: RENEWAL_UNITS.length };
             persistRenewals();
+            if (BACKEND_URL) backendPush('renewal-units', { units: RENEWAL_UNITS.map(u => Object.assign({}, u, { expiration: u.expiration ? u.expiration.toISOString() : null })), meta: RENEWAL_META });
             renderRenewalStatus();
             renderRenewalTable();
             if (renewalSelectedUnit && !RENEWAL_UNITS.some(u => u.unit === renewalSelectedUnit)) {
@@ -3518,7 +3547,7 @@ function renderRenewalTable() {
             const unit = tr.getAttribute('data-unit');
             const state = RENEWAL_STATE[unit] = RENEWAL_STATE[unit] || { renewed: false, notice: false, notes: '' };
             state.notes = e.target.value;
-            saveRenewalState();
+            saveRenewalStateDebounced();
         });
     });
 }
@@ -3892,6 +3921,170 @@ function applyAppMode(mode) {
 document.getElementById('modeLiveBtn').addEventListener('click', () => applyAppMode('live'));
 document.getElementById('modeTestBtn').addEventListener('click', () => applyAppMode('test'));
 
+/* ============================================================
+   SHARED BACKEND (Google Sheet via Apps Script Web App) — optional.
+   When configured, the pricing sheet, expiring report, renewal report,
+   and renewal-tracker state (checkboxes/notes) all sync through a tiny
+   JSON API backed by a Google Sheet, so every agent's browser sees the
+   same data. With no URL set, everything behaves exactly as before —
+   local-only, no network calls. Any fetch failure (unset URL, offline,
+   misconfigured deployment) fails silently and falls back to whatever
+   is already cached locally; a sync problem should never block using
+   the app.
+   ============================================================ */
+const BACKEND_URL_KEY = 'reve-backend-url';
+let BACKEND_URL = '';
+try { BACKEND_URL = localStorage.getItem(BACKEND_URL_KEY) || ''; } catch (e) {}
+
+function debounce(fn, wait) {
+    let t;
+    return function () {
+        const args = arguments;
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(null, args), wait);
+    };
+}
+
+async function backendPull(key) {
+    if (!BACKEND_URL) return null;
+    try {
+        const res = await fetch(`${BACKEND_URL}?key=${encodeURIComponent(key)}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return (data && data.value !== undefined && data.value !== null) ? data.value : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function backendPush(key, value) {
+    if (!BACKEND_URL) return false;
+    try {
+        // text/plain avoids a CORS preflight (OPTIONS) request, which
+        // Apps Script web apps don't handle — a well-known quirk of
+        // fetching them from another origin. The body is still JSON;
+        // only the content-type label changes.
+        const res = await fetch(BACKEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ key, value })
+        });
+        return res.ok;
+    } catch (e) {
+        return false;
+    }
+}
+
+function renderBackendStatus(state, detail) {
+    const el = document.getElementById('backendStatusNote');
+    if (!el) return;
+    if (!BACKEND_URL) {
+        el.innerHTML = 'Not configured \u2014 data stays local to this browser only.';
+        return;
+    }
+    if (state === 'ok') el.innerHTML = `<b style="color:var(--good);">Connected.</b> ${detail || 'Your team can now share data through this Sheet.'}`;
+    else if (state === 'error') el.innerHTML = `<b style="color:var(--warn);">Could not reach the backend.</b> ${detail || 'Check the URL and that the deployment is set to "Anyone" access.'}`;
+    else el.textContent = detail || 'Saved.';
+}
+
+const backendUrlInput = document.getElementById('backendUrlInput');
+if (backendUrlInput) backendUrlInput.value = BACKEND_URL;
+renderBackendStatus();
+
+document.getElementById('backendSaveBtn').addEventListener('click', () => {
+    BACKEND_URL = backendUrlInput.value.trim();
+    try { localStorage.setItem(BACKEND_URL_KEY, BACKEND_URL); } catch (e) {}
+    renderBackendStatus(null, BACKEND_URL ? 'Saved. Click "Test Connection" to verify, or switch tabs to start syncing.' : null);
+    if (BACKEND_URL) pullAllFromBackend();
+});
+document.getElementById('backendTestBtn').addEventListener('click', async () => {
+    BACKEND_URL = backendUrlInput.value.trim();
+    if (!BACKEND_URL) { renderBackendStatus(); return; }
+    const btn = document.getElementById('backendTestBtn');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Testing\u2026';
+    const ok = await backendPush('connection-test', { ping: new Date().toISOString(), from: 'REVE Tour Pamphlet Builder' });
+    renderBackendStatus(ok ? 'ok' : 'error');
+    btn.disabled = false;
+    btn.textContent = original;
+});
+
+// Debounced so rapid keystrokes in a notes box don't fire a request per
+// character — checkbox toggles are infrequent enough to push immediately.
+const pushRenewalStateDebounced = debounce(() => { backendPush('renewal-state', RENEWAL_STATE); }, 900);
+
+// Pulls every shared dataset and applies whatever the backend has. If the
+// backend has nothing yet for a dataset but this browser does, that local
+// copy is pushed up to seed it — so the very first agent to configure the
+// backend doesn't lose what they already had loaded.
+async function pullAllFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+
+    const pricingRemote = await backendPull('pricing-summary');
+    if (pricingRemote && pricingRemote.meta) {
+        PRICING_SUMMARY = pricingRemote.summary || {};
+        PRICING_META = pricingRemote.meta;
+        persistPricing();
+    } else if (PRICING_META) {
+        backendPush('pricing-summary', { summary: PRICING_SUMMARY, meta: PRICING_META });
+    }
+
+    const expiringRemote = await backendPull('expiring-units');
+    if (expiringRemote && expiringRemote.meta) {
+        EXPIRING_UNITS = (expiringRemote.units || []).map(r => Object.assign({}, r, { leaseTo: new Date(r.leaseTo) }));
+        EXPIRING_META = expiringRemote.meta;
+        persistExpiring();
+    } else if (EXPIRING_META) {
+        backendPush('expiring-units', {
+            units: EXPIRING_UNITS.map(r => Object.assign({}, r, { leaseTo: r.leaseTo.toISOString() })),
+            meta: EXPIRING_META
+        });
+    }
+
+    const renewalRemote = await backendPull('renewal-units');
+    if (renewalRemote && renewalRemote.meta) {
+        RENEWAL_UNITS = (renewalRemote.units || []).map(u => Object.assign({}, u, { expiration: u.expiration ? new Date(u.expiration) : null }));
+        RENEWAL_META = renewalRemote.meta;
+        persistRenewals();
+    } else if (RENEWAL_META) {
+        backendPush('renewal-units', {
+            units: RENEWAL_UNITS.map(u => Object.assign({}, u, { expiration: u.expiration ? u.expiration.toISOString() : null })),
+            meta: RENEWAL_META
+        });
+    }
+
+    // The checkbox/notes tracker is the piece that most needs sharing —
+    // the remote copy simply wins here rather than a local seed-up,
+    // since it's meant to accumulate across everyone's edits.
+    const stateRemote = await backendPull('renewal-state');
+    if (stateRemote) {
+        RENEWAL_STATE = stateRemote;
+        try { localStorage.setItem(RENEWAL_STATE_KEY, JSON.stringify(RENEWAL_STATE)); } catch (e) {}
+    } else if (Object.keys(RENEWAL_STATE).length) {
+        backendPush('renewal-state', RENEWAL_STATE);
+    }
+
+    renderPricingStatus();
+    rebuildFloorplanFilter();
+    rebuildAvailFilters();
+    renderCalendar();
+    renderExpiringStatus();
+    rebuildExpiringFilters();
+    renderExpiringList();
+    renderRenewalStatus();
+    // Skip clobbering the table mid-edit if someone's actively typing a note.
+    if (!document.activeElement || !document.activeElement.classList.contains('renewal-notes-input')) {
+        renderRenewalTable();
+    }
+    if (currentUnit) selectUnit(currentUnit);
+}
+
+// Poll periodically so agents see each other's updates without a manual
+// refresh. 25s balances staying current against Apps Script's request
+// overhead; adjust here if that ever feels too slow or too chatty.
+setInterval(() => { if (BACKEND_URL) pullAllFromBackend(); }, 25000);
+
 restorePricing();
 rebuildAvailFilters();
 renderCalendar();
@@ -3901,6 +4094,7 @@ restoreRenewals();
 try {
     if (localStorage.getItem(APP_MODE_KEY) === 'test') applyAppMode('test');
 } catch (e) { /* ignore */ }
+if (BACKEND_URL) pullAllFromBackend();
 </script>
 </body>
 </html>
