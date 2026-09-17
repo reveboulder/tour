@@ -865,6 +865,54 @@
     .mode-btn + .mode-btn { border-left: 1px solid var(--line); }
     .mode-btn.active { background: var(--reve-orange); color: #fff; }
     .mode-btn:not(.active):hover { background: var(--line-soft); }
+
+    /* -- Waitlist tab -- */
+    .waitlist-shell { max-width: 980px; margin: 0 auto; padding: 0 20px 40px; }
+    .waitlist-shell .brand-strip { padding-top: 18px; }
+    .waitlist-card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+    }
+    .waitlist-card.cancelled { background: #fbebe9; }
+    .waitlist-card.leased { background: #eaf6ec; }
+    .wl-top-row { display: grid; grid-template-columns: 1.1fr 1.3fr 0.6fr 0.9fr 1.1fr 26px; gap: 8px; margin-bottom: 8px; }
+    .wl-field {
+        font-family: var(--sans);
+        font-size: 12.5px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 6px 8px;
+        background: #fdfcfa;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .wl-field:focus { outline: 1px solid var(--reve-orange); background: #fff; }
+    .wl-top-row .wl-field { font-weight: 700; }
+    .wl-remove {
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink-soft);
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+    }
+    .wl-remove:hover { border-color: #c0392b; color: #c0392b; }
+    .wl-notes-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .wl-notes-row textarea.wl-field { min-height: 44px; resize: vertical; font-weight: 400; }
+    .wl-bottom-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 12px; }
+    .wl-bottom-row label { display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: 700; }
+    .wl-bottom-row input[type="checkbox"] { accent-color: var(--reve-orange); cursor: pointer; }
+    .wl-possible { flex: 1; min-width: 220px; color: var(--ink-soft); }
+    .wl-possible b { color: var(--ink); }
+    .wl-possible .wl-unit-hit { color: var(--reve-orange-dark); font-weight: 700; font-family: var(--mono); }
+    @media (max-width: 760px) {
+        .wl-top-row { grid-template-columns: 1fr 1fr; }
+        .wl-notes-row { grid-template-columns: 1fr; }
+    }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -880,6 +928,7 @@
     <button type="button" class="top-tab" data-tab="availability">Availability</button>
     <button type="button" class="top-tab" data-tab="expiring">Expiring</button>
     <button type="button" class="top-tab" data-tab="renewals">Renewals</button>
+    <button type="button" class="top-tab" data-tab="waitlist">Waitlist</button>
     <div class="top-tabs-right">
         <span class="test-mode-badge" id="testModeBadge">Test Mode</span>
         <button type="button" class="top-tab settings-tab" data-tab="settings">Settings</button>
@@ -1247,6 +1296,25 @@
         </div>
         <div id="renewalList"></div>
     </div>
+</div>
+</div>
+
+<!-- ============ WAITLIST TAB ============ -->
+<div class="tab-panel" id="tab-waitlist">
+<div class="waitlist-shell">
+    <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 18px;">
+        <svg class="mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 20H55C70 20 80 30 80 42.5C80 52 73 60 62 63.5L82 85H62L45 65H35V85H20V20ZM35 34V51H53C61 51 65 47 65 42.5C65 38 61 34 53 34H35Z" fill="#de5426"/>
+            <path d="M25 25H30V60H25V25Z" fill="#ffffff" opacity="0.5"/>
+        </svg>
+        <div>
+            <h1>Waitlist</h1>
+            <div class="tag">Prospect tracking &mdash; shared across agents</div>
+        </div>
+        <button type="button" class="btn primary" id="waitlistAddBtn" style="margin-left:auto;">+ Add Prospect</button>
+    </div>
+    <div class="empty-note" style="margin-bottom:14px;">"Possible Upcoming Units" is computed live from the Expiring tab's data (Notice + Current, same dataset) &mdash; matching each prospect's Beds against unit bed count, and each unit's expiration against the prospect's Move-In Date.</div>
+    <div id="waitlistCards"></div>
 </div>
 </div>
 
@@ -3797,6 +3865,272 @@ document.getElementById('renewalGenerateBtn').addEventListener('click', async ()
 });
 
 /* ============================================================
+   WAITLIST TAB — manual prospect tracking, shared across agents via
+   the same Google Sheet backend (key "waitlist-rows"). Unlike the
+   other tabs, there's no "upload" step — the data itself is entered
+   and edited directly in the browser, which makes concurrent edits
+   from different agents a real risk (two agents adding a prospect at
+   the same moment). WAITLIST_ROWS is keyed by a stable row id rather
+   than being a plain array specifically so merges are additive —
+   see pushWaitlistRow() below.
+   ============================================================ */
+const WAITLIST_KEY = 'reve-waitlist-rows';
+const WAITLIST_BACKEND_KEY = 'waitlist-rows';
+let WAITLIST_ROWS = {}; // { [rowId]: {agent, prospect, beds, rent, moveIn, details, followUp, cancel, leased} }
+const WAITLIST_DIRTY = new Set(); // rowIds edited locally since the last successful push
+
+function newWaitlistRowId() {
+    return 'w_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+}
+
+// The 13 prospects Justin provided as the starting list — only used to
+// seed a genuinely empty board (see initWaitlist below), never to
+// overwrite anything that's already there locally or on the backend.
+function seedWaitlistRows() {
+    const seed = [
+        ['Madi Lillie', 'Ken Anderson', '1', '', '8/31/2026', 'Looking for a top floor one-bedroom unit; preferrably A5 or larger but would consider a smaller option if the view is right', 'Notified of 4420 on 7/2', false, false],
+        ['Justin Fox', 'Matthieu Gueblez', '2', '', '10/1/2026', '2-Bed for October. Will be monitoring in August for 60-day notice of Oct 2-Beds', '', false, false],
+        ['-', 'Jim Stanley', '2', '', '10/15/2026', '2-Bed top floor, MV, away from road noise', '', false, false],
+        ['Madi Lillie', 'Danielle Baldwin', '2', '', '10/15/2026', '2-bed; flexible move in date', 'followed up on 8/15 about 4334', false, false],
+        ['Madi Lillie', 'David Smith', '3', '', '10/17/2026', '3-bedroom or 2-bed with den space; flexible move in date', 'notified of 4420 on 8/29', true, false],
+        ['Justin Fox', 'Paul Beauchamp', '2', '', '12/31/2026', 'PH2, 1) Penthouse, 2) 2-Bed Townhome, 3) largest 2-Beds B8 or B9', 'Applied for Waitlist-PH2. #3414 may be available end of 2026. NOTIFY FIRST of 3414 availability', false, false],
+        ['Justin Fox', 'Jason Scheunemann', '2', '', '7/1/2027', '2-Bed / TH / PH - July 2027', '', false, false],
+        ['Madi Lillie', 'Ramin Parsey', '2', '', '8/1 - 9/30', 'Looking for 1500 sq ft or larger', '', false, false],
+        ['Madi Lillie', 'Matthew Murphy', '2', '', '', 'current resident looking to be in a larger corner unit on the 3rd or 4th floor (current unit is B5)', 'send information for 4420 on 4/22', false, false],
+        ['Justin Fox', 'Jaime Martinez', '2', '', '', '2-Bed Larger floor TRANSFER', 'notified about 4334 on 8/19', false, false],
+        ['Madi Lillie', 'Lisa Breternitz', '3', '', '2027 flexible', 'Looking for a larger penthouse layout', 'notified about 4420 on 9/3', false, false],
+        ['Madi Lillie', 'Holly Barton-Lopez', '1', '$3,500.00', '5/1/2027', 'A9 preference; really loved 4228 layout with the half bath', '', false, false],
+        ['David Brooke', 'Manfred Melcher', '1', '$3,000.00', '3/1/2027', 'A3 and A5 preference, prefers top floor', '', false, false]
+    ];
+    const rows = {};
+    seed.forEach(r => {
+        const id = newWaitlistRowId();
+        rows[id] = { agent: r[0], prospect: r[1], beds: r[2], rent: r[3], moveIn: r[4], details: r[5], followUp: r[6], cancel: r[7], leased: r[8] };
+    });
+    return rows;
+}
+
+function persistWaitlistLocal() {
+    try { localStorage.setItem(WAITLIST_KEY, JSON.stringify(WAITLIST_ROWS)); } catch (e) {}
+}
+
+// Pull-merge-push: before writing a local change out to the shared
+// Sheet, first pull whatever's there now and merge it with local state
+// (local wins only for rows actually edited here since the last push).
+// This is what lets two agents add different prospects within the same
+// poll window without one silently erasing the other's addition — it
+// does not fully eliminate the race (two edits to the exact same row
+// in the same instant still last-write-wins), but that's a much
+// narrower and rarer case than "two people adding different rows".
+async function pushWaitlistDirty() {
+    persistWaitlistLocal();
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(WAITLIST_BACKEND_KEY);
+    const merged = Object.assign({}, remote || {});
+    WAITLIST_DIRTY.forEach(id => {
+        if (WAITLIST_ROWS[id]) merged[id] = WAITLIST_ROWS[id];
+        else delete merged[id]; // locally deleted row
+    });
+    WAITLIST_ROWS = merged;
+    WAITLIST_DIRTY.clear();
+    persistWaitlistLocal();
+    backendPush(WAITLIST_BACKEND_KEY, WAITLIST_ROWS);
+    renderWaitlist();
+}
+const pushWaitlistDirtyDebounced = debounce(pushWaitlistDirty, 900);
+
+async function pullWaitlistFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(WAITLIST_BACKEND_KEY);
+    if (remote) {
+        // Don't clobber a row someone's mid-edit on this screen right now,
+        // or one that hasn't been pushed up yet — a row absent from the
+        // remote snapshot might just mean nobody's synced it there yet,
+        // not that it was deleted (deletions use a "deleted" tombstone
+        // flag below specifically so the two cases aren't ambiguous).
+        const focusedCard = document.activeElement ? document.activeElement.closest('.waitlist-card') : null;
+        const focusedId = focusedCard ? focusedCard.getAttribute('data-row') : null;
+        Object.keys(remote).forEach(id => {
+            if (id === focusedId || WAITLIST_DIRTY.has(id)) return;
+            WAITLIST_ROWS[id] = remote[id];
+        });
+        persistWaitlistLocal();
+        renderWaitlist();
+    } else if (Object.keys(WAITLIST_ROWS).length) {
+        backendPush(WAITLIST_BACKEND_KEY, WAITLIST_ROWS); // seed the backend from local
+    }
+}
+
+function initWaitlist() {
+    try {
+        const raw = localStorage.getItem(WAITLIST_KEY);
+        if (raw) WAITLIST_ROWS = JSON.parse(raw);
+    } catch (e) { WAITLIST_ROWS = {}; }
+
+    if (!Object.keys(WAITLIST_ROWS).length) {
+        if (BACKEND_URL) {
+            // Ask the backend first — only seed the starter list if
+            // NOTHING exists anywhere yet (fresh setup, not just a
+            // fresh browser).
+            backendPull(WAITLIST_BACKEND_KEY).then(remote => {
+                if (remote && Object.keys(remote).length) {
+                    WAITLIST_ROWS = remote;
+                    persistWaitlistLocal();
+                } else {
+                    WAITLIST_ROWS = seedWaitlistRows();
+                    persistWaitlistLocal();
+                    backendPush(WAITLIST_BACKEND_KEY, WAITLIST_ROWS);
+                }
+                renderWaitlist();
+            });
+            return;
+        }
+        WAITLIST_ROWS = seedWaitlistRows();
+        persistWaitlistLocal();
+    }
+    renderWaitlist();
+}
+
+/* ---------- matching "Possible Upcoming Units" against Expiring data ---------- */
+
+// Lenient move-in date parsing — real entries include exact dates,
+// "M/D - M/D" ranges (no year), a bare "YYYY" or "YYYY flexible", and
+// blanks. Returns the latest date that should still count as "in time"
+// for this prospect, or null when nothing parseable was entered (in
+// which case the prospect is treated as unbounded, not excluded).
+function parseWaitlistSingleDate(s) {
+    s = String(s || '').trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) {
+        const d = new Date(parseInt(m[3], 10), parseInt(m[1], 10) - 1, parseInt(m[2], 10));
+        return isNaN(d.getTime()) ? null : d;
+    }
+    m = s.match(/^(\d{1,2})\/(\d{1,2})$/);
+    if (m) {
+        const today = new Date();
+        let d = new Date(today.getFullYear(), parseInt(m[1], 10) - 1, parseInt(m[2], 10));
+        if (d < today) d = new Date(today.getFullYear() + 1, parseInt(m[1], 10) - 1, parseInt(m[2], 10));
+        return isNaN(d.getTime()) ? null : d;
+    }
+    return null;
+}
+function parseWaitlistMoveInCutoff(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return null;
+    const rangeMatch = s.match(/^(.+?)\s*-\s*(.+)$/);
+    if (rangeMatch) {
+        return parseWaitlistSingleDate(rangeMatch[2].trim()) || parseWaitlistSingleDate(rangeMatch[1].trim());
+    }
+    const yearOnly = s.match(/^(20\d{2})\b/);
+    if (yearOnly && s.indexOf('/') === -1) return new Date(parseInt(yearOnly[1], 10), 11, 31);
+    return parseWaitlistSingleDate(s);
+}
+
+function computePossibleUnits(row) {
+    const wantedBeds = parseFloat(row.beds);
+    const cutoff = parseWaitlistMoveInCutoff(row.moveIn);
+    return EXPIRING_UNITS.filter(u => {
+        if (!isNaN(wantedBeds)) {
+            const bedNum = parseFloat((u.bedBath || '0/0').split('/')[0]);
+            if (Math.floor(bedNum) !== Math.floor(wantedBeds)) return false;
+        }
+        if (cutoff && u.leaseTo > cutoff) return false;
+        return true;
+    }).sort((a, b) => a.leaseTo - b.leaseTo);
+}
+
+/* ---------- rendering ---------- */
+function renderWaitlist() {
+    const mount = document.getElementById('waitlistCards');
+    if (!mount) return;
+    const ids = Object.keys(WAITLIST_ROWS)
+        .filter(id => !WAITLIST_ROWS[id].deleted)
+        .sort((a, b) => {
+            const ka = parseWaitlistMoveInCutoff(WAITLIST_ROWS[a].moveIn);
+            const kb = parseWaitlistMoveInCutoff(WAITLIST_ROWS[b].moveIn);
+            return (ka ? ka.getTime() : Infinity) - (kb ? kb.getTime() : Infinity);
+        });
+
+    if (!ids.length) {
+        mount.innerHTML = '<div class="no-unit">No prospects on the waitlist yet. Click "+ Add Prospect" to start tracking one.</div>';
+        return;
+    }
+
+    mount.innerHTML = ids.map(id => {
+        const r = WAITLIST_ROWS[id];
+        const cls = r.leased ? 'leased' : (r.cancel ? 'cancelled' : '');
+        const matches = computePossibleUnits(r);
+        const possibleHtml = matches.length
+            ? matches.map(u => `<span class="wl-unit-hit">Apt ${escapeHtml(u.unit)}</span>`).join(', ')
+            : '\u2014';
+        return `<div class="waitlist-card ${cls}" data-row="${id}">
+            <div class="wl-top-row">
+                <input class="wl-field" data-field="agent" placeholder="Agent" value="${escapeAttr(r.agent)}">
+                <input class="wl-field" data-field="prospect" placeholder="Prospect name" value="${escapeAttr(r.prospect)}">
+                <input class="wl-field" data-field="beds" placeholder="Beds" value="${escapeAttr(r.beds)}">
+                <input class="wl-field" data-field="rent" placeholder="Rent (optional)" value="${escapeAttr(r.rent)}">
+                <input class="wl-field" data-field="moveIn" placeholder="Move-in date" value="${escapeAttr(r.moveIn)}">
+                <button type="button" class="wl-remove" title="Remove this prospect">&times;</button>
+            </div>
+            <div class="wl-notes-row">
+                <textarea class="wl-field" data-field="details" placeholder="Prospect details &amp; notes">${escapeHtml(r.details)}</textarea>
+                <textarea class="wl-field" data-field="followUp" placeholder="Agent follow-up notes \u2014 include dates">${escapeHtml(r.followUp)}</textarea>
+            </div>
+            <div class="wl-bottom-row">
+                <label><input type="checkbox" data-field="cancel" ${r.cancel ? 'checked' : ''}> Cancel</label>
+                <label><input type="checkbox" data-field="leased" ${r.leased ? 'checked' : ''}> Leased</label>
+                <div class="wl-possible"><b>Possible upcoming units:</b> ${possibleHtml}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    [...mount.querySelectorAll('.waitlist-card')].forEach(card => {
+        const id = card.getAttribute('data-row');
+
+        [...card.querySelectorAll('input.wl-field, textarea.wl-field')].forEach(field => {
+            field.addEventListener('input', (e) => {
+                WAITLIST_ROWS[id][e.target.getAttribute('data-field')] = e.target.value;
+                WAITLIST_DIRTY.add(id);
+                persistWaitlistLocal();
+                pushWaitlistDirtyDebounced();
+            });
+        });
+        [...card.querySelectorAll('input[type=checkbox]')].forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const field = e.target.getAttribute('data-field');
+                WAITLIST_ROWS[id][field] = e.target.checked;
+                if (field === 'cancel' && e.target.checked) WAITLIST_ROWS[id].leased = false;
+                if (field === 'leased' && e.target.checked) WAITLIST_ROWS[id].cancel = false;
+                WAITLIST_DIRTY.add(id);
+                pushWaitlistDirtyDebounced();
+                renderWaitlist();
+            });
+        });
+        card.querySelector('.wl-remove').addEventListener('click', () => {
+            const r = WAITLIST_ROWS[id];
+            if (!confirm(`Remove ${r.prospect || 'this prospect'} from the waitlist?`)) return;
+            // Soft-delete (tombstone) rather than removing the key outright —
+            // that's what lets other agents' browsers learn it was actually
+            // deleted, versus just not-yet-synced-here (see pullWaitlistFromBackend).
+            WAITLIST_ROWS[id].deleted = true;
+            WAITLIST_DIRTY.add(id);
+            pushWaitlistDirtyDebounced();
+            renderWaitlist();
+        });
+    });
+}
+
+document.getElementById('waitlistAddBtn').addEventListener('click', () => {
+    const id = newWaitlistRowId();
+    WAITLIST_ROWS[id] = { agent: '', prospect: '', beds: '', rent: '', moveIn: '', details: '', followUp: '', cancel: false, leased: false };
+    WAITLIST_DIRTY.add(id);
+    persistWaitlistLocal();
+    renderWaitlist();
+    const card = document.querySelector(`.waitlist-card[data-row="${id}"] input[data-field="agent"]`);
+    if (card) card.focus();
+});
+
+/* ============================================================
    SETTINGS TAB — Live / Test mode. Test mode swaps every tab's
    in-memory data for generated sample fixtures (built from real unit
    numbers so floorplan/sqft/address joins still work correctly, with
@@ -4083,7 +4417,11 @@ async function pullAllFromBackend() {
 // Poll periodically so agents see each other's updates without a manual
 // refresh. 25s balances staying current against Apps Script's request
 // overhead; adjust here if that ever feels too slow or too chatty.
-setInterval(() => { if (BACKEND_URL) pullAllFromBackend(); }, 25000);
+setInterval(() => {
+    if (!BACKEND_URL) return;
+    pullAllFromBackend();
+    pullWaitlistFromBackend();
+}, 25000);
 
 restorePricing();
 rebuildAvailFilters();
@@ -4091,10 +4429,11 @@ renderCalendar();
 restoreExpiring();
 renderExpiringList();
 restoreRenewals();
+initWaitlist();
 try {
     if (localStorage.getItem(APP_MODE_KEY) === 'test') applyAppMode('test');
 } catch (e) { /* ignore */ }
-if (BACKEND_URL) pullAllFromBackend();
+if (BACKEND_URL) { pullAllFromBackend(); pullWaitlistFromBackend(); }
 </script>
 </body>
 </html>
