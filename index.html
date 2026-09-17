@@ -364,6 +364,19 @@
     .btn:disabled { opacity: 0.45; cursor: not-allowed; }
     .btn.small { flex: none; padding: 7px 10px; font-size: 11.5px; }
 
+    .concession-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 12px;
+        background: #fdfcfa;
+        margin-bottom: 14px;
+    }
+    .concession-banner-text { font-size: 12px; line-height: 1.4; }
+    .concession-banner-text b { color: var(--ink); }
     .pricing-block {
         border: 1px solid var(--line);
         border-radius: 8px;
@@ -866,9 +879,49 @@
     .mode-btn.active { background: var(--reve-orange); color: #fff; }
     .mode-btn:not(.active):hover { background: var(--line-soft); }
 
+    /* -- Concession page -- */
+    .concession-rule {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+        background: #fdfcfa;
+    }
+    .concession-rule-row { display: grid; grid-template-columns: 1fr 110px 1.4fr; gap: 10px; align-items: end; }
+    .concession-rule .wl-fb label { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); font-weight: 700; margin-bottom: 3px; display: block; }
+    @media (max-width: 640px) { .concession-rule-row { grid-template-columns: 1fr; } }
+
     /* -- Waitlist tab -- */
-    .waitlist-shell { max-width: 980px; margin: 0 auto; padding: 0 20px 40px; }
+    .waitlist-shell { max-width: 1180px; margin: 0 auto; padding: 0 20px 40px; }
     .waitlist-shell .brand-strip { padding-top: 18px; }
+
+    .wl-subtabs { display: flex; gap: 6px; margin-bottom: 12px; }
+    .wl-subtab {
+        font-size: 12.5px;
+        font-weight: 700;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink-soft);
+        padding: 8px 16px;
+        border-radius: 999px;
+        cursor: pointer;
+    }
+    .wl-subtab:hover { border-color: var(--reve-orange); }
+    .wl-subtab.active { background: var(--reve-orange); border-color: var(--reve-orange); color: #fff; }
+    .wl-subtab-count { opacity: 0.75; font-weight: 600; }
+
+    .wl-filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .wl-filter-bar select {
+        font-family: var(--sans);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+        color: var(--ink);
+    }
+
     .waitlist-card {
         background: #fff;
         border: 1px solid var(--line);
@@ -878,7 +931,10 @@
     }
     .waitlist-card.cancelled { background: #fbebe9; }
     .waitlist-card.leased { background: #eaf6ec; }
-    .wl-top-row { display: grid; grid-template-columns: 1.1fr 1.3fr 0.6fr 0.9fr 1.1fr 26px; gap: 8px; margin-bottom: 8px; }
+    .wl-fb { display: flex; flex-direction: column; gap: 3px; }
+    .wl-fb label { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); font-weight: 700; }
+    .wl-top-row { display: grid; grid-template-columns: 1.1fr 1.3fr 0.9fr 0.8fr 26px; gap: 8px; margin-bottom: 8px; align-items: end; }
+    .wl-contact-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
     .wl-field {
         font-family: var(--sans);
         font-size: 12.5px;
@@ -891,6 +947,7 @@
     }
     .wl-field:focus { outline: 1px solid var(--reve-orange); background: #fff; }
     .wl-top-row .wl-field { font-weight: 700; }
+    .wl-agent-other { margin-top: 4px; }
     .wl-remove {
         border: 1px solid var(--line);
         background: #fff;
@@ -899,18 +956,20 @@
         cursor: pointer;
         font-size: 14px;
         line-height: 1;
+        height: 30px;
     }
     .wl-remove:hover { border-color: #c0392b; color: #c0392b; }
     .wl-notes-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
     .wl-notes-row textarea.wl-field { min-height: 44px; resize: vertical; font-weight: 400; }
-    .wl-bottom-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 12px; }
-    .wl-bottom-row label { display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: 700; }
+    .wl-bottom-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+    .wl-bottom-row .wl-checks { display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: 700; }
     .wl-bottom-row input[type="checkbox"] { accent-color: var(--reve-orange); cursor: pointer; }
-    .wl-possible { flex: 1; min-width: 220px; color: var(--ink-soft); }
+    .wl-possible { flex: 1; min-width: 260px; color: var(--ink-soft); }
     .wl-possible b { color: var(--ink); }
     .wl-possible .wl-unit-hit { color: var(--reve-orange-dark); font-weight: 700; font-family: var(--mono); }
     @media (max-width: 760px) {
         .wl-top-row { grid-template-columns: 1fr 1fr; }
+        .wl-contact-row { grid-template-columns: 1fr; }
         .wl-notes-row { grid-template-columns: 1fr; }
     }
 </style>
@@ -951,6 +1010,11 @@
         </div>
 
         <div class="editor-scroll">
+
+            <div class="concession-banner">
+                <div class="concession-banner-text"><b>Current Concession:</b> <span id="concessionSummaryText">None set</span></div>
+                <button type="button" class="btn" id="concessionEditBtn" style="width:auto;padding:6px 12px;">Edit</button>
+            </div>
 
             <div class="section-label" style="margin-top:0;"><span class="dot"></span>Daily pricing sheet</div>
             <div class="pricing-block">
@@ -1302,7 +1366,7 @@
 <!-- ============ WAITLIST TAB ============ -->
 <div class="tab-panel" id="tab-waitlist">
 <div class="waitlist-shell">
-    <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 18px;">
+    <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 16px;">
         <svg class="mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M20 20H55C70 20 80 30 80 42.5C80 52 73 60 62 63.5L82 85H62L45 65H35V85H20V20ZM35 34V51H53C61 51 65 47 65 42.5C65 38 61 34 53 34H35Z" fill="#de5426"/>
             <path d="M25 25H30V60H25V25Z" fill="#ffffff" opacity="0.5"/>
@@ -1313,7 +1377,21 @@
         </div>
         <button type="button" class="btn primary" id="waitlistAddBtn" style="margin-left:auto;">+ Add Prospect</button>
     </div>
-    <div class="empty-note" style="margin-bottom:14px;">"Possible Upcoming Units" is computed live from the Expiring tab's data (Notice + Current, same dataset) &mdash; matching each prospect's Beds against unit bed count, and each unit's expiration against the prospect's Move-In Date.</div>
+
+    <div class="wl-subtabs">
+        <button type="button" class="wl-subtab active" data-subtab="active">Active <span class="wl-subtab-count" id="wlCountActive"></span></button>
+        <button type="button" class="wl-subtab" data-subtab="cancelled">Cancelled <span class="wl-subtab-count" id="wlCountCancelled"></span></button>
+        <button type="button" class="wl-subtab" data-subtab="leased">Leased <span class="wl-subtab-count" id="wlCountLeased"></span></button>
+    </div>
+
+    <div class="wl-filter-bar">
+        <select id="wlFilterAgent"><option value="">All Agents</option></select>
+        <select id="wlFilterBeds"><option value="">All Beds</option></select>
+        <select id="wlFilterMonth"><option value="">All Move-In Months</option></select>
+        <button type="button" class="add-term-btn" id="wlFilterClearBtn" style="width:auto;padding:8px 14px;">Clear filters</button>
+    </div>
+
+    <div class="empty-note" style="margin-bottom:14px;">"Possible Upcoming Units" is computed live from the Expiring tab's data (Notice + Current) &mdash; matching each prospect's Beds against unit bed count/type, and each unit's expiration against the prospect's Move-In Date.</div>
     <div id="waitlistCards"></div>
 </div>
 </div>
@@ -1360,6 +1438,38 @@
         </div>
         <div class="empty-note" id="backendStatusNote" style="margin-top:10px;">Not configured &mdash; data stays local to this browser only.</div>
         <div class="empty-note" id="backendSetupHint" style="margin-top:10px;">Need this set up? Ask Claude for the Apps Script code and step-by-step deployment instructions &mdash; it's a one-time, ~5 minute setup on a Google Sheet you control.</div>
+    </div>
+</div>
+</div>
+
+<!-- ============ CONCESSION PAGE (hidden — only reachable via the Tour tab's Edit button) ============ -->
+<div class="tab-panel" id="tab-concession">
+<div class="settings-wrap">
+    <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 24px;">
+        <svg class="mark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 20H55C70 20 80 30 80 42.5C80 52 73 60 62 63.5L82 85H62L45 65H35V85H20V20ZM35 34V51H53C61 51 65 47 65 42.5C65 38 61 34 53 34H35Z" fill="#de5426"/>
+            <path d="M25 25H30V60H25V25Z" fill="#ffffff" opacity="0.5"/>
+        </svg>
+        <div>
+            <h1>Concession</h1>
+            <div class="tag">Applies automatically across the Tour tab</div>
+        </div>
+        <button type="button" class="btn" id="concessionBackBtn" style="margin-left:auto;">&lsaquo; Back to Tour</button>
+    </div>
+
+    <div class="settings-card">
+        <div class="section-label" style="margin-top:0;"><span class="dot"></span>Concession Terms</div>
+        <p class="empty-note" style="font-size:12.5px;">Plain-language description shown as "Current Concession" on the Tour tab, and used on flyers wherever the concession section is on.</p>
+        <textarea class="wl-field" id="concessionTermsInput" rows="3" placeholder="e.g. 6 weeks free for LW units, 4 weeks free for 2-Beds, 2 weeks free for all else" style="width:100%;box-sizing:border-box;"></textarea>
+
+        <div class="section-label"><span class="dot"></span>Additional Notes</div>
+        <textarea class="wl-field" id="concessionNotesInput" rows="3" placeholder="Internal notes for agents — not shown on the flyer" style="width:100%;box-sizing:border-box;"></textarea>
+
+        <div class="section-label"><span class="dot"></span>Qualifying Units <span class="hint">up to 3 distinct concessions, evaluated in order</span></div>
+        <div id="concessionRules"></div>
+
+        <button type="button" class="btn primary" id="concessionSaveBtn" style="width:100%;margin-top:16px;">Save Concession Settings</button>
+        <div class="empty-note" id="concessionSaveStatus" style="margin-top:8px;"></div>
     </div>
 </div>
 </div>
@@ -1675,6 +1785,7 @@ function storageKey(unit) { return 'reve-pamphlet:' + unit; }
 function defaultDraft(u) {
     const isAvailable = AVAILABLE_UNITS.has(u.unit);
     const p = isAvailable ? PRICING_SUMMARY[u.unit] : null;
+    const matchedRule = findMatchingConcessionRule(u);
     return {
         title: `Apt ${u.unit} (${u.floorplan})`,
         subtitle: bedBathSqftLine(u),
@@ -1687,8 +1798,8 @@ function defaultDraft(u) {
         videoUrl: u.videoLink || '',
         floorplanImg: floorplanPathForUnit(u),
         applyUrl: applyLinkForUnit(u),
-        concessionEnabled: false,
-        concessionWeeks: '4'
+        concessionEnabled: !!matchedRule,
+        concessionWeeks: matchedRule ? String(matchedRule.weeks || '4') : '4'
     };
 }
 
@@ -1709,11 +1820,12 @@ function ordinalFloor(f) {
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-// Fields tied to the daily pricing sheet. These always come from a fresh
-// defaultDraft() computation — never from a previously saved draft — so
-// reselecting a unit can't resurface a stale price/term from an earlier
-// day's pricing sheet (or an old manual edit) alongside today's data.
-const PRICING_FIELDS = ['available', 'bestPrice', 'bestTerm', 'otherTerms'];
+// Fields recomputed fresh from current data on every unit selection —
+// never carried over from a previously saved draft. Pricing fields avoid
+// resurfacing a stale price from an earlier day's sheet; the concession
+// fields avoid a stale concession sticking around after the qualifying
+// rules change (or not auto-applying to a unit that newly qualifies).
+const PRICING_FIELDS = ['available', 'bestPrice', 'bestTerm', 'otherTerms', 'concessionEnabled', 'concessionWeeks'];
 
 function loadDraft(unit) {
     const base = defaultDraft(byUnit[unit]); // always today's best-5, fresh
@@ -3876,8 +3988,14 @@ document.getElementById('renewalGenerateBtn').addEventListener('click', async ()
    ============================================================ */
 const WAITLIST_KEY = 'reve-waitlist-rows';
 const WAITLIST_BACKEND_KEY = 'waitlist-rows';
-let WAITLIST_ROWS = {}; // { [rowId]: {agent, prospect, beds, rent, moveIn, details, followUp, cancel, leased} }
+let WAITLIST_ROWS = {}; // { [rowId]: {agent, prospect, beds, rent, moveIn, phone, email, details, followUp, cancel, leased} }
 const WAITLIST_DIRTY = new Set(); // rowIds edited locally since the last successful push
+let waitlistSubTab = 'active';
+let wlFilterAgent = '', wlFilterBeds = '', wlFilterMonth = '';
+
+const WAITLIST_AGENT_PRESETS = ['Justin Fox', 'Madi Lillie', 'David Brooke'];
+const WAITLIST_BEDS_OPTIONS = ['0', '1', '2', '3', '0-1', '1-2', '2-3', 'TH', 'LW', 'PH'];
+const WAITLIST_BEDS_LABELS = { '0': '0 (Studio)', '1': '1', '2': '2', '3': '3', '0-1': '0-1', '1-2': '1-2', '2-3': '2-3', 'TH': 'TH', 'LW': 'LW', 'PH': 'PH' };
 
 function newWaitlistRowId() {
     return 'w_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
@@ -3905,7 +4023,7 @@ function seedWaitlistRows() {
     const rows = {};
     seed.forEach(r => {
         const id = newWaitlistRowId();
-        rows[id] = { agent: r[0], prospect: r[1], beds: r[2], rent: r[3], moveIn: r[4], details: r[5], followUp: r[6], cancel: r[7], leased: r[8] };
+        rows[id] = { agent: r[0], prospect: r[1], beds: r[2], rent: r[3], moveIn: r[4], phone: '', email: '', details: r[5], followUp: r[6], cancel: r[7], leased: r[8] };
     });
     return rows;
 }
@@ -4026,59 +4144,142 @@ function parseWaitlistMoveInCutoff(raw) {
     return parseWaitlistSingleDate(s);
 }
 
+// Handles the full Beds vocabulary: a plain number, a "0-1"/"1-2"/"2-3"
+// range, or a floorplan-type code (TH/LW/PH matched against the unit's
+// floorplan prefix rather than its bed count).
+function waitlistBedsMatchesUnit(bedsVal, u) {
+    const val = String(bedsVal || '').trim();
+    if (!val) return true; // no preference specified -> matches anything
+    const upper = val.toUpperCase();
+    if (upper === 'TH' || upper === 'LW' || upper === 'PH') {
+        return u.floorplan.toUpperCase().startsWith(upper);
+    }
+    const bedNum = Math.floor(parseFloat((u.bedBath || '0/0').split('/')[0]));
+    const rangeMatch = val.match(/^(\d)-(\d)$/);
+    if (rangeMatch) {
+        return bedNum >= parseInt(rangeMatch[1], 10) && bedNum <= parseInt(rangeMatch[2], 10);
+    }
+    const exact = parseInt(val, 10);
+    return !isNaN(exact) && bedNum === exact;
+}
+function fmtShortDate(d) { return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`; }
+
 function computePossibleUnits(row) {
-    const wantedBeds = parseFloat(row.beds);
     const cutoff = parseWaitlistMoveInCutoff(row.moveIn);
     return EXPIRING_UNITS.filter(u => {
-        if (!isNaN(wantedBeds)) {
-            const bedNum = parseFloat((u.bedBath || '0/0').split('/')[0]);
-            if (Math.floor(bedNum) !== Math.floor(wantedBeds)) return false;
-        }
+        if (!waitlistBedsMatchesUnit(row.beds, u)) return false;
         if (cutoff && u.leaseTo > cutoff) return false;
         return true;
     }).sort((a, b) => a.leaseTo - b.leaseTo);
 }
 
 /* ---------- rendering ---------- */
+function rebuildWaitlistFilterOptions() {
+    const liveRows = Object.values(WAITLIST_ROWS).filter(r => !r.deleted);
+    const agentBox = document.getElementById('wlFilterAgent');
+    const bedsBox = document.getElementById('wlFilterBeds');
+    const monthBox = document.getElementById('wlFilterMonth');
+    if (!agentBox) return;
+
+    const agents = [...new Set(liveRows.map(r => r.agent).filter(Boolean))].sort();
+    agentBox.innerHTML = '<option value="">All Agents</option>' + agents.map(a => `<option value="${escapeAttr(a)}"${a === wlFilterAgent ? ' selected' : ''}>${escapeHtml(a)}</option>`).join('');
+    if (!agents.includes(wlFilterAgent)) wlFilterAgent = '';
+
+    const bedsPresent = [...new Set(liveRows.map(r => r.beds).filter(Boolean))];
+    const bedsOrdered = WAITLIST_BEDS_OPTIONS.filter(b => bedsPresent.includes(b));
+    bedsBox.innerHTML = '<option value="">All Beds</option>' + bedsOrdered.map(b => `<option value="${b}"${b === wlFilterBeds ? ' selected' : ''}>${WAITLIST_BEDS_LABELS[b]}</option>`).join('');
+    if (!bedsOrdered.includes(wlFilterBeds)) wlFilterBeds = '';
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthsPresent = [...new Set(liveRows.map(r => {
+        const d = parseWaitlistMoveInCutoff(r.moveIn);
+        return d ? d.getMonth() : null;
+    }).filter(m => m !== null))].sort((a, b) => a - b);
+    monthBox.innerHTML = '<option value="">All Move-In Months</option>' + monthsPresent.map(m => `<option value="${m}"${String(m) === wlFilterMonth ? ' selected' : ''}>${monthNames[m]}</option>`).join('');
+    if (!monthsPresent.some(m => String(m) === wlFilterMonth)) wlFilterMonth = '';
+}
+
 function renderWaitlist() {
     const mount = document.getElementById('waitlistCards');
     if (!mount) return;
-    const ids = Object.keys(WAITLIST_ROWS)
-        .filter(id => !WAITLIST_ROWS[id].deleted)
+
+    rebuildWaitlistFilterOptions();
+
+    let ids = Object.keys(WAITLIST_ROWS).filter(id => !WAITLIST_ROWS[id].deleted);
+    if (wlFilterAgent) ids = ids.filter(id => WAITLIST_ROWS[id].agent === wlFilterAgent);
+    if (wlFilterBeds) ids = ids.filter(id => WAITLIST_ROWS[id].beds === wlFilterBeds);
+    if (wlFilterMonth !== '') ids = ids.filter(id => {
+        const d = parseWaitlistMoveInCutoff(WAITLIST_ROWS[id].moveIn);
+        return d && String(d.getMonth()) === wlFilterMonth;
+    });
+
+    // Sub-tab counts reflect the agent/beds/month filters above, split
+    // three ways — so "Active" and "Cancelled" always add up correctly
+    // against whatever filter is currently applied.
+    const activeIds = ids.filter(id => !WAITLIST_ROWS[id].cancel && !WAITLIST_ROWS[id].leased);
+    const cancelledIds = ids.filter(id => WAITLIST_ROWS[id].cancel);
+    const leasedIds = ids.filter(id => WAITLIST_ROWS[id].leased);
+    document.getElementById('wlCountActive').textContent = activeIds.length;
+    document.getElementById('wlCountCancelled').textContent = cancelledIds.length;
+    document.getElementById('wlCountLeased').textContent = leasedIds.length;
+    [...document.querySelectorAll('.wl-subtab')].forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-subtab') === waitlistSubTab);
+    });
+
+    const shown = (waitlistSubTab === 'active' ? activeIds : waitlistSubTab === 'cancelled' ? cancelledIds : leasedIds)
         .sort((a, b) => {
             const ka = parseWaitlistMoveInCutoff(WAITLIST_ROWS[a].moveIn);
             const kb = parseWaitlistMoveInCutoff(WAITLIST_ROWS[b].moveIn);
             return (ka ? ka.getTime() : Infinity) - (kb ? kb.getTime() : Infinity);
         });
 
-    if (!ids.length) {
-        mount.innerHTML = '<div class="no-unit">No prospects on the waitlist yet. Click "+ Add Prospect" to start tracking one.</div>';
+    if (!shown.length) {
+        mount.innerHTML = `<div class="no-unit">${Object.keys(WAITLIST_ROWS).some(id => !WAITLIST_ROWS[id].deleted) ? 'No prospects match these filters.' : 'No prospects on the waitlist yet. Click "+ Add Prospect" to start tracking one.'}</div>`;
         return;
     }
 
-    mount.innerHTML = ids.map(id => {
+    mount.innerHTML = shown.map(id => {
         const r = WAITLIST_ROWS[id];
         const cls = r.leased ? 'leased' : (r.cancel ? 'cancelled' : '');
         const matches = computePossibleUnits(r);
         const possibleHtml = matches.length
-            ? matches.map(u => `<span class="wl-unit-hit">Apt ${escapeHtml(u.unit)}</span>`).join(', ')
+            ? matches.map(u => `<span class="wl-unit-hit">Apt ${escapeHtml(u.unit)} (${escapeHtml(u.floorplan)} \u2014 ${fmtShortDate(u.leaseTo)})</span>`).join(', ')
             : '\u2014';
+        const isPreset = WAITLIST_AGENT_PRESETS.includes(r.agent);
+        const agentOtherVisible = !isPreset && r.agent !== '';
         return `<div class="waitlist-card ${cls}" data-row="${id}">
             <div class="wl-top-row">
-                <input class="wl-field" data-field="agent" placeholder="Agent" value="${escapeAttr(r.agent)}">
-                <input class="wl-field" data-field="prospect" placeholder="Prospect name" value="${escapeAttr(r.prospect)}">
-                <input class="wl-field" data-field="beds" placeholder="Beds" value="${escapeAttr(r.beds)}">
-                <input class="wl-field" data-field="rent" placeholder="Rent (optional)" value="${escapeAttr(r.rent)}">
-                <input class="wl-field" data-field="moveIn" placeholder="Move-in date" value="${escapeAttr(r.moveIn)}">
+                <div class="wl-fb">
+                    <label>Agent</label>
+                    <select class="wl-field" data-field="agentSelect">
+                        ${WAITLIST_AGENT_PRESETS.map(a => `<option value="${escapeAttr(a)}"${r.agent === a ? ' selected' : ''}>${escapeHtml(a)}</option>`).join('')}
+                        <option value="Other"${!isPreset ? ' selected' : ''}>Other</option>
+                    </select>
+                    <input type="text" class="wl-field wl-agent-other" data-field="agent" placeholder="Agent name" value="${escapeAttr(isPreset ? '' : r.agent)}" style="display:${!isPreset ? 'block' : 'none'};">
+                </div>
+                <div class="wl-fb"><label>Prospect</label><input class="wl-field" data-field="prospect" placeholder="Prospect name" value="${escapeAttr(r.prospect)}"></div>
+                <div class="wl-fb">
+                    <label>Beds</label>
+                    <select class="wl-field" data-field="beds">
+                        <option value=""${!r.beds ? ' selected' : ''}>\u2014</option>
+                        ${WAITLIST_BEDS_OPTIONS.map(b => `<option value="${b}"${r.beds === b ? ' selected' : ''}>${WAITLIST_BEDS_LABELS[b]}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="wl-fb"><label>Rent</label><input class="wl-field" data-field="rent" placeholder="Optional" value="${escapeAttr(r.rent)}"></div>
                 <button type="button" class="wl-remove" title="Remove this prospect">&times;</button>
             </div>
+            <div class="wl-contact-row">
+                <div class="wl-fb"><label>Move-In Date</label><input class="wl-field" data-field="moveIn" placeholder="e.g. 10/15/2026" value="${escapeAttr(r.moveIn)}"></div>
+                <div class="wl-fb"><label>Phone</label><input class="wl-field" data-field="phone" placeholder="Phone number" value="${escapeAttr(r.phone)}"></div>
+                <div class="wl-fb"><label>Email</label><input class="wl-field" data-field="email" placeholder="Email address" value="${escapeAttr(r.email)}"></div>
+            </div>
             <div class="wl-notes-row">
-                <textarea class="wl-field" data-field="details" placeholder="Prospect details &amp; notes">${escapeHtml(r.details)}</textarea>
-                <textarea class="wl-field" data-field="followUp" placeholder="Agent follow-up notes \u2014 include dates">${escapeHtml(r.followUp)}</textarea>
+                <div class="wl-fb"><label>Prospect Details &amp; Notes</label><textarea class="wl-field" data-field="details" placeholder="Preferences, unit interest, etc.">${escapeHtml(r.details)}</textarea></div>
+                <div class="wl-fb"><label>Agent Follow-Up Notes \u2014 include dates</label><textarea class="wl-field" data-field="followUp" placeholder="e.g. Notified of 4420 on 7/2">${escapeHtml(r.followUp)}</textarea></div>
             </div>
             <div class="wl-bottom-row">
-                <label><input type="checkbox" data-field="cancel" ${r.cancel ? 'checked' : ''}> Cancel</label>
-                <label><input type="checkbox" data-field="leased" ${r.leased ? 'checked' : ''}> Leased</label>
+                <label class="wl-checks"><input type="checkbox" data-field="cancel" ${r.cancel ? 'checked' : ''}> Cancel</label>
+                <label class="wl-checks"><input type="checkbox" data-field="leased" ${r.leased ? 'checked' : ''}> Leased</label>
                 <div class="wl-possible"><b>Possible upcoming units:</b> ${possibleHtml}</div>
             </div>
         </div>`;
@@ -4087,12 +4288,27 @@ function renderWaitlist() {
     [...mount.querySelectorAll('.waitlist-card')].forEach(card => {
         const id = card.getAttribute('data-row');
 
-        [...card.querySelectorAll('input.wl-field, textarea.wl-field')].forEach(field => {
-            field.addEventListener('input', (e) => {
-                WAITLIST_ROWS[id][e.target.getAttribute('data-field')] = e.target.value;
+        [...card.querySelectorAll('input.wl-field, textarea.wl-field, select.wl-field')].forEach(field => {
+            const eventName = field.tagName === 'SELECT' ? 'change' : 'input';
+            field.addEventListener(eventName, (e) => {
+                const fieldName = e.target.getAttribute('data-field');
+                if (fieldName === 'agentSelect') {
+                    const otherInput = card.querySelector('.wl-agent-other');
+                    if (e.target.value === 'Other') {
+                        otherInput.style.display = 'block';
+                        otherInput.focus();
+                        WAITLIST_ROWS[id].agent = otherInput.value; // whatever's already typed, if anything
+                    } else {
+                        otherInput.style.display = 'none';
+                        WAITLIST_ROWS[id].agent = e.target.value;
+                    }
+                } else {
+                    WAITLIST_ROWS[id][fieldName] = e.target.value;
+                }
                 WAITLIST_DIRTY.add(id);
                 persistWaitlistLocal();
                 pushWaitlistDirtyDebounced();
+                if (fieldName === 'beds' || fieldName === 'moveIn') renderWaitlist();
             });
         });
         [...card.querySelectorAll('input[type=checkbox]')].forEach(cb => {
@@ -4120,14 +4336,145 @@ function renderWaitlist() {
     });
 }
 
+[...document.querySelectorAll('.wl-subtab')].forEach(btn => {
+    btn.addEventListener('click', () => {
+        waitlistSubTab = btn.getAttribute('data-subtab');
+        renderWaitlist();
+    });
+});
+document.getElementById('wlFilterAgent').addEventListener('change', (e) => { wlFilterAgent = e.target.value; renderWaitlist(); });
+document.getElementById('wlFilterBeds').addEventListener('change', (e) => { wlFilterBeds = e.target.value; renderWaitlist(); });
+document.getElementById('wlFilterMonth').addEventListener('change', (e) => { wlFilterMonth = e.target.value; renderWaitlist(); });
+document.getElementById('wlFilterClearBtn').addEventListener('click', () => {
+    wlFilterAgent = ''; wlFilterBeds = ''; wlFilterMonth = '';
+    renderWaitlist();
+});
+
 document.getElementById('waitlistAddBtn').addEventListener('click', () => {
     const id = newWaitlistRowId();
-    WAITLIST_ROWS[id] = { agent: '', prospect: '', beds: '', rent: '', moveIn: '', details: '', followUp: '', cancel: false, leased: false };
+    WAITLIST_ROWS[id] = { agent: '', prospect: '', beds: '', rent: '', moveIn: '', phone: '', email: '', details: '', followUp: '', cancel: false, leased: false };
     WAITLIST_DIRTY.add(id);
     persistWaitlistLocal();
+    waitlistSubTab = 'active'; // a fresh prospect is always active — switch there so it's visible
     renderWaitlist();
-    const card = document.querySelector(`.waitlist-card[data-row="${id}"] input[data-field="agent"]`);
-    if (card) card.focus();
+    const field = document.querySelector(`.waitlist-card[data-row="${id}"] input[data-field="prospect"]`);
+    if (field) field.focus();
+});
+
+/* ============================================================
+   CONCESSION — a shared, community-wide concession policy (up to 3
+   distinct rules, e.g. "6 weeks free for LW, 4 weeks for 2-Bed, 2 weeks
+   for all else"), editable from a hidden page reachable only via the
+   Tour tab's Edit button. When a unit is selected on the Tour tab, the
+   concession checkbox and weeks auto-apply based on whichever rule (if
+   any) matches that unit — see defaultDraft() and PRICING_FIELDS above,
+   which is what makes this re-evaluate fresh on every selection rather
+   than sticking with whatever a previous session had.
+   ============================================================ */
+const CONCESSION_KEY = 'reve-concession-settings';
+const CONCESSION_BACKEND_KEY = 'concession-settings';
+let CONCESSION_SETTINGS = {
+    terms: '',
+    notes: '',
+    rules: [{ weeks: '', qualifier: '' }, { weeks: '', qualifier: '' }, { weeks: '', qualifier: '' }]
+};
+
+// Qualifier text supports: "ALL" / "all else" / "*" as a catch-all;
+// floorplan-type keywords (Studio, 1-Bed, 2-Bed, 3-Bed, TH, LW, PH);
+// a specific floorplan code (e.g. "A9"); or a specific unit number —
+// comma- or slash-separated for more than one, e.g. "LW, PH" or "4334, 4336".
+function unitMatchesConcessionQualifier(u, qualifierText) {
+    const raw = (qualifierText || '').trim();
+    if (!raw) return false;
+    if (/^(all|all else|\*)$/i.test(raw)) return true;
+    const cat = unitTypeCategoryPH(u);
+    const tokens = raw.split(/[,/]/).map(t => t.trim().toLowerCase().replace(/\s+/g, '')).filter(Boolean);
+    return tokens.some(t => {
+        if (t === u.unit.toLowerCase()) return true;
+        if (t === u.floorplan.toLowerCase()) return true;
+        if (t === 'studio' && cat === 'Studio') return true;
+        if ((t === '1bed' || t === '1-bed') && cat === '1-Bed') return true;
+        if ((t === '2bed' || t === '2-bed') && cat === '2-Bed') return true;
+        if ((t === '3bed' || t === '3-bed') && cat === '3-Bed') return true;
+        if (t === 'th' && cat === 'Townhome') return true;
+        if (t === 'lw' && cat === 'Live/Work') return true;
+        if (t === 'ph' && cat === 'Penthouse') return true;
+        return false;
+    });
+}
+// Rules are evaluated in order — put a catch-all ("ALL"/"all else") last.
+function findMatchingConcessionRule(u) {
+    for (let i = 0; i < CONCESSION_SETTINGS.rules.length; i++) {
+        const rule = CONCESSION_SETTINGS.rules[i];
+        if (rule.weeks && unitMatchesConcessionQualifier(u, rule.qualifier)) return rule;
+    }
+    return null;
+}
+
+function persistConcessionLocal() {
+    try { localStorage.setItem(CONCESSION_KEY, JSON.stringify(CONCESSION_SETTINGS)); } catch (e) {}
+}
+function restoreConcessionLocal() {
+    try {
+        const raw = localStorage.getItem(CONCESSION_KEY);
+        if (raw) CONCESSION_SETTINGS = JSON.parse(raw);
+    } catch (e) {}
+}
+async function pullConcessionFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(CONCESSION_BACKEND_KEY);
+    if (remote) {
+        CONCESSION_SETTINGS = remote;
+        persistConcessionLocal();
+        renderConcessionSummary();
+        if (document.getElementById('tab-concession').classList.contains('active')) renderConcessionPage();
+        if (currentUnit) selectUnit(currentUnit);
+    } else if (CONCESSION_SETTINGS.terms || CONCESSION_SETTINGS.rules.some(r => r.qualifier)) {
+        backendPush(CONCESSION_BACKEND_KEY, CONCESSION_SETTINGS); // seed the backend from local
+    }
+}
+
+function renderConcessionSummary() {
+    const el = document.getElementById('concessionSummaryText');
+    if (el) el.textContent = CONCESSION_SETTINGS.terms ? CONCESSION_SETTINGS.terms : 'None set';
+}
+
+function renderConcessionPage() {
+    document.getElementById('concessionTermsInput').value = CONCESSION_SETTINGS.terms || '';
+    document.getElementById('concessionNotesInput').value = CONCESSION_SETTINGS.notes || '';
+    const box = document.getElementById('concessionRules');
+    box.innerHTML = CONCESSION_SETTINGS.rules.map((r, i) => `
+        <div class="concession-rule">
+            <div class="concession-rule-row">
+                <div class="wl-fb"><label>Weeks Free &mdash; Rule ${i + 1}</label><input type="text" class="wl-field" data-rule-field="weeks" data-rule-index="${i}" value="${escapeAttr(r.weeks)}" placeholder="e.g. 6"></div>
+                <div class="wl-fb"><label>&nbsp;</label><div style="font-size:11px;color:var(--ink-soft);padding:7px 0;">weeks free for</div></div>
+                <div class="wl-fb"><label>Qualifying Units</label><input type="text" class="wl-field" data-rule-field="qualifier" data-rule-index="${i}" value="${escapeAttr(r.qualifier)}" placeholder="e.g. LW, or 2-Bed, or ALL for everyone else"></div>
+            </div>
+        </div>
+    `).join('');
+    [...box.querySelectorAll('[data-rule-field]')].forEach(inp => {
+        inp.addEventListener('input', (e) => {
+            const i = parseInt(e.target.getAttribute('data-rule-index'), 10);
+            CONCESSION_SETTINGS.rules[i][e.target.getAttribute('data-rule-field')] = e.target.value;
+        });
+    });
+}
+
+document.getElementById('concessionEditBtn').addEventListener('click', () => {
+    renderConcessionPage();
+    switchTab('concession');
+});
+document.getElementById('concessionBackBtn').addEventListener('click', () => switchTab('tour'));
+document.getElementById('concessionSaveBtn').addEventListener('click', () => {
+    CONCESSION_SETTINGS.terms = document.getElementById('concessionTermsInput').value;
+    CONCESSION_SETTINGS.notes = document.getElementById('concessionNotesInput').value;
+    persistConcessionLocal();
+    renderConcessionSummary();
+    if (BACKEND_URL) backendPush(CONCESSION_BACKEND_KEY, CONCESSION_SETTINGS);
+    const status = document.getElementById('concessionSaveStatus');
+    status.textContent = 'Saved.';
+    setTimeout(() => { status.textContent = ''; }, 2500);
+    if (currentUnit) selectUnit(currentUnit); // re-evaluate the currently open unit against the new rules
 });
 
 /* ============================================================
@@ -4421,6 +4768,7 @@ setInterval(() => {
     if (!BACKEND_URL) return;
     pullAllFromBackend();
     pullWaitlistFromBackend();
+    pullConcessionFromBackend();
 }, 25000);
 
 restorePricing();
@@ -4430,10 +4778,12 @@ restoreExpiring();
 renderExpiringList();
 restoreRenewals();
 initWaitlist();
+restoreConcessionLocal();
+renderConcessionSummary();
 try {
     if (localStorage.getItem(APP_MODE_KEY) === 'test') applyAppMode('test');
 } catch (e) { /* ignore */ }
-if (BACKEND_URL) { pullAllFromBackend(); pullWaitlistFromBackend(); }
+if (BACKEND_URL) { pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); }
 </script>
 </body>
 </html>
