@@ -892,10 +892,11 @@
     @media (max-width: 640px) { .concession-rule-row { grid-template-columns: 1fr; } }
 
     /* -- Waitlist tab -- */
-    .waitlist-shell { max-width: 1180px; margin: 0 auto; padding: 0 20px 40px; }
+    .waitlist-shell { max-width: 900px; margin: 0 auto; padding: 0 20px 40px; }
     .waitlist-shell .brand-strip { padding-top: 18px; }
 
-    .wl-subtabs { display: flex; gap: 6px; margin-bottom: 12px; }
+    .wl-subtabs { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+    .wl-subtab-right { margin-left: auto; }
     .wl-subtab {
         font-size: 12.5px;
         font-weight: 700;
@@ -912,6 +913,7 @@
 
     .wl-filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
     .wl-filter-bar select {
+        width: auto;
         font-family: var(--sans);
         font-size: 12px;
         font-weight: 600;
@@ -972,6 +974,25 @@
         .wl-contact-row { grid-template-columns: 1fr; }
         .wl-notes-row { grid-template-columns: 1fr; }
     }
+
+    /* -- Storage locker waitlist -- */
+    .storage-table { width: 100%; border-collapse: collapse; background: #fff; font-size: 12.5px; }
+    .storage-table th, .storage-table td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; vertical-align: middle; }
+    .storage-table th {
+        background: var(--line-soft);
+        font-family: 'Oswald', var(--sans);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        font-size: 10.5px;
+        font-weight: 600;
+    }
+    .storage-table input.wl-field { border: none; background: transparent; padding: 3px; width: 100%; }
+    .storage-table input.wl-field:focus { outline: 1px solid var(--reve-orange); background: #fff; border-radius: 3px; }
+    .storage-table td.storage-check-cell { text-align: center; width: 70px; }
+    .storage-table td.storage-remove-cell { width: 36px; text-align: center; }
+    .storage-table tr.contacted { background: #f4f2ee; }
+    .storage-table tr.contacted td { color: var(--ink-soft); }
+    .storage-table tr.contacted input.storage-name-field { text-decoration: line-through; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1355,6 +1376,16 @@
     </div>
 
     <div class="avail-main">
+        <div class="wl-filter-bar" style="margin-bottom:10px;">
+            <select id="renewalFilterStatus">
+                <option value="pending">Status: Pending</option>
+                <option value="renewed">Status: Renewed</option>
+                <option value="notice">Status: Notice</option>
+                <option value="all">Status: All</option>
+            </select>
+            <select id="renewalFilterMonth"><option value="">All Months</option></select>
+            <button type="button" class="add-term-btn" id="renewalFilterClearBtn" style="width:auto;padding:8px 14px;">Reset filters</button>
+        </div>
         <div class="exp-toolbar">
             <span id="renewalCountLabel">No renewal report loaded</span>
         </div>
@@ -1372,27 +1403,36 @@
             <path d="M25 25H30V60H25V25Z" fill="#ffffff" opacity="0.5"/>
         </svg>
         <div>
-            <h1>Waitlist</h1>
-            <div class="tag">Prospect tracking &mdash; shared across agents</div>
+            <h1 id="waitlistHeading">Waitlist</h1>
+            <div class="tag" id="waitlistTagline">Prospect tracking &mdash; shared across agents</div>
         </div>
         <button type="button" class="btn primary" id="waitlistAddBtn" style="margin-left:auto;">+ Add Prospect</button>
+        <button type="button" class="btn primary" id="storageAddBtn" style="margin-left:auto;display:none;">+ Add Entry</button>
     </div>
 
     <div class="wl-subtabs">
         <button type="button" class="wl-subtab active" data-subtab="active">Active <span class="wl-subtab-count" id="wlCountActive"></span></button>
         <button type="button" class="wl-subtab" data-subtab="cancelled">Cancelled <span class="wl-subtab-count" id="wlCountCancelled"></span></button>
         <button type="button" class="wl-subtab" data-subtab="leased">Leased <span class="wl-subtab-count" id="wlCountLeased"></span></button>
+        <button type="button" class="wl-subtab wl-subtab-right" data-subtab="storage">Storage <span class="wl-subtab-count" id="wlCountStorage"></span></button>
     </div>
 
-    <div class="wl-filter-bar">
-        <select id="wlFilterAgent"><option value="">All Agents</option></select>
-        <select id="wlFilterBeds"><option value="">All Beds</option></select>
-        <select id="wlFilterMonth"><option value="">All Move-In Months</option></select>
-        <button type="button" class="add-term-btn" id="wlFilterClearBtn" style="width:auto;padding:8px 14px;">Clear filters</button>
+    <div id="waitlistProspectView">
+        <div class="wl-filter-bar">
+            <select id="wlFilterAgent"><option value="">All Agents</option></select>
+            <select id="wlFilterBeds"><option value="">All Beds</option></select>
+            <select id="wlFilterMonth"><option value="">All Move-In Months</option></select>
+            <button type="button" class="add-term-btn" id="wlFilterClearBtn" style="width:auto;padding:8px 14px;">Clear filters</button>
+        </div>
+
+        <div class="empty-note" style="margin-bottom:14px;">"Possible Upcoming Units" is computed live from the Expiring tab's data (Notice + Current) &mdash; matching each prospect's Beds against unit bed count/type, and each unit's expiration against the prospect's Move-In Date.</div>
+        <div id="waitlistCards"></div>
     </div>
 
-    <div class="empty-note" style="margin-bottom:14px;">"Possible Upcoming Units" is computed live from the Expiring tab's data (Notice + Current) &mdash; matching each prospect's Beds against unit bed count/type, and each unit's expiration against the prospect's Move-In Date.</div>
-    <div id="waitlistCards"></div>
+    <div id="waitlistStorageView" style="display:none;">
+        <div class="empty-note" style="margin-bottom:14px;">Storage locker interest list &mdash; check "Contacted" once you've reached out, or remove an entry permanently with the &times; button.</div>
+        <div id="storageList"></div>
+    </div>
 </div>
 </div>
 
@@ -2587,6 +2627,8 @@ function flyerHTML(u, d, opts) {
     ${concessionBlock(u, d)}
 
     ${footerHtml}
+
+    <p class="pricing-disclaimer">*Quoted rent pricing is for base rent only. Additional required monthly service fees and utilities, as well as optional add-ons such as parking or pet fees, may apply.</p>
     </div>
 </div>`;
 }
@@ -2670,6 +2712,15 @@ const FLYER_STYLE = `
 .footer-action { text-align: center; margin-top: 30px; border-top: 1px solid var(--reve-tint); padding-top: 18px; }
 .footer-accent { display: block; width: 20px; height: auto; margin: 0 auto 10px; }
 .footer-action p { font-size: 16px; font-weight: 500; margin: 0 0 10px 0; }
+.pricing-disclaimer {
+    font-size: 9.5px;
+    line-height: 1.4;
+    color: #767066;
+    text-align: center;
+    margin: 14px 0 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--reve-tint);
+}
 .btn-apply { display: inline-block; color: var(--reve-orange); font-size: 20px; font-weight: 700; text-decoration: underline; }
 .concession-section { margin: 22px 0 4px; }
 .concession-title {
@@ -3665,17 +3716,45 @@ function renewalRowState(unit) {
     return RENEWAL_STATE[unit] || { renewed: false, notice: false, notes: '' };
 }
 
+let renewalFilterStatus = 'pending'; // matches the default option
+let renewalFilterMonth = '';
+
+function rebuildRenewalMonthFilter() {
+    const box = document.getElementById('renewalFilterMonth');
+    if (!box) return;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthsPresent = [...new Set(RENEWAL_UNITS.map(u => u.expiration ? u.expiration.getMonth() : null).filter(m => m !== null))].sort((a, b) => a - b);
+    box.innerHTML = '<option value="">All Months</option>' + monthsPresent.map(m => `<option value="${m}"${String(m) === renewalFilterMonth ? ' selected' : ''}>${monthNames[m]}</option>`).join('');
+    if (!monthsPresent.some(m => String(m) === renewalFilterMonth)) renewalFilterMonth = '';
+}
+
 function renderRenewalTable() {
     const mount = document.getElementById('renewalList');
     const countLabel = document.getElementById('renewalCountLabel');
+    rebuildRenewalMonthFilter();
     if (!RENEWAL_UNITS.length) {
         countLabel.textContent = 'No renewal report loaded';
         mount.innerHTML = `<div class="no-unit">Upload the Renewal Offer Analysis export on the left to start tracking pending renewals.</div>`;
         return;
     }
-    countLabel.textContent = `${RENEWAL_UNITS.length} pending renewal${RENEWAL_UNITS.length === 1 ? '' : 's'}, soonest first`;
 
-    const rows = RENEWAL_UNITS.map(u => {
+    const filtered = RENEWAL_UNITS.filter(u => {
+        const state = renewalRowState(u.unit);
+        if (renewalFilterStatus === 'renewed' && !state.renewed) return false;
+        if (renewalFilterStatus === 'notice' && !state.notice) return false;
+        if (renewalFilterStatus === 'pending' && (state.renewed || state.notice)) return false;
+        if (renewalFilterMonth !== '' && (!u.expiration || String(u.expiration.getMonth()) !== renewalFilterMonth)) return false;
+        return true;
+    });
+
+    countLabel.textContent = `${filtered.length} of ${RENEWAL_UNITS.length} renewal${RENEWAL_UNITS.length === 1 ? '' : 's'}, soonest first`;
+
+    if (!filtered.length) {
+        mount.innerHTML = `<div class="no-unit">No renewals match these filters.</div>`;
+        return;
+    }
+
+    const rows = filtered.map(u => {
         const state = renewalRowState(u.unit);
         const rowClass = state.renewed ? 'renewed' : (state.notice ? 'notice' : '');
         const expText = u.expiration
@@ -3731,6 +3810,21 @@ function renderRenewalTable() {
         });
     });
 }
+
+document.getElementById('renewalFilterStatus').addEventListener('change', (e) => {
+    renewalFilterStatus = e.target.value;
+    renderRenewalTable();
+});
+document.getElementById('renewalFilterMonth').addEventListener('change', (e) => {
+    renewalFilterMonth = e.target.value;
+    renderRenewalTable();
+});
+document.getElementById('renewalFilterClearBtn').addEventListener('click', () => {
+    renewalFilterStatus = 'pending';
+    renewalFilterMonth = '';
+    document.getElementById('renewalFilterStatus').value = 'pending';
+    renderRenewalTable();
+});
 
 /* ---------- Create Renewal Offer: unit search ---------- */
 const renewalSearchInput = document.getElementById('renewalUnitSearch');
@@ -4226,7 +4320,7 @@ function renderWaitlist() {
         btn.classList.toggle('active', btn.getAttribute('data-subtab') === waitlistSubTab);
     });
 
-    const shown = (waitlistSubTab === 'active' ? activeIds : waitlistSubTab === 'cancelled' ? cancelledIds : leasedIds)
+    const shown = (waitlistSubTab === 'active' ? activeIds : waitlistSubTab === 'cancelled' ? cancelledIds : waitlistSubTab === 'leased' ? leasedIds : [])
         .sort((a, b) => {
             const ka = parseWaitlistMoveInCutoff(WAITLIST_ROWS[a].moveIn);
             const kb = parseWaitlistMoveInCutoff(WAITLIST_ROWS[b].moveIn);
@@ -4336,10 +4430,21 @@ function renderWaitlist() {
     });
 }
 
+function updateWaitlistViewVisibility() {
+    const isStorage = waitlistSubTab === 'storage';
+    document.getElementById('waitlistProspectView').style.display = isStorage ? 'none' : 'block';
+    document.getElementById('waitlistStorageView').style.display = isStorage ? 'block' : 'none';
+    document.getElementById('waitlistAddBtn').style.display = isStorage ? 'none' : 'inline-block';
+    document.getElementById('storageAddBtn').style.display = isStorage ? 'inline-block' : 'none';
+    document.getElementById('waitlistHeading').textContent = isStorage ? 'Storage Locker Waitlist' : 'Waitlist';
+    document.getElementById('waitlistTagline').textContent = isStorage ? 'Storage locker interest \u2014 shared across agents' : 'Prospect tracking \u2014 shared across agents';
+}
+
 [...document.querySelectorAll('.wl-subtab')].forEach(btn => {
     btn.addEventListener('click', () => {
         waitlistSubTab = btn.getAttribute('data-subtab');
-        renderWaitlist();
+        updateWaitlistViewVisibility();
+        if (waitlistSubTab === 'storage') renderStorageList(); else renderWaitlist();
     });
 });
 document.getElementById('wlFilterAgent').addEventListener('change', (e) => { wlFilterAgent = e.target.value; renderWaitlist(); });
@@ -4358,6 +4463,188 @@ document.getElementById('waitlistAddBtn').addEventListener('click', () => {
     waitlistSubTab = 'active'; // a fresh prospect is always active — switch there so it's visible
     renderWaitlist();
     const field = document.querySelector(`.waitlist-card[data-row="${id}"] input[data-field="prospect"]`);
+    if (field) field.focus();
+});
+
+/* ============================================================
+   STORAGE LOCKER WAITLIST — a separate list from the unit-prospect
+   waitlist above, reached via the "Storage" sub-tab. Same shared-backend
+   pattern as everything else (pull-merge-push, tombstone deletes) under
+   its own key so it never mixes with WAITLIST_ROWS.
+   ============================================================ */
+const STORAGE_KEY = 'reve-storage-rows';
+const STORAGE_BACKEND_KEY = 'storage-rows';
+let STORAGE_ROWS = {}; // { [rowId]: {timestamp, name, unit, contact, contacted, deleted} }
+const STORAGE_DIRTY = new Set();
+
+function newStorageRowId() {
+    return 's_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+}
+function parseStorageTimestamp(s) {
+    const m = String(s || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if (!m) return null;
+    const d = new Date(parseInt(m[3], 10), parseInt(m[1], 10) - 1, parseInt(m[2], 10), parseInt(m[4], 10), parseInt(m[5], 10), m[6] ? parseInt(m[6], 10) : 0);
+    return isNaN(d.getTime()) ? null : d;
+}
+
+// The 10 entries Justin provided — only used to seed a genuinely empty
+// list, same rule as the prospect waitlist's seed data.
+function seedStorageRows() {
+    const seed = [
+        ['6/27/2026 12:40:46', 'Kent Searl', '3214', 'ksearl@gmail.com'],
+        ['6/27/2026 12:41:26', 'Lucas Burns', '1422', 'lucasburns2885@gmail.com'],
+        ['6/27/2026 12:41:49', 'Dana Davis', '3408', 'trignani@gmail.com'],
+        ['6/27/2026 12:42:06', 'Scott Schafer', '1244', 'scottshafer9@gmail.com'],
+        ['7/17/2026 11:56:59', 'Casey Brown', '1332', 'ccbrown959@gmail.com'],
+        ['7/30/2026 14:01:30', 'Jake Storfer', '1319', 'jake.storfer@outlook.com'],
+        ['8/11/2026 14:00:20', 'Lucas Burns', '1422', 'lucasburns2885@gmail.com'],
+        ['8/17/2026 9:13:57', 'Madolyn Phillips', '1217', 'madolynphillips@yahoo.com'],
+        ['8/18/2026 12:40:44', 'Shannon Lucas', '1447', 'shannon.g.lucas@gmail.com'],
+        ['8/25/2026 11:45:12', 'Sara Green', '1342', '9419613446']
+    ];
+    const rows = {};
+    seed.forEach(r => {
+        const id = newStorageRowId();
+        rows[id] = { timestamp: r[0], name: r[1], unit: r[2], contact: r[3], contacted: false };
+    });
+    return rows;
+}
+
+function persistStorageLocal() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(STORAGE_ROWS)); } catch (e) {}
+}
+
+// Same pull-merge-push safety as the prospect waitlist — see
+// pushWaitlistDirty for the full reasoning.
+async function pushStorageDirty() {
+    persistStorageLocal();
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(STORAGE_BACKEND_KEY);
+    const merged = Object.assign({}, remote || {});
+    STORAGE_DIRTY.forEach(id => {
+        if (STORAGE_ROWS[id]) merged[id] = STORAGE_ROWS[id];
+        else delete merged[id];
+    });
+    STORAGE_ROWS = merged;
+    STORAGE_DIRTY.clear();
+    persistStorageLocal();
+    backendPush(STORAGE_BACKEND_KEY, STORAGE_ROWS);
+    if (waitlistSubTab === 'storage') renderStorageList();
+}
+const pushStorageDirtyDebounced = debounce(pushStorageDirty, 900);
+
+async function pullStorageFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(STORAGE_BACKEND_KEY);
+    if (remote) {
+        const focusedRow = document.activeElement ? document.activeElement.closest('tr[data-row]') : null;
+        const focusedId = focusedRow ? focusedRow.getAttribute('data-row') : null;
+        Object.keys(remote).forEach(id => {
+            if (id === focusedId || STORAGE_DIRTY.has(id)) return;
+            STORAGE_ROWS[id] = remote[id];
+        });
+        persistStorageLocal();
+        if (waitlistSubTab === 'storage') renderStorageList();
+    } else if (Object.keys(STORAGE_ROWS).length) {
+        backendPush(STORAGE_BACKEND_KEY, STORAGE_ROWS);
+    }
+}
+
+function initStorage() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) STORAGE_ROWS = JSON.parse(raw);
+    } catch (e) { STORAGE_ROWS = {}; }
+
+    if (!Object.keys(STORAGE_ROWS).length) {
+        if (BACKEND_URL) {
+            backendPull(STORAGE_BACKEND_KEY).then(remote => {
+                if (remote && Object.keys(remote).length) {
+                    STORAGE_ROWS = remote;
+                } else {
+                    STORAGE_ROWS = seedStorageRows();
+                    backendPush(STORAGE_BACKEND_KEY, STORAGE_ROWS);
+                }
+                persistStorageLocal();
+                if (waitlistSubTab === 'storage') renderStorageList();
+            });
+            return;
+        }
+        STORAGE_ROWS = seedStorageRows();
+        persistStorageLocal();
+    }
+}
+
+function renderStorageList() {
+    const mount = document.getElementById('storageList');
+    if (!mount) return;
+    const ids = Object.keys(STORAGE_ROWS)
+        .filter(id => !STORAGE_ROWS[id].deleted)
+        .sort((a, b) => {
+            const ka = parseStorageTimestamp(STORAGE_ROWS[a].timestamp);
+            const kb = parseStorageTimestamp(STORAGE_ROWS[b].timestamp);
+            return (ka ? ka.getTime() : Infinity) - (kb ? kb.getTime() : Infinity);
+        });
+    document.getElementById('wlCountStorage').textContent = ids.length;
+
+    if (!ids.length) {
+        mount.innerHTML = '<div class="no-unit">No storage locker requests yet. Click "+ Add Entry" to log one.</div>';
+        return;
+    }
+
+    const rows = ids.map(id => {
+        const r = STORAGE_ROWS[id];
+        return `<tr class="${r.contacted ? 'contacted' : ''}" data-row="${id}">
+            <td><input class="wl-field" data-field="timestamp" value="${escapeAttr(r.timestamp)}" placeholder="M/D/YYYY H:MM:SS"></td>
+            <td><input class="wl-field storage-name-field" data-field="name" value="${escapeAttr(r.name)}" placeholder="Name"></td>
+            <td><input class="wl-field" data-field="unit" value="${escapeAttr(r.unit)}" placeholder="Unit"></td>
+            <td><input class="wl-field" data-field="contact" value="${escapeAttr(r.contact)}" placeholder="Email or phone"></td>
+            <td class="storage-check-cell"><label class="wl-checks" style="justify-content:center;"><input type="checkbox" data-field="contacted" ${r.contacted ? 'checked' : ''}> Contacted</label></td>
+            <td class="storage-remove-cell"><button type="button" class="wl-remove" title="Delete permanently">&times;</button></td>
+        </tr>`;
+    }).join('');
+
+    mount.innerHTML = `<table class="storage-table">
+        <thead><tr><th>Timestamp</th><th>Name</th><th>Unit</th><th>Contact</th><th>Contacted?</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+
+    [...mount.querySelectorAll('tr[data-row]')].forEach(tr => {
+        const id = tr.getAttribute('data-row');
+        [...tr.querySelectorAll('input.wl-field')].forEach(field => {
+            field.addEventListener('input', (e) => {
+                STORAGE_ROWS[id][e.target.getAttribute('data-field')] = e.target.value;
+                STORAGE_DIRTY.add(id);
+                persistStorageLocal();
+                pushStorageDirtyDebounced();
+            });
+        });
+        tr.querySelector('input[type=checkbox]').addEventListener('change', (e) => {
+            STORAGE_ROWS[id].contacted = e.target.checked;
+            STORAGE_DIRTY.add(id);
+            pushStorageDirtyDebounced();
+            renderStorageList();
+        });
+        tr.querySelector('.wl-remove').addEventListener('click', () => {
+            const r = STORAGE_ROWS[id];
+            if (!confirm(`Permanently delete ${r.name || 'this entry'} from the storage locker waitlist?`)) return;
+            STORAGE_ROWS[id].deleted = true; // tombstone, same reasoning as the prospect waitlist
+            STORAGE_DIRTY.add(id);
+            pushStorageDirtyDebounced();
+            renderStorageList();
+        });
+    });
+}
+
+document.getElementById('storageAddBtn').addEventListener('click', () => {
+    const id = newStorageRowId();
+    const now = new Date();
+    const stamp = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    STORAGE_ROWS[id] = { timestamp: stamp, name: '', unit: '', contact: '', contacted: false };
+    STORAGE_DIRTY.add(id);
+    persistStorageLocal();
+    renderStorageList();
+    const field = document.querySelector(`tr[data-row="${id}"] input[data-field="name"]`);
     if (field) field.focus();
 });
 
@@ -4769,6 +5056,7 @@ setInterval(() => {
     pullAllFromBackend();
     pullWaitlistFromBackend();
     pullConcessionFromBackend();
+    pullStorageFromBackend();
 }, 25000);
 
 restorePricing();
@@ -4778,12 +5066,14 @@ restoreExpiring();
 renderExpiringList();
 restoreRenewals();
 initWaitlist();
+initStorage();
+renderStorageList();
 restoreConcessionLocal();
 renderConcessionSummary();
 try {
     if (localStorage.getItem(APP_MODE_KEY) === 'test') applyAppMode('test');
 } catch (e) { /* ignore */ }
-if (BACKEND_URL) { pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); }
+if (BACKEND_URL) { pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); }
 </script>
 </body>
 </html>
