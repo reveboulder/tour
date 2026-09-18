@@ -36,10 +36,16 @@
         background: var(--ink);
         padding: 0 14px;
         align-items: center;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
     }
+    .top-tabs::-webkit-scrollbar { display: none; }
+    .top-tab { flex-shrink: 0; }
     .settings-tab { }
     .top-tabs-right {
         margin-left: auto;
+        flex-shrink: 0;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -571,6 +577,8 @@
     .avail-main {
         background: #ece8e0;
         overflow-y: auto;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
         padding: 20px;
     }
 
@@ -632,9 +640,11 @@
     .avail-banner.warn { border-color: var(--warn); color: var(--warn); background: #fdf6ee; }
     .avail-cal-grid {
         display: grid;
-        grid-template-columns: repeat(7, 1fr);
+        grid-template-columns: repeat(7, minmax(78px, 1fr));
         gap: 6px;
+        min-width: 580px;
     }
+    .avail-cal-toolbar { min-width: 580px; }
     .avail-cal-grid.day-mode {
         display: block;
         max-width: 640px;
@@ -732,6 +742,7 @@
         margin-left: auto;
         margin-right: auto;
     }
+    #renewalList, #storageList { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .exp-row {
         display: grid;
         grid-template-columns: 74px 66px 150px 110px 140px 1fr;
@@ -789,6 +800,7 @@
     /* -- Renewals tab table -- */
     .renewal-table {
         width: 100%;
+        min-width: 640px;
         max-width: 900px;
         margin: 0 auto;
         border-collapse: collapse;
@@ -976,7 +988,7 @@
     }
 
     /* -- Storage locker waitlist -- */
-    .storage-table { width: 100%; border-collapse: collapse; background: #fff; font-size: 12.5px; }
+    .storage-table { width: 100%; min-width: 600px; border-collapse: collapse; background: #fff; font-size: 12.5px; }
     .storage-table th, .storage-table td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; vertical-align: middle; }
     .storage-table th {
         background: var(--line-soft);
