@@ -592,7 +592,12 @@
         border: 1px solid var(--line);
         border-radius: 8px;
         padding: 10px 14px;
+        flex-wrap: wrap;
     }
+    .cal-view-toggle { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; order: 3; flex: 0 0 100%; width: fit-content; margin: 0 auto; }
+    .cal-view-btn { font-size: 11px; font-weight: 700; border: none; background: #fff; color: var(--ink-soft); padding: 6px 14px; cursor: pointer; }
+    .cal-view-btn + .cal-view-btn { border-left: 1px solid var(--line); }
+    .cal-view-btn.active { background: var(--reve-orange); color: #fff; }
     .cal-nav-btn {
         width: 30px; height: 30px;
         border: 1px solid var(--line);
@@ -601,9 +606,10 @@
         font-size: 16px;
         cursor: pointer;
         color: var(--ink-soft);
+        flex: 0 0 auto;
     }
     .cal-nav-btn:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
-    .cal-month-block { flex: 1; text-align: center; }
+    .cal-month-block { flex: 1; text-align: center; min-width: 0; }
     .cal-month-label {
         font-family: 'Oswald', var(--sans);
         font-weight: 600;
@@ -625,6 +631,7 @@
         padding: 6px 10px;
         border-radius: 6px;
         cursor: pointer;
+        flex: 0 0 auto;
     }
     .cal-today-btn:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
 
@@ -640,11 +647,11 @@
     .avail-banner.warn { border-color: var(--warn); color: var(--warn); background: #fdf6ee; }
     .avail-cal-grid {
         display: grid;
-        grid-template-columns: repeat(7, minmax(78px, 1fr));
+        grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 6px;
-        min-width: 580px;
+        width: 100%;
     }
-    .avail-cal-toolbar { min-width: 580px; }
+    .avail-cal-grid.week-mode { grid-template-rows: auto; }
     .avail-cal-grid.day-mode {
         display: block;
         max-width: 640px;
@@ -658,6 +665,9 @@
         font-weight: 700;
         text-align: center;
         padding-bottom: 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .cal-day {
         background: #fff;
@@ -668,7 +678,10 @@
         display: flex;
         flex-direction: column;
         gap: 3px;
+        min-width: 0;
     }
+    .cal-day.week-cell { min-height: 150px; }
+    .cal-day.week-cell .cal-unit-pill { white-space: normal; line-height: 1.3; }
     .cal-day.empty { background: transparent; border: none; }
     .cal-day.today { border-color: var(--reve-orange); box-shadow: 0 0 0 1px var(--reve-orange) inset; }
     .cal-day-num { font-size: 11px; font-weight: 700; color: var(--ink-soft); }
@@ -688,6 +701,14 @@
     }
     .cal-unit-pill:hover { background: var(--reve-orange); color: #fff; }
     .cal-day-more { font-size: 9.5px; color: var(--ink-soft); padding: 1px 5px; }
+    @media (max-width: 480px) {
+        .cal-day { min-height: 64px; padding: 4px 3px; gap: 2px; border-radius: 6px; }
+        .cal-day.week-cell { min-height: 120px; }
+        .cal-day-num { font-size: 9.5px; }
+        .cal-dow { font-size: 8px; letter-spacing: 0.02em; }
+        .cal-unit-pill { font-size: 8.5px; padding: 1px 3px; }
+        .avail-cal-grid { gap: 3px; }
+    }
     .cal-day.has-units { cursor: pointer; }
     .cal-day.has-units:hover { border-color: var(--reve-orange); box-shadow: 0 0 0 1px var(--reve-orange) inset; }
 
@@ -937,7 +958,7 @@
     }
 
     .waitlist-card {
-        background: #fff;
+        background: var(--line-soft);
         border: 1px solid var(--line);
         border-radius: 10px;
         padding: 14px 16px;
@@ -1005,6 +1026,100 @@
     .storage-table tr.contacted { background: #f4f2ee; }
     .storage-table tr.contacted td { color: var(--ink-soft); }
     .storage-table tr.contacted input.storage-name-field { text-decoration: line-through; }
+
+    /* ============================================================
+       DARK MODE. Verified by grepping both embedded PDF stylesheets
+       (FLYER_STYLE and RENEWAL_LETTER_STYLE) before touching anything:
+       neither one references --ink, --ink-soft, --panel, --paper,
+       --line, --line-soft, --good, or --warn at all, so redefining
+       those here is safe — it can't reach flyer/PDF content. The one
+       name that IS shared, --reve-orange, is deliberately left alone
+       at this scope (each PDF template redeclares it itself, but a
+       body-level override would still take precedence over their :root
+       declarations for anything rendered inside <body>, including the
+       off-screen PDF-export holder) — accent color overrides below use
+       their own --dm-accent name instead, never --reve-orange itself.
+       ============================================================ */
+    body.dark-mode {
+        --ink: #ece6d9;
+        --ink-soft: #a89f8f;
+        --paper: #171512;
+        --panel: #201d19;
+        --line: #423c33;
+        --line-soft: #2c2822;
+        --good: #6fbf87;
+        --warn: #e0a355;
+        --dm-card: #29251f;
+        --dm-card-alt: #332e27;
+        --dm-accent: #e8703f;
+    }
+    body.dark-mode { background: var(--paper); color: var(--ink); }
+    body.dark-mode .avail-main,
+    body.dark-mode .preview-pane { background: #100f0d; }
+    body.dark-mode .top-tabs { background: #000; }
+    body.dark-mode ::-webkit-scrollbar-thumb { background: #443f36; }
+
+    /* Elements with a hardcoded #fff background (not the --panel/--line-soft
+       variables above) need direct overrides since they won't pick up the
+       redefinitions via inheritance. */
+    body.dark-mode input[type="text"],
+    body.dark-mode input[type="date"],
+    body.dark-mode select,
+    body.dark-mode textarea,
+    body.dark-mode .wl-field,
+    body.dark-mode .term-picker,
+    body.dark-mode .btn,
+    body.dark-mode .chip,
+    body.dark-mode .add-term-btn,
+    body.dark-mode .cal-nav-btn,
+    body.dark-mode .cal-today-btn,
+    body.dark-mode .cal-view-btn,
+    body.dark-mode .wl-subtab,
+    body.dark-mode .mode-btn,
+    body.dark-mode .file-label,
+    body.dark-mode .unit-tab,
+    body.dark-mode .unit-row-btn,
+    body.dark-mode .waitlist-card,
+    body.dark-mode .renewal-table,
+    body.dark-mode .storage-table,
+    body.dark-mode .cal-day,
+    body.dark-mode .unit-result,
+    body.dark-mode .settings-card,
+    body.dark-mode .concession-rule,
+    body.dark-mode .pricing-block,
+    body.dark-mode .exp-row,
+    body.dark-mode .avail-cal-toolbar,
+    body.dark-mode .avail-banner,
+    body.dark-mode .readonly-card,
+    body.dark-mode .no-unit,
+    body.dark-mode .concession-banner {
+        background: var(--dm-card);
+        border-color: var(--line);
+        color: var(--ink);
+    }
+    body.dark-mode input::placeholder,
+    body.dark-mode textarea::placeholder { color: var(--ink-soft); opacity: 0.8; }
+    body.dark-mode .storage-table input.wl-field { background: transparent; }
+
+    body.dark-mode .btn.primary,
+    body.dark-mode .chip.active,
+    body.dark-mode .wl-subtab.active,
+    body.dark-mode .mode-btn.active,
+    body.dark-mode .cal-view-btn.active { color: #fff; }
+    body.dark-mode .btn:disabled { color: var(--ink-soft); opacity: 0.5; }
+
+    body.dark-mode .waitlist-card.cancelled { background: #3a2420; }
+    body.dark-mode .waitlist-card.leased { background: #203828; }
+    body.dark-mode .renewal-table tr.renewed td { background: #1f3324; }
+    body.dark-mode .renewal-table tr.notice td { background: #3a2420; }
+    body.dark-mode .renewal-table th,
+    body.dark-mode .storage-table th,
+    body.dark-mode .exp-row.header { background: var(--dm-card-alt); color: var(--ink-soft); }
+    body.dark-mode .storage-table tr.contacted { background: var(--dm-card-alt); }
+    body.dark-mode .cal-day.empty { background: transparent; }
+
+    /* PDF/flyer preview itself stays untouched (light) even in dark mode
+       — it's a working preview of exactly what gets exported. */
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1261,6 +1376,10 @@
             </div>
             <button type="button" class="cal-nav-btn" id="calNextBtn">&rsaquo;</button>
             <button type="button" class="cal-today-btn" id="calTodayBtn">Today</button>
+            <div class="cal-view-toggle">
+                <button type="button" class="cal-view-btn active" data-view="month" id="calViewMonthBtn">Month</button>
+                <button type="button" class="cal-view-btn" data-view="week" id="calViewWeekBtn">Week</button>
+            </div>
         </div>
         <div class="avail-banner" id="availBanner" style="display:none;"></div>
         <div class="avail-cal-grid" id="calGrid"></div>
@@ -1463,6 +1582,15 @@
     </div>
 
     <div class="settings-card">
+        <div class="section-label" style="margin-top:0;"><span class="dot"></span>Appearance</div>
+        <p class="empty-note" style="font-size:12.5px;">Changes how the site looks on this device only. Downloaded PDFs and printed pamphlets always stay light &mdash; this never affects what a prospect or resident sees.</p>
+        <div class="mode-toggle">
+            <button type="button" class="mode-btn active" data-theme="light" id="themeLightBtn">Light</button>
+            <button type="button" class="mode-btn" data-theme="dark" id="themeDarkBtn">Dark</button>
+        </div>
+    </div>
+
+    <div class="settings-card" style="margin-top:18px;">
         <div class="section-label" style="margin-top:0;"><span class="dot"></span>App Mode</div>
         <p class="empty-note" style="font-size:12.5px;">
             <b>Live</b> uses whatever you've actually uploaded on the Tour, Expiring, and Renewals tabs.
@@ -3081,16 +3209,28 @@ function bedCountBucket(u) {
     return '3-Bed';
 }
 
+let calViewMode = 'month'; // 'month' | 'week'
+
+function getWeekStart(d) {
+    const s = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    s.setDate(s.getDate() - s.getDay()); // back up to Sunday
+    return s;
+}
+function sameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
 function renderCalendar() {
     const grid = document.getElementById('calGrid');
     const label = document.getElementById('calMonthLabel');
     const summaryEl = document.getElementById('calMonthSummary');
     const banner = document.getElementById('availBanner');
     if (!grid || !label) return;
-    const y = calViewDate.getFullYear(), m = calViewDate.getMonth();
-    label.textContent = calViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     if (!PRICING_META) {
+        label.textContent = calViewMode === 'week'
+            ? `${getWeekStart(calViewDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} \u2013 ${new Date(getWeekStart(calViewDate).getTime() + 6 * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+            : calViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         banner.style.display = 'block';
         banner.innerHTML = "No pricing sheet loaded yet. Upload today's export on the Tour tab to populate this calendar.";
         banner.classList.remove('warn');
@@ -3109,6 +3249,20 @@ function renderCalendar() {
     banner.style.display = 'none';
 
     const units = availFilteredUnits();
+    if (calViewMode === 'week') {
+        renderWeekGrid(units);
+    } else {
+        renderMonthGrid(units);
+    }
+}
+
+function renderMonthGrid(units) {
+    const grid = document.getElementById('calGrid');
+    const label = document.getElementById('calMonthLabel');
+    const summaryEl = document.getElementById('calMonthSummary');
+    const y = calViewDate.getFullYear(), m = calViewDate.getMonth();
+    label.textContent = calViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
     const byDay = {};
     const monthUnits = [];
     units.forEach(u => {
@@ -3153,7 +3307,7 @@ function renderCalendar() {
             ${extra > 0 ? `<div class="cal-day-more">+${extra} more</div>` : ''}
         </div>`;
     }
-    grid.classList.remove('day-mode');
+    grid.classList.remove('day-mode', 'week-mode');
     grid.innerHTML = html;
 
     // Clicking a pill still jumps straight to the Tour tab. Clicking
@@ -3171,6 +3325,61 @@ function renderCalendar() {
             const day = parseInt(cell.getAttribute('data-day'), 10);
             calFocusedDay = new Date(y, m, day);
             renderCalendar();
+        });
+    });
+}
+
+// Same underlying data as month view, just scoped to one week and given
+// taller cells — since there's only 7 cells total instead of up to ~35,
+// there's room to show every matching unit directly with no "+N more"
+// truncation or day-focus drill-down needed.
+function renderWeekGrid(units) {
+    const grid = document.getElementById('calGrid');
+    const label = document.getElementById('calMonthLabel');
+    const summaryEl = document.getElementById('calMonthSummary');
+    const weekStart = getWeekStart(calViewDate);
+    const weekEnd = new Date(weekStart.getTime() + 6 * 86400000);
+    label.textContent = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} \u2013 ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+    const dayUnitsArr = [[], [], [], [], [], [], []];
+    const weekUnits = [];
+    units.forEach(u => {
+        const p = PRICING_SUMMARY[u.unit];
+        if (!p || p.availableSortKey === undefined || !isFinite(p.availableSortKey)) return;
+        const d = new Date(p.availableSortKey);
+        const dayIdx = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - weekStart) / 86400000);
+        if (dayIdx >= 0 && dayIdx < 7) {
+            dayUnitsArr[dayIdx].push(u);
+            weekUnits.push(u);
+        }
+    });
+
+    const bucketCounts = { Studio: 0, '1-Bed': 0, '2-Bed': 0, '3-Bed': 0 };
+    weekUnits.forEach(u => { bucketCounts[bedCountBucket(u)]++; });
+    summaryEl.innerHTML = `<b>${weekUnits.length}</b> Total Availabilities &middot; <b>${bucketCounts.Studio}</b> Studios &middot; <b>${bucketCounts['1-Bed']}</b> 1-Beds &middot; <b>${bucketCounts['2-Bed']}</b> 2-Beds &middot; <b>${bucketCounts['3-Bed']}</b> 3-Beds`;
+
+    const dowNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const today = new Date();
+    let html = dowNames.map(d => `<div class="cal-dow">${d}</div>`).join('');
+    for (let i = 0; i < 7; i++) {
+        const cellDate = new Date(weekStart.getTime() + i * 86400000);
+        const isToday = sameDay(cellDate, today);
+        const dayUnits = dayUnitsArr[i].sort((a, b) => a.unit.localeCompare(b.unit, undefined, { numeric: true }));
+        html += `<div class="cal-day week-cell${isToday ? ' today' : ''}">
+            <div class="cal-day-num">${cellDate.getDate()}</div>
+            ${dayUnits.map(u => `<div class="cal-unit-pill" data-unit="${u.unit}" title="Apt ${u.unit} \u2014 ${u.floorplan} \u2014 ${u.sqft} sf">Apt ${u.unit} (${u.floorplan})</div>`).join('')}
+        </div>`;
+    }
+    grid.classList.remove('day-mode');
+    grid.classList.add('week-mode');
+    grid.innerHTML = html;
+
+    [...grid.querySelectorAll('.cal-unit-pill')].forEach(pill => {
+        pill.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const unit = pill.getAttribute('data-unit');
+            switchTab('tour');
+            selectUnit(unit);
         });
     });
 }
@@ -3217,18 +3426,35 @@ function renderDayView(dateObj, dayUnits) {
 
 document.getElementById('calPrevBtn').addEventListener('click', () => {
     calFocusedDay = null;
-    calViewDate.setMonth(calViewDate.getMonth() - 1);
+    if (calViewMode === 'week') calViewDate.setDate(calViewDate.getDate() - 7);
+    else calViewDate.setMonth(calViewDate.getMonth() - 1);
     renderCalendar();
 });
 document.getElementById('calNextBtn').addEventListener('click', () => {
     calFocusedDay = null;
-    calViewDate.setMonth(calViewDate.getMonth() + 1);
+    if (calViewMode === 'week') calViewDate.setDate(calViewDate.getDate() + 7);
+    else calViewDate.setMonth(calViewDate.getMonth() + 1);
     renderCalendar();
 });
 document.getElementById('calTodayBtn').addEventListener('click', () => {
     calFocusedDay = null;
     calViewDate = new Date();
+    if (calViewMode === 'month') calViewDate.setDate(1);
+    renderCalendar();
+});
+document.getElementById('calViewMonthBtn').addEventListener('click', () => {
+    calViewMode = 'month';
+    calFocusedDay = null;
     calViewDate.setDate(1);
+    document.getElementById('calViewMonthBtn').classList.add('active');
+    document.getElementById('calViewWeekBtn').classList.remove('active');
+    renderCalendar();
+});
+document.getElementById('calViewWeekBtn').addEventListener('click', () => {
+    calViewMode = 'week';
+    calFocusedDay = null;
+    document.getElementById('calViewWeekBtn').classList.add('active');
+    document.getElementById('calViewMonthBtn').classList.remove('active');
     renderCalendar();
 });
 ['availSqftMin', 'availSqftMax', 'availPriceMin', 'availPriceMax'].forEach(id => {
@@ -4897,6 +5123,21 @@ function applyAppMode(mode) {
     renderRenewalTable();
     if (currentUnit) selectUnit(currentUnit);
 }
+
+/* ---------- Appearance: Light / Dark (this device only, never affects PDFs) ---------- */
+const THEME_KEY = 'reve-theme';
+function applyTheme(theme) {
+    document.body.classList.toggle('dark-mode', theme === 'dark');
+    document.getElementById('themeLightBtn').classList.toggle('active', theme !== 'dark');
+    document.getElementById('themeDarkBtn').classList.toggle('active', theme === 'dark');
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+}
+document.getElementById('themeLightBtn').addEventListener('click', () => applyTheme('light'));
+document.getElementById('themeDarkBtn').addEventListener('click', () => applyTheme('dark'));
+try {
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    if (savedTheme === 'dark') applyTheme('dark');
+} catch (e) { /* ignore */ }
 
 document.getElementById('modeLiveBtn').addEventListener('click', () => applyAppMode('live'));
 document.getElementById('modeTestBtn').addEventListener('click', () => applyAppMode('test'));
