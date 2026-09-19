@@ -811,6 +811,7 @@
     .exp-badge.corner { background: #e6eefb; color: #2a5db0; }
     .exp-badge.status-notice { background: #fbeee0; color: var(--warn); }
     .exp-badge.status-current { background: var(--line-soft); color: var(--ink-soft); }
+    .exp-badge.status-renewed { background: #eaf6ec; color: var(--good); }
     .exp-badge.open-tour { background: #fbeee8; color: var(--reve-orange-dark); }
     .exp-row.clickable { cursor: pointer; }
     .exp-row.clickable:hover { border-color: var(--reve-orange); background: #fffaf7; }
@@ -868,6 +869,21 @@
         min-height: 34px;
     }
     .renewal-notes-input:focus { outline: 1px solid var(--reve-orange); background: #fff; border-radius: 3px; }
+    .renewal-notes-wrap { position: relative; }
+    .renewal-notes-ghost {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        pointer-events: none;
+        font-family: var(--sans);
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 3px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        color: transparent;
+        overflow: hidden;
+    }
+    .renewal-notes-ghost .ghost-suggestion { color: var(--ink-soft); opacity: 0.65; }
     /* Row-wide tint, plus faded (not full-saturation) text — a
        renewed/notice row is resolved, so it should visually recede
        rather than still reading as "needs attention". */
@@ -1124,6 +1140,22 @@
     body.dark-mode input::placeholder,
     body.dark-mode textarea::placeholder { color: var(--ink-soft); opacity: 0.8; }
     body.dark-mode .storage-table input.wl-field { background: transparent; }
+
+    /* Three spots hard-code background:#fff specifically on :focus (a
+       "show this field is active" affordance) — invisible in light mode
+       since inputs are already near-white, but in dark mode it flashes
+       the field white while the inherited dark-mode text color stays
+       light, making it unreadable while actually typing. */
+    body.dark-mode .renewal-notes-input:focus,
+    body.dark-mode .wl-field:focus,
+    body.dark-mode .storage-table input.wl-field:focus {
+        background: var(--dm-card-alt);
+        color: var(--ink);
+    }
+    /* <option> elements mostly ignore surrounding CSS and render with
+       the OS's native dropdown styling, which is white regardless of
+       dark mode — force dark text so it stays readable against that. */
+    body.dark-mode select option { background: #fff; color: #111; }
 
     body.dark-mode .btn.primary,
     body.dark-mode .chip.active,
@@ -1554,8 +1586,8 @@
             <h1 id="waitlistHeading">Waitlist</h1>
             <div class="tag" id="waitlistTagline">Prospect tracking &mdash; shared across agents</div>
         </div>
-        <button type="button" class="btn primary" id="waitlistAddBtn" style="margin-left:auto;">+ Add Prospect</button>
-        <button type="button" class="btn primary" id="storageAddBtn" style="margin-left:auto;display:none;">+ Add Entry</button>
+        <button type="button" class="btn primary" id="waitlistAddBtn" style="margin-left:auto;flex:none;">+ Add Prospect</button>
+        <button type="button" class="btn primary" id="storageAddBtn" style="margin-left:auto;flex:none;display:none;">+ Add Entry</button>
     </div>
 
     <div class="wl-subtabs">
@@ -2014,8 +2046,19 @@ let addingUnit = false; // true while the "+ Add unit" flow is armed
 
 function storageKey(unit) { return 'reve-pamphlet:' + unit; }
 
+// "Available" for the Tour flyer's display purposes means "in today's
+// pricing sheet" — the actual signal that a unit is currently marketed.
+// AVAILABLE_UNITS (used elsewhere, e.g. applyBadgeRow) is a different,
+// narrower thing: which units have a real SecureCafe apply-link ID
+// configured versus a generic waitlist link. Most units have one of
+// those regardless of whether they're occupied right now, so it's not
+// a reliable stand-in for "can this be applied for today" — using it
+// for that caused non-marketed units to still show blank pricing rows
+// and an empty concession section instead of being hidden.
+function isUnitAvailable(u) { return !!PRICING_SUMMARY[u.unit]; }
+
 function defaultDraft(u) {
-    const isAvailable = AVAILABLE_UNITS.has(u.unit);
+    const isAvailable = isUnitAvailable(u);
     const p = isAvailable ? PRICING_SUMMARY[u.unit] : null;
     const matchedRule = findMatchingConcessionRule(u);
     return {
@@ -2369,7 +2412,7 @@ function populateEditorForUnit(unit) {
 
     document.getElementById('syncPricingBtn').style.display = PRICING_SUMMARY[u.unit] ? 'block' : 'none';
 
-    const isAvailable = AVAILABLE_UNITS.has(u.unit);
+    const isAvailable = isUnitAvailable(u);
     document.getElementById('availabilityNote').style.display = isAvailable ? 'none' : 'block';
     document.getElementById('availableField').style.display = isAvailable ? 'block' : 'none';
     document.getElementById('fBestPriceLabel').textContent = isAvailable ? 'Best price' : 'Estimated best rent';
@@ -2714,7 +2757,7 @@ const FOOTER_ACCENT_IMG_SRC = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZA
 function flyerHTML(u, d, opts) {
     opts = opts || {};
     const printable = !!opts.printable;
-    const isAvailable = AVAILABLE_UNITS.has(u.unit);
+    const isAvailable = isUnitAvailable(u);
 
     const terms = (d.otherTerms || []).filter(t => t.price || t.term);
     const termsHtml = terms.length
@@ -3814,16 +3857,17 @@ function renderExpiringList() {
     const rows = list.map(r => {
         const isMtn = MOUNTAIN_VIEW_UNITS.has(r.unit);
         const isCorner = CORNER_UNITS.has(r.unit);
+        const renewalState = RENEWAL_STATE[r.unit];
+        const isRenewed = !!(renewalState && renewalState.renewed);
         const isNotice = r.status === 'Notice';
-        const statusClass = isNotice ? 'status-notice' : 'status-current';
+        const statusLabel = isRenewed ? 'Renewed' : r.status;
+        const statusClass = isRenewed ? 'status-renewed' : (isNotice ? 'status-notice' : 'status-current');
         const leaseToText = r.leaseTo.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        // Every row opens in the Tour tab now — "Notice" units are
-        // confirmed leaving and typically already marketed, so they open
-        // with full pricing; "Current" units usually aren't in the
-        // application-link table yet, so they open with the same
-        // non-available display (no availability date, no lease terms,
-        // no concession, price shown as an estimate) as any other unit
-        // that isn't currently available to apply for.
+        // Every row opens in the Tour tab now — units currently in
+        // today's pricing sheet open with full pricing; anything not
+        // yet marketed (most units here, since they're still occupied)
+        // opens with the non-available display (no availability date,
+        // no lease terms, no concession, price shown as an estimate).
         return `<div class="exp-row clickable" data-unit="${r.unit}" title="Open Apt ${r.unit} in the Tour tab">
             <span class="exp-unit">Apt ${r.unit}</span>
             <span class="exp-col-hide-sm">${escapeHtml(r.floorplan)}</span>
@@ -3831,10 +3875,9 @@ function renderExpiringList() {
             <span class="exp-col-hide-sm">${escapeHtml(r.bldg)} &middot; Fl ${escapeHtml(r.floor)}</span>
             <span>${leaseToText}</span>
             <span class="exp-badges exp-col-hide-sm">
-                <span class="exp-badge ${statusClass}">${escapeHtml(r.status)}</span>
+                <span class="exp-badge ${statusClass}">${escapeHtml(statusLabel)}</span>
                 ${isMtn ? '<span class="exp-badge mountain">Mountain View</span>' : ''}
                 ${isCorner ? '<span class="exp-badge corner">Corner</span>' : ''}
-                <span class="exp-badge open-tour">Open in Tour &rsaquo;</span>
             </span>
         </div>`;
     }).join('');
@@ -4073,7 +4116,7 @@ function renderRenewalTable() {
             <td class="strike-cell">${mtmText}</td>
             <td class="renewal-check-cell"><input type="checkbox" class="renewal-checkbox" data-field="renewed" ${state.renewed ? 'checked' : ''}></td>
             <td class="renewal-check-cell"><input type="checkbox" class="renewal-checkbox" data-field="notice" ${state.notice ? 'checked' : ''}></td>
-            <td><textarea class="renewal-notes-input" rows="2" data-field="notes" placeholder="Add a note&hellip;">${escapeHtml(state.notes)}</textarea></td>
+            <td><div class="renewal-notes-wrap"><div class="renewal-notes-ghost" aria-hidden="true"></div><textarea class="renewal-notes-input" rows="2" data-field="notes" placeholder="Add a note&hellip;">${escapeHtml(state.notes)}</textarea></div></td>
         </tr>`;
     }).join('');
 
@@ -4094,17 +4137,66 @@ function renderRenewalTable() {
             if (field === 'notice' && e.target.checked) state.renewed = false;
             saveRenewalState();
             renderRenewalTable();
+            // A "renewed" flip changes the Expiring tab's status tag and
+            // whether the unit still counts as a possible Waitlist match —
+            // refresh both so they don't go stale until someone happens
+            // to revisit those tabs.
+            renderExpiringList();
+            renderWaitlist();
         });
     });
     [...mount.querySelectorAll('.renewal-notes-input')].forEach(inp => {
+        const ghost = inp.parentElement.querySelector('.renewal-notes-ghost');
         inp.addEventListener('input', (e) => {
             const tr = e.target.closest('tr');
             const unit = tr.getAttribute('data-unit');
             const state = RENEWAL_STATE[unit] = RENEWAL_STATE[unit] || { renewed: false, notice: false, notes: '' };
             state.notes = e.target.value;
             saveRenewalStateDebounced();
+            updateNoteGhost(e.target, ghost);
         });
+        inp.addEventListener('keydown', (e) => {
+            if (e.key !== 'Tab' || !ghost.dataset.suggestion) return;
+            e.preventDefault(); // accept the suggestion instead of tabbing away
+            const full = ghost.dataset.suggestion;
+            inp.value = full;
+            const tr = e.target.closest('tr');
+            const unit = tr.getAttribute('data-unit');
+            const state = RENEWAL_STATE[unit] = RENEWAL_STATE[unit] || { renewed: false, notice: false, notes: '' };
+            state.notes = full;
+            saveRenewalStateDebounced();
+            ghost.innerHTML = '';
+            delete ghost.dataset.suggestion;
+            inp.setSelectionRange(full.length, full.length);
+        });
+        inp.addEventListener('blur', () => { ghost.innerHTML = ''; delete ghost.dataset.suggestion; });
     });
+}
+
+// A short, growable list of common renewal-note phrases. Suggests a
+// completion once what's typed so far is an unambiguous prefix of one
+// of these (case-insensitive) — Tab accepts it, any other key just
+// continues typing normally and the suggestion re-evaluates.
+const RENEWAL_NOTE_SUGGESTIONS = ['lease is out for signature'];
+function updateNoteGhost(textarea, ghostEl) {
+    const val = textarea.value;
+    const lower = val.toLowerCase();
+    let suggestion = null;
+    if (val.length >= 4) {
+        for (const phrase of RENEWAL_NOTE_SUGGESTIONS) {
+            if (phrase.length > lower.length && phrase.startsWith(lower)) {
+                suggestion = val + phrase.slice(val.length);
+                break;
+            }
+        }
+    }
+    if (suggestion) {
+        ghostEl.innerHTML = escapeHtml(val) + '<span class="ghost-suggestion">' + escapeHtml(suggestion.slice(val.length)) + '</span>';
+        ghostEl.dataset.suggestion = suggestion;
+    } else {
+        ghostEl.innerHTML = '';
+        delete ghostEl.dataset.suggestion;
+    }
 }
 
 document.getElementById('renewalFilterStatus').addEventListener('change', (e) => {
@@ -4559,6 +4651,8 @@ function computePossibleUnits(row) {
     return EXPIRING_UNITS.filter(u => {
         if (!waitlistBedsMatchesUnit(row.beds, u)) return false;
         if (cutoff && u.leaseTo > cutoff) return false;
+        const state = RENEWAL_STATE[u.unit];
+        if (state && state.renewed) return false; // already renewing — not actually coming up
         return true;
     }).sort((a, b) => a.leaseTo - b.leaseTo).slice(0, 10);
 }
