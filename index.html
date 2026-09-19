@@ -1088,6 +1088,63 @@
     .storage-table tr.contacted td { color: var(--ink-soft); }
     .storage-table tr.contacted input.storage-name-field { text-decoration: line-through; }
 
+    /* -- MMR / Weekly Stats -- */
+    .mmr-subtabs { display: flex; gap: 6px; margin-bottom: 14px; }
+    .mmr-subpanel { max-width: 100%; }
+    .mmr-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .mmr-table { width: 100%; min-width: 640px; border-collapse: collapse; background: #fff; font-size: 12.5px; }
+    .mmr-table th, .mmr-table td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: middle; }
+    .mmr-table th {
+        background: var(--line-soft);
+        font-family: 'Oswald', var(--sans);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        font-size: 10.5px;
+        font-weight: 600;
+    }
+    .mmr-label { font-weight: 700; width: 260px; }
+    .mmr-hint { font-weight: 400; color: var(--ink-soft); font-size: 10.5px; display: block; }
+    .mmr-value { width: 150px; }
+    .mmr-value input {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 5px 7px;
+        font-family: var(--sans);
+        font-size: 12.5px;
+        background: #fff;
+        color: var(--ink);
+    }
+    .mmr-value input:focus { outline: 1px solid var(--reve-orange); }
+    .mmr-value input.mmr-error { border-color: #c0392b; background: #fbebe9; }
+    .mmr-value.mmr-locked { background: var(--line-soft); color: var(--ink-soft); font-weight: 700; }
+    .mmr-value.mmr-computed { background: #fbeee8; color: var(--reve-orange-dark); font-weight: 700; }
+    .mmr-report { color: var(--ink-soft); font-size: 11px; white-space: pre-line; min-width: 220px; }
+
+    /* -- MMR New Leases / Unit Renewals -- */
+    .mmr-lease-table td { padding: 5px 7px; }
+    .mmr-lease-field {
+        width: 100%;
+        min-width: 90px;
+        box-sizing: border-box;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 5px 7px;
+        font-family: var(--sans);
+        font-size: 12px;
+        background: #fff;
+        color: var(--ink);
+    }
+    .mmr-lease-field:focus { outline: 1px solid var(--reve-orange); }
+    .mmr-lease-field.mmr-next-field {
+        background: #fff7d6;
+        border-color: #e0b400;
+        box-shadow: 0 0 0 2px rgba(224,180,0,0.3);
+    }
+    .mmr-autofill { background: var(--line-soft); color: var(--ink-soft); font-weight: 600; font-size: 12px; white-space: nowrap; }
+    .mmr-remove-cell { width: 34px; text-align: center; }
+
     /* ============================================================
        DARK MODE. Verified by grepping both embedded PDF stylesheets
        (FLYER_STYLE and RENEWAL_LETTER_STYLE) before touching anything:
@@ -1125,6 +1182,7 @@
        redefinitions via inheritance. */
     body.dark-mode input[type="text"],
     body.dark-mode input[type="date"],
+    body.dark-mode input[type="number"],
     body.dark-mode select,
     body.dark-mode textarea,
     body.dark-mode .wl-field,
@@ -1142,6 +1200,7 @@
     body.dark-mode .waitlist-card,
     body.dark-mode .renewal-table,
     body.dark-mode .storage-table,
+    body.dark-mode .mmr-table,
     body.dark-mode .cal-day,
     body.dark-mode .unit-result,
     body.dark-mode .settings-card,
@@ -1161,6 +1220,10 @@
     body.dark-mode input::placeholder,
     body.dark-mode textarea::placeholder { color: var(--ink-soft); opacity: 0.8; }
     body.dark-mode .storage-table input.wl-field { background: transparent; }
+    body.dark-mode .mmr-table th { background: var(--dm-card-alt); color: var(--ink-soft); }
+    body.dark-mode .mmr-value.mmr-locked { background: var(--dm-card-alt); color: var(--ink-soft); }
+    body.dark-mode .mmr-value.mmr-computed { background: #3a2a20; color: var(--dm-accent); }
+    body.dark-mode .mmr-lease-field.mmr-next-field { background: #4a3f0a; border-color: #e0b400; color: var(--ink); }
 
     /* Three spots hard-code background:#fff specifically on :focus (a
        "show this field is active" affordance) — invisible in light mode
@@ -1662,13 +1725,160 @@
     </div>
 
     <div id="adminContent" style="display:none;">
-        <div class="wl-subtabs">
+        <div class="wl-subtabs" id="adminTopSubtabs">
             <button type="button" class="wl-subtab active" data-admin-subtab="mmr">MMR</button>
             <button type="button" class="wl-subtab" data-admin-subtab="commissions">Commissions</button>
             <button type="button" class="wl-subtab" data-admin-subtab="pcard">PCard</button>
         </div>
         <div id="adminPanel-mmr" class="admin-subpanel">
-            <div class="no-unit">MMR &mdash; nothing built here yet.</div>
+            <div class="mmr-subtabs">
+                <button type="button" class="wl-subtab active" data-mmr-subtab="weekly">Weekly Stats</button>
+                <button type="button" class="wl-subtab" data-mmr-subtab="newleases">New Leases</button>
+                <button type="button" class="wl-subtab" data-mmr-subtab="renewals">Unit Renewals</button>
+            </div>
+
+            <div id="mmrPanel-weekly" class="mmr-subpanel">
+                <div class="mmr-table-wrap">
+                <table class="mmr-table">
+                    <thead><tr><th>Field</th><th>Value</th><th>Reports</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td class="mmr-label">Date</td>
+                            <td class="mmr-value"><input type="date" id="mmrDate"></td>
+                            <td class="mmr-report"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Property Name</td>
+                            <td class="mmr-value mmr-locked">R&Ecirc;VE Boulder</td>
+                            <td class="mmr-report"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Total Units</td>
+                            <td class="mmr-value mmr-locked">242</td>
+                            <td class="mmr-report"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Total Vacant as of Sunday</td>
+                            <td class="mmr-value"><input type="number" id="mmrTotalVacant" min="0" step="1"></td>
+                            <td class="mmr-report" id="mmrReport-totalVacant"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Vacant Rented</td>
+                            <td class="mmr-value"><input type="number" id="mmrVacantRented" min="0" step="1"></td>
+                            <td class="mmr-report">Vacant Rented</td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Percentage Leased Units</td>
+                            <td class="mmr-value mmr-computed" id="mmrPctLeased">&mdash;</td>
+                            <td class="mmr-report"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Total Notices <span class="mmr-hint">30 days out from report</span></td>
+                            <td class="mmr-value"><input type="number" id="mmrTotalNotices" min="0" step="1"></td>
+                            <td class="mmr-report" id="mmrReport-totalNotices"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Notice Rented <span class="mmr-hint">for next 30 days</span></td>
+                            <td class="mmr-value"><input type="number" id="mmrNoticeRented" min="0" step="1"></td>
+                            <td class="mmr-report">Manually Count Rented from Notices</td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Percentage Trending</td>
+                            <td class="mmr-value mmr-computed" id="mmrPctTrending">&mdash;</td>
+                            <td class="mmr-report"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Rent Ready Units</td>
+                            <td class="mmr-value"><input type="number" id="mmrRentReady" min="0" step="1"></td>
+                            <td class="mmr-report" id="mmrReport-rentReady"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Model/Guest Suite</td>
+                            <td class="mmr-value"><input type="number" id="mmrModelGuest" min="0" step="1"></td>
+                            <td class="mmr-report"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Down Units</td>
+                            <td class="mmr-value"><input type="number" id="mmrDownUnits" min="0" step="1"></td>
+                            <td class="mmr-report"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Total Weekly Traffic <span class="mmr-hint">(shows)</span></td>
+                            <td class="mmr-value"><input type="number" id="mmrWeeklyTraffic" min="0" step="1"></td>
+                            <td class="mmr-report" id="mmrReport-weeklyTraffic"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Weekly Rentals</td>
+                            <td class="mmr-value"><input type="number" id="mmrWeeklyRentals" min="0" step="1"></td>
+                            <td class="mmr-report"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Closing Ratio</td>
+                            <td class="mmr-value mmr-computed" id="mmrClosingRatio">&mdash;</td>
+                            <td class="mmr-report"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Current MTD Income</td>
+                            <td class="mmr-value"><input type="text" id="mmrMtdIncome" placeholder="$"></td>
+                            <td class="mmr-report" id="mmrReport-mtdIncome"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Delinquency current month</td>
+                            <td class="mmr-value"><input type="text" id="mmrDelinquency" placeholder="$"></td>
+                            <td class="mmr-report" id="mmrReport-delinquency"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Delinquency uncollectable for current month</td>
+                            <td class="mmr-value"><input type="text" id="mmrDelinquencyUncollectable" placeholder="$"></td>
+                            <td class="mmr-report"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Leases Expiring Within 30 Days</td>
+                            <td class="mmr-value"><input type="number" id="mmrLeasesExpiring" min="0" step="1"></td>
+                            <td class="mmr-report" id="mmrReport-leasesExpiring"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Leases Renewed Within 30 Days</td>
+                            <td class="mmr-value"><input type="number" id="mmrLeasesRenewed" min="0" step="1"></td>
+                            <td class="mmr-report"></td>
+                        </tr>
+                        <tr>
+                            <td class="mmr-label">Renewal Ratio</td>
+                            <td class="mmr-value mmr-computed" id="mmrRenewalRatio">&mdash;</td>
+                            <td class="mmr-report"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+                <div class="empty-note" id="mmrSaveStatus" style="margin-top:8px;"></div>
+            </div>
+
+            <div id="mmrPanel-newleases" class="mmr-subpanel" style="display:none;">
+                <button type="button" class="btn primary" id="mmrNewLeaseAddBtn" style="width:auto;padding:8px 16px;">+ New Lease</button>
+                <div class="mmr-table-wrap" style="margin-top:12px;">
+                    <table class="mmr-table mmr-lease-table">
+                        <thead><tr>
+                            <th>Unit</th><th>Unit Type</th><th>Sq Feet</th><th>Renovated</th>
+                            <th>Date Leased</th><th>Move-In Date</th><th># Months of New Lease Term</th>
+                            <th>Market Rent</th><th>Effective Rent</th><th>Upfront One-Time Concession</th><th></th>
+                        </tr></thead>
+                        <tbody id="mmrNewLeaseBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="mmrPanel-renewals" class="mmr-subpanel" style="display:none;">
+                <button type="button" class="btn primary" id="mmrRenewalAddBtn" style="width:auto;padding:8px 16px;">+ New Renewal</button>
+                <div class="mmr-table-wrap" style="margin-top:12px;">
+                    <table class="mmr-table mmr-lease-table">
+                        <thead><tr>
+                            <th>Unit</th><th>Unit Type</th><th>Sq Feet</th><th>Renovated</th>
+                            <th>Date Renewed</th><th># Months of New Lease Term</th>
+                            <th>Previous Eff Rent</th><th>New Eff Rent</th><th></th>
+                        </tr></thead>
+                        <tbody id="mmrRenewalBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
         <div id="adminPanel-commissions" class="admin-subpanel" style="display:none;">
             <div class="no-unit">Commissions &mdash; nothing built here yet.</div>
@@ -4760,7 +4970,7 @@ function renderWaitlist() {
     document.getElementById('wlCountActive').textContent = activeIds.length;
     document.getElementById('wlCountCancelled').textContent = cancelledIds.length;
     document.getElementById('wlCountLeased').textContent = leasedIds.length;
-    [...document.querySelectorAll('.wl-subtab')].forEach(btn => {
+    [...document.querySelectorAll('.wl-subtab[data-subtab]')].forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('data-subtab') === waitlistSubTab);
     });
 
@@ -4891,7 +5101,7 @@ function updateWaitlistViewVisibility() {
     document.getElementById('waitlistTagline').textContent = isStorage ? 'Storage locker interest \u2014 shared across agents' : 'Prospect tracking \u2014 shared across agents';
 }
 
-[...document.querySelectorAll('.wl-subtab')].forEach(btn => {
+[...document.querySelectorAll('.wl-subtab[data-subtab]')].forEach(btn => {
     btn.addEventListener('click', () => {
         waitlistSubTab = btn.getAttribute('data-subtab');
         updateWaitlistViewVisibility();
@@ -5243,14 +5453,361 @@ document.getElementById('adminPasswordInput').addEventListener('keydown', (e) =>
 });
 
 let adminSubTab = 'mmr';
-[...document.querySelectorAll('#tab-admin .wl-subtab')].forEach(btn => {
+[...document.querySelectorAll('#adminTopSubtabs .wl-subtab')].forEach(btn => {
     btn.addEventListener('click', () => {
         adminSubTab = btn.getAttribute('data-admin-subtab');
-        [...document.querySelectorAll('#tab-admin .wl-subtab')].forEach(b => b.classList.toggle('active', b === btn));
+        [...document.querySelectorAll('#adminTopSubtabs .wl-subtab')].forEach(b => b.classList.toggle('active', b === btn));
         ['mmr', 'commissions', 'pcard'].forEach(name => {
             document.getElementById('adminPanel-' + name).style.display = (name === adminSubTab) ? 'block' : 'none';
         });
     });
+});
+
+/* ============================================================
+   MMR — Weekly Stats. A single current/editable record (not a history
+   of past weeks yet) with computed percentages/ratios and date-derived
+   "Reports" notes that all key off the one Date field. Synced through
+   the same shared backend as everything else, under 'mmr-weekly-stats'.
+   ============================================================ */
+const MMR_KEY = 'reve-mmr-weekly';
+const MMR_BACKEND_KEY = 'mmr-weekly-stats';
+const MMR_FIELDS = ['date', 'totalVacant', 'vacantRented', 'totalNotices', 'noticeRented', 'rentReady', 'modelGuest', 'downUnits', 'weeklyTraffic', 'weeklyRentals', 'mtdIncome', 'delinquency', 'delinquencyUncollectable', 'leasesExpiring', 'leasesRenewed'];
+const MMR_FIELD_TO_ID = {
+    date: 'mmrDate', totalVacant: 'mmrTotalVacant', vacantRented: 'mmrVacantRented',
+    totalNotices: 'mmrTotalNotices', noticeRented: 'mmrNoticeRented', rentReady: 'mmrRentReady',
+    modelGuest: 'mmrModelGuest', downUnits: 'mmrDownUnits', weeklyTraffic: 'mmrWeeklyTraffic',
+    weeklyRentals: 'mmrWeeklyRentals', mtdIncome: 'mmrMtdIncome', delinquency: 'mmrDelinquency',
+    delinquencyUncollectable: 'mmrDelinquencyUncollectable', leasesExpiring: 'mmrLeasesExpiring',
+    leasesRenewed: 'mmrLeasesRenewed'
+};
+let MMR_DATA = { modelGuest: '2', downUnits: '17' };
+
+function persistMMRLocal() {
+    try { localStorage.setItem(MMR_KEY, JSON.stringify(MMR_DATA)); } catch (e) {}
+}
+function pushMMRDebounced() {
+    if (BACKEND_URL && APP_MODE !== 'test') backendPush(MMR_BACKEND_KEY, MMR_DATA);
+}
+const pushMMRDebouncedFn = debounce(pushMMRDebounced, 900);
+
+function loadMMRIntoForm() {
+    MMR_FIELDS.forEach(f => {
+        const el = document.getElementById(MMR_FIELD_TO_ID[f]);
+        if (el && MMR_DATA[f] !== undefined) el.value = MMR_DATA[f];
+    });
+}
+function restoreMMRLocal() {
+    try {
+        const raw = localStorage.getItem(MMR_KEY);
+        if (raw) MMR_DATA = Object.assign({ modelGuest: '2', downUnits: '17' }, JSON.parse(raw));
+    } catch (e) {}
+    loadMMRIntoForm();
+    recomputeMMR();
+}
+async function pullMMRFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(MMR_BACKEND_KEY);
+    if (remote) {
+        // Don't clobber a field someone's actively editing right now.
+        const focused = document.activeElement;
+        const focusedField = focused && focused.id && focused.id.startsWith('mmr') ? focused.id : null;
+        MMR_FIELDS.forEach(f => {
+            if (MMR_FIELD_TO_ID[f] === focusedField) return;
+            if (remote[f] !== undefined) MMR_DATA[f] = remote[f];
+        });
+        persistMMRLocal();
+        loadMMRIntoForm();
+        recomputeMMR();
+    } else if (Object.keys(MMR_DATA).some(k => MMR_DATA[k])) {
+        backendPush(MMR_BACKEND_KEY, MMR_DATA);
+    }
+}
+
+function fmtMMRDate(d) { return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`; }
+function mmrMondayBefore(d) {
+    const dow = d.getDay(); // 0=Sun..6=Sat
+    const daysBack = (dow + 6) % 7; // Sun->6, Mon->0, Tue->1 ...
+    const r = new Date(d);
+    r.setDate(r.getDate() - daysBack);
+    return r;
+}
+function mmrStartOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+function mmrEndOfMonth(d) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
+function mmrPlusMonthMinusDay(d) {
+    const r = new Date(d);
+    r.setMonth(r.getMonth() + 1);
+    r.setDate(r.getDate() - 1);
+    return r;
+}
+function setMMRFieldError(id, isError) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('mmr-error', isError);
+}
+function mmrNum(id) {
+    const v = parseFloat(document.getElementById(id).value);
+    return isNaN(v) ? 0 : v;
+}
+
+function recomputeMMR() {
+    const dateVal = document.getElementById('mmrDate').value; // yyyy-mm-dd
+    const d = dateVal ? new Date(dateVal + 'T00:00:00') : null;
+
+    const totalUnits = 242;
+    const totalVacant = mmrNum('mmrTotalVacant');
+    const vacantRented = mmrNum('mmrVacantRented');
+    const totalNotices = mmrNum('mmrTotalNotices');
+    const noticeRented = mmrNum('mmrNoticeRented');
+    const weeklyTraffic = mmrNum('mmrWeeklyTraffic');
+    const weeklyRentals = mmrNum('mmrWeeklyRentals');
+    const leasesExpiring = mmrNum('mmrLeasesExpiring');
+    const leasesRenewed = mmrNum('mmrLeasesRenewed');
+
+    setMMRFieldError('mmrTotalVacant', totalVacant < vacantRented);
+    setMMRFieldError('mmrVacantRented', vacantRented > totalVacant);
+    setMMRFieldError('mmrTotalNotices', totalNotices < noticeRented);
+    setMMRFieldError('mmrNoticeRented', noticeRented > totalNotices);
+
+    const pctLeased = ((totalUnits - (totalVacant - vacantRented)) / totalUnits) * 100;
+    const pctTrending = ((totalUnits - ((totalVacant - vacantRented) + (totalNotices - noticeRented))) / totalUnits) * 100;
+    document.getElementById('mmrPctLeased').textContent = pctLeased.toFixed(1) + '%';
+    document.getElementById('mmrPctTrending').textContent = pctTrending.toFixed(1) + '%';
+
+    document.getElementById('mmrClosingRatio').textContent = weeklyTraffic ? (weeklyRentals / weeklyTraffic).toFixed(2) : '\u2014';
+    document.getElementById('mmrRenewalRatio').textContent = leasesExpiring ? (leasesRenewed / leasesExpiring).toFixed(2) : '\u2014';
+
+    const reportIds = ['mmrReport-totalVacant', 'mmrReport-totalNotices', 'mmrReport-rentReady', 'mmrReport-weeklyTraffic', 'mmrReport-mtdIncome', 'mmrReport-delinquency', 'mmrReport-leasesExpiring'];
+    if (d && !isNaN(d.getTime())) {
+        const mon = mmrMondayBefore(d);
+        document.getElementById('mmrReport-totalVacant').textContent = `BOXSCORE REPORT\n${fmtMMRDate(mon)} \u2013 ${fmtMMRDate(d)} \u2013 Vacant Rented + Vacant Unrented`;
+        document.getElementById('mmrReport-totalNotices').textContent = `ON NOTICE \u2013 ${fmtMMRDate(d)} \u2013 ${fmtMMRDate(mmrPlusMonthMinusDay(d))}`;
+        document.getElementById('mmrReport-rentReady').textContent = `UNIT VACANCY \u2013 ${fmtMMRDate(d)}\nVacant Ready (Rented + Unrented)`;
+        document.getElementById('mmrReport-weeklyTraffic').textContent = `BOXSCORE REPORT\n${fmtMMRDate(mon)} \u2013 ${fmtMMRDate(d)} \u2013 Shows`;
+        document.getElementById('mmrReport-mtdIncome').textContent = `Income from ${fmtMMRDate(mmrStartOfMonth(d))} \u2013 ${fmtMMRDate(d)}`;
+        document.getElementById('mmrReport-delinquency').textContent = `Delinquency as of ${fmtMMRDate(d)}`;
+        document.getElementById('mmrReport-leasesExpiring').textContent = `Expiring leases + Scheduled Lease Renewals before ${fmtMMRDate(mmrEndOfMonth(d))}`;
+    } else {
+        reportIds.forEach(id => { document.getElementById(id).textContent = 'Enter a date above to calculate.'; });
+    }
+}
+
+[...document.querySelectorAll('.mmr-table input')].forEach(el => {
+    el.addEventListener('input', () => {
+        const field = Object.keys(MMR_FIELD_TO_ID).find(f => MMR_FIELD_TO_ID[f] === el.id);
+        if (field) MMR_DATA[field] = el.value;
+        persistMMRLocal();
+        recomputeMMR();
+        const status = document.getElementById('mmrSaveStatus');
+        status.textContent = 'Saved.';
+        pushMMRDebouncedFn();
+    });
+});
+
+[...document.querySelectorAll('.mmr-subtabs .wl-subtab')].forEach(btn => {
+    btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-mmr-subtab');
+        [...document.querySelectorAll('.mmr-subtabs .wl-subtab')].forEach(b => b.classList.toggle('active', b === btn));
+        ['weekly', 'newleases', 'renewals'].forEach(name => {
+            document.getElementById('mmrPanel-' + name).style.display = (name === target) ? 'block' : 'none';
+        });
+    });
+});
+
+/* ============================================================
+   MMR — New Leases / Unit Renewals. Both are row-based tables sharing
+   the same interaction: type a Unit number (highlighted yellow first),
+   Unit Type/Sq Feet auto-fill from the roster, and the highlight then
+   walks field-by-field to whichever is next empty. Field edits update
+   the data model immediately (so nothing is lost), but the visual
+   refresh (autofill + highlight repositioning) happens on blur/change
+   rather than every keystroke — rebuilding the row's HTML mid-keystroke
+   would kick focus out of the field the person is actively typing in.
+   A generic factory since New Leases and Unit Renewals differ only in
+   their field list and storage keys.
+   ============================================================ */
+function createMMRLeaseTableController(opts) {
+    // opts: { localKey, backendKey, fieldsConfig, tbodyId, addBtnId, emptyLabel }
+    let ROWS = {};
+    const DIRTY = new Set();
+
+    function newRowId() { return 'ml_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7); }
+    function persistLocal() { try { localStorage.setItem(opts.localKey, JSON.stringify(ROWS)); } catch (e) {} }
+
+    async function pushDirty() {
+        persistLocal();
+        if (!BACKEND_URL || APP_MODE === 'test') return;
+        const remote = await backendPull(opts.backendKey);
+        const merged = Object.assign({}, remote || {});
+        DIRTY.forEach(id => { if (ROWS[id]) merged[id] = ROWS[id]; else delete merged[id]; });
+        ROWS = merged;
+        DIRTY.clear();
+        persistLocal();
+        backendPush(opts.backendKey, ROWS);
+        render();
+    }
+    const pushDirtyDebounced = debounce(pushDirty, 900);
+
+    async function pullFromBackend() {
+        if (!BACKEND_URL || APP_MODE === 'test') return;
+        const remote = await backendPull(opts.backendKey);
+        if (remote) {
+            const focusedRow = document.activeElement ? document.activeElement.closest('tr[data-row]') : null;
+            const focusedId = focusedRow ? focusedRow.getAttribute('data-row') : null;
+            Object.keys(remote).forEach(id => {
+                if (id === focusedId || DIRTY.has(id)) return;
+                ROWS[id] = remote[id];
+            });
+            persistLocal();
+            render();
+        } else if (Object.keys(ROWS).length) {
+            backendPush(opts.backendKey, ROWS);
+        }
+    }
+
+    function computeNextEmptyKey(row) {
+        for (const f of opts.fieldsConfig) {
+            if (!row[f.key]) return f.key;
+        }
+        return null;
+    }
+
+    function colCount() {
+        return opts.fieldsConfig.reduce((n, f) => n + (f.type === 'unit-lookup' ? 3 : 1), 0) + 1;
+    }
+
+    function renderRowCells(id, row) {
+        const nextKey = computeNextEmptyKey(row);
+        let cells = '';
+        opts.fieldsConfig.forEach(f => {
+            const isNext = f.key === nextKey;
+            const val = row[f.key] || '';
+            if (f.type === 'unit-lookup') {
+                const unitRec = byUnit[val];
+                cells += `<td><input type="text" class="mmr-lease-field${isNext ? ' mmr-next-field' : ''}" data-field="${f.key}" value="${escapeAttr(val)}" placeholder="e.g. 4334"></td>`;
+                cells += `<td class="mmr-autofill">${unitRec ? escapeHtml(unitRec.yardi) : ''}</td>`;
+                cells += `<td class="mmr-autofill">${unitRec ? escapeHtml(unitRec.sqft) : ''}</td>`;
+            } else if (f.type === 'select') {
+                cells += `<td><select class="mmr-lease-field${isNext ? ' mmr-next-field' : ''}" data-field="${f.key}">${f.options.map(o => `<option value="${o}"${val === o ? ' selected' : ''}>${o || '\u2014'}</option>`).join('')}</select></td>`;
+            } else {
+                cells += `<td><input type="${f.type}" class="mmr-lease-field${isNext ? ' mmr-next-field' : ''}" data-field="${f.key}" value="${escapeAttr(val)}"></td>`;
+            }
+        });
+        cells += `<td class="mmr-remove-cell"><button type="button" class="wl-remove" title="Remove">&times;</button></td>`;
+        return cells;
+    }
+
+    // Targeted refresh of one row — updates autofill cells and moves the
+    // yellow highlight — without touching any other row's DOM, so it's
+    // safe to call from a blur handler without stealing focus elsewhere.
+    function refreshRow(id) {
+        const tbody = document.getElementById(opts.tbodyId);
+        const tr = tbody.querySelector(`tr[data-row="${id}"]`);
+        if (!tr) return;
+        const row = ROWS[id];
+        opts.fieldsConfig.forEach(f => {
+            if (f.type === 'unit-lookup') {
+                const unitRec = byUnit[row[f.key]];
+                const autofillCells = tr.querySelectorAll('.mmr-autofill');
+                if (autofillCells[0]) autofillCells[0].textContent = unitRec ? unitRec.yardi : '';
+                if (autofillCells[1]) autofillCells[1].textContent = unitRec ? unitRec.sqft : '';
+            }
+        });
+        const nextKey = computeNextEmptyKey(row);
+        [...tr.querySelectorAll('.mmr-lease-field')].forEach(el => {
+            el.classList.toggle('mmr-next-field', el.getAttribute('data-field') === nextKey);
+        });
+    }
+
+    function wireRow(id) {
+        const tbody = document.getElementById(opts.tbodyId);
+        const tr = tbody.querySelector(`tr[data-row="${id}"]`);
+        if (!tr) return;
+        [...tr.querySelectorAll('.mmr-lease-field')].forEach(el => {
+            const isSelect = el.tagName === 'SELECT';
+            // Selects reliably fire 'change' but not always 'input', so the
+            // data update (and, for selects, the visual refresh too — a
+            // selection is a complete edit, not something to wait for blur
+            // on) both happen there instead.
+            el.addEventListener(isSelect ? 'change' : 'input', (e) => {
+                ROWS[id][e.target.getAttribute('data-field')] = e.target.value;
+                persistLocal();
+                DIRTY.add(id);
+                pushDirtyDebounced();
+                if (isSelect) refreshRow(id);
+            });
+            if (!isSelect) el.addEventListener('blur', () => refreshRow(id));
+        });
+        tr.querySelector('.wl-remove').addEventListener('click', () => {
+            if (!confirm('Remove this entry?')) return;
+            ROWS[id].deleted = true;
+            DIRTY.add(id);
+            pushDirtyDebounced();
+            render();
+        });
+    }
+
+    function render() {
+        const tbody = document.getElementById(opts.tbodyId);
+        if (!tbody) return;
+        const ids = Object.keys(ROWS).filter(id => !ROWS[id].deleted);
+        if (!ids.length) {
+            tbody.innerHTML = `<tr><td colspan="${colCount()}" class="no-unit" style="border:none;">${opts.emptyLabel}</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = ids.map(id => `<tr data-row="${id}">${renderRowCells(id, ROWS[id])}</tr>`).join('');
+        ids.forEach(wireRow);
+    }
+
+    document.getElementById(opts.addBtnId).addEventListener('click', () => {
+        const id = newRowId();
+        const blank = {};
+        opts.fieldsConfig.forEach(f => { blank[f.key] = ''; });
+        ROWS[id] = blank;
+        DIRTY.add(id);
+        persistLocal();
+        render();
+        const firstInput = document.querySelector(`#${opts.tbodyId} tr[data-row="${id}"] .mmr-lease-field`);
+        if (firstInput) firstInput.focus();
+    });
+
+    function init() {
+        try {
+            const raw = localStorage.getItem(opts.localKey);
+            if (raw) ROWS = JSON.parse(raw);
+        } catch (e) { ROWS = {}; }
+        render();
+    }
+
+    return { init, pullFromBackend, render };
+}
+
+const MMR_NEWLEASE_FIELDS = [
+    { key: 'unit', type: 'unit-lookup' },
+    { key: 'renovated', type: 'select', options: ['', 'Yes', 'Partial', 'No'] },
+    { key: 'dateLeased', type: 'date' },
+    { key: 'moveIn', type: 'date' },
+    { key: 'leaseTerm', type: 'number' },
+    { key: 'marketRent', type: 'text' },
+    { key: 'effectiveRent', type: 'text' },
+    { key: 'concession', type: 'text' }
+];
+const MMR_RENEWAL_FIELDS = [
+    { key: 'unit', type: 'unit-lookup' },
+    { key: 'renovated', type: 'select', options: ['', 'Yes', 'Partial', 'No'] },
+    { key: 'dateRenewed', type: 'date' },
+    { key: 'leaseTerm', type: 'number' },
+    { key: 'prevEffRent', type: 'text' },
+    { key: 'newEffRent', type: 'text' }
+];
+
+const mmrNewLeaseController = createMMRLeaseTableController({
+    localKey: 'reve-mmr-newleases', backendKey: 'mmr-newleases',
+    fieldsConfig: MMR_NEWLEASE_FIELDS, tbodyId: 'mmrNewLeaseBody', addBtnId: 'mmrNewLeaseAddBtn',
+    emptyLabel: 'No new leases logged yet. Click "+ New Lease" to add one.'
+});
+const mmrRenewalController = createMMRLeaseTableController({
+    localKey: 'reve-mmr-renewals-log', backendKey: 'mmr-renewals-log',
+    fieldsConfig: MMR_RENEWAL_FIELDS, tbodyId: 'mmrRenewalBody', addBtnId: 'mmrRenewalAddBtn',
+    emptyLabel: 'No renewals logged yet. Click "+ New Renewal" to add one.'
 });
 
 /* ============================================================
@@ -5561,6 +6118,9 @@ setInterval(() => {
     pullWaitlistFromBackend();
     pullConcessionFromBackend();
     pullStorageFromBackend();
+    pullMMRFromBackend();
+    mmrNewLeaseController.pullFromBackend();
+    mmrRenewalController.pullFromBackend();
 }, 25000);
 
 [...document.querySelectorAll('.mark-logo-img')].forEach(img => { img.src = WATERMARK_IMG_SRC; });
@@ -5576,10 +6136,16 @@ initStorage();
 renderStorageList();
 restoreConcessionLocal();
 renderConcessionSummary();
+restoreMMRLocal();
+mmrNewLeaseController.init();
+mmrRenewalController.init();
 try {
     if (localStorage.getItem(APP_MODE_KEY) === 'test') applyAppMode('test');
 } catch (e) { /* ignore */ }
-if (BACKEND_URL) { pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); }
+if (BACKEND_URL) {
+    pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); pullMMRFromBackend();
+    mmrNewLeaseController.pullFromBackend(); mmrRenewalController.pullFromBackend();
+}
 </script>
 </body>
 </html>
