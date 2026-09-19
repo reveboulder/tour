@@ -196,6 +196,22 @@
     }
     .quick-filters.collapsed { display: none; }
     .filter-group { margin-bottom: 2px; }
+    .avail-count-summary {
+        background: var(--line-soft);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 14px;
+    }
+    .avail-count-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: var(--ink-soft);
+        padding: 3px 0;
+    }
+    .avail-count-row b { color: var(--reve-orange-dark); font-size: 13px; }
     .filter-caption {
         display: flex;
         align-items: center;
@@ -415,6 +431,9 @@
         flex: 1 1 200px;
     }
     .pricing-status-text b { color: var(--ink); }
+    .pricing-date-icon { cursor: help; font-weight: 700; display: inline-block; }
+    .pricing-date-icon.good { color: var(--good); }
+    .pricing-date-icon.warn { color: var(--warn); }
     .file-label {
         display: inline-block;
         font-size: 11.5px;
@@ -428,6 +447,19 @@
     }
     .file-label:hover { background: var(--reve-orange-dark); }
     #pricingFileInput { display: none; }
+    #mmrTemplateUpload { display: none; }
+    .mmr-io-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 16px;
+    }
+    .mmr-io-bar .empty-note { flex: 1 1 260px; margin: 0; }
     .pricing-clear {
         font-size: 11px;
         color: var(--ink-soft);
@@ -933,6 +965,8 @@
 
     /* -- Settings tab -- */
     .settings-wrap { max-width: 640px; margin: 0 auto; padding: 0 20px 40px; }
+    .admin-wrap { max-width: 1600px; margin: 0 auto; padding: 0 24px 40px; }
+    .admin-wrap #adminLockScreen { max-width: 480px; }
     .settings-card {
         background: var(--panel);
         border: 1px solid var(--line);
@@ -1144,7 +1178,72 @@
     }
     .mmr-autofill { background: var(--line-soft); color: var(--ink-soft); font-weight: 600; font-size: 12px; white-space: nowrap; }
     .mmr-remove-cell { width: 34px; text-align: center; }
+    /* Shrink before resorting to horizontal scroll — keeps the whole
+       row on one line down to a narrower desktop/tablet width. */
+    @media (max-width: 1300px) {
+        .mmr-lease-field { min-width: 68px; font-size: 11px; padding: 4px 5px; }
+        .mmr-lease-table th, .mmr-lease-table td { padding: 4px 5px; font-size: 11px; }
+        .mmr-autofill { font-size: 11px; }
+    }
+    @media (max-width: 1080px) {
+        .mmr-lease-field { min-width: 56px; font-size: 10px; padding: 3px 4px; }
+        .mmr-lease-table th, .mmr-lease-table td { padding: 3px 4px; font-size: 10px; }
+        .mmr-autofill { font-size: 10px; }
+    }
 
+    /* -- Commissions -- */
+    .commissions-layout { display: flex; gap: 24px; align-items: flex-start; }
+    .commissions-main { flex: 1; min-width: 0; }
+    .commissions-main .mmr-lease-field { min-width: 52px; font-size: 10.5px; padding: 3px 4px; }
+    .commissions-main .mmr-lease-table th, .commissions-main .mmr-lease-table td { padding: 3px 4px; font-size: 10.5px; }
+    .commissions-main .mmr-autofill { font-size: 10.5px; }
+    .commissions-main .mmr-lease-table th { font-size: 9px; letter-spacing: 0; }
+    @media (max-width: 1350px) {
+        .commissions-main .mmr-lease-field { min-width: 42px; font-size: 9.5px; padding: 2px 3px; }
+        .commissions-main .mmr-lease-table th, .commissions-main .mmr-lease-table td { padding: 2px 3px; font-size: 9.5px; }
+        .commissions-main .mmr-autofill { font-size: 9.5px; }
+    }
+    .commissions-sidebar { flex: 0 0 210px; }
+    @media (max-width: 900px) {
+        .commissions-layout { flex-direction: column; }
+        .commissions-sidebar { flex: 0 0 auto; width: 100%; max-width: 320px; }
+    }
+    .mmr-section-title {
+        font-family: 'Oswald', var(--sans);
+        font-weight: 600;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        color: #fff;
+        background: #2f2d2f;
+        padding: 8px 12px;
+        border-radius: 6px 6px 0 0;
+        margin-bottom: 8px;
+    }
+    .mmr-count-badge { font-weight: 400; opacity: 0.8; }
+    .pay-period-card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px 16px;
+        position: sticky;
+        top: 16px;
+    }
+    .pp-block { margin-bottom: 16px; }
+    .pp-block:last-child { margin-bottom: 0; }
+    .pp-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 5px; }
+    .pp-block.current .pp-label { color: var(--reve-orange-dark); }
+    .pp-dates { font-family: var(--mono); font-size: 12.5px; font-weight: 700; color: var(--ink); }
+    .pp-block input[type="date"] {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 6px 8px;
+        font-family: var(--sans);
+        font-size: 12.5px;
+        background: #fff;
+        color: var(--ink);
+    }
     /* ============================================================
        DARK MODE. Verified by grepping both embedded PDF stylesheets
        (FLYER_STYLE and RENEWAL_LETTER_STYLE) before touching anything:
@@ -1212,6 +1311,8 @@
     body.dark-mode .readonly-card,
     body.dark-mode .no-unit,
     body.dark-mode .week-row,
+    body.dark-mode .pay-period-card,
+    body.dark-mode .mmr-io-bar,
     body.dark-mode .concession-banner {
         background: var(--dm-card);
         border-color: var(--line);
@@ -1325,6 +1426,24 @@
             <div class="filter-group">
                 <button type="button" class="filter-caption" data-target="bldgFilters">Building <span class="fc-chevron">&rsaquo;</span></button>
                 <div class="quick-filters collapsed" id="bldgFilters"></div>
+            </div>
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="sqftFilters">Square footage <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="sqftFilters">
+                    <div class="field-row">
+                        <div class="field"><label>Min</label><input type="text" id="sqftMin" placeholder="e.g. 600"></div>
+                        <div class="field"><label>Max</label><input type="text" id="sqftMax" placeholder="e.g. 1200"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="priceFilters">Price <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="priceFilters">
+                    <div class="field-row">
+                        <div class="field"><label>Min</label><input type="text" id="priceMin" placeholder="e.g. 2000"></div>
+                        <div class="field"><label>Max</label><input type="text" id="priceMax" placeholder="e.g. 4000"></div>
+                    </div>
+                </div>
             </div>
             <div class="filter-group">
                 <button type="button" class="filter-caption" data-target="floorFilters">Floor <span class="fc-chevron">&rsaquo;</span></button>
@@ -1476,16 +1595,30 @@
             </div>
         </div>
         <div class="editor-scroll">
-            <div class="section-label" style="margin-top:0;"><span class="dot"></span>Square footage</div>
-            <div class="field-row">
-                <div class="field"><label>Min</label><input type="text" id="availSqftMin" placeholder="e.g. 600"></div>
-                <div class="field"><label>Max</label><input type="text" id="availSqftMax" placeholder="e.g. 1200"></div>
+            <div class="section-label" style="margin-top:0;"><span class="dot"></span>FILTERS</div>
+            <div class="avail-count-summary">
+                <div class="avail-count-row"><span>Total Availability</span><b id="availCountTotal">0</b></div>
+                <div class="avail-count-row"><span>Immediate</span><b id="availCountImmediate">0</b></div>
+                <div class="avail-count-row"><span>Within 30 Days</span><b id="availCountWithin30">0</b></div>
             </div>
 
-            <div class="section-label"><span class="dot"></span>Price</div>
-            <div class="field-row">
-                <div class="field"><label>Min</label><input type="text" id="availPriceMin" placeholder="e.g. 2000"></div>
-                <div class="field"><label>Max</label><input type="text" id="availPriceMax" placeholder="e.g. 4000"></div>
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="availSqftFilters">Square footage <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="availSqftFilters">
+                    <div class="field-row">
+                        <div class="field"><label>Min</label><input type="text" id="availSqftMin" placeholder="e.g. 600"></div>
+                        <div class="field"><label>Max</label><input type="text" id="availSqftMax" placeholder="e.g. 1200"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="filter-group">
+                <button type="button" class="filter-caption" data-target="availPriceFilters">Price <span class="fc-chevron">&rsaquo;</span></button>
+                <div class="quick-filters collapsed" id="availPriceFilters">
+                    <div class="field-row">
+                        <div class="field"><label>Min</label><input type="text" id="availPriceMin" placeholder="e.g. 2000"></div>
+                        <div class="field"><label>Max</label><input type="text" id="availPriceMax" placeholder="e.g. 4000"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="filter-group">
@@ -1704,7 +1837,7 @@
 
 <!-- ============ ADMIN TAB ============ -->
 <div class="tab-panel" id="tab-admin">
-<div class="settings-wrap">
+<div class="admin-wrap">
     <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 24px;">
         <img class="mark mark-logo-img" alt="RÊVE">
         <div>
@@ -1731,6 +1864,12 @@
             <button type="button" class="wl-subtab" data-admin-subtab="pcard">PCard</button>
         </div>
         <div id="adminPanel-mmr" class="admin-subpanel">
+            <div class="mmr-io-bar">
+                <label class="file-label" for="mmrTemplateUpload">Upload Previous Week's MMR (.xlsx)</label>
+                <input type="file" id="mmrTemplateUpload" accept=".xlsx">
+                <button type="button" class="btn primary" id="mmrExportBtn" style="width:auto;padding:8px 16px;">Download New MMR</button>
+                <div class="empty-note" id="mmrTemplateStatus">No template uploaded &mdash; export will use a fresh sheet layout built to match the standard MMR format.</div>
+            </div>
             <div class="mmr-subtabs">
                 <button type="button" class="wl-subtab active" data-mmr-subtab="weekly">Weekly Stats</button>
                 <button type="button" class="wl-subtab" data-mmr-subtab="newleases">New Leases</button>
@@ -1881,7 +2020,58 @@
             </div>
         </div>
         <div id="adminPanel-commissions" class="admin-subpanel" style="display:none;">
-            <div class="no-unit">Commissions &mdash; nothing built here yet.</div>
+            <div class="mmr-io-bar">
+                <button type="button" class="btn primary" id="commExportBtn" style="width:auto;padding:8px 16px;">Export to Excel</button>
+                <div class="empty-note">Exports both tables in one workbook, laid out to match the original Move-Ins/Renewals report format.</div>
+            </div>
+            <div class="commissions-layout">
+                <div class="commissions-main">
+                    <div class="mmr-section-title">MOVE-INS <span class="mmr-count-badge" id="commMoveInCount">(0)</span></div>
+                    <button type="button" class="btn primary" id="commMoveInAddBtn" style="width:auto;padding:8px 16px;">+ Add Move-In</button>
+                    <div class="mmr-table-wrap" style="margin-top:10px;">
+                        <table class="mmr-table mmr-lease-table">
+                            <thead><tr>
+                                <th>Property</th><th>Unit</th><th>Unit Type</th><th>Resident</th><th>Date</th>
+                                <th>Status</th><th>Rent</th><th>Deposit</th><th>Move In</th><th>Lease Expiration</th>
+                                <th>Move Out</th><th>Lease Term</th><th>Agent</th><th>Bonus</th><th></th>
+                            </tr></thead>
+                            <tbody id="commMoveInBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="mmr-section-title" style="margin-top:28px;">RENEWALS <span class="mmr-count-badge" id="commRenewalCount">(0)</span></div>
+                    <button type="button" class="btn primary" id="commRenewalAddBtn" style="width:auto;padding:8px 16px;">+ Add Renewal</button>
+                    <div class="mmr-table-wrap" style="margin-top:10px;">
+                        <table class="mmr-table mmr-lease-table">
+                            <thead><tr>
+                                <th>Property</th><th>Unit</th><th>Unit Type</th><th>Resident</th><th>Date</th>
+                                <th>Status</th><th>Rent</th><th>Deposit</th><th>Move In</th><th>Lease Expiration</th>
+                                <th>Move Out</th><th>Lease Term</th><th>Lease Start</th><th></th>
+                            </tr></thead>
+                            <tbody id="commRenewalBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="commissions-sidebar">
+                    <div class="pay-period-card">
+                        <div class="section-label" style="margin-top:0;"><span class="dot"></span>Pay Periods</div>
+                        <div class="pp-block">
+                            <div class="pp-label">Previous Pay Period</div>
+                            <div class="pp-dates" id="ppPrevRange">&mdash;</div>
+                        </div>
+                        <div class="pp-block">
+                            <div class="pp-label">Next Pay Period</div>
+                            <div class="pp-dates" id="ppNextRange">&mdash;</div>
+                        </div>
+                        <div class="pp-block current">
+                            <div class="pp-label">Current Pay Period <span class="hint">start date is editable</span></div>
+                            <input type="date" id="ppCurrentStart">
+                            <div class="pp-dates" id="ppCurrentRange" style="margin-top:6px;">&mdash;</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div id="adminPanel-pcard" class="admin-subpanel" style="display:none;">
             <div class="no-unit">PCard &mdash; nothing built here yet.</div>
@@ -2206,13 +2396,35 @@ function pricingIsStale() {
     return !!PRICING_META && PRICING_META.schemaVersion !== PRICING_SCHEMA_VERSION;
 }
 
+// Parses a date out of common pricing-sheet filename patterns
+// (e.g. "9_20_26.csv", "09-20-2026.csv") for the upload-freshness check.
+function parsePricingFilenameDate(filename) {
+    const m = String(filename || '').match(/(\d{1,2})[_.\-](\d{1,2})[_.\-](\d{2,4})/);
+    if (!m) return null;
+    let [, mo, da, yr] = m;
+    yr = yr.length === 2 ? '20' + yr : yr;
+    const d = new Date(parseInt(yr, 10), parseInt(mo, 10) - 1, parseInt(da, 10));
+    return isNaN(d.getTime()) ? null : d;
+}
+function sameCalendarDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
 function renderPricingStatus() {
     const el = document.getElementById('pricingStatus');
     const clearBtn = document.getElementById('pricingClearBtn');
     if (PRICING_META) {
         const when = new Date(PRICING_META.uploadedAt);
         const whenText = when.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-        let html = `<b>${PRICING_META.unitCount} units</b> loaded from ${escapeHtml(PRICING_META.filename)}<br>Uploaded ${whenText}`;
+        const today = new Date();
+        let iconHtml = '';
+        if (sameCalendarDay(when, today)) {
+            const fnDate = parsePricingFilenameDate(PRICING_META.filename);
+            iconHtml = (fnDate && sameCalendarDay(fnDate, today))
+                ? `<span class="pricing-date-icon good" title="Sheet name matches today's date">&#10003;</span>`
+                : `<span class="pricing-date-icon warn" title="Pricing sheet does not match current date">&#9888;</span>`;
+        }
+        let html = `<b>${PRICING_META.unitCount} units</b> loaded from ${escapeHtml(PRICING_META.filename)} ${iconHtml}<br>Uploaded ${whenText}`;
         if (pricingIsStale()) {
             html += `<br><b style="color:var(--warn);">Re-upload this file</b> for full functionality (per-term price autofill, date-sorted search — added since this was loaded).`;
         }
@@ -2492,12 +2704,22 @@ function updateFilterCaptionStates() {
 function runSearch() {
     const q = searchInput.value.trim().toLowerCase();
     const marketed = marketedUnits();
+    const sqftB = availNumBounds('sqftMin', 'sqftMax');
+    const priceB = availNumBounds('priceMin', 'priceMax');
     let list = UNITS.filter(u => marketed.has(u.unit));
     if (activeBldgFilter) list = list.filter(u => u.bldg === activeBldgFilter);
     if (activeFloorFilter) list = list.filter(u => u.floor === activeFloorFilter);
     if (activeTypeFilter) list = list.filter(u => unitTypeCategory(u) === activeTypeFilter);
     if (activeMountainView) list = list.filter(u => isMountainView(u));
     if (activeFloorplanFilter) list = list.filter(u => u.floorplan === activeFloorplanFilter);
+    list = list.filter(u => {
+        const sqft = parseFloat(u.sqft);
+        if (!isNaN(sqft) && (sqft < sqftB.min || sqft > sqftB.max)) return false;
+        const p = PRICING_SUMMARY[u.unit];
+        const price = p ? parsePriceNum(p.bestPrice) : null;
+        if (price !== null && (price < priceB.min || price > priceB.max)) return false;
+        return true;
+    });
     if (q) {
         list = list.filter(u =>
             u.unit.toLowerCase().includes(q) ||
@@ -2560,6 +2782,9 @@ searchInput.addEventListener('keydown', (e) => {
         const exact = byUnit[searchInput.value.trim()];
         if (exact) selectUnit(exact.unit);
     }
+});
+['sqftMin', 'sqftMax', 'priceMin', 'priceMax'].forEach(id => {
+    document.getElementById(id).addEventListener('input', runSearch);
 });
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.picker-block')) resultsBox.classList.remove('open');
@@ -3509,6 +3734,32 @@ function availNumBounds(minId, maxId) {
     return { min: isNaN(min) ? -Infinity : min, max: isNaN(max) ? Infinity : max };
 }
 
+function renderAvailFilterCounts() {
+    const totalEl = document.getElementById('availCountTotal');
+    if (!totalEl) return;
+    if (!PRICING_META) {
+        totalEl.textContent = '0';
+        document.getElementById('availCountImmediate').textContent = '0';
+        document.getElementById('availCountWithin30').textContent = '0';
+        return;
+    }
+    const units = availFilteredUnits();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const in30 = new Date(today.getTime() + 30 * 86400000);
+    let immediate = 0, within30 = 0;
+    units.forEach(u => {
+        const p = PRICING_SUMMARY[u.unit];
+        if (!p || p.availableSortKey === undefined || !isFinite(p.availableSortKey)) return;
+        const d = new Date(p.availableSortKey);
+        if (d <= today) immediate++;
+        if (d <= in30) within30++;
+    });
+    totalEl.textContent = units.length;
+    document.getElementById('availCountImmediate').textContent = immediate;
+    document.getElementById('availCountWithin30').textContent = within30;
+}
+
 function availFilteredUnits() {
     const marketed = marketedUnits();
     const sqftB = availNumBounds('availSqftMin', 'availSqftMax');
@@ -3556,6 +3807,8 @@ function renderCalendar() {
     const summaryEl = document.getElementById('calMonthSummary');
     const banner = document.getElementById('availBanner');
     if (!grid || !label) return;
+
+    renderAvailFilterCounts();
 
     if (!PRICING_META) {
         label.textContent = calViewMode === 'week'
@@ -3773,9 +4026,14 @@ document.getElementById('calNextBtn').addEventListener('click', () => {
     renderCalendar();
 });
 document.getElementById('calTodayBtn').addEventListener('click', () => {
-    calFocusedDay = null;
-    calViewDate = new Date();
-    if (calViewMode === 'month') calViewDate.setDate(1);
+    // Opens straight into today's day view, rather than just landing on
+    // the current month and requiring a second click on today's cell.
+    const today = new Date();
+    calViewMode = 'month';
+    document.getElementById('calViewMonthBtn').classList.add('active');
+    document.getElementById('calViewWeekBtn').classList.remove('active');
+    calViewDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    calFocusedDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     renderCalendar();
 });
 document.getElementById('calViewMonthBtn').addEventListener('click', () => {
@@ -4866,6 +5124,12 @@ function parseWaitlistSingleDate(s) {
         const d = new Date(parseInt(m[3], 10), parseInt(m[1], 10) - 1, parseInt(m[2], 10));
         return isNaN(d.getTime()) ? null : d;
     }
+    // 2-digit year, e.g. "7/31/27" -> 2027.
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+    if (m) {
+        const d = new Date(2000 + parseInt(m[3], 10), parseInt(m[1], 10) - 1, parseInt(m[2], 10));
+        return isNaN(d.getTime()) ? null : d;
+    }
     m = s.match(/^(\d{1,2})\/(\d{1,2})$/);
     if (m) {
         const today = new Date();
@@ -4885,6 +5149,63 @@ function parseWaitlistMoveInCutoff(raw) {
     const yearOnly = s.match(/^(20\d{2})\b/);
     if (yearOnly && s.indexOf('/') === -1) return new Date(parseInt(yearOnly[1], 10), 11, 31);
     return parseWaitlistSingleDate(s);
+}
+
+// Shifts a date by monthDelta months, keeping the same day-of-month when
+// valid and clamping to the target month's last day otherwise (e.g. May
+// 31 minus 1 month -> Apr 30, not an invalid "May -1").
+function waitlistMonthShift(d, monthDelta) {
+    const targetMonthLastDay = new Date(d.getFullYear(), d.getMonth() + monthDelta + 1, 0).getDate();
+    const day = Math.min(d.getDate(), targetMonthLastDay);
+    return new Date(d.getFullYear(), d.getMonth() + monthDelta, day);
+}
+
+// "Possible Upcoming Units" specifically wants a WINDOW around the
+// prospect's stated move-in date — 2 months before it through 1 month
+// after — rather than "anything up to that date" (parseWaitlistMoveInCutoff,
+// used for sorting/filtering elsewhere, stays as-is; this is separate).
+// A bare year ("2027") is a special case: the whole year, no +/-2/+1
+// adjustment, since there's no specific date to center a window on. A
+// "Month Year" value ("January 2027") is treated as the end of that
+// month, then gets the normal +/-2/+1 window from there.
+function parseWaitlistMoveInWindow(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return null; // unbounded — no date stated
+
+    const bareYear = s.match(/^(20\d{2})$/);
+    if (bareYear) {
+        const y = parseInt(bareYear[1], 10);
+        return { start: new Date(y, 0, 1), end: new Date(y, 11, 31) };
+    }
+
+    const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+    const monthYear = s.toLowerCase().match(/^([a-z]+)\s+(20\d{2})$/);
+    if (monthYear && monthNames.includes(monthYear[1])) {
+        const mIdx = monthNames.indexOf(monthYear[1]);
+        const endOfMonth = new Date(parseInt(monthYear[2], 10), mIdx + 1, 0);
+        return { start: waitlistMonthShift(endOfMonth, -2), end: waitlistMonthShift(endOfMonth, 1) };
+    }
+
+    // Range ("8/1 - 9/30") — use the later bound (same convention as
+    // parseWaitlistMoveInCutoff), then window around that resolved date.
+    const rangeMatch = s.match(/^(.+?)\s*-\s*(.+)$/);
+    if (rangeMatch) {
+        const resolved = parseWaitlistSingleDate(rangeMatch[2].trim()) || parseWaitlistSingleDate(rangeMatch[1].trim());
+        if (resolved) return { start: waitlistMonthShift(resolved, -2), end: waitlistMonthShift(resolved, 1) };
+    }
+
+    // Leading year with trailing text ("2027 flexible") and no slash —
+    // treat the same as a bare year.
+    const yearOnly = s.match(/^(20\d{2})\b/);
+    if (yearOnly && s.indexOf('/') === -1) {
+        const y = parseInt(yearOnly[1], 10);
+        return { start: new Date(y, 0, 1), end: new Date(y, 11, 31) };
+    }
+
+    const exact = parseWaitlistSingleDate(s);
+    if (exact) return { start: waitlistMonthShift(exact, -2), end: waitlistMonthShift(exact, 1) };
+
+    return null; // unparseable — unbounded
 }
 
 // Handles the full Beds vocabulary: a plain number, a "0-1"/"1-2"/"2-3"
@@ -4908,12 +5229,12 @@ function waitlistBedsMatchesUnit(bedsVal, u) {
 function fmtShortDate(d) { return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`; }
 
 function computePossibleUnits(row) {
-    const cutoff = parseWaitlistMoveInCutoff(row.moveIn);
+    const window = parseWaitlistMoveInWindow(row.moveIn);
     const todayMidnight = new Date();
     todayMidnight.setHours(0, 0, 0, 0);
     return EXPIRING_UNITS.filter(u => {
         if (!waitlistBedsMatchesUnit(row.beds, u)) return false;
-        if (cutoff && u.leaseTo > cutoff) return false;
+        if (window && (u.leaseTo < window.start || u.leaseTo > window.end)) return false;
         if (u.leaseTo < todayMidnight) return false; // already past — not actually upcoming
         const state = RENEWAL_STATE[u.unit];
         if (state && state.renewed) return false; // already renewing — not actually coming up
@@ -5613,6 +5934,198 @@ function recomputeMMR() {
 });
 
 /* ============================================================
+   MMR upload / export. Uploading last week's .xlsx isn't stored beyond
+   this browser session (kept in memory only, not localStorage/backend —
+   a parsed workbook is large and this is meant as a one-time starting
+   point right before generating this week's file, not something that
+   needs to persist). Export always rebuilds the three data sheets
+   (Weekly Stats, Unit Leasing Detail, Unit Renewal Detail) fresh from
+   the site's current data — column order and formulas matched against
+   Justin's actual MMR template — and, when a template was uploaded,
+   carries over its other sheets (Weekly Traffic Detail, Instructions,
+   List) untouched so nothing from the original file is lost.
+   ============================================================ */
+let MMR_TEMPLATE_WORKBOOK = null;
+
+document.getElementById('mmrTemplateUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        try {
+            const data = new Uint8Array(evt.target.result);
+            MMR_TEMPLATE_WORKBOOK = XLSX.read(data, { type: 'array', cellDates: true });
+            document.getElementById('mmrTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; its other sheets (Weekly Traffic Detail, Instructions, List) will be carried over as-is in the export.`;
+        } catch (err) {
+            alert("Could not read that file. Make sure it's a valid MMR .xlsx export.");
+        }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = '';
+});
+
+function mmrExcelDateFromInput(inputVal) {
+    if (!inputVal) return null;
+    const [y, m, d] = inputVal.split('-').map(Number);
+    return new Date(y, m - 1, d);
+}
+// Strips "$"/commas and parses a number — MTD Income/Delinquency fields
+// are free-text on the site (so agents can type "$1,200"), but the
+// export wants real numbers wherever that's actually possible.
+function parseMoneyLoose(s) {
+    if (!s) return null;
+    const n = parseFloat(String(s).replace(/[$,]/g, ''));
+    return isNaN(n) ? null : n;
+}
+function mmrNumOrNull(id) {
+    const v = parseFloat(document.getElementById(id).value);
+    return isNaN(v) ? null : v;
+}
+
+function buildWeeklyStatsSheet() {
+    const d = mmrExcelDateFromInput(document.getElementById('mmrDate').value);
+    const totalUnits = 242;
+    const totalVacant = mmrNumOrNull('mmrTotalVacant') || 0;
+    const vacantRented = mmrNumOrNull('mmrVacantRented') || 0;
+    const totalNotices = mmrNumOrNull('mmrTotalNotices') || 0;
+    const noticeRented = mmrNumOrNull('mmrNoticeRented') || 0;
+    const weeklyTraffic = mmrNumOrNull('mmrWeeklyTraffic') || 0;
+    const weeklyRentals = mmrNumOrNull('mmrWeeklyRentals') || 0;
+    const leasesExpiring = mmrNumOrNull('mmrLeasesExpiring') || 0;
+    const leasesRenewed = mmrNumOrNull('mmrLeasesRenewed') || 0;
+    const pctLeased = (totalUnits - (totalVacant - vacantRented)) / totalUnits;
+    const pctTrending = (totalUnits - ((totalVacant - vacantRented) + (totalNotices - noticeRented))) / totalUnits;
+    const closingRatio = weeklyTraffic ? (weeklyRentals / weeklyTraffic) : 0;
+    const renewalRatio = leasesExpiring ? (leasesRenewed / leasesExpiring) : 0;
+
+    const aoa = [
+        ['Date:  ', d, "Enter Sunday's date. Reporting period is from Monday to Sunday. "],
+        ['Property Name:', 'Reve Boulder', 'Select property name from drop down list.'],
+        ['Total Units:', totalUnits, 'Total number of units at property'],
+        ['Total Vacant as of Sunday: cannot be less than vacants rented', totalVacant, 'Property Status Report'],
+        ['Vacant - Rented: cannot be more than total vacant ', vacantRented, 'Property Status Report '],
+        ['Percentage Leased Units:  ', pctLeased, 'DO NOT FILL IN THIS CELL - this will autofill'],
+        ['Total Notices: 30 days out from report; cannot be less than notices rented', totalNotices, 'Manually count the total of all units that are on notice (rented and unrented) with a vacate date within 30 days from the report date above'],
+        ['Notice - Rented: for next 30 days; cannot be more than total notices', noticeRented, 'Manually count the total of all units that are on notice (rented only) with a vacate date within 30 days from the report date above'],
+        ['Percentage Trending:  ', pctTrending, 'DO NOT FILL IN THIS CELL - this will autofill'],
+        ['Rent Ready Units:', mmrNumOrNull('mmrRentReady') || 0, 'Manually count all vacant units (rented and unrented) that are listed as made ready'],
+        ['Model/Guest Suite', mmrNumOrNull('mmrModelGuest') || 0, 'Refer to last page under Model designation'],
+        ['Down Units:', mmrNumOrNull('mmrDownUnits') || 0, 'Property Status Report'],
+        ['Total Weekly Traffic: (shows)', weeklyTraffic, 'Property Status Report'],
+        ['Weekly Rentals:', weeklyRentals, 'Property Status Report'],
+        ['Closing Ratio: ', closingRatio, 'DO NOT FILL IN THIS CELL - this will autofill'],
+        ['Current MTD Income:', parseMoneyLoose(document.getElementById('mmrMtdIncome').value), 'Deposit Summary Report'],
+        ['Delinquency current month cannot be less than uncollectable amount', parseMoneyLoose(document.getElementById('mmrDelinquency').value), 'Residential AR Analytics (Total Delinquency - Past Resident Delinquency)'],
+        ['Delinquency uncollectable for current month ', parseMoneyLoose(document.getElementById('mmrDelinquencyUncollectable').value), 'Estimate the total delinquency that you do not expect to collect'],
+        ['Leases Expiring Within 30 Days:', leasesExpiring, 'Resident Lease Expirations'],
+        ['Leases Renewed Within 30 Days:', leasesRenewed, 'Resident Lease Expirations - Manually count all leases showing an in place renewal date'],
+        ['Renewal Ratio: ', renewalRatio, 'DO NOT FILL IN THIS CELL - this will autofill']
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{ wch: 55 }, { wch: 16 }, { wch: 60 }];
+    // Percentage cells display as %, not raw decimals.
+    ['B6', 'B9', 'B15', 'B21'].forEach(addr => { if (ws[addr]) ws[addr].z = '0.0%'; });
+    if (ws['B1']) ws['B1'].z = 'mm/dd/yyyy';
+    return ws;
+}
+
+// Net Effective Rent = Effective Rent - (Concession / Lease Term), same
+// formula as the source template's K column; Difference % columns match
+// its L/M columns (Market vs. Net, and Market vs. straight Effective).
+function buildUnitLeasingDetailSheet() {
+    const d = new Date();
+    const rows = mmrNewLeaseController.getRows();
+    const dataRows = Object.keys(rows).filter(id => !rows[id].deleted).map(id => {
+        const r = rows[id];
+        const term = parseFloat(r.leaseTerm) || 0;
+        const market = parseFloat(r.marketRent) || 0;
+        const eff = parseFloat(r.effectiveRent) || 0;
+        const conc = parseFloat(r.concession) || 0;
+        const net = term ? (eff - (conc / term)) : eff;
+        const diffWithConc = net ? (market / net - 1) : null;
+        const diffWithoutConc = eff ? (market / eff - 1) : null;
+        return [
+            r.unit || '', byUnit[r.unit] ? byUnit[r.unit].yardi : '', byUnit[r.unit] ? parseFloat(byUnit[r.unit].sqft) || byUnit[r.unit].sqft : '',
+            r.renovated || '', mmrExcelDateFromInput(r.dateLeased), mmrExcelDateFromInput(r.moveIn),
+            term || '', market || '', eff || '', conc || '', net, diffWithConc, diffWithoutConc, ''
+        ];
+    });
+    const aoa = [
+        ['Reve Boulder', '', '', '', '', '', 'NEW LEASES'],
+        [d, '', '', '', '', '', 'Report: Boxscore Summary'],
+        [],
+        ['UNIT NUMBER', 'UNIT TYPE', 'SQ FEET', 'RENOVATED (Yes/Partial/No)', 'DATE LEASED', 'MOVE-IN DATE', '# MONTHS OF NEW LEASE TERM', 'MARKET RENT', 'EFFECTIVE RENT', 'UPFRONT ONE TIME CONC', 'NET EFFECTIVE RENT', 'Difference b/t Market and Eff Rent w/ Conc', 'Difference b/t Market and Eff Rent w/o Conc', 'Notes'],
+        ...dataRows
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 9 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 24 }];
+    for (let i = 0; i < dataRows.length; i++) {
+        const rowNum = i + 5; // data starts at row 5 (1-indexed)
+        ['E', 'F'].forEach(col => { const a = col + rowNum; if (ws[a]) ws[a].z = 'mm/dd/yyyy'; });
+        ['L', 'M'].forEach(col => { const a = col + rowNum; if (ws[a] && ws[a].v !== null) ws[a].z = '0.0%'; });
+    }
+    return ws;
+}
+
+// RENEWAL CONC isn't collected on the site's Unit Renewals table, so it
+// exports as 0 — Net Effective Rent then just equals New Eff Rent.
+function buildUnitRenewalDetailSheet() {
+    const d = new Date();
+    const rows = mmrRenewalController.getRows();
+    const dataRows = Object.keys(rows).filter(id => !rows[id].deleted).map(id => {
+        const r = rows[id];
+        const term = parseFloat(r.leaseTerm) || 0;
+        const prevEff = parseFloat(r.prevEffRent) || 0;
+        const newEff = parseFloat(r.newEffRent) || 0;
+        const conc = 0;
+        const net = term ? (newEff - (conc / term)) : newEff;
+        const increasePct = net ? (1 - (prevEff / net)) : null;
+        return [
+            r.unit || '', byUnit[r.unit] ? byUnit[r.unit].yardi : '', byUnit[r.unit] ? parseFloat(byUnit[r.unit].sqft) || byUnit[r.unit].sqft : '',
+            r.renovated || '', mmrExcelDateFromInput(r.dateRenewed), term || '', prevEff || '', newEff || '', conc, net, increasePct
+        ];
+    });
+    const aoa = [
+        ['Reve Boulder', '', '', '', '', 'UNIT RENEWALS'],
+        [d, '', '', '', '', 'Report: Resident Lease Expirations'],
+        [],
+        ['UNIT NUMBER', 'UNIT TYPE', 'SQ FEET', 'RENOVATED (Yes/Partial/No)', 'DATE RENEWED', '# MONTHS OF NEW LEASE TERM', 'PREVIOUS EFF RENT', 'NEW EFF RENT', 'RENEWAL CONC', 'NET EFFECTIVE RENT', 'Increase %'],
+        ...dataRows
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{ wch: 10 }, { wch: 10 }, { wch: 9 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 11 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 10 }];
+    for (let i = 0; i < dataRows.length; i++) {
+        const rowNum = i + 5;
+        const a1 = 'E' + rowNum; if (ws[a1]) ws[a1].z = 'mm/dd/yyyy';
+        const a2 = 'K' + rowNum; if (ws[a2] && ws[a2].v !== null) ws[a2].z = '0.0%';
+    }
+    return ws;
+}
+
+document.getElementById('mmrExportBtn').addEventListener('click', () => {
+    const wb = XLSX.utils.book_new();
+    const dateVal = document.getElementById('mmrDate').value;
+    const dateLabel = dateVal ? dateVal.replace(/-/g, '_') : 'undated';
+
+    XLSX.utils.book_append_sheet(wb, buildWeeklyStatsSheet(), 'Weekly Stats');
+    XLSX.utils.book_append_sheet(wb, buildUnitLeasingDetailSheet(), 'Unit Leasing Detail');
+    XLSX.utils.book_append_sheet(wb, buildUnitRenewalDetailSheet(), 'Unit Renewal Detail');
+
+    // Carry over any other sheets from an uploaded template untouched
+    // (Weekly Traffic Detail, Instructions, List) — this app doesn't
+    // collect that data, so there's nothing to refresh in them, but no
+    // reason to drop them from the export either.
+    if (MMR_TEMPLATE_WORKBOOK) {
+        MMR_TEMPLATE_WORKBOOK.SheetNames.forEach(name => {
+            if (['Weekly Stats', 'Unit Leasing Detail', 'Unit Renewal Detail'].includes(name)) return;
+            XLSX.utils.book_append_sheet(wb, MMR_TEMPLATE_WORKBOOK.Sheets[name], name);
+        });
+    }
+
+    XLSX.writeFile(wb, `MMR_-_${dateLabel}_-_REVE.xlsx`);
+});
+
+/* ============================================================
    MMR — New Leases / Unit Renewals. Both are row-based tables sharing
    the same interaction: type a Unit number (highlighted yellow first),
    Unit Type/Sq Feet auto-fill from the roster, and the highlight then
@@ -5671,7 +6184,7 @@ function createMMRLeaseTableController(opts) {
     }
 
     function colCount() {
-        return opts.fieldsConfig.reduce((n, f) => n + (f.type === 'unit-lookup' ? 3 : 1), 0) + 1;
+        return opts.fieldsConfig.reduce((n, f) => n + (f.type === 'unit-lookup' ? 1 + f.autofillKeys.length : 1), 0) + 1;
     }
 
     function renderRowCells(id, row) {
@@ -5683,8 +6196,9 @@ function createMMRLeaseTableController(opts) {
             if (f.type === 'unit-lookup') {
                 const unitRec = byUnit[val];
                 cells += `<td><input type="text" class="mmr-lease-field${isNext ? ' mmr-next-field' : ''}" data-field="${f.key}" value="${escapeAttr(val)}" placeholder="e.g. 4334"></td>`;
-                cells += `<td class="mmr-autofill">${unitRec ? escapeHtml(unitRec.yardi) : ''}</td>`;
-                cells += `<td class="mmr-autofill">${unitRec ? escapeHtml(unitRec.sqft) : ''}</td>`;
+                f.autofillKeys.forEach(k => {
+                    cells += `<td class="mmr-autofill">${unitRec ? escapeHtml(String(unitRec[k])) : ''}</td>`;
+                });
             } else if (f.type === 'select') {
                 cells += `<td><select class="mmr-lease-field${isNext ? ' mmr-next-field' : ''}" data-field="${f.key}">${f.options.map(o => `<option value="${o}"${val === o ? ' selected' : ''}>${o || '\u2014'}</option>`).join('')}</select></td>`;
             } else {
@@ -5707,8 +6221,9 @@ function createMMRLeaseTableController(opts) {
             if (f.type === 'unit-lookup') {
                 const unitRec = byUnit[row[f.key]];
                 const autofillCells = tr.querySelectorAll('.mmr-autofill');
-                if (autofillCells[0]) autofillCells[0].textContent = unitRec ? unitRec.yardi : '';
-                if (autofillCells[1]) autofillCells[1].textContent = unitRec ? unitRec.sqft : '';
+                f.autofillKeys.forEach((k, i) => {
+                    if (autofillCells[i]) autofillCells[i].textContent = unitRec ? String(unitRec[k]) : '';
+                });
             }
         });
         const nextKey = computeNextEmptyKey(row);
@@ -5749,6 +6264,10 @@ function createMMRLeaseTableController(opts) {
         const tbody = document.getElementById(opts.tbodyId);
         if (!tbody) return;
         const ids = Object.keys(ROWS).filter(id => !ROWS[id].deleted);
+        if (opts.countId) {
+            const countEl = document.getElementById(opts.countId);
+            if (countEl) countEl.textContent = `(${ids.length})`;
+        }
         if (!ids.length) {
             tbody.innerHTML = `<tr><td colspan="${colCount()}" class="no-unit" style="border:none;">${opts.emptyLabel}</td></tr>`;
             return;
@@ -5774,14 +6293,32 @@ function createMMRLeaseTableController(opts) {
             const raw = localStorage.getItem(opts.localKey);
             if (raw) ROWS = JSON.parse(raw);
         } catch (e) { ROWS = {}; }
+
+        if (!Object.keys(ROWS).length && opts.seedRows) {
+            if (BACKEND_URL) {
+                backendPull(opts.backendKey).then(remote => {
+                    if (remote && Object.keys(remote).length) {
+                        ROWS = remote;
+                    } else {
+                        ROWS = opts.seedRows();
+                        backendPush(opts.backendKey, ROWS);
+                    }
+                    persistLocal();
+                    render();
+                });
+                return;
+            }
+            ROWS = opts.seedRows();
+            persistLocal();
+        }
         render();
     }
 
-    return { init, pullFromBackend, render };
+    return { init, pullFromBackend, render, getRows: () => ROWS };
 }
 
 const MMR_NEWLEASE_FIELDS = [
-    { key: 'unit', type: 'unit-lookup' },
+    { key: 'unit', type: 'unit-lookup', autofillKeys: ['yardi', 'sqft'] },
     { key: 'renovated', type: 'select', options: ['', 'Yes', 'Partial', 'No'] },
     { key: 'dateLeased', type: 'date' },
     { key: 'moveIn', type: 'date' },
@@ -5791,7 +6328,7 @@ const MMR_NEWLEASE_FIELDS = [
     { key: 'concession', type: 'text' }
 ];
 const MMR_RENEWAL_FIELDS = [
-    { key: 'unit', type: 'unit-lookup' },
+    { key: 'unit', type: 'unit-lookup', autofillKeys: ['yardi', 'sqft'] },
     { key: 'renovated', type: 'select', options: ['', 'Yes', 'Partial', 'No'] },
     { key: 'dateRenewed', type: 'date' },
     { key: 'leaseTerm', type: 'number' },
@@ -5809,6 +6346,224 @@ const mmrRenewalController = createMMRLeaseTableController({
     fieldsConfig: MMR_RENEWAL_FIELDS, tbodyId: 'mmrRenewalBody', addBtnId: 'mmrRenewalAddBtn',
     emptyLabel: 'No renewals logged yet. Click "+ New Renewal" to add one.'
 });
+
+/* ============================================================
+   COMMISSIONS — Move-Ins and Renewals tables, same row controller as
+   MMR's New Leases/Unit Renewals (Unit Type auto-fills from the roster;
+   everything else is a plain editable field, no progressive highlight
+   needed here since there's no fixed "fill this in order" workflow).
+   Plus a Pay Period calculator: Current's start date is the only input
+   — Previous/Next and both end dates all derive from it.
+   ============================================================ */
+const COMM_MOVEIN_FIELDS = [
+    { key: 'property', type: 'text' },
+    { key: 'unit', type: 'unit-lookup', autofillKeys: ['yardi'] },
+    { key: 'resident', type: 'text' },
+    { key: 'date', type: 'date' },
+    { key: 'status', type: 'text' },
+    { key: 'rent', type: 'text' },
+    { key: 'deposit', type: 'text' },
+    { key: 'moveIn', type: 'date' },
+    { key: 'leaseExpiration', type: 'date' },
+    { key: 'moveOut', type: 'date' },
+    { key: 'leaseTerm', type: 'number' },
+    { key: 'agent', type: 'text' },
+    { key: 'bonus', type: 'text' }
+];
+const COMM_RENEWAL_FIELDS = [
+    { key: 'property', type: 'text' },
+    { key: 'unit', type: 'unit-lookup', autofillKeys: ['yardi'] },
+    { key: 'resident', type: 'text' },
+    { key: 'date', type: 'date' },
+    { key: 'status', type: 'text' },
+    { key: 'rent', type: 'text' },
+    { key: 'deposit', type: 'text' },
+    { key: 'moveIn', type: 'date' },
+    { key: 'leaseExpiration', type: 'date' },
+    { key: 'moveOut', type: 'date' },
+    { key: 'leaseTerm', type: 'number' },
+    { key: 'leaseStart', type: 'date' }
+];
+
+function mdyToIso(s) {
+    const m = String(s || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return '';
+    return `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+}
+function newCommRowId(prefix) { return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7); }
+
+// The example rows Justin provided — only used to seed a genuinely
+// empty table, same rule as every other seeded dataset in this app.
+function seedCommMoveIns() {
+    const seed = [
+        ['1382', '3410', 'Lotte USA LLC', '09/05/2026', 'Move In', '2895.00', '500', '09/05/2026', '03/04/2027', '', '6', 'Justin Fox', '$150'],
+        ['1382', '1311', 'Shadi Tasdighi Kalat', '09/07/2026', 'Move In', '2762.00', '500', '09/07/2026', '09/06/2027', '', '12', 'Justin Fox', '$150'],
+        ['1382', '4224', 'Naomi Rabinowitz', '09/17/2026', 'Move In', '3868.00', '500', '09/17/2026', '11/16/2027', '', '14', 'Justin Fox', '$250']
+    ];
+    const rows = {};
+    seed.forEach(r => {
+        rows[newCommRowId('cm')] = {
+            property: r[0], unit: r[1], resident: r[2], date: mdyToIso(r[3]), status: r[4],
+            rent: r[5], deposit: r[6], moveIn: mdyToIso(r[7]), leaseExpiration: mdyToIso(r[8]),
+            moveOut: r[9], leaseTerm: r[10], agent: r[11], bonus: r[12]
+        };
+    });
+    return rows;
+}
+function seedCommRenewals() {
+    const seed = [
+        ['1382', '1223', 'Luis Salinas', '09/17/2026', 'TRANSFER', '2345.00', '0', '09/17/2026', '09/16/2027', '', '12', '09/17/2026'],
+        ['1382', '4134', 'Erica Roush', '09/10/2026', 'Lease Renewal', '3381.00', '500', '05/05/2022', '11/03/2026', '', '18', '11/04/2026'],
+        ['1382', '3208', 'Emma Flynn', '09/10/2026', 'Lease Renewal', '2777.00', '500', '10/30/2025', '10/29/2026', '', '12', '10/30/2026'],
+        ['1382', '1337', 'Daniel Cavalcante', '09/15/2026', 'Lease Renewal', '2596.00', '500', '08/05/2022', '11/04/2026', '', '15', '11/05/2026']
+    ];
+    const rows = {};
+    seed.forEach(r => {
+        rows[newCommRowId('cr')] = {
+            property: r[0], unit: r[1], resident: r[2], date: mdyToIso(r[3]), status: r[4],
+            rent: r[5], deposit: r[6], moveIn: mdyToIso(r[7]), leaseExpiration: mdyToIso(r[8]),
+            moveOut: r[9], leaseTerm: r[10], leaseStart: mdyToIso(r[11])
+        };
+    });
+    return rows;
+}
+
+const commMoveInController = createMMRLeaseTableController({
+    localKey: 'reve-comm-moveins', backendKey: 'comm-moveins',
+    fieldsConfig: COMM_MOVEIN_FIELDS, tbodyId: 'commMoveInBody', addBtnId: 'commMoveInAddBtn',
+    emptyLabel: 'No move-ins logged yet. Click "+ Add Move-In" to add one.',
+    countId: 'commMoveInCount', seedRows: seedCommMoveIns
+});
+const commRenewalController = createMMRLeaseTableController({
+    localKey: 'reve-comm-renewals', backendKey: 'comm-renewals',
+    fieldsConfig: COMM_RENEWAL_FIELDS, tbodyId: 'commRenewalBody', addBtnId: 'commRenewalAddBtn',
+    emptyLabel: 'No renewals logged yet. Click "+ Add Renewal" to add one.',
+    countId: 'commRenewalCount', seedRows: seedCommRenewals
+});
+
+/* ---------- Commissions export ---------- */
+// Note on formatting: the CDN build of SheetJS this app uses (the free
+// community edition) doesn't apply cell colors/fills on write — that's
+// a paid-tier feature upstream. Tested directly rather than assumed:
+// setting a cell's .s style and writing the file produces no visible
+// color at all when reopened. So this export matches the reference
+// sheet's structure, section titles, and column order exactly, but
+// comes out as plain (unstyled) data rather than with the yellow
+// header row / dark title bar from the original.
+function commExcelDate(inputVal) {
+    if (!inputVal) return null;
+    const [y, m, d] = inputVal.split('-').map(Number);
+    return new Date(y, m - 1, d);
+}
+function commNumOrRaw(v) {
+    const n = parseFloat(v);
+    return isNaN(n) ? (v || '') : n;
+}
+
+document.getElementById('commExportBtn').addEventListener('click', () => {
+    const moveInRows = commMoveInController.getRows();
+    const moveInIds = Object.keys(moveInRows).filter(id => !moveInRows[id].deleted);
+    const renewalRows = commRenewalController.getRows();
+    const renewalIds = Object.keys(renewalRows).filter(id => !renewalRows[id].deleted);
+
+    const moveInHeader = ['Property', 'Unit', 'Unit Type', 'Resident', 'Date', 'Status', 'Rent', 'Deposit', 'Move In', 'Lease Expiration', 'Move Out', 'Lease Term', 'Agent', 'Bonus'];
+    const renewalHeader = ['Property', 'Unit', 'Unit Type', 'Resident', 'Date', 'Status', 'Rent', 'Deposit', 'Move In', 'Lease Expiration', 'Move Out', 'Lease Term', 'Lease Start'];
+
+    const aoa = [];
+    aoa.push([`MOVE - INS   (${moveInIds.length})`]);
+    aoa.push(moveInHeader);
+    moveInIds.forEach(id => {
+        const r = moveInRows[id];
+        aoa.push([
+            r.property || '', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].yardi : '', r.resident || '',
+            commExcelDate(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit),
+            commExcelDate(r.moveIn), commExcelDate(r.leaseExpiration), commExcelDate(r.moveOut),
+            commNumOrRaw(r.leaseTerm), r.agent || '', r.bonus || ''
+        ]);
+    });
+    for (let i = 0; i < 3; i++) aoa.push([]);
+
+    const renewalTitleRow = aoa.length;
+    aoa.push([`RENEWALS   (${renewalIds.length})`]);
+    aoa.push(renewalHeader);
+    renewalIds.forEach(id => {
+        const r = renewalRows[id];
+        aoa.push([
+            r.property || '', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].yardi : '', r.resident || '',
+            commExcelDate(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit),
+            commExcelDate(r.moveIn), commExcelDate(r.leaseExpiration), commExcelDate(r.moveOut),
+            commNumOrRaw(r.leaseTerm), commExcelDate(r.leaseStart)
+        ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = moveInHeader.map(() => ({ wch: 14 }));
+    // Date-format every cell that actually holds a Date value.
+    aoa.forEach((row, r) => {
+        row.forEach((val, c) => {
+            if (val instanceof Date) {
+                const addr = XLSX.utils.encode_cell({ r, c });
+                if (ws[addr]) ws[addr].z = 'mm/dd/yyyy';
+            }
+        });
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Commissions');
+    const today = new Date();
+    XLSX.writeFile(wb, `Commissions_-_${today.getMonth() + 1}_${today.getDate()}_${today.getFullYear()}_-_REVE.xlsx`);
+});
+
+/* ---------- Pay Period calculator ---------- */
+const PAY_PERIOD_KEY = 'reve-pay-period-start';
+const PAY_PERIOD_BACKEND_KEY = 'pay-period-start';
+function ppFmt(d) { return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`; }
+function ppAddDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+function renderPayPeriods() {
+    const val = document.getElementById('ppCurrentStart').value;
+    if (!val) {
+        ['ppPrevRange', 'ppCurrentRange', 'ppNextRange'].forEach(id => { document.getElementById(id).textContent = '\u2014'; });
+        return;
+    }
+    const start = new Date(val + 'T00:00:00');
+    const curEnd = ppAddDays(start, 13);
+    const prevStart = ppAddDays(start, -14);
+    const prevEnd = ppAddDays(start, -1);
+    const nextStart = ppAddDays(start, 14);
+    const nextEnd = ppAddDays(start, 27);
+    document.getElementById('ppPrevRange').textContent = `${ppFmt(prevStart)} \u2013 ${ppFmt(prevEnd)}`;
+    document.getElementById('ppCurrentRange').textContent = `${ppFmt(start)} \u2013 ${ppFmt(curEnd)}`;
+    document.getElementById('ppNextRange').textContent = `${ppFmt(nextStart)} \u2013 ${ppFmt(nextEnd)}`;
+}
+function persistPayPeriod() {
+    try { localStorage.setItem(PAY_PERIOD_KEY, document.getElementById('ppCurrentStart').value); } catch (e) {}
+}
+const pushPayPeriodDebounced = debounce(() => {
+    if (BACKEND_URL && APP_MODE !== 'test') backendPush(PAY_PERIOD_BACKEND_KEY, document.getElementById('ppCurrentStart').value);
+}, 900);
+document.getElementById('ppCurrentStart').addEventListener('input', () => {
+    renderPayPeriods();
+    persistPayPeriod();
+    pushPayPeriodDebounced();
+});
+function restorePayPeriodLocal() {
+    try {
+        const v = localStorage.getItem(PAY_PERIOD_KEY);
+        if (v) document.getElementById('ppCurrentStart').value = v;
+    } catch (e) {}
+    renderPayPeriods();
+}
+async function pullPayPeriodFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(PAY_PERIOD_BACKEND_KEY);
+    if (remote && document.activeElement.id !== 'ppCurrentStart') {
+        document.getElementById('ppCurrentStart').value = remote;
+        persistPayPeriod();
+        renderPayPeriods();
+    } else if (document.getElementById('ppCurrentStart').value) {
+        backendPush(PAY_PERIOD_BACKEND_KEY, document.getElementById('ppCurrentStart').value);
+    }
+}
 
 /* ============================================================
    SETTINGS TAB — Live / Test mode. Test mode swaps every tab's
@@ -6121,6 +6876,9 @@ setInterval(() => {
     pullMMRFromBackend();
     mmrNewLeaseController.pullFromBackend();
     mmrRenewalController.pullFromBackend();
+    commMoveInController.pullFromBackend();
+    commRenewalController.pullFromBackend();
+    pullPayPeriodFromBackend();
 }, 25000);
 
 [...document.querySelectorAll('.mark-logo-img')].forEach(img => { img.src = WATERMARK_IMG_SRC; });
@@ -6139,12 +6897,17 @@ renderConcessionSummary();
 restoreMMRLocal();
 mmrNewLeaseController.init();
 mmrRenewalController.init();
+commMoveInController.init();
+commRenewalController.init();
+restorePayPeriodLocal();
 try {
     if (localStorage.getItem(APP_MODE_KEY) === 'test') applyAppMode('test');
 } catch (e) { /* ignore */ }
 if (BACKEND_URL) {
     pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); pullMMRFromBackend();
     mmrNewLeaseController.pullFromBackend(); mmrRenewalController.pullFromBackend();
+    commMoveInController.pullFromBackend(); commRenewalController.pullFromBackend();
+    pullPayPeriodFromBackend();
 }
 </script>
 </body>
