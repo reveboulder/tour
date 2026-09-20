@@ -1283,32 +1283,99 @@
         text-overflow: ellipsis;
         cursor: default;
     }
-    .res-tracker-search { display: flex; align-items: center; justify-content: center; }
-    .res-tracker-search input {
-        width: 100%;
+    .res-search-inline {
+        margin-left: auto;
+        min-width: 220px;
         box-sizing: border-box;
         border: 1px solid var(--line);
         border-radius: 6px;
-        padding: 8px 10px;
+        padding: 7px 10px;
         font-family: var(--sans);
         font-size: 12.5px;
         background: #fff;
         color: var(--ink);
     }
 
-    .res-table-wrap { max-height: 74vh; overflow-y: auto; }
-    .res-table th { position: sticky; top: 0; z-index: 5; }
-    .res-filter-row th { position: sticky; top: 27px; z-index: 5; background: #fff; padding: 3px 4px; }
-    .res-filter-row input {
+    /* -- Welcome Letter -- */
+    .wl-picker-bar { position: relative; max-width: 420px; margin-bottom: 10px; }
+    .wl-picker-bar input {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 9px 12px;
+        font-family: var(--sans);
+        font-size: 13px;
+        background: #fff;
+        color: var(--ink);
+    }
+    .wl-picker-bar .empty-note { display: block; margin-top: 6px; }
+    .wl-legend { display: flex; gap: 18px; margin: 10px 0 16px; font-size: 11.5px; color: var(--ink-soft); }
+    .wl-legend-item { display: flex; align-items: center; gap: 6px; }
+    .wl-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+    .wl-swatch-manual { background: #fff9c4; border: 1px solid #d4c65a; }
+    .wl-swatch-auto { background: #dcefe1; border: 1px solid #8fc79c; }
+    .wl-table { width: 100%; border-collapse: collapse; background: #fff; font-size: 12.5px; max-width: 900px; }
+    .wl-table td { border: 1px solid var(--line); padding: 6px 10px; vertical-align: middle; }
+    .wl-table td.wl-row-label { font-weight: 700; background: var(--line-soft); width: 220px; }
+    .wl-table td.wl-sub-label { font-weight: 600; color: var(--ink-soft); width: 130px; }
+    .wl-table td.wl-manual { background: #fffdea; width: 150px; }
+    .wl-table td.wl-auto { background: #f2faf4; color: var(--ink-soft); font-weight: 600; width: 150px; }
+    .wl-table td.wl-desc { width: 150px; }
+    .wl-table input, .wl-table select {
         width: 100%;
         box-sizing: border-box;
         border: 1px solid var(--line);
         border-radius: 4px;
-        padding: 3px 5px;
-        font-size: 10px;
+        padding: 4px 6px;
+        font-family: var(--sans);
+        font-size: 12px;
+        background: #fff;
+        color: var(--ink);
+    }
+    .wl-table td.wl-manual input, .wl-table td.wl-manual select { background: #fffbe0; }
+    .wl-hint { font-weight: 400; color: var(--ink-soft); font-size: 10px; }
+
+    .res-table-wrap { max-height: 74vh; overflow-y: auto; }
+    .res-table th { position: sticky; top: 0; z-index: 5; position: relative; }
+    .res-th-inner { display: flex; align-items: center; gap: 3px; justify-content: space-between; }
+    .res-th-caret {
+        background: none;
+        border: none;
+        padding: 0 2px;
+        cursor: pointer;
+        color: var(--ink-soft);
+        font-size: 9px;
+        line-height: 1;
+    }
+    .res-th-caret:hover, .res-th-caret.has-active { color: var(--reve-orange); }
+    .res-th-popover {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 20;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 6px;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        min-width: 130px;
+        margin-top: 2px;
+    }
+    .res-th-popover.collapsed { display: none; }
+    .res-th-popover input, .res-th-popover select {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 4px 6px;
+        font-size: 11px;
         font-family: var(--sans);
         background: #fff;
         color: var(--ink);
+        text-transform: none;
+        font-weight: 400;
+        letter-spacing: 0;
     }
     .res-table td, .res-table th { white-space: nowrap; }
     .res-table select.mmr-lease-field { padding: 3px 4px; }
@@ -1471,8 +1538,10 @@
     body.dark-mode .mmr-io-bar,
     body.dark-mode .filter-icon-circle,
     body.dark-mode .quick-filters.popover-mode,
-    body.dark-mode .res-filter-row th,
+    body.dark-mode .res-th-popover,
     body.dark-mode .res-tracker-card,
+    body.dark-mode .wl-picker-bar input,
+    body.dark-mode .wl-table,
     body.dark-mode .concession-banner {
         background: var(--dm-card);
         border-color: var(--line);
@@ -1491,6 +1560,13 @@
     body.dark-mode .res-row-notice td.res-computed { background: inherit; color: var(--ink-soft); }
     body.dark-mode .res-cell-incomplete { background: #5c1f1f !important; }
     body.dark-mode .res-cell-notice-due { background: #362a52 !important; }
+    body.dark-mode .wl-table td.wl-row-label,
+    body.dark-mode .wl-table td.wl-sub-label { background: var(--dm-card-alt); }
+    body.dark-mode .wl-table td.wl-manual { background: #3a3420; }
+    body.dark-mode .wl-table td.wl-manual input, body.dark-mode .wl-table td.wl-manual select { background: #453e26; color: var(--ink); border-color: var(--line); }
+    body.dark-mode .wl-table td.wl-auto { background: #1e2e22; color: var(--ink-soft); }
+    body.dark-mode .wl-swatch-manual { background: #5a4f1e; border-color: #8a7a2a; }
+    body.dark-mode .wl-swatch-auto { background: #223b29; border-color: #3f6b4c; }
     body.dark-mode .mmr-value.mmr-computed { background: #3a2a20; color: var(--dm-accent); }
     body.dark-mode .mmr-lease-field.mmr-next-field { background: #4a3f0a; border-color: #e0b400; color: var(--ink); }
 
@@ -2056,10 +2132,6 @@
 
     <div class="res-trackers">
         <div class="res-tracker-card">
-            <div class="res-tracker-num" id="resTrackPendingMoveIns">0</div>
-            <div class="res-tracker-label">Pending Move-Ins</div>
-        </div>
-        <div class="res-tracker-card">
             <div class="res-tracker-num" id="resTrackMissingHolding">0</div>
             <div class="res-tracker-label">Missing Holding Fee</div>
             <div class="res-tracker-units" id="resTrackMissingHoldingUnits">&mdash;</div>
@@ -2078,27 +2150,24 @@
             <div class="res-tracker-num" id="resTrackAppInProgress">0</div>
             <div class="res-tracker-label">Application in Progress</div>
         </div>
-        <div class="res-tracker-card res-tracker-search">
-            <input type="text" id="residentSearchBar" placeholder="Search unit or resident name&hellip;">
-        </div>
     </div>
 
-    <div class="wl-subtabs">
+    <div class="wl-subtabs" style="display:flex; align-items:center; gap:14px; flex-wrap:nowrap;">
         <button type="button" class="wl-subtab active" data-res-subtab="active">Active <span class="mmr-count-badge" id="resActiveCount">(0)</span></button>
         <button type="button" class="wl-subtab" data-res-subtab="moveouts">Move-Outs <span class="mmr-count-badge" id="resMoveoutCount">(0)</span></button>
+        <input type="text" id="residentSearchBar" class="res-search-inline" placeholder="Search unit or resident name&hellip;">
     </div>
 
     <div style="margin:14px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button type="button" class="btn primary" id="residentAddBtn" style="width:auto;padding:8px 16px;">+ New Resident</button>
         <button type="button" class="btn" id="residentFilterClearBtn" style="width:auto;padding:8px 16px;">Clear Filters</button>
-        <span class="empty-note" id="residentsSortNote" style="margin:0;">Sorted by Move-In Date</span>
+        <span class="empty-note" id="residentsSortNote" style="margin:0;">Sorted by Move-In Date (latest first)</span>
     </div>
 
     <div class="mmr-table-wrap res-table-wrap">
         <table class="mmr-table mmr-lease-table res-table" id="residentsTable">
             <thead>
                 <tr id="residentsHeaderRow"></tr>
-                <tr id="residentsFilterRow" class="res-filter-row"></tr>
             </thead>
             <tbody id="residentsBody"></tbody>
         </table>
@@ -2107,15 +2176,68 @@
 </div>
 
 <div class="tab-panel" id="tab-wl">
-<div class="settings-wrap">
+<div class="admin-wrap">
     <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 24px;">
         <img class="mark mark-logo-img" alt="RÊVE">
         <div>
-            <h1>WL</h1>
-            <div class="tag">Not built yet</div>
+            <h1>Welcome Letter</h1>
+            <div class="tag">Move-in paperwork data entry &mdash; shared across agents</div>
         </div>
     </div>
-    <div class="no-unit">Nothing built here yet &mdash; let me know what this tab should track.</div>
+
+    <div class="wl-picker-bar">
+        <input type="text" id="wlUnitSearch" placeholder="Search resident by unit or name&hellip;" autocomplete="off">
+        <div class="unit-results" id="wlUnitResults"></div>
+        <span class="empty-note" id="wlSelectedNote" style="margin:0;">No resident selected &mdash; search above to load one, or start typing to create a new record.</span>
+    </div>
+
+    <div class="wl-legend">
+        <span class="wl-legend-item"><span class="wl-swatch wl-swatch-manual"></span>Manual override (yours)</span>
+        <span class="wl-legend-item"><span class="wl-swatch wl-swatch-auto"></span>Autofilled from Residents/Units</span>
+    </div>
+
+    <div id="wlFormBody" style="display:none;">
+        <div class="mmr-table-wrap">
+        <table class="mmr-table wl-table">
+            <tbody id="wlNamesSection"></tbody>
+        </table>
+        </div>
+
+        <div class="mmr-section-title" style="margin-top:20px;">UNIT DETAILS</div>
+        <div class="mmr-table-wrap">
+        <table class="mmr-table wl-table"><tbody id="wlUnitSection"></tbody></table>
+        </div>
+
+        <div class="mmr-section-title" style="margin-top:20px;">MONTHLY CHARGES</div>
+        <div class="mmr-table-wrap">
+        <table class="mmr-table wl-table"><tbody id="wlChargesSection"></tbody></table>
+        </div>
+
+        <div class="mmr-section-title" style="margin-top:20px;">SECURITY AND OTHER DEPOSITS</div>
+        <div class="mmr-table-wrap">
+        <table class="mmr-table wl-table"><tbody id="wlDepositsSection"></tbody></table>
+        </div>
+
+        <div class="mmr-section-title" style="margin-top:20px;">FEES</div>
+        <div class="mmr-table-wrap">
+        <table class="mmr-table wl-table"><tbody id="wlFeesSection"></tbody></table>
+        </div>
+
+        <div class="mmr-section-title" style="margin-top:20px;">FEES PAID</div>
+        <div class="mmr-table-wrap">
+        <table class="mmr-table wl-table"><tbody id="wlFeesPaidSection"></tbody></table>
+        </div>
+
+        <div class="mmr-section-title" style="margin-top:20px;">DIFFERENT ADDRESS?</div>
+        <div class="mmr-table-wrap">
+        <table class="mmr-table wl-table"><tbody id="wlAddressSection"></tbody></table>
+        </div>
+
+        <div class="mmr-section-title" style="margin-top:20px;">CONCESSIONS</div>
+        <div class="mmr-table-wrap">
+        <table class="mmr-table wl-table"><tbody id="wlConcessionsSection"></tbody></table>
+        </div>
+    </div>
 </div>
 </div>
 
@@ -7015,9 +7137,9 @@ const RESIDENT_FIELDS = [
     { key: 'leaseTerm', label: 'Term', type: 'number' },
     { key: 'rate', label: 'Rate', type: 'text', w: 88, currency: true },
     { key: 'promo', label: 'Promo', type: 'text', w: 88, currency: true },
-    { key: 'screen', label: 'Screen', type: 'select', options: ['', '\u2191', '\u2713'] },
+    { key: 'screen', label: 'Screen', type: 'select', options: ['', 'Screening', '\u2191'], optionLabels: { '': 'Applied', 'Screening': 'Screening', '\u2191': '\u2191 Complete' } },
     { key: 'idCheck', label: 'ID', type: 'checkbox' },
-    { key: 'welcomeLetter', label: 'Welcome Ltr', type: 'checkbox' },
+    { key: 'welcomeLetter', label: 'WL', type: 'checkbox' },
     { key: 'lease', label: 'Lease', type: 'select', options: ['', '\u2191', '\u2192', '\u2713'] },
     { key: 'deposit', label: 'Deposit', type: 'select', options: ['', '\u2713'] },
     { key: 'pet', label: 'Pet', type: 'select', options: ['', 'N/A', 'ONE', 'TWO', 'ASSIST'] },
@@ -7149,35 +7271,65 @@ function computeResidentDerived(row) {
 
 function buildResidentsHeaderAndFilterRows() {
     const headerRow = document.getElementById('residentsHeaderRow');
-    const filterRow = document.getElementById('residentsFilterRow');
     let hHtml = '';
-    let fHtml = '';
     RESIDENT_FIELDS.forEach(f => {
         const wStyle = f.w ? ` style="min-width:${f.w}px;"` : '';
-        hHtml += `<th${wStyle}>${escapeHtml(f.label)}</th>`;
-        if (f.type === 'computed-date' || f.type === 'computed-bool') {
-            fHtml += `<th></th>`;
-        } else if (f.type === 'checkbox') {
-            fHtml += `<th><select class="res-filter-select" data-filter="${f.key}"><option value="">All</option><option value="true">Yes</option><option value="false">No</option></select></th>`;
-        } else if (f.type === 'select') {
-            fHtml += `<th><select class="res-filter-select" data-filter="${f.key}"><option value="">All</option>${f.options.filter(o => o).map(o => `<option value="${escapeAttr(o)}">${escapeHtml(o)}</option>`).join('')}</select></th>`;
-        } else {
-            fHtml += `<th><input type="text" data-filter="${f.key}" placeholder="Filter&hellip;"></th>`;
+        const filterable = f.type !== 'computed-date' && f.type !== 'computed-bool';
+        if (!filterable) {
+            hHtml += `<th${wStyle}>${escapeHtml(f.label)}</th>`;
+            return;
         }
+        let popoverInner = '';
+        if (f.type === 'checkbox') {
+            popoverInner = `<select class="res-filter-select" data-filter="${f.key}"><option value="">All</option><option value="true">Yes</option><option value="false">No</option></select>`;
+        } else if (f.type === 'select') {
+            popoverInner = `<select class="res-filter-select" data-filter="${f.key}"><option value="">All</option>${f.options.filter(o => o).map(o => `<option value="${escapeAttr(o)}">${escapeHtml((f.optionLabels && f.optionLabels[o]) || o)}</option>`).join('')}</select>`;
+        } else {
+            popoverInner = `<input type="text" data-filter="${f.key}" placeholder="Filter&hellip;">`;
+        }
+        hHtml += `<th${wStyle}>
+            <div class="res-th-inner">
+                <span class="res-th-label">${escapeHtml(f.label)}</span>
+                <button type="button" class="res-th-caret" data-th-filter="${f.key}">&#9662;</button>
+            </div>
+            <div class="res-th-popover collapsed" data-th-popover="${f.key}">${popoverInner}</div>
+        </th>`;
     });
     hHtml += `<th></th>`;
-    fHtml += `<th></th>`;
     headerRow.innerHTML = hHtml;
-    filterRow.innerHTML = fHtml;
 
-    [...filterRow.querySelectorAll('[data-filter]')].forEach(el => {
+    [...headerRow.querySelectorAll('[data-filter]')].forEach(el => {
         const evt = el.tagName === 'SELECT' ? 'change' : 'input';
         el.addEventListener(evt, () => {
             resFilters[el.getAttribute('data-filter')] = el.value;
+            updateResidentsFilterCaretStates();
             renderResidentsBody();
         });
     });
 }
+
+function updateResidentsFilterCaretStates() {
+    [...document.querySelectorAll('.res-th-caret')].forEach(btn => {
+        const key = btn.getAttribute('data-th-filter');
+        btn.classList.toggle('has-active', !!(resFilters[key] || '').trim());
+    });
+}
+
+document.addEventListener('click', (e) => {
+    const caret = e.target.closest('.res-th-caret');
+    if (caret) {
+        const key = caret.getAttribute('data-th-filter');
+        const pop = document.querySelector(`.res-th-popover[data-th-popover="${key}"]`);
+        const wasCollapsed = pop.classList.contains('collapsed');
+        [...document.querySelectorAll('.res-th-popover')].forEach(p => { if (p !== pop) p.classList.add('collapsed'); });
+        pop.classList.toggle('collapsed', !wasCollapsed);
+        e.stopPropagation();
+        return;
+    }
+    if (!e.target.closest('.res-th-popover')) {
+        [...document.querySelectorAll('.res-th-popover:not(.collapsed)')].forEach(p => p.classList.add('collapsed'));
+    }
+});
 
 function renderResidentRow(id, row, derived) {
     const complete = RESIDENT_CHECKLIST_KEYS.every(k => row[k]);
@@ -7207,7 +7359,7 @@ function renderResidentRow(id, row, derived) {
             cells += `<td class="res-check-cell${isRedFlag ? ' res-cell-incomplete' : ''}"><input type="checkbox" class="res-check" data-field="${f.key}" ${row[f.key] ? 'checked' : ''}></td>`;
         } else if (f.type === 'select') {
             const val = row[f.key] || '';
-            cells += `<td><select class="mmr-lease-field" data-field="${f.key}">${f.options.map(o => `<option value="${escapeAttr(o)}"${val === o ? ' selected' : ''}>${o || '\u2014'}</option>`).join('')}</select></td>`;
+            cells += `<td><select class="mmr-lease-field" data-field="${f.key}">${f.options.map(o => `<option value="${escapeAttr(o)}"${val === o ? ' selected' : ''}>${(f.optionLabels && f.optionLabels[o]) || o || '\u2014'}</option>`).join('')}</select></td>`;
         } else if (f.type === 'date') {
             cells += `<td><input type="date" class="mmr-lease-field" data-field="${f.key}" value="${escapeAttr(String(row[f.key] || ''))}"></td>`;
         } else if (f.type === 'number') {
@@ -7253,7 +7405,6 @@ function wireResidentRow(id) {
 
 function renderResidentTrackers(list) {
     const pending = list.filter(x => !x.row.movedIn);
-    document.getElementById('resTrackPendingMoveIns').textContent = pending.length;
 
     const missingHolding = pending.filter(x => x.row.deposit !== '\u2713');
     document.getElementById('resTrackMissingHolding').textContent = missingHolding.length;
@@ -7276,7 +7427,9 @@ function renderResidentTrackers(list) {
     niEl.textContent = noInsuranceUnits.length ? noInsuranceUnits.join(', ') : '\u2014';
     niEl.title = noInsuranceUnits.join(', ');
 
-    const appInProgress = list.filter(x => x.row.screen !== '\u2713');
+    // "Complete" for Screen is the up-arrow (uploaded); anything else —
+    // blank ("Applied") or "Screening" — still counts as in progress.
+    const appInProgress = list.filter(x => x.row.screen !== '\u2191');
     document.getElementById('resTrackAppInProgress').textContent = appInProgress.length;
 }
 
@@ -7316,9 +7469,9 @@ function renderResidentsBody() {
         });
     });
 
-    // Always sorted by Move-In Date — this isn't a toggleable column
-    // sort, it's the table's one fixed order per the request.
-    list.sort((a, b) => (a.row.moveInDate || '').localeCompare(b.row.moveInDate || ''));
+    // Always sorted by Move-In Date, latest first — this isn't a
+    // toggleable column sort, it's the table's one fixed order.
+    list.sort((a, b) => (b.row.moveInDate || '').localeCompare(a.row.moveInDate || ''));
 
     if (!list.length) {
         tbody.innerHTML = `<tr><td colspan="${RESIDENT_FIELDS.length + 1}" class="no-unit" style="border:none;">No residents match these filters.</td></tr>`;
@@ -7352,7 +7505,8 @@ document.getElementById('residentAddBtn').addEventListener('click', () => {
 });
 document.getElementById('residentFilterClearBtn').addEventListener('click', () => {
     resFilters = {};
-    [...document.querySelectorAll('#residentsFilterRow [data-filter]')].forEach(el => { el.value = ''; });
+    [...document.querySelectorAll('#residentsHeaderRow [data-filter]')].forEach(el => { el.value = ''; });
+    updateResidentsFilterCaretStates();
     document.getElementById('residentSearchBar').value = '';
     renderResidentsBody();
 });
@@ -7366,7 +7520,206 @@ document.getElementById('residentSearchBar').addEventListener('input', renderRes
 });
 
 
-/* ---------- Pay Period calculator ---------- */
+/* ============================================================
+   WELCOME LETTER — one record per unit. The "autofill" (green) side
+   pulls live from the Residents/Units data already in the app wherever
+   that data actually exists (name, apartment/building/floorplan/sqft,
+   move-in date, lease term, computed lease-end date, rent). Fields with
+   no real source in this app (parking/mailbox numbers, deposits, fees,
+   concessions) are manual-entry only for now — there's no data anywhere
+   else in the app to autofill them from yet.
+   ============================================================ */
+let WL_RECORDS = {};
+let wlSelectedUnit = null;
+const WL_KEY = 'reve-welcome-letters';
+const WL_BACKEND_KEY = 'welcome-letters';
+
+function wlDefaultRecord() {
+    return {
+        fullName2: '', fullName3: '', fullName4: '', leaseEndManual: '',
+        parkingNumber: '', mailboxNumber: '',
+        rentManual: '', parkingChargeManual: '', petRentManual: '', storageManual: '',
+        deposit1Type: 'Security', deposit1Manual: '',
+        deposit2Type: 'Pet', deposit2Manual: '',
+        deposit3Type: '', deposit3Manual: '',
+        deposit4Type: '', deposit4Manual: '',
+        deposit5Type: '', deposit5Manual: '',
+        deposit6Type: '', deposit6Manual: '',
+        adminYesNo: 'Yes', adminManual: '',
+        appYesNo: 'Yes', appManual: '',
+        other1YesNo: 'Yes', other1Manual: '', other1Desc: '',
+        other2YesNo: 'Yes', other2Manual: '', other2Desc: '',
+        other3YesNo: 'Yes', other3Manual: '', other3Desc: '',
+        other4YesNo: 'Yes', other4Manual: '', other4Desc: '',
+        paidToDateManual: '', appFeeDatePaid: '', holdingFeeDatePaid: '', partialPaymentDatePaid: '', holidayThisWeek: 'None',
+        hasDifferentAddress: 'No', addrPropertyManual: '', addrStreetManual: '', addrCityStateZipManual: '',
+        concession1Label: 'N/A', concession1ManualAmt: '', concession1Month: '', concession1Auto: '',
+        concession2Label: 'N/A', concession2ManualAmt: '', concession2Month: '', concession2Auto: ''
+    };
+}
+
+function wlPersistLocal() { try { localStorage.setItem(WL_KEY, JSON.stringify(WL_RECORDS)); } catch (e) {} }
+const wlPushDebounced = debounce(() => {
+    if (BACKEND_URL && APP_MODE !== 'test') backendPush(WL_BACKEND_KEY, WL_RECORDS);
+}, 900);
+function restoreWlLocal() {
+    try {
+        const raw = localStorage.getItem(WL_KEY);
+        if (raw) WL_RECORDS = JSON.parse(raw);
+    } catch (e) { WL_RECORDS = {}; }
+}
+async function pullWlFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(WL_BACKEND_KEY);
+    if (remote) {
+        WL_RECORDS = remote;
+        wlPersistLocal();
+        if (wlSelectedUnit && document.activeElement && !document.activeElement.closest('#wlFormBody')) renderWlForm();
+    } else if (Object.keys(WL_RECORDS).length) {
+        backendPush(WL_BACKEND_KEY, WL_RECORDS);
+    }
+}
+
+function findResidentByUnit(unit) {
+    const id = Object.keys(RESIDENT_ROWS).find(rid => !RESIDENT_ROWS[rid].deleted && RESIDENT_ROWS[rid].unit === unit);
+    return id ? RESIDENT_ROWS[id] : null;
+}
+
+function wlSelectUnit(unit) {
+    wlSelectedUnit = unit;
+    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
+    document.getElementById('wlUnitSearch').value = `Apt ${unit}`;
+    document.getElementById('wlUnitResults').classList.remove('open');
+    document.getElementById('wlFormBody').style.display = 'block';
+    const resident = findResidentByUnit(unit);
+    document.getElementById('wlSelectedNote').textContent = resident
+        ? `Editing Apt ${unit} \u2014 ${resident.first} ${resident.last}`
+        : `Editing Apt ${unit} \u2014 no matching Residents record found; autofilled fields will be blank until one exists.`;
+    renderWlForm();
+}
+
+function wlRunSearch() {
+    const q = document.getElementById('wlUnitSearch').value.trim().toLowerCase();
+    const box = document.getElementById('wlUnitResults');
+    if (!q) { box.classList.remove('open'); return; }
+    const ids = Object.keys(RESIDENT_ROWS).filter(id => !RESIDENT_ROWS[id].deleted);
+    const matches = ids.filter(id => {
+        const r = RESIDENT_ROWS[id];
+        return (r.unit || '').toLowerCase().indexOf(q) !== -1 || (r.first || '').toLowerCase().indexOf(q) !== -1 || (r.last || '').toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 15);
+    if (!matches.length) {
+        box.innerHTML = `<div class="unit-result"><span class="u-meta">No matching residents.</span></div>`;
+        box.classList.add('open');
+        return;
+    }
+    box.innerHTML = matches.map(id => {
+        const r = RESIDENT_ROWS[id];
+        return `<div class="unit-result" data-unit="${escapeAttr(r.unit)}"><span class="u-num">Apt ${escapeHtml(r.unit)}</span><span class="u-meta">${escapeHtml(r.first)} ${escapeHtml(r.last)}</span></div>`;
+    }).join('');
+    box.classList.add('open');
+    [...box.querySelectorAll('.unit-result[data-unit]')].forEach(el => {
+        el.addEventListener('click', () => wlSelectUnit(el.getAttribute('data-unit')));
+    });
+}
+document.getElementById('wlUnitSearch').addEventListener('input', wlRunSearch);
+document.getElementById('wlUnitSearch').addEventListener('focus', wlRunSearch);
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#wlUnitSearch') && !e.target.closest('#wlUnitResults')) {
+        document.getElementById('wlUnitResults').classList.remove('open');
+    }
+});
+
+function wlCommit(field, value) {
+    WL_RECORDS[wlSelectedUnit][field] = value;
+    wlPersistLocal();
+    wlPushDebounced();
+}
+function wireWlInputs() {
+    [...document.querySelectorAll('#wlFormBody [data-wl-field]')].forEach(el => {
+        const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+        el.addEventListener(evt, (e) => wlCommit(e.target.getAttribute('data-wl-field'), e.target.value));
+    });
+}
+
+function renderWlForm() {
+    const unit = wlSelectedUnit;
+    if (!unit) return;
+    const r = WL_RECORDS[unit];
+    const resident = findResidentByUnit(unit);
+    const unitRec = byUnit[unit];
+    const leaseEnd = resident ? residentMoveOutDate(resident) : null;
+    const rentAuto = resident ? formatResidentCurrency(resident.rate) : '';
+
+    document.getElementById('wlNamesSection').innerHTML = `
+        <tr><td class="wl-row-label">Full Name 1</td><td class="wl-auto" colspan="2">${escapeHtml(resident ? `${resident.first} ${resident.last}` : '\u2014')}</td></tr>
+        <tr><td class="wl-row-label">Full Name 2</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="fullName2" value="${escapeAttr(r.fullName2)}"></td></tr>
+        <tr><td class="wl-row-label">Full Name 3</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="fullName3" value="${escapeAttr(r.fullName3)}"></td></tr>
+        <tr><td class="wl-row-label">Full Name 4</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="fullName4" value="${escapeAttr(r.fullName4)}"></td></tr>
+        <tr><td class="wl-row-label">Lease End Date <span class="wl-hint">(override)</span></td><td class="wl-manual"><input type="date" data-wl-field="leaseEndManual" value="${escapeAttr(r.leaseEndManual)}"></td><td class="wl-auto">${fmtResidentDate(leaseEnd)}</td></tr>
+    `;
+
+    document.getElementById('wlUnitSection').innerHTML = `
+        <tr><td class="wl-row-label">Apartment Number</td><td class="wl-auto" colspan="2">${escapeHtml(unit)}</td></tr>
+        <tr><td class="wl-row-label">Building Number</td><td class="wl-auto" colspan="2">${escapeHtml(unitRec ? unitRec.bldg : '\u2014')}</td></tr>
+        <tr><td class="wl-row-label">Parking Number</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="parkingNumber" value="${escapeAttr(r.parkingNumber)}"></td></tr>
+        <tr><td class="wl-row-label">Floor Plan Name</td><td class="wl-auto" colspan="2">${escapeHtml(unitRec ? unitRec.yardi : '\u2014')}</td></tr>
+        <tr><td class="wl-row-label">Bedrooms/Baths</td><td class="wl-auto" colspan="2">${escapeHtml(unitRec ? unitRec.bedBath : '\u2014')}</td></tr>
+        <tr><td class="wl-row-label">Square Feet</td><td class="wl-auto" colspan="2">${escapeHtml(unitRec ? String(unitRec.sqft) : '\u2014')}</td></tr>
+        <tr><td class="wl-row-label">Mailbox Number</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="mailboxNumber" value="${escapeAttr(r.mailboxNumber)}"></td></tr>
+        <tr><td class="wl-row-label">Move-In Date</td><td class="wl-auto" colspan="2">${escapeHtml(resident ? fmtResidentDate(new Date(resident.moveInDate + 'T00:00:00')) : '\u2014')}</td></tr>
+        <tr><td class="wl-row-label">Lease Term (Months)</td><td class="wl-auto" colspan="2">${escapeHtml(resident ? String(resident.leaseTerm) : '\u2014')}</td></tr>
+    `;
+
+    document.getElementById('wlChargesSection').innerHTML = `
+        <tr><td class="wl-sub-label">Rent</td><td class="wl-manual"><input type="text" data-wl-field="rentManual" value="${escapeAttr(r.rentManual)}" placeholder="$"></td><td class="wl-auto">${rentAuto}</td></tr>
+        <tr><td class="wl-sub-label">Parking</td><td class="wl-manual"><input type="text" data-wl-field="parkingChargeManual" value="${escapeAttr(r.parkingChargeManual)}" placeholder="$"></td><td class="wl-auto">&mdash;</td></tr>
+        <tr><td class="wl-sub-label">Pet Rent</td><td class="wl-manual"><input type="text" data-wl-field="petRentManual" value="${escapeAttr(r.petRentManual)}" placeholder="$"></td><td class="wl-auto">&mdash;</td></tr>
+        <tr><td class="wl-sub-label">Storage</td><td class="wl-manual"><input type="text" data-wl-field="storageManual" value="${escapeAttr(r.storageManual)}" placeholder="$"></td><td class="wl-auto">&mdash;</td></tr>
+    `;
+
+    document.getElementById('wlDepositsSection').innerHTML = [1, 2, 3, 4, 5, 6].map(n => `
+        <tr><td class="wl-sub-label">Deposit ${n}</td><td class="wl-manual"><input type="text" data-wl-field="deposit${n}Type" value="${escapeAttr(r['deposit' + n + 'Type'])}" placeholder="Type"></td><td class="wl-manual"><input type="text" data-wl-field="deposit${n}Manual" value="${escapeAttr(r['deposit' + n + 'Manual'])}" placeholder="$"></td></tr>
+    `).join('');
+
+    document.getElementById('wlFeesSection').innerHTML = `
+        <tr><td class="wl-sub-label">Administration (Prep.)</td><td class="wl-manual"><select data-wl-field="adminYesNo"><option${r.adminYesNo === 'Yes' ? ' selected' : ''}>Yes</option><option${r.adminYesNo === 'No' ? ' selected' : ''}>No</option></select></td><td class="wl-manual"><input type="text" data-wl-field="adminManual" value="${escapeAttr(r.adminManual)}" placeholder="$"></td></tr>
+        <tr><td class="wl-sub-label">Application</td><td class="wl-manual"><select data-wl-field="appYesNo"><option${r.appYesNo === 'Yes' ? ' selected' : ''}>Yes</option><option${r.appYesNo === 'No' ? ' selected' : ''}>No</option></select></td><td class="wl-manual"><input type="text" data-wl-field="appManual" value="${escapeAttr(r.appManual)}" placeholder="$"></td></tr>
+        ${[1, 2, 3, 4].map(n => `
+        <tr><td class="wl-sub-label">Other</td><td class="wl-manual"><select data-wl-field="other${n}YesNo"><option${r['other' + n + 'YesNo'] === 'Yes' ? ' selected' : ''}>Yes</option><option${r['other' + n + 'YesNo'] === 'No' ? ' selected' : ''}>No</option></select></td><td class="wl-manual"><input type="text" data-wl-field="other${n}Manual" value="${escapeAttr(r['other' + n + 'Manual'])}" placeholder="$"></td><td class="wl-desc"><input type="text" data-wl-field="other${n}Desc" value="${escapeAttr(r['other' + n + 'Desc'])}" placeholder="Description"></td></tr>
+        `).join('')}
+    `;
+
+    document.getElementById('wlFeesPaidSection').innerHTML = `
+        <tr><td class="wl-row-label">Paid to Date ($)</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="paidToDateManual" value="${escapeAttr(r.paidToDateManual)}" placeholder="$"></td></tr>
+        <tr><td class="wl-row-label">App Fee &ndash; Date Paid</td><td class="wl-manual" colspan="2"><input type="date" data-wl-field="appFeeDatePaid" value="${escapeAttr(r.appFeeDatePaid)}"></td></tr>
+        <tr><td class="wl-row-label">Holding Fee &ndash; Date Paid</td><td class="wl-manual" colspan="2"><input type="date" data-wl-field="holdingFeeDatePaid" value="${escapeAttr(r.holdingFeeDatePaid)}"></td></tr>
+        <tr><td class="wl-row-label">Partial Payment &ndash; Date Paid</td><td class="wl-manual" colspan="2"><input type="date" data-wl-field="partialPaymentDatePaid" value="${escapeAttr(r.partialPaymentDatePaid)}"></td></tr>
+        <tr><td class="wl-row-label">Holiday this Week?</td><td class="wl-manual" colspan="2"><select data-wl-field="holidayThisWeek">${['None', 'Yes'].map(o => `<option${r.holidayThisWeek === o ? ' selected' : ''}>${o}</option>`).join('')}</select></td></tr>
+    `;
+
+    const addrAutoProperty = 'Reve Boulder';
+    const addrAutoStreet = unitRec ? unitRec.address : '';
+    document.getElementById('wlAddressSection').innerHTML = `
+        <tr><td class="wl-row-label">Different Address than Property?</td><td class="wl-manual" colspan="2"><select data-wl-field="hasDifferentAddress">${['No', 'Yes'].map(o => `<option${r.hasDifferentAddress === o ? ' selected' : ''}>${o}</option>`).join('')}</select></td></tr>
+        <tr><td class="wl-sub-label">Property</td><td class="wl-manual"><input type="text" data-wl-field="addrPropertyManual" value="${escapeAttr(r.addrPropertyManual)}" placeholder="Override"></td><td class="wl-auto">${escapeHtml(addrAutoProperty)}</td></tr>
+        <tr><td class="wl-sub-label">Address</td><td class="wl-manual"><input type="text" data-wl-field="addrStreetManual" value="${escapeAttr(r.addrStreetManual)}" placeholder="Override"></td><td class="wl-auto">${escapeHtml(addrAutoStreet || '\u2014')}</td></tr>
+        <tr><td class="wl-sub-label">City, State, Zip</td><td class="wl-manual"><input type="text" data-wl-field="addrCityStateZipManual" value="${escapeAttr(r.addrCityStateZipManual)}" placeholder="Override"></td><td class="wl-auto">Boulder, CO, 80301</td></tr>
+    `;
+
+    document.getElementById('wlConcessionsSection').innerHTML = [1, 2].map(n => `
+        <tr>
+            <td class="wl-sub-label">Concession ${n}</td>
+            <td class="wl-manual"><input type="text" data-wl-field="concession${n}Label" value="${escapeAttr(r['concession' + n + 'Label'])}" placeholder="N/A"></td>
+            <td class="wl-manual"><input type="text" data-wl-field="concession${n}ManualAmt" value="${escapeAttr(r['concession' + n + 'ManualAmt'])}" placeholder="$"></td>
+            <td class="wl-manual"><input type="text" data-wl-field="concession${n}Month" value="${escapeAttr(r['concession' + n + 'Month'])}" placeholder="Month"></td>
+            <td class="wl-manual"><input type="text" data-wl-field="concession${n}Auto" value="${escapeAttr(r['concession' + n + 'Auto'])}" placeholder="$"></td>
+        </tr>
+    `).join('');
+
+    wireWlInputs();
+}
+
+
 const PAY_PERIOD_KEY = 'reve-pay-period-start';
 const PAY_PERIOD_BACKEND_KEY = 'pay-period-start';
 function ppFmt(d) { return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`; }
@@ -7808,6 +8161,7 @@ setInterval(() => {
     pullPayPeriodFromBackend();
     pullUnitOverridesFromBackend();
     pullResidentsFromBackend();
+    pullWlFromBackend();
 }, 25000);
 
 [...document.querySelectorAll('.mark-logo-img')].forEach(img => { img.src = WATERMARK_IMG_SRC; });
@@ -7831,6 +8185,7 @@ commMoveInController.init();
 commRenewalController.init();
 restorePayPeriodLocal();
 initResidents();
+restoreWlLocal();
 try {
     if (localStorage.getItem(APP_MODE_KEY) === 'test') applyAppMode('test');
 } catch (e) { /* ignore */ }
@@ -7841,6 +8196,7 @@ if (BACKEND_URL) {
     pullPayPeriodFromBackend();
     pullUnitOverridesFromBackend();
     pullResidentsFromBackend();
+    pullWlFromBackend();
 }
 </script>
 </body>
