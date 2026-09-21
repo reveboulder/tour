@@ -7626,7 +7626,7 @@ function wlPetCount(resident) {
 function wlDefaultRecord() {
     return {
         fullName2: '', fullName3: '', fullName4: '', leaseEndManual: '',
-        parkingSpaces: '', mailboxManual: '',
+        parkingSpaces: '',
         rentManual: '', storageManual: '',
         deposit1Type: 'Security', deposit1Manual: '500',
         deposit2Type: 'Pet', deposit2Manual: '',
@@ -7769,12 +7769,18 @@ function wlNum(v) { const n = parseFloat(String(v || '').replace(/[$,]/g, '')); 
 function wlApplicantCount(r, resident) {
     return [resident ? `${resident.first} ${resident.last}` : '', r.fullName2, r.fullName3, r.fullName4].filter(n => n && n.trim()).length || (resident ? 1 : 0);
 }
+function wlEffectiveRent(r, resident) {
+    // Manual entry wins when present; blank falls back to the
+    // resident's Rate from the Residents tab.
+    return (r.rentManual !== '' && r.rentManual !== undefined) ? wlNum(r.rentManual) : wlNum(resident ? resident.rate : 0);
+}
 function wlComputeTotals(r, resident) {
     const petCount = wlPetCount(resident);
     const parkingCharge = (parseInt(r.parkingSpaces, 10) || 0) * WL_RATE_PARKING_PER_SPACE;
     const petRent = petCount * WL_RATE_PET_RENT_PER_PET;
     const petDeposit = petCount > 0 ? WL_RATE_PET_DEPOSIT : 0;
-    const chargesTotal = wlNum(r.rentManual) + parkingCharge + petRent + wlNum(r.storageManual) + WL_RATE_PACKAGE + WL_RATE_VALET + WL_RATE_CITY_TRASH + WL_RATE_UTILITY_ADMIN;
+    const effectiveRent = wlEffectiveRent(r, resident);
+    const chargesTotal = effectiveRent + parkingCharge + petRent + wlNum(r.storageManual) + WL_RATE_PACKAGE + WL_RATE_VALET + WL_RATE_CITY_TRASH + WL_RATE_UTILITY_ADMIN;
     const depositsTotal = wlNum(r.deposit1Manual) + petDeposit + [3, 4, 5, 6].reduce((s, n) => s + wlNum(r['deposit' + n + 'Manual']), 0);
     const applicantCount = wlApplicantCount(r, resident);
     const appFeeAmt = applicantCount * WL_RATE_APP_FEE_PER_APPLICANT;
@@ -7782,7 +7788,7 @@ function wlComputeTotals(r, resident) {
     const prorateAmt = r.prorateManual !== '' && r.prorateManual !== undefined ? wlNum(r.prorateManual) : chargesTotal;
     const subtotal = prorateAmt + depositsTotal + feesTotal;
     const totalDue = subtotal - wlNum(r.appFeePaidAmt) - wlNum(r.holdingFeePaidAmt) - wlNum(r.additionalPaidAmt) - WL_RATE_ADMIN_FEE;
-    return { petCount, parkingCharge, petRent, petDeposit, chargesTotal, depositsTotal, applicantCount, appFeeAmt, feesTotal, prorateAmt, subtotal, totalDue };
+    return { petCount, parkingCharge, petRent, petDeposit, effectiveRent, chargesTotal, depositsTotal, applicantCount, appFeeAmt, feesTotal, prorateAmt, subtotal, totalDue };
 }
 
 function renderWlForm() {
@@ -7795,7 +7801,7 @@ function renderWlForm() {
     const rentAuto = resident ? formatResidentCurrency(resident.rate) : '';
 
     const t = wlComputeTotals(r, resident);
-    const { chargesTotal, depositsTotal, feesTotal, prorateAmt, subtotal, totalDue, petCount, parkingCharge, petRent, petDeposit, applicantCount, appFeeAmt } = t;
+    const { chargesTotal, depositsTotal, feesTotal, prorateAmt, subtotal, totalDue, petCount, parkingCharge, petRent, petDeposit, applicantCount, appFeeAmt, effectiveRent } = t;
 
 
     document.getElementById('wlNamesSection').innerHTML = `
@@ -7814,14 +7820,14 @@ function renderWlForm() {
         <tr><td class="wl-row-label">Floor Plan Name</td><td class="wl-auto" colspan="2">${escapeHtml(unitRec ? unitRec.yardi : '\u2014')}</td></tr>
         <tr><td class="wl-row-label">Bedrooms/Baths</td><td class="wl-auto" colspan="2">${escapeHtml(unitRec ? unitRec.bedBath : '\u2014')}</td></tr>
         <tr><td class="wl-row-label">Square Feet</td><td class="wl-auto" colspan="2">${escapeHtml(unitRec ? String(unitRec.sqft) : '\u2014')}</td></tr>
-        <tr><td class="wl-row-label">Mailbox Number <span class="wl-hint">(override)</span></td><td class="wl-manual"><input type="text" data-wl-field="mailboxManual" value="${escapeAttr(r.mailboxManual)}"></td><td class="wl-auto">${escapeHtml(mailboxAuto || '\u2014')}</td></tr>
+        <tr><td class="wl-row-label">Mailbox Number</td><td class="wl-auto" colspan="2">${escapeHtml(mailboxAuto || '\u2014')}</td></tr>
         <tr><td class="wl-row-label">Move-In Date</td><td class="wl-auto" colspan="2">${escapeHtml(resident ? fmtResidentDate(new Date(resident.moveInDate + 'T00:00:00')) : '\u2014')}</td></tr>
         <tr><td class="wl-row-label">Lease Term (Months)</td><td class="wl-auto" colspan="2">${escapeHtml(resident ? String(resident.leaseTerm) : '\u2014')}</td></tr>
         <tr><td class="wl-row-label">Lease End Date <span class="wl-hint">(override)</span></td><td class="wl-manual"><input type="date" data-wl-field="leaseEndManual" value="${escapeAttr(r.leaseEndManual)}"></td><td class="wl-auto">${fmtResidentDate(leaseEnd)}</td></tr>
     `;
 
     document.getElementById('wlChargesSection').innerHTML = `
-        <tr><td class="wl-sub-label">Rent</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="rentManual" value="${escapeAttr(r.rentManual)}" placeholder="$"></td></tr>
+        <tr><td class="wl-sub-label">Rent</td><td class="wl-manual"><input type="text" data-wl-field="rentManual" value="${escapeAttr(r.rentManual)}" placeholder="${rentAuto || '$'}"></td><td class="wl-auto">${rentAuto || '\u2014'} <span class="wl-hint">(Rate)</span></td></tr>
         <tr><td class="wl-sub-label">Parking <span class="wl-hint">(${r.parkingSpaces || 0} \u00d7 $150)</span></td><td class="wl-auto" colspan="2">${formatResidentCurrency(parkingCharge)}</td></tr>
         <tr><td class="wl-sub-label">Pet Rent <span class="wl-hint">(${petCount} pet \u00d7 $35)</span></td><td class="wl-auto" colspan="2">${formatResidentCurrency(petRent)}</td></tr>
         <tr><td class="wl-sub-label">Storage</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="storageManual" value="${escapeAttr(r.storageManual)}" placeholder="$"></td></tr>
@@ -7920,7 +7926,7 @@ const WL_PDF_STYLE = `
     .wlp-3col { display: flex; gap: 8px; margin-bottom: 10px; }
     .wlp-box { flex: 1; border: 1px solid #999; }
     .wlp-box-title { text-align: center; font-weight: bold; background: #eee; padding: 3px; border-bottom: 1px solid #999; }
-    .wlp-row { display: flex; justify-content: space-between; padding: 1px 5px; border-bottom: 1px dotted #ccc; }
+    .wlp-row { display: flex; justify-content: space-between; padding: 2px 6px; border-bottom: 1px solid #d8d8d8; }
     .wlp-row.total { font-weight: bold; border-top: 1px solid #999; border-bottom: none; }
     .wlp-summary-concessions { display: flex; gap: 8px; margin-bottom: 10px; }
     .wlp-summary-box { flex: 1.3; border: 1px solid #999; padding: 5px; }
@@ -7938,6 +7944,10 @@ const WL_PDF_STYLE = `
     .wlp-sig-caption span:nth-child(1) { flex: 0 0 140px; }
     .wlp-sig-caption span:nth-child(2) { flex: 1; }
     .wlp-sig-caption span:nth-child(3) { flex: 0 0 80px; }
+    .wlp-final-sig-row { display: flex; gap: 12px; margin-top: 14px; }
+    .wlp-final-blank { border-bottom: 1px solid #333; flex: 1; }
+    .wlp-final-sig-caption { display: flex; gap: 12px; font-size: 8.5px; color: #555; }
+    .wlp-final-sig-caption span { flex: 1; }
 `;
 // Injected once so the same styling drives both the live preview pane
 // and the off-screen PDF export node — no risk of the two drifting.
@@ -7945,18 +7955,18 @@ document.head.insertAdjacentHTML('beforeend', `<style>${WL_PDF_STYLE}</style>`);
 
 function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
     const t = wlComputeTotals(r, resident);
-    const { chargesTotal, depositsTotal, feesTotal, prorateAmt, subtotal, totalDue, petCount, parkingCharge, petRent, petDeposit, applicantCount, appFeeAmt } = t;
+    const { chargesTotal, depositsTotal, feesTotal, prorateAmt, subtotal, totalDue, petCount, parkingCharge, petRent, petDeposit, applicantCount, appFeeAmt, effectiveRent } = t;
     const fmt = (n) => formatResidentCurrency(n);
     const fullName1 = resident ? `${resident.first} ${resident.last}` : (r.fullName2 || 'Resident');
     const leaseEnd = r.leaseEndManual ? fmtResidentDate(new Date(r.leaseEndManual + 'T00:00:00')) : (resident ? fmtResidentDate(residentMoveOutDate(resident)) : '');
     const moveInDisp = resident ? fmtResidentDate(new Date(resident.moveInDate + 'T00:00:00')) : '';
     const addrStreet = r.addrStreetManual || (unitRec ? unitRec.address : '') || '';
     const addrCityStateZip = r.addrCityStateZipManual || 'Boulder, CO, 80301';
-    const mailboxDisp = r.mailboxManual || (unitRec ? unitRec.mailbox : '') || 'N/A';
+    const mailboxDisp = (unitRec ? unitRec.mailbox : '') || 'N/A';
     const today = new Date();
 
     const charges = [
-        ['RENT', r.rentManual], ['PARKING', parkingCharge || ''], ['PET RENT', petRent || ''], ['STORAGE', r.storageManual],
+        ['RENT', effectiveRent || ''], ['PARKING', parkingCharge || ''], ['PET RENT', petRent || ''], ['STORAGE', r.storageManual],
         ['PACKAGE SERVICE', WL_RATE_PACKAGE], ['VALET TRASH', WL_RATE_VALET], ['BOULDER CITY TRASH', WL_RATE_CITY_TRASH], ['UTILITY ADMIN', WL_RATE_UTILITY_ADMIN]
     ];
     const deposits = [
@@ -7990,7 +8000,9 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
         'Proof of renters insurance is required upon request.'
     ];
 
-    const names = [fullName1, r.fullName2, r.fullName3, r.fullName4].filter(n => n);
+    // Always four applicant rows, matching the original document —
+    // unused slots show N/A rather than disappearing.
+    const names = [fullName1, r.fullName2, r.fullName3, r.fullName4].map(n => n && n.trim() ? n : 'N/A');
 
     return `<div class="wlp-page">
         <div class="wlp-header">
@@ -8069,8 +8081,14 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
             <div class="wlp-sig-row"><span class="wlp-sig-name">${escapeHtml(n)}</span><span class="wlp-sig-sig">&nbsp;</span><span class="wlp-sig-date">&nbsp;</span></div>
             <div class="wlp-sig-caption"><span>Applicant Name</span><span>Applicant Signature</span><span>Date</span></div>
         `).join('')}
-        <div class="wlp-sig-row" style="margin-top:14px;"><span class="wlp-sig-name">&nbsp;</span><span class="wlp-sig-sig">&nbsp;</span><span class="wlp-sig-date">&nbsp;</span></div>
-        <div class="wlp-sig-caption"><span>Leasing Consultant</span><span>Date</span><span>Community Manager</span></div>
+        <div class="wlp-final-sig-row">
+            <span class="wlp-final-blank">&nbsp;</span><span class="wlp-final-blank" style="flex:0 0 70px;">&nbsp;</span>
+            <span class="wlp-final-blank">&nbsp;</span><span class="wlp-final-blank" style="flex:0 0 70px;">&nbsp;</span>
+        </div>
+        <div class="wlp-final-sig-caption">
+            <span>Leasing Consultant</span><span style="flex:0 0 70px;">Date</span>
+            <span>Community Manager</span><span style="flex:0 0 70px;">Date</span>
+        </div>
     </div>`;
 }
 
@@ -8141,7 +8159,7 @@ function leaseDefaultRecord() {
         animalName: '', animalType: '', animalBreed: '', animalColor: '', animalWeight: '', animalAge: '',
         animalCityLicense: '', animalLicenseNo: '', animalRabiesShot: '', animalOwnerName: '',
         vehicleMake: '', vehicleModel: '', vehicleState: '', vehiclePlate: '', vehiclePermit: 'N/A', vehiclePhone: '',
-        merManual: ''
+        merManual: '', specialProvisionsNotes: ''
     };
 }
 
@@ -8242,7 +8260,7 @@ function renderLeaseForm() {
 
     const moveIn = resident ? new Date(resident.moveInDate + 'T00:00:00') : null;
     const leaseEndDate = wr.leaseEndManual ? new Date(wr.leaseEndManual + 'T00:00:00') : (resident ? residentMoveOutDate(resident) : null);
-    const monthlyRent = wlNum(wr.rentManual);
+    const monthlyRent = wlEffectiveRent(wr, resident);
     const mandatoryFees = WL_RATE_PACKAGE + WL_RATE_VALET + WL_RATE_CITY_TRASH + WL_RATE_UTILITY_ADMIN;
     const totalDuePerMonth = monthlyRent + mandatoryFees;
 
@@ -8327,10 +8345,11 @@ function renderLeaseForm() {
     document.getElementById('leaseConcessionSection').innerHTML = `
         <tr><td class="wl-row-label">One-Time <span class="wl-hint">(sum of concessions)</span></td><td class="wl-auto" colspan="2">${fmt(oneTimeTotal)}</td></tr>
         <tr><td class="wl-row-label">For the Months</td><td class="wl-auto" colspan="2">${escapeHtml(concMonths.length ? concMonths.join('; ') : 'N/A')}</td></tr>
+        <tr><td class="wl-row-label">MER <span class="wl-hint">(override; defaults to rent)</span></td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="merManual" value="${escapeAttr(lr.merManual)}" placeholder="${fmt(monthlyRent)}"></td></tr>
     `;
 
     document.getElementById('leaseProvisionsSection').innerHTML = `
-        <tr><td class="wl-row-label">MER <span class="wl-hint">(override; defaults to rent)</span></td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="merManual" value="${escapeAttr(lr.merManual)}" placeholder="${fmt(monthlyRent)}"></td></tr>
+        <tr><td class="wl-manual" colspan="3"><textarea data-lease-field="specialProvisionsNotes" rows="4" placeholder="Manual notes&hellip;" style="width:100%;box-sizing:border-box;resize:vertical;font-family:var(--sans);font-size:12px;border:1px solid var(--line);border-radius:4px;padding:6px;">${escapeHtml(lr.specialProvisionsNotes || '')}</textarea></td></tr>
     `;
 
     wireLeaseInputs();
