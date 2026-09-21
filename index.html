@@ -1441,10 +1441,15 @@
     .res-table td, .res-table th { white-space: nowrap; }
     .res-table select.mmr-lease-field { padding: 3px 4px; }
     /* Freeze the Unit column so it stays visible while scrolling
-       horizontally — Agent (before it) scrolls normally underneath. */
+       horizontally. Sticky at left:0 (not Agent's width) so Unit
+       becomes the leftmost visible column as soon as scrolling
+       starts — Agent (unfrozen, before it in the DOM) scrolls
+       underneath and out of view, rather than leaving a gap that
+       later columns could visually drift into. Agent is only ever
+       visible to the left of Unit at the very start of the scroll. */
     .res-table th:nth-child(2), .res-table td:nth-child(2) {
         position: sticky;
-        left: 120px;
+        left: 0;
         z-index: 4;
         box-shadow: 2px 0 4px rgba(0,0,0,0.08);
     }
@@ -2725,11 +2730,12 @@
                             <button type="submit" class="btn primary" style="width:auto;padding:8px 16px;">Move</button>
                         </form>
                         <div class="empty-note" id="chessError" style="color:var(--warn);display:none;"></div>
-                        <div class="empty-note">Format: "&lt;Color&gt; &lt;Piece&gt; to &lt;Square&gt;" &mdash; e.g. "White Knight to F3". Basic movement rules only &mdash; no check/checkmate/castling detection yet.</div>
+                        <div class="empty-note">Format: "&lt;Color&gt; &lt;Piece&gt; to &lt;Square&gt;" &mdash; e.g. "White Knight to F3". You play White; Black is auto-played by a simple engine (prefers captures, otherwise random). Basic movement rules only &mdash; no check/checkmate/castling detection yet.</div>
                     </div>
                     <div class="chess-log-col">
                         <div class="mmr-section-title">MOVE LOG</div>
                         <div id="chessLog" class="chess-log"></div>
+                        <button type="button" class="btn" id="chessExportBtn" style="width:auto;padding:6px 14px;margin-top:8px;">Download Game Log (.txt)</button>
                     </div>
                 </div>
             </div>
@@ -6742,6 +6748,9 @@ let adminSubTab = 'mmr';
         return out;
     }
 
+    const LETTER_TO_NAME = { K: 'king', Q: 'queen', R: 'rook', B: 'bishop', N: 'knight', P: 'pawn' };
+    let GAME_LOG_LINES = [];
+
     function renderBoard() {
         const el = document.getElementById('chessBoard');
         let html = '';
@@ -6759,6 +6768,7 @@ let adminSubTab = 'mmr';
     }
 
     function logMove(text) {
+        GAME_LOG_LINES.push(text);
         const log = document.getElementById('chessLog');
         if (log.querySelector('.chess-log-empty')) log.innerHTML = '';
         const line = document.createElement('div');
@@ -6777,9 +6787,29 @@ let adminSubTab = 'mmr';
         board = startPosition();
         turn = 'w';
         gameOver = null;
+        GAME_LOG_LINES = [];
         document.getElementById('chessLog').innerHTML = '<div class="chess-log-empty">No moves yet.</div>';
         showError('');
         renderBoard();
+    }
+
+    // Shared by both the human text-parser and the AI — mutates the
+    // board, logs the move, checks for a king capture, and switches
+    // turns. Returns nothing; callers re-render after.
+    function executeMove(from, dest, pieceLetter, moverColor) {
+        const piece = board[from.r][from.c];
+        const captured = board[dest.r][dest.c];
+        board[dest.r][dest.c] = piece;
+        board[from.r][from.c] = null;
+        const colorLabel = moverColor === 'w' ? 'White' : 'Black';
+        const pieceName = LETTER_TO_NAME[pieceLetter];
+        const moveText = `${colorLabel} ${pieceName} ${rcToSquare(from.r, from.c).toUpperCase()}\u2192${rcToSquare(dest.r, dest.c).toUpperCase()}${captured ? ' (captures ' + LETTER_TO_NAME[captured[1]] + ')' : ''}`;
+        logMove(moveText);
+        if (captured && captured[1] === 'K') {
+            gameOver = `${colorLabel} wins!`;
+        } else {
+            turn = turn === 'w' ? 'b' : 'w';
+        }
     }
 
     function parseAndMove(text) {
@@ -6798,19 +6828,63 @@ let adminSubTab = 'mmr';
             showError(`More than one ${m[2]} can reach ${m[3].toUpperCase()} (from ${froms}) \u2014 this simple parser can't disambiguate yet.`);
             return;
         }
-        const from = candidates[0];
-        const piece = board[from.r][from.c];
-        const captured = board[dest.r][dest.c];
-        board[dest.r][dest.c] = piece;
-        board[from.r][from.c] = null;
-        const moveText = `${turn === 'w' ? 'White' : 'Black'} ${m[2]} ${rcToSquare(from.r, from.c).toUpperCase()}\u2192${m[3].toUpperCase()}${captured ? ' (captures ' + captured[1] + ')' : ''}`;
-        logMove(moveText);
-        if (captured && captured[1] === 'K') {
-            gameOver = `${turn === 'w' ? 'White' : 'Black'} wins!`;
-        } else {
-            turn = turn === 'w' ? 'b' : 'w';
-        }
+        executeMove(candidates[0], dest, letter, color);
         renderBoard();
+        if (!gameOver && turn === 'b') {
+            document.getElementById('chessTurnLabel').textContent = 'Black is thinking\u2026';
+            setTimeout(aiPlayMove, 500);
+        }
+    }
+
+    // Simple AI for Black: every legal move across every Black piece,
+    // preferring captures (highest-value target first), otherwise
+    // random. Not a search engine — just enough to be a playable
+    // opponent for a casual game.
+    const PIECE_VALUE = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 100 };
+    function allLegalMoves(color) {
+        const moves = [];
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const p = board[r][c];
+                if (!p || p[0] !== color) continue;
+                for (let r2 = 0; r2 < 8; r2++) {
+                    for (let c2 = 0; c2 < 8; c2++) {
+                        if (r === r2 && c === c2) continue;
+                        if (canReach(p, r, c, r2, c2)) {
+                            const target = board[r2][c2];
+                            moves.push({ from: { r, c }, to: { r: r2, c: c2 }, letter: p[1], captureValue: target ? PIECE_VALUE[target[1]] : 0 });
+                        }
+                    }
+                }
+            }
+        }
+        return moves;
+    }
+    function aiPlayMove() {
+        if (gameOver || turn !== 'b') return;
+        const moves = allLegalMoves('b');
+        if (!moves.length) { gameOver = 'White wins \u2014 Black has no legal moves.'; renderBoard(); return; }
+        const bestCaptureValue = Math.max(...moves.map(m => m.captureValue));
+        const pool = bestCaptureValue > 0 ? moves.filter(m => m.captureValue === bestCaptureValue) : moves;
+        const choice = pool[Math.floor(Math.random() * pool.length)];
+        executeMove(choice.from, choice.to, choice.letter, 'b');
+        renderBoard();
+    }
+
+    function downloadGameLog() {
+        if (!GAME_LOG_LINES.length) { showError('No moves to export yet.'); return; }
+        const header = `Chess game log \u2014 exported ${new Date().toLocaleString()}\n${'='.repeat(40)}\n`;
+        const body = GAME_LOG_LINES.map((line, i) => `${i + 1}. ${line}`).join('\n');
+        const footer = gameOver ? `\n\n${gameOver}` : '';
+        const blob = new Blob([header + body + footer], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chess-game-log-${new Date().toISOString().slice(0, 10)}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     document.getElementById('chessMoveForm').addEventListener('submit', (e) => {
@@ -6821,6 +6895,7 @@ let adminSubTab = 'mmr';
         input.value = '';
     });
     document.getElementById('chessResetBtn').addEventListener('click', resetChess);
+    document.getElementById('chessExportBtn').addEventListener('click', downloadGameLog);
 
     resetChess();
 })();
