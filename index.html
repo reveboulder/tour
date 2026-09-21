@@ -89,6 +89,10 @@
         grid-template-columns: 420px 1fr;
         min-height: 100vh;
     }
+    /* The Welcome Letter's data-entry table needs more room than the
+       Tour tab's simple field list — scoped to this tab only so Tour's
+       sidebar width is untouched. */
+    #tab-wl .app { grid-template-columns: 540px 1fr; }
     @media (max-width: 980px) {
         .app { grid-template-columns: 1fr; }
         .editor { border-right: none; border-bottom: 1px solid var(--line); }
@@ -1317,21 +1321,22 @@
     .wl-swatch-manual { background: #fff9c4; border: 1px solid #d4c65a; }
     .wl-swatch-auto { background: #dcefe1; border: 1px solid #8fc79c; }
     .unit-result.wl-result-muted .u-num { color: #bbb; }
-    .wl-table { width: 100%; border-collapse: collapse; background: #fff; font-size: 12.5px; max-width: 900px; }
-    .wl-table td { border: 1px solid var(--line); padding: 6px 10px; vertical-align: middle; }
-    .wl-table td.wl-row-label { font-weight: 700; background: var(--line-soft); width: 220px; }
-    .wl-table td.wl-sub-label { font-weight: 600; color: var(--ink-soft); width: 130px; }
-    .wl-table td.wl-manual { background: #fffdea; width: 150px; }
-    .wl-table td.wl-auto { background: #f2faf4; color: var(--ink-soft); font-weight: 600; width: 150px; }
-    .wl-table td.wl-desc { width: 150px; }
+    .wl-table { width: auto; min-width: 0; border-collapse: collapse; background: #fff; font-size: 11.5px; max-width: 100%; table-layout: fixed; }
+    .wl-table td { border: 1px solid var(--line); padding: 4px 6px; vertical-align: middle; word-wrap: break-word; min-width: 0; }
+    .wl-table td.wl-row-label { font-weight: 700; background: var(--line-soft); width: 150px; font-size: 10.5px; }
+    .wl-table td.wl-sub-label { font-weight: 600; color: var(--ink-soft); width: 110px; font-size: 10.5px; }
+    .wl-table td.wl-manual { background: #fffdea; width: 90px; }
+    .wl-table td.wl-auto { background: #f2faf4; color: var(--ink-soft); font-weight: 600; width: 90px; font-size: 10.5px; }
+    .wl-table td.wl-desc { width: 90px; }
     .wl-table input, .wl-table select {
         width: 100%;
+        min-width: 0;
         box-sizing: border-box;
         border: 1px solid var(--line);
         border-radius: 4px;
-        padding: 4px 6px;
+        padding: 3px 4px;
         font-family: var(--sans);
-        font-size: 12px;
+        font-size: 11px;
         background: #fff;
         color: var(--ink);
     }
@@ -2223,34 +2228,34 @@
             </div>
 
             <div id="wlFormBody">
-                <table class="mmr-table wl-table">
+                <table class="mmr-table wl-table"><colgroup><col style="width:150px"><col style="width:90px"><col style="width:90px"></colgroup>
                     <tbody id="wlNamesSection"></tbody>
                 </table>
 
                 <div class="mmr-section-title" style="margin-top:20px;">UNIT DETAILS</div>
-                <table class="mmr-table wl-table"><tbody id="wlUnitSection"></tbody></table>
+                <table class="mmr-table wl-table"><colgroup><col style="width:150px"><col style="width:90px"><col style="width:90px"></colgroup><tbody id="wlUnitSection"></tbody></table>
 
                 <div class="mmr-section-title" style="margin-top:20px;">MONTHLY CHARGES</div>
-                <table class="mmr-table wl-table"><tbody id="wlChargesSection"></tbody></table>
+                <table class="mmr-table wl-table"><colgroup><col style="width:150px"><col style="width:90px"><col style="width:90px"></colgroup><tbody id="wlChargesSection"></tbody></table>
 
                 <div class="mmr-section-title" style="margin-top:20px;">SECURITY AND OTHER DEPOSITS</div>
-                <table class="mmr-table wl-table"><tbody id="wlDepositsSection"></tbody></table>
+                <table class="mmr-table wl-table"><colgroup><col style="width:150px"><col style="width:90px"><col style="width:90px"></colgroup><tbody id="wlDepositsSection"></tbody></table>
 
                 <div class="mmr-section-title" style="margin-top:20px;">FEES</div>
-                <table class="mmr-table wl-table"><tbody id="wlFeesSection"></tbody></table>
+                <table class="mmr-table wl-table"><colgroup><col style="width:150px"><col style="width:90px"><col style="width:90px"></colgroup><tbody id="wlFeesSection"></tbody></table>
 
                 <div class="mmr-section-title" style="margin-top:20px;">FEES PAID / SUMMARY OF TOTAL BALANCE DUE</div>
-                <table class="mmr-table wl-table"><tbody id="wlFeesPaidSection"></tbody></table>
+                <table class="mmr-table wl-table"><colgroup><col style="width:150px"><col style="width:90px"><col style="width:90px"></colgroup><tbody id="wlFeesPaidSection"></tbody></table>
                 <div id="wlSummaryBox" class="wl-summary-box"></div>
 
                 <div class="mmr-section-title" style="margin-top:20px;">DIFFERENT ADDRESS?</div>
-                <table class="mmr-table wl-table"><tbody id="wlAddressSection"></tbody></table>
+                <table class="mmr-table wl-table"><colgroup><col style="width:150px"><col style="width:90px"><col style="width:90px"></colgroup><tbody id="wlAddressSection"></tbody></table>
 
                 <div class="mmr-section-title" style="margin-top:20px;">CONCESSIONS</div>
-                <table class="mmr-table wl-table"><tbody id="wlConcessionsSection"></tbody></table>
+                <table class="mmr-table wl-table"><colgroup><col style="width:150px"><col style="width:90px"><col style="width:90px"></colgroup><tbody id="wlConcessionsSection"></tbody></table>
 
                 <div class="mmr-section-title" style="margin-top:20px;">UTILITIES RESPONSIBILITY</div>
-                <table class="mmr-table wl-table"><tbody id="wlUtilitiesSection"></tbody></table>
+                <table class="mmr-table wl-table"><colgroup><col style="width:150px"><col style="width:90px"><col style="width:90px"></colgroup><tbody id="wlUtilitiesSection"></tbody></table>
 
                 <div style="margin:20px 0;">
                     <button type="button" class="btn primary wl-download-btn" id="wlDownloadBtn" style="width:auto;flex:none;padding:10px 20px;">Download Welcome Letter PDF</button>
@@ -2269,15 +2274,51 @@
 </div>
 
 <div class="tab-panel" id="tab-lease">
-<div class="settings-wrap">
+<div class="admin-wrap">
     <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 24px;">
         <img class="mark mark-logo-img" alt="RÊVE">
         <div>
-            <h1>Lease</h1>
-            <div class="tag">Not built yet</div>
+            <h1>New Lease</h1>
+            <div class="tag">Auto-filled from Welcome Letter &mdash; shared across agents</div>
         </div>
     </div>
-    <div class="no-unit">Nothing built here yet &mdash; let me know what this tab should track.</div>
+
+    <div class="wl-picker-bar">
+        <input type="text" id="leaseUnitSearch" placeholder="Search resident by unit or name&hellip;" autocomplete="off">
+        <div class="unit-results" id="leaseUnitResults"></div>
+        <span class="empty-note" id="leaseSelectedNote" style="margin:0;">No resident selected &mdash; search above to load one.</span>
+    </div>
+
+    <div class="wl-legend">
+        <span class="wl-legend-item"><span class="wl-swatch wl-swatch-manual"></span>Manual entry (yours)</span>
+        <span class="wl-legend-item"><span class="wl-swatch wl-swatch-auto"></span>Autofilled from Welcome Letter</span>
+    </div>
+
+    <div id="leaseFormBody" style="max-width:760px;">
+        <div class="mmr-section-title">LEASE TERMS</div>
+        <table class="mmr-table wl-table"><colgroup><col style="width:180px"><col style="width:120px"><col style="width:120px"></colgroup><tbody id="leaseTermsSection"></tbody></table>
+
+        <div class="mmr-section-title" style="margin-top:20px;">COVER SHEET</div>
+        <table class="mmr-table wl-table"><colgroup><col style="width:180px"><col style="width:120px"><col style="width:120px"></colgroup><tbody id="leaseCoverSection"></tbody></table>
+
+        <div class="mmr-section-title" style="margin-top:20px;">ASSISTANCE ANIMAL ADDENDUM</div>
+        <table class="mmr-table wl-table"><colgroup><col style="width:180px"><col style="width:120px"><col style="width:120px"></colgroup><tbody id="leaseAnimalSection"></tbody></table>
+
+        <div class="mmr-section-title" style="margin-top:20px;">BUYOUT AGREEMENT</div>
+        <table class="mmr-table wl-table"><colgroup><col style="width:180px"><col style="width:120px"><col style="width:120px"></colgroup><tbody id="leaseBuyoutSection"></tbody></table>
+
+        <div class="mmr-section-title" style="margin-top:20px;">INVENTORY AND CONDITION</div>
+        <table class="mmr-table wl-table"><colgroup><col style="width:180px"><col style="width:120px"><col style="width:120px"></colgroup><tbody id="leaseInventorySection"></tbody></table>
+
+        <div class="mmr-section-title" style="margin-top:20px;">PARKING ADDENDUM</div>
+        <table class="mmr-table wl-table"><colgroup><col style="width:180px"><col style="width:120px"><col style="width:120px"></colgroup><tbody id="leaseParkingSection"></tbody></table>
+
+        <div class="mmr-section-title" style="margin-top:20px;">RENT CONCESSION</div>
+        <table class="mmr-table wl-table"><colgroup><col style="width:180px"><col style="width:120px"><col style="width:120px"></colgroup><tbody id="leaseConcessionSection"></tbody></table>
+
+        <div class="mmr-section-title" style="margin-top:20px;">SPECIAL PROVISIONS</div>
+        <table class="mmr-table wl-table"><colgroup><col style="width:180px"><col style="width:120px"><col style="width:120px"></colgroup><tbody id="leaseProvisionsSection"></tbody></table>
+    </div>
 </div>
 </div>
 
@@ -8082,6 +8123,219 @@ async function wlDownloadPdf(btn) {
     btn.addEventListener('click', () => wlDownloadPdf(btn));
 });
 
+/* ============================================================
+   NEW LEASE — auto-filled from the Welcome Letter record for the same
+   unit (same WL_RECORDS store, same computed totals). Only the fields
+   with no Welcome Letter or Residents source — date of lease, animal
+   details, vehicle details, special provisions — are stored here.
+   No live preview for this tab, per request: raw data entry only.
+   ============================================================ */
+let LEASE_RECORDS = {};
+let leaseSelectedUnit = null;
+const LEASE_KEY = 'reve-lease-records';
+const LEASE_BACKEND_KEY = 'lease-records';
+
+function leaseDefaultRecord() {
+    return {
+        dateOfLease: '',
+        animalName: '', animalType: '', animalBreed: '', animalColor: '', animalWeight: '', animalAge: '',
+        animalCityLicense: '', animalLicenseNo: '', animalRabiesShot: '', animalOwnerName: '',
+        vehicleMake: '', vehicleModel: '', vehicleState: '', vehiclePlate: '', vehiclePermit: 'N/A', vehiclePhone: '',
+        merManual: ''
+    };
+}
+
+function leasePersistLocal() { try { localStorage.setItem(LEASE_KEY, JSON.stringify(LEASE_RECORDS)); } catch (e) {} }
+const leasePushDebounced = debounce(() => {
+    if (BACKEND_URL && APP_MODE !== 'test') backendPush(LEASE_BACKEND_KEY, LEASE_RECORDS);
+}, 900);
+function restoreLeaseLocal() {
+    try {
+        const raw = localStorage.getItem(LEASE_KEY);
+        if (raw) LEASE_RECORDS = JSON.parse(raw);
+    } catch (e) { LEASE_RECORDS = {}; }
+}
+async function pullLeaseFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(LEASE_BACKEND_KEY);
+    if (remote) {
+        LEASE_RECORDS = remote;
+        leasePersistLocal();
+        if (leaseSelectedUnit && document.activeElement && !document.activeElement.closest('#leaseFormBody')) renderLeaseForm();
+    } else if (Object.keys(LEASE_RECORDS).length) {
+        backendPush(LEASE_BACKEND_KEY, LEASE_RECORDS);
+    }
+}
+
+function leaseSelectUnit(unit) {
+    leaseSelectedUnit = unit;
+    if (!LEASE_RECORDS[unit]) LEASE_RECORDS[unit] = leaseDefaultRecord();
+    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
+    const resident = findResidentByUnit(unit);
+    document.getElementById('leaseUnitSearch').value = resident ? `Unit ${unit} - ${resident.first} ${resident.last}` : `Unit ${unit}`;
+    document.getElementById('leaseUnitResults').classList.remove('open');
+    document.getElementById('leaseSelectedNote').textContent = resident
+        ? `Editing Apt ${unit} \u2014 ${resident.first} ${resident.last}`
+        : `Editing Apt ${unit} \u2014 no matching Residents record found; autofilled fields will be blank until one exists.`;
+    renderLeaseForm();
+}
+
+function leaseRunSearch() {
+    const q = document.getElementById('leaseUnitSearch').value.trim().toLowerCase();
+    const box = document.getElementById('leaseUnitResults');
+    const ids = Object.keys(RESIDENT_ROWS).filter(id => !RESIDENT_ROWS[id].deleted);
+    let matches = ids;
+    if (q) {
+        matches = ids.filter(id => {
+            const r = RESIDENT_ROWS[id];
+            return (r.unit || '').toLowerCase().indexOf(q) !== -1 || (r.first || '').toLowerCase().indexOf(q) !== -1 || (r.last || '').toLowerCase().indexOf(q) !== -1;
+        });
+    }
+    matches = matches.slice().sort((a, b) => (RESIDENT_ROWS[b].moveInDate || '').localeCompare(RESIDENT_ROWS[a].moveInDate || '')).slice(0, 30);
+    if (!matches.length) {
+        box.innerHTML = `<div class="unit-result"><span class="u-meta">No matching residents.</span></div>`;
+        box.classList.add('open');
+        return;
+    }
+    box.innerHTML = matches.map(id => {
+        const r = RESIDENT_ROWS[id];
+        const mutedClass = r.movedIn ? ' wl-result-muted' : '';
+        return `<div class="unit-result${mutedClass}" data-unit="${escapeAttr(r.unit)}"><span class="u-num">Unit ${escapeHtml(r.unit)} - ${escapeHtml(r.first)} ${escapeHtml(r.last)}</span></div>`;
+    }).join('');
+    box.classList.add('open');
+    [...box.querySelectorAll('.unit-result[data-unit]')].forEach(el => {
+        el.addEventListener('click', () => leaseSelectUnit(el.getAttribute('data-unit')));
+    });
+}
+document.getElementById('leaseUnitSearch').addEventListener('input', leaseRunSearch);
+document.getElementById('leaseUnitSearch').addEventListener('focus', leaseRunSearch);
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#leaseUnitSearch') && !e.target.closest('#leaseUnitResults')) {
+        document.getElementById('leaseUnitResults').classList.remove('open');
+    }
+});
+
+function leaseCommit(field, value) {
+    LEASE_RECORDS[leaseSelectedUnit][field] = value;
+    leasePersistLocal();
+    leasePushDebounced();
+}
+function wireLeaseInputs() {
+    [...document.querySelectorAll('#leaseFormBody [data-lease-field]')].forEach(el => {
+        const evt = el.tagName === 'SELECT' ? 'change' : 'input';
+        el.addEventListener(evt, (e) => leaseCommit(e.target.getAttribute('data-lease-field'), e.target.value));
+    });
+}
+
+// Last day of the given month (1-indexed month) in that year.
+function leaseMonthEnd(year, month1) { return new Date(year, month1, 0).getDate(); }
+
+function renderLeaseForm() {
+    const unit = leaseSelectedUnit;
+    if (!unit) return;
+    const lr = LEASE_RECORDS[unit];
+    const wr = WL_RECORDS[unit] || wlDefaultRecord();
+    const resident = findResidentByUnit(unit);
+    const unitRec = byUnit[unit];
+    const t = wlComputeTotals(wr, resident);
+    const fmt = (n) => formatResidentCurrency(n);
+
+    const moveIn = resident ? new Date(resident.moveInDate + 'T00:00:00') : null;
+    const leaseEndDate = wr.leaseEndManual ? new Date(wr.leaseEndManual + 'T00:00:00') : (resident ? residentMoveOutDate(resident) : null);
+    const monthlyRent = wlNum(wr.rentManual);
+    const mandatoryFees = WL_RATE_PACKAGE + WL_RATE_VALET + WL_RATE_CITY_TRASH + WL_RATE_UTILITY_ADMIN;
+    const totalDuePerMonth = monthlyRent + mandatoryFees;
+
+    let perDiem = 0, dueFrom = '', dueTo = '', proratedRent = monthlyRent;
+    if (moveIn) {
+        const daysInMonth = leaseMonthEnd(moveIn.getFullYear(), moveIn.getMonth() + 1);
+        perDiem = monthlyRent / daysInMonth;
+        const daysRemaining = daysInMonth - moveIn.getDate() + 1;
+        proratedRent = perDiem * daysRemaining;
+        dueFrom = fmtResidentDate(moveIn);
+        const monthEnd = new Date(moveIn.getFullYear(), moveIn.getMonth(), daysInMonth);
+        dueTo = fmtResidentDate(monthEnd);
+    }
+
+    document.getElementById('leaseTermsSection').innerHTML = `
+        <tr><td class="wl-row-label">Apt No.</td><td class="wl-auto" colspan="2">${escapeHtml(unit)}</td></tr>
+        <tr><td class="wl-row-label">Date of Lease</td><td class="wl-manual" colspan="2"><input type="date" data-lease-field="dateOfLease" value="${escapeAttr(lr.dateOfLease)}"></td></tr>
+        <tr><td class="wl-row-label">Address</td><td class="wl-auto" colspan="2">${escapeHtml(unitRec ? unitRec.address : '\u2014')}, Apt ${escapeHtml(unit)}</td></tr>
+        <tr><td class="wl-row-label">Begins On</td><td class="wl-auto" colspan="2">${escapeHtml(fmtResidentDate(moveIn))}</td></tr>
+        <tr><td class="wl-row-label">Ends On</td><td class="wl-auto" colspan="2">${escapeHtml(fmtResidentDate(leaseEndDate))}</td></tr>
+        <tr><td class="wl-row-label">Months</td><td class="wl-auto" colspan="2">${escapeHtml(resident ? String(resident.leaseTerm) : '\u2014')}</td></tr>
+        <tr><td class="wl-row-label">Monthly Rent</td><td class="wl-auto" colspan="2">${fmt(monthlyRent)}</td></tr>
+        <tr><td class="wl-row-label">Security Deposit</td><td class="wl-auto" colspan="2">${fmt(wlNum(wr.deposit1Manual))}</td></tr>
+        <tr><td class="wl-row-label">Prorated Rent</td><td class="wl-auto" colspan="2">${fmt(proratedRent)}</td></tr>
+        <tr><td class="wl-row-label">Per Diem <span class="wl-hint">(rent \u00f7 days in month)</span></td><td class="wl-auto" colspan="2">${fmt(perDiem)}</td></tr>
+        <tr><td class="wl-row-label">Due for the Period Of</td><td class="wl-auto">${escapeHtml(dueFrom)}</td><td class="wl-auto">${escapeHtml(dueTo)}</td></tr>
+        <tr><td class="wl-row-label">Liquidated Damages</td><td class="wl-auto" colspan="2">${fmt(monthlyRent)}</td></tr>
+    `;
+
+    document.getElementById('leaseCoverSection').innerHTML = `
+        <tr><td class="wl-row-label">Total Amount Due Per Month</td><td class="wl-auto" colspan="2">${fmt(totalDuePerMonth)}</td></tr>
+        <tr><td class="wl-row-label">Base Monthly Rent</td><td class="wl-auto" colspan="2">${fmt(monthlyRent)}</td></tr>
+        <tr><td class="wl-row-label">Mandatory Fees <span class="wl-hint">(standard charges)</span></td><td class="wl-auto" colspan="2">${fmt(mandatoryFees)}</td></tr>
+    `;
+
+    const petType = resident && resident.pet && resident.pet !== 'N/A' ? resident.pet : '';
+    document.getElementById('leaseAnimalSection').innerHTML = `
+        <tr><td class="wl-row-label">Type <span class="wl-hint">(from Residents)</span></td><td class="wl-auto" colspan="2">${escapeHtml(petType || 'N/A')}</td></tr>
+        <tr><td class="wl-row-label">Begins On</td><td class="wl-auto" colspan="2">${escapeHtml(fmtResidentDate(moveIn))}</td></tr>
+        <tr><td class="wl-row-label">Ends On</td><td class="wl-auto" colspan="2">${escapeHtml(fmtResidentDate(leaseEndDate))}</td></tr>
+        <tr><td class="wl-row-label">Pet Deposit</td><td class="wl-auto" colspan="2">${fmt(t.petDeposit)}</td></tr>
+        <tr><td class="wl-row-label">Pet Fee</td><td class="wl-auto" colspan="2">${fmt(t.petRent)}</td></tr>
+        <tr><td class="wl-sub-label">Animal Name</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="animalName" value="${escapeAttr(lr.animalName)}"></td></tr>
+        <tr><td class="wl-sub-label">Type/Species</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="animalType" value="${escapeAttr(lr.animalType)}"></td></tr>
+        <tr><td class="wl-sub-label">Breed</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="animalBreed" value="${escapeAttr(lr.animalBreed)}"></td></tr>
+        <tr><td class="wl-sub-label">Color</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="animalColor" value="${escapeAttr(lr.animalColor)}"></td></tr>
+        <tr><td class="wl-sub-label">Weight</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="animalWeight" value="${escapeAttr(lr.animalWeight)}"></td></tr>
+        <tr><td class="wl-sub-label">Age</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="animalAge" value="${escapeAttr(lr.animalAge)}"></td></tr>
+        <tr><td class="wl-sub-label">City of License</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="animalCityLicense" value="${escapeAttr(lr.animalCityLicense)}"></td></tr>
+        <tr><td class="wl-sub-label">License No.</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="animalLicenseNo" value="${escapeAttr(lr.animalLicenseNo)}"></td></tr>
+        <tr><td class="wl-sub-label">Rabies Shot</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="animalRabiesShot" value="${escapeAttr(lr.animalRabiesShot)}"></td></tr>
+        <tr><td class="wl-sub-label">Owner's Name</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="animalOwnerName" value="${escapeAttr(lr.animalOwnerName)}"></td></tr>
+    `;
+
+    document.getElementById('leaseBuyoutSection').innerHTML = `
+        <tr><td class="wl-row-label">Buyout Fee <span class="wl-hint">(= monthly rent)</span></td><td class="wl-auto" colspan="2">${fmt(monthlyRent)}</td></tr>
+    `;
+
+    document.getElementById('leaseInventorySection').innerHTML = `
+        <tr><td class="wl-row-label">Move-In Date</td><td class="wl-auto" colspan="2">${escapeHtml(fmtResidentDate(moveIn))}</td></tr>
+    `;
+
+    const parkingType = resident && resident.parking && resident.parking !== 'N/A' ? resident.parking : '';
+    document.getElementById('leaseParkingSection').innerHTML = `
+        <tr><td class="wl-row-label">Spaces <span class="wl-hint">(from Residents)</span></td><td class="wl-auto" colspan="2">${escapeHtml(parkingType || 'N/A')}</td></tr>
+        <tr><td class="wl-row-label">Begins</td><td class="wl-auto" colspan="2">${escapeHtml(fmtResidentDate(moveIn))}</td></tr>
+        <tr><td class="wl-row-label">Ends</td><td class="wl-auto" colspan="2">${escapeHtml(fmtResidentDate(leaseEndDate))}</td></tr>
+        <tr><td class="wl-row-label">Fee <span class="wl-hint">($150 per vehicle)</span></td><td class="wl-auto" colspan="2">${fmt(t.parkingCharge)}</td></tr>
+        <tr><td class="wl-sub-label">Make</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="vehicleMake" value="${escapeAttr(lr.vehicleMake)}"></td></tr>
+        <tr><td class="wl-sub-label">Model / Year</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="vehicleModel" value="${escapeAttr(lr.vehicleModel)}"></td></tr>
+        <tr><td class="wl-sub-label">State</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="vehicleState" value="${escapeAttr(lr.vehicleState)}"></td></tr>
+        <tr><td class="wl-sub-label">License Plate</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="vehiclePlate" value="${escapeAttr(lr.vehiclePlate)}"></td></tr>
+        <tr><td class="wl-sub-label">Permit #</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="vehiclePermit" value="${escapeAttr(lr.vehiclePermit)}"></td></tr>
+        <tr><td class="wl-sub-label">Phone #</td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="vehiclePhone" value="${escapeAttr(lr.vehiclePhone)}"></td></tr>
+        <tr><td class="wl-sub-label">Parking Space</td><td class="wl-auto" colspan="2">${escapeHtml(wr.parkingSpaces || 'N/A')}</td></tr>
+    `;
+
+    const concMonths = [];
+    if (wr.concession1Amt) concMonths.push(`${wr.concession1Month || 'Month 1'} (${fmt(wlNum(wr.concession1Amt))})`);
+    if (wr.concession2Amt) concMonths.push(`${wr.concession2Month || 'Month 2'} (${fmt(wlNum(wr.concession2Amt))})`);
+    const oneTimeTotal = wlNum(wr.concession1Amt) + wlNum(wr.concession2Amt);
+    document.getElementById('leaseConcessionSection').innerHTML = `
+        <tr><td class="wl-row-label">One-Time <span class="wl-hint">(sum of concessions)</span></td><td class="wl-auto" colspan="2">${fmt(oneTimeTotal)}</td></tr>
+        <tr><td class="wl-row-label">For the Months</td><td class="wl-auto" colspan="2">${escapeHtml(concMonths.length ? concMonths.join('; ') : 'N/A')}</td></tr>
+    `;
+
+    document.getElementById('leaseProvisionsSection').innerHTML = `
+        <tr><td class="wl-row-label">MER <span class="wl-hint">(override; defaults to rent)</span></td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="merManual" value="${escapeAttr(lr.merManual)}" placeholder="${fmt(monthlyRent)}"></td></tr>
+    `;
+
+    wireLeaseInputs();
+}
+
 
 const PAY_PERIOD_KEY = 'reve-pay-period-start';
 const PAY_PERIOD_BACKEND_KEY = 'pay-period-start';
@@ -8525,6 +8779,7 @@ setInterval(() => {
     pullUnitOverridesFromBackend();
     pullResidentsFromBackend();
     pullWlFromBackend();
+    pullLeaseFromBackend();
 }, 25000);
 
 [...document.querySelectorAll('.mark-logo-img')].forEach(img => { img.src = WATERMARK_IMG_SRC; });
@@ -8549,6 +8804,7 @@ commRenewalController.init();
 restorePayPeriodLocal();
 initResidents();
 restoreWlLocal();
+restoreLeaseLocal();
 try {
     if (localStorage.getItem(APP_MODE_KEY) === 'test') applyAppMode('test');
 } catch (e) { /* ignore */ }
@@ -8560,6 +8816,7 @@ if (BACKEND_URL) {
     pullUnitOverridesFromBackend();
     pullResidentsFromBackend();
     pullWlFromBackend();
+    pullLeaseFromBackend();
 }
 </script>
 </body>
