@@ -1307,6 +1307,37 @@
     .snake-hud b { color: var(--reve-orange-dark); }
     #snakeCanvas { background: var(--ink); border-radius: 8px; border: 1px solid var(--line); touch-action: none; }
 
+    /* -- Chess game -- */
+    .chess-wrap { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; }
+    .chess-board-col { flex: 0 0 auto; }
+    .chess-hud { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 10px; font-size: 13.5px; font-weight: 700; max-width: 400px; }
+    .chess-board {
+        display: grid;
+        grid-template-columns: repeat(8, 44px);
+        grid-template-rows: repeat(8, 44px);
+        border: 2px solid var(--ink);
+        width: max-content;
+    }
+    .chess-sq { display: flex; align-items: center; justify-content: center; font-size: 28px; user-select: none; position: relative; }
+    .chess-sq.light { background: #eee0c8; }
+    .chess-sq.dark { background: #b58863; }
+    .chess-sq .chess-coord { position: absolute; bottom: 1px; left: 2px; font-size: 8px; font-weight: 700; opacity: 0.5; }
+    .chess-move-form { display: flex; gap: 8px; margin-top: 12px; max-width: 400px; }
+    .chess-move-form input {
+        flex: 1;
+        box-sizing: border-box;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-family: var(--sans);
+        font-size: 13px;
+        background: #fff;
+        color: var(--ink);
+    }
+    .chess-log-col { flex: 1; min-width: 220px; max-width: 320px; }
+    .chess-log { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 12px; max-height: 380px; overflow-y: auto; line-height: 1.7; }
+    .chess-log .chess-log-empty { color: var(--ink-soft); }
+
     /* -- Welcome Letter -- */
     .wl-picker-bar { position: relative; max-width: 420px; margin-bottom: 10px; }
     .wl-picker-bar input {
@@ -1426,6 +1457,12 @@
     /* A still-false checkbox/status cell inside an otherwise-colored row
        gets flagged red, same as the source sheet's per-cell highlight. */
     .res-cell-incomplete { background: #ffb3b3 !important; }
+    /* Three-tier status coloring on the control itself */
+    select.mmr-lease-field.res-tier-pending { background: #ffe0d6; border-color: #de5426; }
+    select.mmr-lease-field.res-tier-partial { background: #dcf3e3; border-color: #3d9e5a; }
+    select.mmr-lease-field.res-tier-complete { background: #dbe9fb; border-color: #3a72c4; }
+    input.res-check.res-tier-pending { outline: 2px solid #de5426; outline-offset: 1px; }
+    input.res-check.res-tier-complete { outline: 2px solid #3a72c4; outline-offset: 1px; }
     /* Move-Out Date / Moved-Out columns specifically flag amber when the
        2-months-before-move-out "notice needed" date is coming up within
        30 days and nothing's been flagged yet — same columns the source
@@ -1572,6 +1609,8 @@
     body.dark-mode .res-tracker-card,
     body.dark-mode .wl-picker-bar input,
     body.dark-mode .wl-summary-box,
+    body.dark-mode .chess-move-form input,
+    body.dark-mode .chess-log,
     body.dark-mode .wl-table,
     body.dark-mode .concession-banner {
         background: var(--dm-card);
@@ -1590,6 +1629,9 @@
     body.dark-mode .res-row-complete td.res-computed,
     body.dark-mode .res-row-notice td.res-computed { background: inherit; color: var(--ink-soft); }
     body.dark-mode .res-cell-incomplete { background: #5c1f1f !important; }
+    body.dark-mode select.mmr-lease-field.res-tier-pending { background: #4a2c1e; border-color: #de5426; color: var(--ink); }
+    body.dark-mode select.mmr-lease-field.res-tier-partial { background: #1e3a26; border-color: #3d9e5a; color: var(--ink); }
+    body.dark-mode select.mmr-lease-field.res-tier-complete { background: #1c2c44; border-color: #5a8fd6; color: var(--ink); }
     body.dark-mode .res-cell-notice-due { background: #362a52 !important; }
     body.dark-mode .wl-table td.wl-row-label,
     body.dark-mode .wl-table td.wl-sub-label { background: var(--dm-card-alt); }
@@ -2640,14 +2682,43 @@
             <div class="no-unit">PCard &mdash; nothing built here yet.</div>
         </div>
         <div id="adminPanel-games" class="admin-subpanel" style="display:none;">
-            <div class="snake-wrap">
-                <div class="snake-hud">
-                    <span>Score: <b id="snakeScore">0</b></span>
-                    <span>Best: <b id="snakeBest">0</b></span>
-                    <button type="button" class="btn" id="snakeStartBtn" style="width:auto;padding:6px 14px;">Start</button>
+            <div class="wl-subtabs" style="margin-bottom:16px;">
+                <button type="button" class="wl-subtab active" data-game-select="snake">Snake</button>
+                <button type="button" class="wl-subtab" data-game-select="chess">Chess</button>
+            </div>
+
+            <div id="gamePanel-snake" class="game-subpanel">
+                <div class="snake-wrap">
+                    <div class="snake-hud">
+                        <span>Score: <b id="snakeScore">0</b></span>
+                        <span>Best: <b id="snakeBest">0</b></span>
+                        <button type="button" class="btn" id="snakeStartBtn" style="width:auto;padding:6px 14px;">Start</button>
+                    </div>
+                    <canvas id="snakeCanvas" width="360" height="360"></canvas>
+                    <div class="empty-note" style="margin-top:8px;">Arrow keys or WASD to steer. Swipe on mobile.</div>
                 </div>
-                <canvas id="snakeCanvas" width="360" height="360"></canvas>
-                <div class="empty-note" style="margin-top:8px;">Arrow keys or WASD to steer. Swipe on mobile.</div>
+            </div>
+
+            <div id="gamePanel-chess" class="game-subpanel" style="display:none;">
+                <div class="chess-wrap">
+                    <div class="chess-board-col">
+                        <div class="chess-hud">
+                            <span id="chessTurnLabel">White to move</span>
+                            <button type="button" class="btn" id="chessResetBtn" style="width:auto;padding:6px 14px;">New Game</button>
+                        </div>
+                        <div id="chessBoard" class="chess-board"></div>
+                        <form id="chessMoveForm" class="chess-move-form">
+                            <input type="text" id="chessMoveInput" placeholder="e.g. Black King to D2" autocomplete="off">
+                            <button type="submit" class="btn primary" style="width:auto;padding:8px 16px;">Move</button>
+                        </form>
+                        <div class="empty-note" id="chessError" style="color:var(--warn);display:none;"></div>
+                        <div class="empty-note">Format: "&lt;Color&gt; &lt;Piece&gt; to &lt;Square&gt;" &mdash; e.g. "White Knight to F3". Basic movement rules only &mdash; no check/checkmate/castling detection yet.</div>
+                    </div>
+                    <div class="chess-log-col">
+                        <div class="mmr-section-title">MOVE LOG</div>
+                        <div id="chessLog" class="chess-log"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -6562,6 +6633,185 @@ let adminSubTab = 'mmr';
     drawMessage('Press Start to play');
 })();
 
+[...document.querySelectorAll('[data-game-select]')].forEach(btn => {
+    btn.addEventListener('click', () => {
+        const which = btn.getAttribute('data-game-select');
+        [...document.querySelectorAll('[data-game-select]')].forEach(b => b.classList.toggle('active', b === btn));
+        ['snake', 'chess'].forEach(g => {
+            document.getElementById('gamePanel-' + g).style.display = g === which ? 'block' : 'none';
+        });
+        if (which !== 'snake') snakeStop();
+    });
+});
+
+/* ============================================================
+   Chess — text-entry moves ("Black King to D2"). Basic legal piece
+   movement only (path-blocking, knight jumps, pawn forward/diagonal-
+   capture, one square for king) — no check/checkmate/castling/
+   en passant/promotion yet. This is a starting point, not a full
+   rules engine.
+   ============================================================ */
+(function () {
+    const PIECE_GLYPHS = {
+        wK: '\u2654', wQ: '\u2655', wR: '\u2656', wB: '\u2657', wN: '\u2658', wP: '\u2659',
+        bK: '\u265A', bQ: '\u265B', bR: '\u265C', bB: '\u265D', bN: '\u265E', bP: '\u265F'
+    };
+    const PIECE_NAME_TO_LETTER = { king: 'K', queen: 'Q', rook: 'R', bishop: 'B', knight: 'N', pawn: 'P' };
+    const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+
+    let board, turn, gameOver;
+
+    function startPosition() {
+        const b = Array.from({ length: 8 }, () => Array(8).fill(null));
+        const backRank = ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'];
+        for (let c = 0; c < 8; c++) {
+            b[0][c] = 'b' + backRank[c];
+            b[1][c] = 'bP';
+            b[6][c] = 'wP';
+            b[7][c] = 'w' + backRank[c];
+        }
+        return b;
+    }
+
+    function squareToRC(square) {
+        const file = square[0].toLowerCase();
+        const rank = parseInt(square[1], 10);
+        const col = FILES.indexOf(file);
+        if (col === -1 || isNaN(rank) || rank < 1 || rank > 8) return null;
+        return { r: 8 - rank, c: col };
+    }
+    function rcToSquare(r, c) { return FILES[c] + (8 - r); }
+
+    function pathClear(r1, c1, r2, c2) {
+        const dr = Math.sign(r2 - r1), dc = Math.sign(c2 - c1);
+        let r = r1 + dr, c = c1 + dc;
+        while (r !== r2 || c !== c2) {
+            if (board[r][c]) return false;
+            r += dr; c += dc;
+        }
+        return true;
+    }
+
+    // Can the piece at (r1,c1) legally reach (r2,c2) on the current board?
+    // Ignores whether the mover's own king would be left in check.
+    function canReach(piece, r1, c1, r2, c2) {
+        const color = piece[0], type = piece[1];
+        const target = board[r2][c2];
+        if (target && target[0] === color) return false;
+        const dr = r2 - r1, dc = c2 - c1;
+        const adr = Math.abs(dr), adc = Math.abs(dc);
+        if (type === 'N') return (adr === 2 && adc === 1) || (adr === 1 && adc === 2);
+        if (type === 'K') return adr <= 1 && adc <= 1 && (adr + adc > 0);
+        if (type === 'R') return (dr === 0 || dc === 0) && pathClear(r1, c1, r2, c2);
+        if (type === 'B') return adr === adc && adr > 0 && pathClear(r1, c1, r2, c2);
+        if (type === 'Q') return ((dr === 0 || dc === 0) || (adr === adc)) && adr + adc > 0 && pathClear(r1, c1, r2, c2);
+        if (type === 'P') {
+            const dir = color === 'w' ? -1 : 1;
+            const startRow = color === 'w' ? 6 : 1;
+            if (dc === 0 && !target) {
+                if (dr === dir) return true;
+                if (dr === 2 * dir && r1 === startRow && !board[r1 + dir][c1]) return true;
+            }
+            if (adc === 1 && dr === dir && target && target[0] !== color) return true;
+            return false;
+        }
+        return false;
+    }
+
+    function findCandidates(color, letter, r2, c2) {
+        const out = [];
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const p = board[r][c];
+                if (p && p[0] === color && p[1] === letter && canReach(p, r, c, r2, c2)) out.push({ r, c });
+            }
+        }
+        return out;
+    }
+
+    function renderBoard() {
+        const el = document.getElementById('chessBoard');
+        let html = '';
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const isLight = (r + c) % 2 === 0;
+                const p = board[r][c];
+                const glyph = p ? PIECE_GLYPHS[p] : '';
+                const coord = c === 0 ? `<span class="chess-coord">${8 - r}</span>` : (r === 7 ? `<span class="chess-coord">${FILES[c]}</span>` : '');
+                html += `<div class="chess-sq ${isLight ? 'light' : 'dark'}">${glyph}${coord}</div>`;
+            }
+        }
+        el.innerHTML = html;
+        document.getElementById('chessTurnLabel').textContent = gameOver ? gameOver : (turn === 'w' ? 'White to move' : 'Black to move');
+    }
+
+    function logMove(text) {
+        const log = document.getElementById('chessLog');
+        if (log.querySelector('.chess-log-empty')) log.innerHTML = '';
+        const line = document.createElement('div');
+        line.textContent = text;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('chessError');
+        el.textContent = msg;
+        el.style.display = msg ? 'block' : 'none';
+    }
+
+    function resetChess() {
+        board = startPosition();
+        turn = 'w';
+        gameOver = null;
+        document.getElementById('chessLog').innerHTML = '<div class="chess-log-empty">No moves yet.</div>';
+        showError('');
+        renderBoard();
+    }
+
+    function parseAndMove(text) {
+        showError('');
+        if (gameOver) { showError('Game over \u2014 start a New Game to keep playing.'); return; }
+        const m = text.trim().match(/^(white|black)\s+(king|queen|rook|bishop|knight|pawn)\s+to\s+([a-h][1-8])$/i);
+        if (!m) { showError('Couldn\u2019t read that move. Try the format: "Black King to D2".'); return; }
+        const color = m[1].toLowerCase() === 'white' ? 'w' : 'b';
+        const letter = PIECE_NAME_TO_LETTER[m[2].toLowerCase()];
+        const dest = squareToRC(m[3]);
+        if (color !== turn) { showError(`It's ${turn === 'w' ? 'White' : 'Black'}'s move.`); return; }
+        const candidates = findCandidates(color, letter, dest.r, dest.c);
+        if (!candidates.length) { showError(`No ${m[1]} ${m[2]} can legally move to ${m[3].toUpperCase()}.`); return; }
+        if (candidates.length > 1) {
+            const froms = candidates.map(sq => rcToSquare(sq.r, sq.c).toUpperCase()).join(', ');
+            showError(`More than one ${m[2]} can reach ${m[3].toUpperCase()} (from ${froms}) \u2014 this simple parser can't disambiguate yet.`);
+            return;
+        }
+        const from = candidates[0];
+        const piece = board[from.r][from.c];
+        const captured = board[dest.r][dest.c];
+        board[dest.r][dest.c] = piece;
+        board[from.r][from.c] = null;
+        const moveText = `${turn === 'w' ? 'White' : 'Black'} ${m[2]} ${rcToSquare(from.r, from.c).toUpperCase()}\u2192${m[3].toUpperCase()}${captured ? ' (captures ' + captured[1] + ')' : ''}`;
+        logMove(moveText);
+        if (captured && captured[1] === 'K') {
+            gameOver = `${turn === 'w' ? 'White' : 'Black'} wins!`;
+        } else {
+            turn = turn === 'w' ? 'b' : 'w';
+        }
+        renderBoard();
+    }
+
+    document.getElementById('chessMoveForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('chessMoveInput');
+        if (!input.value.trim()) return;
+        parseAndMove(input.value);
+        input.value = '';
+    });
+    document.getElementById('chessResetBtn').addEventListener('click', resetChess);
+
+    resetChess();
+})();
+
 /* ============================================================
    MMR — Weekly Stats. A single current/editable record (not a history
    of past weeks yet) with computed percentages/ratios and date-derived
@@ -7407,6 +7657,49 @@ const RESIDENT_FIELDS = [
 ];
 const RESIDENT_CHECKLIST_KEYS = ['idCheck', 'welcomeLetter', 'insurance', 'miPayment', 'miFolder', 'walkThrough', 'movedIn', 'latch'];
 const RESIDENT_RED_FLAG_KEYS = ['insurance', 'miPayment'];
+// Three-tier status coloring for the interactive cell controls themselves
+// (separate from the row-level pending/complete/notice background):
+// orange-red = sent/initiated/pending, green = complete but not uploaded,
+// blue = fully complete and/or uploaded. Not every field has all three —
+// a plain checkbox only has pending/complete, for instance.
+const RESIDENT_BOOL_STATUS_KEYS = ['idCheck', 'welcomeLetter', 'insurance', 'miPayment', 'miFolder', 'walkThrough', 'movedIn', 'latch'];
+function residentStatusTier(key, val) {
+    if (RESIDENT_BOOL_STATUS_KEYS.indexOf(key) !== -1) return val ? 'complete' : 'pending';
+    if (key === 'lease') {
+        if (val === '\u2192') return 'pending';
+        if (val === '\u2191') return 'complete';
+        return null;
+    }
+    if (key === 'deposit') {
+        if (val === '\u2192') return 'pending';
+        if (val === '\u2713') return 'complete';
+        return null;
+    }
+    if (key === 'screen') {
+        return val === '\u2191' ? 'complete' : 'pending';
+    }
+    if (key === 'inventoryConditions') {
+        if (val === '\u2191') return 'partial';
+        if (val === '\u2713') return 'complete';
+        return null;
+    }
+    return null;
+}
+function residentStatusClass(key, val) {
+    const tier = residentStatusTier(key, val);
+    return tier ? ` res-tier-${tier}` : '';
+}
+// Per-agent color coding — a small fixed palette, hashed from the name
+// so the same agent always lands on the same color across renders/
+// sessions, without needing to maintain an explicit agent->color map.
+const RESIDENT_AGENT_PALETTE = ['#c0392b', '#2980b9', '#27ae60', '#8e44ad', '#d35400', '#16a085', '#c2185b', '#00838f', '#6d4c41', '#455a64'];
+function residentAgentColor(name) {
+    const n = (name || '').trim();
+    if (!n) return null;
+    let hash = 0;
+    for (let i = 0; i < n.length; i++) hash = (hash * 31 + n.charCodeAt(i)) >>> 0;
+    return RESIDENT_AGENT_PALETTE[hash % RESIDENT_AGENT_PALETTE.length];
+}
 
 let RESIDENT_ROWS = {};
 const RESIDENT_DIRTY = new Set();
@@ -7605,10 +7898,10 @@ function renderResidentRow(id, row, derived) {
             cells += `<td class="res-computed${cls}">${derived.movedOut ? 'Yes' : 'No'}</td>`;
         } else if (f.type === 'checkbox') {
             const isRedFlag = RESIDENT_RED_FLAG_KEYS.indexOf(f.key) !== -1 && !row[f.key];
-            cells += `<td class="res-check-cell${isRedFlag ? ' res-cell-incomplete' : ''}"><input type="checkbox" class="res-check" data-field="${f.key}" ${row[f.key] ? 'checked' : ''}></td>`;
+            cells += `<td class="res-check-cell${isRedFlag ? ' res-cell-incomplete' : ''}"><input type="checkbox" class="res-check${residentStatusClass(f.key, row[f.key])}" data-field="${f.key}" ${row[f.key] ? 'checked' : ''}></td>`;
         } else if (f.type === 'select') {
             const val = row[f.key] || '';
-            cells += `<td><select class="mmr-lease-field" data-field="${f.key}">${f.options.map(o => `<option value="${escapeAttr(o)}"${val === o ? ' selected' : ''}>${(f.optionLabels && f.optionLabels[o]) || o || '\u2014'}</option>`).join('')}</select></td>`;
+            cells += `<td><select class="mmr-lease-field${residentStatusClass(f.key, val)}" data-field="${f.key}">${f.options.map(o => `<option value="${escapeAttr(o)}"${val === o ? ' selected' : ''}>${(f.optionLabels && f.optionLabels[o]) || o || '\u2014'}</option>`).join('')}</select></td>`;
         } else if (f.type === 'date') {
             cells += `<td><input type="date" class="mmr-lease-field" data-field="${f.key}" value="${escapeAttr(String(row[f.key] || ''))}"></td>`;
         } else if (f.type === 'number') {
@@ -7616,7 +7909,9 @@ function renderResidentRow(id, row, derived) {
         } else {
             const rawVal = row[f.key] === undefined ? '' : String(row[f.key]);
             const displayVal = f.currency ? formatResidentCurrency(rawVal) : rawVal;
-            cells += `<td><input type="text" class="mmr-lease-field" data-field="${f.key}" value="${escapeAttr(displayVal)}"></td>`;
+            const agentColor = f.key === 'agent' ? residentAgentColor(rawVal) : null;
+            const agentStyle = agentColor ? ` style="color:${agentColor};font-weight:700;border-left:3px solid ${agentColor};"` : '';
+            cells += `<td><input type="text" class="mmr-lease-field" data-field="${f.key}" value="${escapeAttr(displayVal)}"${agentStyle}></td>`;
         }
     });
     cells += `<td class="mmr-remove-cell"><button type="button" class="wl-remove" title="Remove">&times;</button></td>`;
