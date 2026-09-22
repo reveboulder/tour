@@ -1301,6 +1301,28 @@
         color: var(--ink);
     }
 
+    /* -- Residents danger zone (export/upload/clear) -- */
+    .res-danger-zone {
+        margin-top: 18px;
+        padding-top: 10px;
+        border-top: 1px solid var(--line-soft);
+        text-align: right;
+        font-size: 10.5px;
+    }
+    .res-danger-link {
+        background: none;
+        border: none;
+        color: var(--ink-soft);
+        text-decoration: underline;
+        cursor: pointer;
+        padding: 2px 4px;
+        font-size: 10.5px;
+        font-family: var(--sans);
+    }
+    .res-danger-link:hover { color: var(--ink); }
+    .res-danger-clear:hover { color: var(--warn); }
+    .res-danger-sep { color: var(--line); margin: 0 2px; }
+
     /* -- Snake game -- */
     .snake-wrap { display: flex; flex-direction: column; align-items: center; max-width: 380px; }
     .snake-hud { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; font-size: 13px; width: 100%; justify-content: space-between; }
@@ -2263,6 +2285,15 @@
             </thead>
             <tbody id="residentsBody"></tbody>
         </table>
+    </div>
+
+    <div class="res-danger-zone">
+        <button type="button" class="res-danger-link" id="residentsExportBtn">Export data</button>
+        <span class="res-danger-sep">&middot;</span>
+        <button type="button" class="res-danger-link" id="residentsUploadBtn">Upload data</button>
+        <input type="file" id="residentsUploadInput" accept=".json" style="display:none;">
+        <span class="res-danger-sep">&middot;</span>
+        <button type="button" class="res-danger-link res-danger-clear" id="residentsClearBtn">Clear all data</button>
     </div>
 </div>
 </div>
@@ -7893,7 +7924,9 @@ function formatResidentCurrency(val) {
     if (s === '') return '';
     const num = parseFloat(s.replace(/[$,]/g, ''));
     if (isNaN(num)) return s;
-    return '$' + num.toLocaleString('en-US');
+    const rounded = Math.round(num * 100) / 100;
+    const hasCents = Math.abs(rounded % 1) > 0.001;
+    return '$' + rounded.toLocaleString('en-US', { minimumFractionDigits: hasCents ? 2 : 0, maximumFractionDigits: 2 });
 }
 function computeResidentDerived(row) {
     const moveOut = residentMoveOutDate(row);
@@ -8154,6 +8187,73 @@ document.getElementById('residentSearchBar').addEventListener('input', renderRes
     });
 });
 
+// Export/Upload/Clear — tucked away at the bottom since these aren't
+// everyday actions. Export is read-only (no password); Upload and
+// Clear both mutate or destroy shared data, so both require the
+// Admin password to confirm before doing anything irreversible.
+document.getElementById('residentsExportBtn').addEventListener('click', () => {
+    const payload = { exportedAt: new Date().toISOString(), residents: RESIDENT_ROWS };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `residents-export-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+});
+
+function promptAdminPassword(actionLabel) {
+    const pw = prompt(`Enter the Admin password to ${actionLabel}:`);
+    if (pw === null) return false;
+    if (pw !== ADMIN_PASSWORD) { alert('Incorrect password.'); return false; }
+    return true;
+}
+
+document.getElementById('residentsUploadBtn').addEventListener('click', () => {
+    if (!promptAdminPassword('upload and replace Residents data')) return;
+    document.getElementById('residentsUploadInput').click();
+});
+document.getElementById('residentsUploadInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        let parsed;
+        try {
+            parsed = JSON.parse(reader.result);
+        } catch (err) {
+            alert('That file isn\u2019t valid JSON.');
+            return;
+        }
+        const residents = parsed && parsed.residents ? parsed.residents : parsed;
+        if (!residents || typeof residents !== 'object' || Array.isArray(residents)) {
+            alert('That file doesn\u2019t look like a Residents export.');
+            return;
+        }
+        if (!confirm(`This will replace ALL current Residents data with ${Object.keys(residents).length} record(s) from this file. Continue?`)) return;
+        RESIDENT_ROWS = residents;
+        residentPersistLocal();
+        residentPushDebounced();
+        renderResidentsBody();
+        alert('Residents data replaced from upload.');
+    };
+    reader.readAsText(file);
+});
+
+document.getElementById('residentsClearBtn').addEventListener('click', () => {
+    if (!promptAdminPassword('permanently clear ALL Residents data')) return;
+    if (!confirm('This will permanently delete every resident record for every agent. This cannot be undone. Are you sure?')) return;
+    if (!confirm('Really clear all Residents data? This is your last chance to cancel.')) return;
+    RESIDENT_ROWS = {};
+    residentPersistLocal();
+    residentPushDebounced();
+    renderResidentsBody();
+    alert('All Residents data has been cleared.');
+});
+
 
 /* ============================================================
    WELCOME LETTER — one record per unit. The "autofill" (green) side
@@ -8351,10 +8451,25 @@ function wlComputeTotals(r, resident) {
     const applicantCount = wlApplicantCount(r, resident);
     const appFeeAmt = applicantCount * WL_RATE_APP_FEE_PER_APPLICANT;
     const feesTotal = WL_RATE_ADMIN_FEE + appFeeAmt + [1, 2, 3, 4].reduce((s, n) => s + (r['other' + n + 'YesNo'] === 'Yes' ? wlNum(r['other' + n + 'Manual']) : 0), 0);
-    const prorateAmt = r.prorateManual !== '' && r.prorateManual !== undefined ? wlNum(r.prorateManual) : chargesTotal;
+
+    // Prorate by actual day count in the move-in month (not a flat
+    // full-month default) — matches the per-diem math used on the
+    // Lease tab, so a mid-month move-in prorates correctly.
+    let prorateDefault = chargesTotal;
+    let prorateFrom = '', prorateTo = '';
+    if (resident && resident.moveInDate) {
+        const moveIn = new Date(resident.moveInDate + 'T00:00:00');
+        const daysInMonth = leaseMonthEnd(moveIn.getFullYear(), moveIn.getMonth() + 1);
+        const perDiem = chargesTotal / daysInMonth;
+        const daysRemaining = daysInMonth - moveIn.getDate() + 1;
+        prorateDefault = perDiem * daysRemaining;
+        prorateFrom = fmtResidentDate(moveIn);
+        prorateTo = fmtResidentDate(new Date(moveIn.getFullYear(), moveIn.getMonth(), daysInMonth));
+    }
+    const prorateAmt = r.prorateManual !== '' && r.prorateManual !== undefined ? wlNum(r.prorateManual) : prorateDefault;
     const subtotal = prorateAmt + depositsTotal + feesTotal;
     const totalDue = subtotal - wlNum(r.appFeePaidAmt) - wlNum(r.holdingFeePaidAmt) - wlNum(r.additionalPaidAmt) - WL_RATE_ADMIN_FEE;
-    return { petCount, parkingCharge, petRent, petDeposit, effectiveRent, chargesTotal, depositsTotal, applicantCount, appFeeAmt, feesTotal, prorateAmt, subtotal, totalDue };
+    return { petCount, parkingCharge, petRent, petDeposit, effectiveRent, chargesTotal, depositsTotal, applicantCount, appFeeAmt, feesTotal, prorateAmt, prorateFrom, prorateTo, subtotal, totalDue };
 }
 
 function renderWlForm() {
@@ -8367,7 +8482,7 @@ function renderWlForm() {
     const rentAuto = resident ? formatResidentCurrency(resident.rate) : '';
 
     const t = wlComputeTotals(r, resident);
-    const { chargesTotal, depositsTotal, feesTotal, prorateAmt, subtotal, totalDue, petCount, parkingCharge, petRent, petDeposit, applicantCount, appFeeAmt, effectiveRent } = t;
+    const { chargesTotal, depositsTotal, feesTotal, prorateAmt, prorateFrom, prorateTo, subtotal, totalDue, petCount, parkingCharge, petRent, petDeposit, applicantCount, appFeeAmt, effectiveRent } = t;
 
 
     document.getElementById('wlNamesSection').innerHTML = `
@@ -8423,7 +8538,7 @@ function renderWlForm() {
     `;
 
     document.getElementById('wlFeesPaidSection').innerHTML = `
-        <tr><td class="wl-row-label">Prorate Amount <span class="wl-hint">(defaults to charges total)</span></td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="prorateManual" value="${escapeAttr(r.prorateManual)}" placeholder="${formatResidentCurrency(chargesTotal)}"></td></tr>
+        <tr><td class="wl-row-label">Prorate Amount <span class="wl-hint">(defaults to per-diem proration)</span></td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="prorateManual" value="${escapeAttr(r.prorateManual)}" placeholder="${formatResidentCurrency(prorateAmt)}"></td></tr>
         <tr><td class="wl-row-label">Move In At/After 25th, Next Month Charges</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="moveInAfter25th" value="${escapeAttr(r.moveInAfter25th)}" placeholder="N/A"></td></tr>
         <tr><td class="wl-sub-label">App Fee Paid</td><td class="wl-manual"><input type="text" data-wl-field="appFeePaidAmt" value="${escapeAttr(r.appFeePaidAmt)}" placeholder="$"></td><td class="wl-manual"><input type="date" data-wl-field="appFeeDatePaid" value="${escapeAttr(r.appFeeDatePaid)}"></td></tr>
         <tr><td class="wl-sub-label">Holding Fee Paid</td><td class="wl-manual"><input type="text" data-wl-field="holdingFeePaidAmt" value="${escapeAttr(r.holdingFeePaidAmt)}" placeholder="$"></td><td class="wl-manual"><input type="date" data-wl-field="holdingFeeDatePaid" value="${escapeAttr(r.holdingFeeDatePaid)}"></td></tr>
@@ -8475,6 +8590,7 @@ function renderWlForm() {
 }
 
 /* ---------- Welcome Letter PDF export ---------- */
+const EQUAL_HOUSING_LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAbAAAAHOCAMAAADOuKypAAAAaVBMVEX///8AAABjY2P29vb8/Pzi4uLd3d1CQkLV1dVTU1OoqKh7e3vZ2dnl5eWUlJSzs7ONjY0ICAjMzMzt7e1ZWVkdHR3Gxsafn59eXl50dHQYGBgwMDA7OztJSUnAwMAlJSWEhIRsbGyurotctpzgAAAfR0lEQVR4nO2d68KqKhCGM63PTlbaOcva93+ROwZUREgNJGnN+2d9q0yBh+MwjKPRLyo5RtEx+XYqUC3l37feS9u7/+2UoNpocr54oMt58u20oJp1v3qFrvdvpwbVoNXJq+i0+naKUG/kr1NPULrGkWywmixEXEQLnC4OVOubjJfn3Q7fThlKouQkx0UUYbc4OK33al6etw+DbycQxWsVveX1WpNFOF0ckA6K0QtHskEq2TTjItrgdHEICg61tZdK6QFHsq8reVza8nqNZA9sZF/W4c1kXqYTjmTflP/YduPledsHrsm+JT/MuuIiykJE9hWtHp/gInrgmuwLus8+5eV5M9wns65z59GL1/b87fT/WwoO12Yo73WNv52Jf0htTRtvlc1xTWZJ945rL5XG4bdz8k8oiLRGL17XOZqqelf80dpLpb/pt/Pz40qOJnER4UjWp+4707w874QjWW96NGwrf6br49v5+k0FcS+4ABl2i+aVfGw5bKHLEe3BhrV89sjrpefy2zn8LR21TVFNuh6/nccf0nLcNy6iMTYyM/LnNnARzXEkM6DwbIuX553R8KGt/kcvXinubOpp2sKl16xu386yy0rmxgzz7ZXhWfZPdbAyOaxrgWfZP1FwNLqR0kU3HMm6a6nhFKWvM1oXuymxtvZS6LrGzegOCg15behogyNZWwV2114q3dbfLghH5H9tsiFo+8RusVn2LIcttMWRrEnhl9ZeKj3QhP9OQdT6+KstpfNvF8qANRlY86LCNZlCvnGfQ0NKYxzJJFr26WWjqQgbWU33wY1evPAsu6Dg2SF4wze0f3y7iIak4PBtHi2U4UiWaymNSzk8YegjqvXft0m01Q6ti6NRch746MVr+/h2cX1bwXoQhvn2Sv/t6eLEos+hKf3DrwjxVVGVh63xv9rIkqGvvVTa/5sxn+eO4iK6/HubLisHRy9ex38svtjRmbWXSrt/KfSR73jzAqWbbxejNa2H4mWjqfG/McGfDHjfq6v+gROAwd0x08Z7LX49Ksuqe1TlYSv97fhid4fXXiqNf9elO3Fk36urfvUdgIevHiDqU+efXJOdewsV9X2lvxeV5bvn8/rXj41kRqIqd9FpvbA9Hf2lfbJDD3Ep3ynbvOba9TcE96yfiZSZHC1Xdub1GdqelF5/w/AR2x69itiHwdp2t7hzv1v0bY9eM75j8vVe+NFd27vbho9A5402n+gq7t7PbbuNbFze2Uw2ltdeknc9WN8ccPgse2x7W1l6Kii4W+4WLws3R7JeoyrLtFMFO7Ruw8xcbGS2z3ttH29sDWvbM1XnzrJPbB9/bRg5Pn/94oe6utXIrI9ejW+1tO7Ev3VoJAtsjxnbNtsbgXXzsyObLkFoeVu59evP57bb/cKFNZn1tdesfXgh64dl/oYfKTO0bVlo27xAvu3D1Nlz2PZg/2G5O0y72u4S28F2Bv0229jyvtf28UH9tX4obbAxn33bQcs/PCM+tT2JHWjM5/BpuRw6jV68fOtrsiG+nsz2ZuFWJ86J9dNp6dBMVYnlOrsfaybYemirQb3N1rd9gOimv7E7tT2h3Q3HR2c5ttwdGrEgBLaDC9d2w78l280rO5jxmwhs9+PedQimKtsuvfuPJ4d12Q+Q//VImb7tLBte01hfi3w5UqbN1x0SXR6m33mY2H6HUvbNRma9Rzn24PVn3Vx9+tKaLFjZ3l5Ke3LStB7V4BMTqLb8o23DfH9nsMKT5XXJLLTuIBzbNu70+u75xHbgq2xjuZFFtnuRvs2n1vv3mc19sqXtcfppYWZlPbqctTcnWX/lRmrn3JX1NdnTjnUxtr3/d7ZlNbVuXbQSlWVuefTa24yCYf3w4blv94HEdo5mlu0CthcrWa/dvX+37HOY2vdQj227VZ36a2Qr26PXV2KlWbdn93aW3frp0/t3NvyCpe1G1s9Zdtvvwj59cbcvspxXz/iLNq2f1rl+912h06fd7JquntbPw3090qf1kcyobdv2idPLEELKWH+jtLHDScM5XW5X/tzyIsbMWfbgbjfV3nU4sQetmwme+lV1Yjv00ID8LclIZtlBWNuFz/rZnEF5NL80tT18a51ltx5byxveUSp/bbkIso+31gPbQcv30SBDoa2sj2SfzZGtv6x3N9Q33/m2t5Rmn3jL3m07OQz5jVyxZbvcZdG1kVl/We/A395q3S2im4+O9bXXJeqrpI1pat3w0X66OLE9ep2GeWpbkG3r4l/bNZn1V827EvE9floumE2rgplZHr2uy0FO5mWyviZrEfroYDuy1zDXXipNrI9k76eLK9vvBHgOObCPTIFt6+LfOwdh20HLL18/QfqBlrYPMW5U9jrf9gmHLxy6MSHrazLFMeHQclu/uPse5JXlkewiObuzsl1tBrXv1Vkby7W7Vlqx5X2v/VCCjHwq20ddsupidWM7VNTUydGLl/WRbFxOqFe2j7J1tkUPUr7t+GJs0E9su7k6/DaZqqyvyWYk5KDtsK9eNOB9r66yPpK9Fq6WK0lq7WSvFVkPP7Ae2X3e2UHTxntZDo6WWQX2M6NXRQ+r9lebwH6veVGtbU4D7AG7ful8ngXZPH1gDdjuZ3GNrL4gyBKwgcbaN6iFpaMuVoBtG9/H5r6Cgx3fRRvA0t8dvXglVg76WADWe7SXoSiILdjQewc2cJdes/I3vW/a9wws63Zwd7UcoDrZ0g59r8n6Bdb1fWxR+jc43br16Kuo3+lir8A6Tw5tn89to0vHc8dB2KupqkdgWffRa4jA9t0Pim96XEb3B6ydY/hPAhsd+jPh9wVs/5Fh/leAjVa9BTftCdiHbz/4GWCvRtbTBL8XYNdPY9n+ELBR0E9megC2/TzG5i8B6+mognlgOkHLfwvYaNXDdNE4sJNOuKQfAzYKzMdiMA1Mz2vj14C9ZHoz2iww3QjRPwjMtHXRJLCL9jsBfhHYKIlM2qpMAtN3YvtJYKPA5AsnTALTf8PXbwIbjQzaPUwC0z+ih8AahcCahMAQmI4QWJMQGALTEQJrEgJDYDpCYE1CYAhMRwisSQgMgekIgTUJgSEwHSGwJiEw14AZOD2KwCxqayC4CAKzKQORUxGYTSEwBKYhBNYoBIbANITAGoXAEJiGEFijEBgC0xACaxQCQ2AaQmCNQmAITEMIrFEDA3ZVK+14pBqB2QAWqjXteA4NgZkBdo3WSv339jkdX0SHwFTqBuzvY6cEBEaEwNRCYEQITE8ITC0ERoTA9ITA1EJgRAhMTwhMLQRGhMD0hMDUQmBECExPCEwtBEbkEDCL75Jsr4d2tn4XWDwfoGLtbP0usF8VAnNMCMwxITDHhMAcEwJzTAjMMSEwx/SzwILJALX68GVonH4W2Go3G54WH7zMU9DPApv2+HrWj7VDYEpN+31p9WdCYGohMCIEpicEphYCI0JgekJgaiEwIgSmJwSmFgIjQmB6QmBqITAiBKYnBKYWAiNCYHpCYGohMCIEpicEphYCI0JgekJgaiEwIgSmJwSmFgIjQmB6QmBqITAiBKYnBKYWAiNCYHpCYGohMCIEpicEphYCI0JgekJgaiEwIgSmJwSmFgIjQmB6QmBqITAiBKYnBKYWAiNCYHpCYGohMCIEpicEphYCI0JgekJgaiEwIgSmJwSmFgIjQmB6QmBqITAiBKYnBKYWAiNCYHpCYGohMCIEpicEphYCI0JgekJgaiEwIgSmJwSmFgIjQmB6QmBqITAil4Dhqzw8p4Al0QA197Xz9bPAflUIzDEhMMeEwBwTAnNMCMwxITDHhMAcEwJzTAjMMSEwx4TAHBMCc0wIzDEhMMeEwBwTAnNMCMwxITDHhMAcEwJzTAjMMSEwx4TAHBMCc0wDBTYxmcef0nqYwHZjlFx/wwSGMiME5pgQmGNCYI4JgTkmBOaYEJhjQmCOCYE5JgTmmBCYY0JgjgmBOSYE5pgQmGNCYI4JgTkmBOaYEJhjQmCOCYE5JgTmmBCYY0JgjgmBOSYE5pgQmGNCYI4JgTkmBOaYEJhjQmCOCYE5JgTmmBCYY0JgjgmBOSYE5pgQmGNCYI4JgTkmBOaYEJhjQmCOCYE5JgTmmBCYY0JgjgmBOSYE5pgQmGNCYI4JgTkmBOaYEJhjQmCO6XNgu28n/d/U58Cmx/NiKHp+uxjtKVt+Cmw0CoYj/99R8DkwFAqFQqFQKBQK9W/pfpwf3XhxaXi8a/18Pl/7ptIy8udHowuvg3w5/ld5Rak/2VzZF9tnWM0MvGL1INxV9mFMPkuFV59OL553iVslci58SO6XVs08wfR+zu0Jj0m1nKLXhw+x6MQP/cnxRH+fjuNpIFzJXrQbwN9inTjUk+Ov5hlLznUXJ025bKdYDmy3Ki9JDs8t/92jYlshr1jdikW+Jj8QPtzAj9fVDyd/r2w2ttv4Uv/lKHwVxozn78ePSh6iSvEdySciMPLhpvxwPeYzuj2uqldm0/Jvbyc0wvhaT07GJyc9GnlPrwLYrEzrtJILoj++7NoC8+ldTtV8mgQ2z4R03o7cty2A1V7vuztUrqwA8zZCGgVgyUNMjncTs/CJCLDt+Slo/Cgb8Iw97b4Ml2f6n8upvEFbYCFLdZWOQWDPC61qx2UYjtNavWsGxt6ffZqH4WFBb5bG/JVVYEJORGBsL+REkhPO6f8uYrf+gQiw7M33AQwKs3veMJIHjGZ/RUNpC+z26sjJtY/Kp8aABTfapvKK5h8hndeiW2wEtiSQ92WRwjhQDA0SYH+VuwnA4N3Ol0VR7/0zaXAX/TbWAMxfkAcv+I9WsPFZDNUtgSWvD84BKfhKNk0B859QnSvfQ2/wzGtWEzCYSly5NAfHPfdUCTB+9BOABdBab5VpF7mAb/IfqgHYugKHyieNbn/grmgBLILML8SCNwUM0vmsTsRW0A/lTaYJWPJKyb4y9QvGHHAZsIzPYQXYgTSns7BTCcS0m9h7YAnpaG7i7GZCPl2wnLQD5p9g5448bceXmiFgCZmMj8WJ84S0sZR92gRsdeU7UNCdPJaDxAM7kdrw4GZQPLCATFfrO8sP6GWaMtug98CARr1S3PflmNsOGKlyL8SrF+qM7ygMAQvl48NhXzaxNsBmwtdkVJuUV/LAooOQJh4YKdR9ffEOM3LdJfl7YBdxYGAiVfdJ/2wHbENzAEMi38MaAkZue5LUXZiJ0D/bAPsTSnN+PEZcA+WBbeCZXjkkccACVVO6nR61JHTVe2AkTTIzD0nRlv7ZCtj0j/Ws5Oob11cYAkZakmhtIYKxn17TZgzbbpT1vw4sIYkal2ksgfmvlG1lyVkasHa8BTYtK2hVSUmyFbB7PtWc3qpFawYY9DWyqut7RTpazRK3kSoJdWCQKa9Ym3PAyBcXQ5aomt4Cg6FB+s2zSGsbYAHpEWlmSNscl/W4E7CK184oLoGdVcBG16J+NK/DYOnkReuVrJlJgAWkUywWAhyweaXpGRYAW8aCWMo2ynkoKaIr/NUG2KS4GtqFV/aJHYDtBM84YjFjJXQth1RBZGZ+g7+aLR3r3AR3WYdTsYFIgEHii9kyB4yM8OemPH0quS1xR78c822+ItLCUvirDbDIK01v1dx0ACYTB0w2N6K9E81MC1vi/Vrc+Do+xmEgXCkCG80vZQFxwMrxogfJgdHqCuYeE8BITcyrLBjti2/MAZP3BCR1dCXWxlo/3XB27mt6XlavrAEjq0tvS2eKHLDaIrSipsw2SA6M9sBkpmsCGBkKi3ES5gGFxa4DsO2lqm0VmHxTjaTuChe1AfYaJeNdWkLbzitX1oDRWRltwW+AnS5Zof07w20bEWCX13qjKlpdTbWwc6WLID/9y//TAdhc8A7mJh1qYGT8T6EJtAIGWkWnXd45Fr+QA6PrBiiiN8BmlcbQlNkGvZ0ljr36Ri8VKfW2kw5i38riVS7ygyznZ2ZaT4r3If1l6nUYwwoFfnx80IaW7+8rgIG9MSVdpzCG8Xm68by2TZlt0FtgG6+2T8d0LoporgRWmIdfxZ3Ncu1mW654zQDbFVhEEZTcLFH8WgGMKIjBlLFVWjpY0jJ2Xw7YTSi2zfNMNe4b2NJTrcPSorNczRTACtt5deOe6o+N52aAqRc+qcevw86yyboC2Ij5cTzKK2XAaKcYvl2HFWvHSd/AYJdYtmRPys64EVhY2yr3yuI3A2ytGhv8sncipZyKBvQSWPJSbQL3KO+rBEZ34hLR0rGVbXyt+gYGXGSDGOwIMaOpDBipYzkw8veNn9bMSc9wot+aAcZZoKriSJKOueoLNmJ9PuTjftvNFsK3o2TbDGw03UM75G2Jf558stY7MBgcbtz/89b2LAcNAkwsTGKKyoH5uxp06Pdpn2jI+DuW94lQcmxGGqb1nb0EhmIAtpI20l0LYLT23kNue4XUUdnecv/AYBArSyq6juE/sKGaFzPJtOALBRDZCE9a6VXoVkk5UmuHwf2w+pSiGF+IglO9FS6z8r5kelLbchy3AQbVYndPq/thsp6pf2CwfzXL8wELe7JvTDKX29BGc9JvVKvumkvwwqvP4GB3Biq2IWA+ueNFNAfBjnMxla9XLDDQ5yuMscctD/PneoUN9A2w0YQk749rYT7pYa71DZZp78BGpKF7O5aOA3jFZjAGce4qmSfaOkmPmY8XnqSsJwVQUz4d0Mteq8QOJJ2lI9O9Vu2haeQMwd8vqvYUM6+yYa0CRl2B+YeBE0UmEovP/QOj7WdG3bOTyX2cT/m4nMNcal522T506gxhWE5POBULJwDWeEq7GRh1U6oUEawFOT+Z4Mq1J8gOLLTyyQG4Fl3OXKcZwtqZ5esdMDoEVGpHSKs2f9F0s/ekA2U3gWnqvhY1j/NCJq3Fu+6OU5bJvciLGtSKldVoThf27Peklj9qT4UtPlK6BFgWVR+9ri0k2jiSQi3Z5yutYH4CgzE/EwGm+9xVJ4hg/6v0V4AW6GVHhiw5g3lqofCaqtoT7lsBGE3O9vZgBTVZU39Ob/9x0Acmhas255LAPGq9HVmr51/PE67VxKIv94tGPvySFlmfcMN64TFiW0qial1kG2BBxLx9iVmBnWjYVgf+mit2MUKB5vVslH5R74GxgwO85+9ctsOwl1tmu0gFbFECuZ+qOclIUrIj15EdbsKvZ3mZk7zN6ktvmCQQ3w4ZsH2ti2znW59EwhJ9J8xCgnVavWB7qsy9xa9ffVqR9AZgfioCG8VP0WJQ6XA/leK4UcXpZ3Xnnr1/xAdoaCl3OmQS8b/NimMfCRmsZLaffB45lZlB6i2MXV37sOr7F4S7slrvz/f6Sihc8M9Jxc53GfGG9WzMDYmQwWX590NWjtXkJPGDrwF/57uJg2LJQXQPqDgJMPmTaDd+6XQ6Eo8Hn54b4IowmMbRaQyXLO6rImEJuZXMtuW/Pj9MA/i3ppqJiNzmIBY/+VA4qzZKlg+ait1mKt0p9JcxveI0nsd1oEESHlhOH+GET/jkUCZs9fpbtJkEsSQ5/ioe06ed79O65cumksWV7YehHFGy6c1tAYVCoVCorvIhDp7Vx2l7ff3DSuYP0HwtmYj7NetVnIhX1S651y7htCoeJ06GiQ41Y9l9Vb1ZULen8VcH+V3mkruvyCW5nyjNmuSq5PXFvFjeJJDp8k+llv4cUiCvijFco78g86PFrrBnpLONWNKrmbetyLvudouoctlNvGS/251rbhQsy4tyiZruolrmdsK9Xjebzc4R54yb/ImX8FdTG/z5dYkn2Ui8e962WM/7J3KVxA91+spQ+fmBXEUt2nH27tHH0ZVcWrPVl+Wo8FLuIP8oGhzEgzermSfTlncck1/CHcwuHhdtBbPdZS7UOUU84kuWFafjZVbIQmO4n3CEqxDYeTlgRPWKBSdtOGBevgVxkHqp5DpSS2kl1Eku2IrXP9kylT33r2IgUgCrJEt1yU2oa9OT7D5VA6I6gHQekMI0sFutlX8MjBn+JVvO1PysaVEMYvb83Zm4yGyezACW8aYvJTBuY1V5SbW/yY8cpIuIPG7Bnn6rrMMB2PjMqdiJY7bk98BonJouwOonbtXA9u8e/QKWPOGvWuQbSPObU4PttGYlEdEpQpBM2Cn5C9ffAbC/e1jY+8L7kaaqDFcBwDiTYLiOWEPJuD4grx4RNfYFfsj8Fvd8jYQfxn7CaXlnewK0pIOQfxKUJvfJsnML867iJoESWMIXwx9UNu7R5HlTqPQ139YnV+E+FrOX8yc1Rgkrw7IvA2BCrxzElEde0ACsMhYFwYRSLTcjWHey4EJ3BRNWZBwxuLO41+evadWu7wEuoQrUPu4ErAzpwaQExgtiS9SHK2odF1JEt7J0I+JBmJS92B8caByZIgsArO65RcGyq2bc38IlxbFm2G+ph26nO7a38mMpMOZiIhkcltVakasbMHGm2A6YvGBoYVT9IJOZvFp1E6RdFqJgX0mgIl0raC8PLo31rRHSO2zzB8Cublqf8dJ+uazjCmB0W6q+TaANLIMaU50NaAGDo1qVQB4BjDQzzSUYva/sMBy4kRQxOlTpgoJlywo5MO5EDnPbllSPnFhRYipgPqS39rE2MLrVuKsML1rAmAcJl1UYvPfS1VkHQYclP0cAlZl5VCvTFXK/VwDjowpBJVvIKhkNQlZ4GauAwemGuheWNrAIPO+qt9AD5tMMFeUBjqyK03btFaaKLL2UkMqcRwtVpWvSDRj5M5Pvo9HZY/5zJbBrP8A2o7qfnB4wiE3CxVXbcMXwucgJAcmSEUT73Pn7dE07AZvU+51SZ75zVgGjc9oegAUQrqoy59YExmaKBy6FV+1YbsBEFU0Hoimd/bfpWjUD4+KPPOXlyl2Xl4gKGHVFq31sABh1QOdvogsMTmeyA7v+mK+OHwu8zZQRCmj4utXbdM25bMiBQeAlltRU1dHBheTLfBWuAEZXBWIMLzPAmG9hORPXBcZsimD+hpbx1DbSw4I8U63k6DwgfJcuOJiVLwXlwLh5KJykUoczI1/mKzQ5sMmOfx4nI8ACukYs0qcNjHWKa7ZISrU7RAqsFmaw0KbszOTpgvNVxZkPKbAJXEIXWABMPCFSinSYua/urlrZ4WFJTJe4Ej9HI8CYEby4jT4wOlOc+QGfNR2BreSkBA8DBgdMmC74R1rh88VT3TQ1CqijPVs3AzC1cxxZR+QmWLjzI+K0eT6pYUrWI5gBRlcyxfkJfWBsFn6A5J0NbK4f3gM7CsDSOb+ne8xtsfnlAKx6ruFGPXHZ3BbsIu+BeQ/6t3p75RpLRgJDwOgQ+cfqpQFgNE9XOGakewqiSER7YFKV9jL19gorGujSG4CxIlEB28vnmIaAMVslM/eZADZ65ik3wcsEsFmZEOUGZt7HPLSAXbLLc6PItilg7Gge7XSNAJuw1D+UV3RRAzBxDJPUd/51GXJgi3nRBGFhpwYGU19mu6mMYTTq/zU6KEcBU8BYp0jPZBsBxmaKKmtBR93fAqMrKCWwVwGGAT+eSIA97vzJhsn7SQcZoCuTjiULSeJPyXx1+6c2xBkDxl5gAZ2iGWA04psht3YwdymB0UnpnEvXlN8Cro39AGz15pKETDrU03ry8y0PjGu9UVmOMpkDxrb4SK4NASM31DbS5zeDHKl8QmiMl/eWDl4K0xQnmOQqOwfyZcp+X1s4UzOEyopmEFgA2SARPQYIbMTbd2sC41pmEthbSxgYcm5K0xRtY4rAUApg5w+A5Vu3wSCBgbW+9ho0JhoM4L3xl1czMJgyyYPz5o9j/6kDoyOqwiNCAWzzDlheT0Vg7EGHQQJb3dSdFLzGI28PZoCBffcqL3MImlGUrsSWSF0i5E6YCmDreswXEKkbxTxABMa2Gvf+EIFVq3VVkMLcH8gMMDrHle4405QUEUNkxl8a+Vf68hIFMHh5Sv1j8L8t9iprwNhM8bQcIjA/Uw0r9IVc+UzaEDDYf5TE9GFhhsppoNRaT/2cZZtKCmCwaV6flkJbzZ0fJMCYTXEzGyAwmjaZbyPMsPJXA5kCRi0Jsrek0DIqui8pMCh/aSoUwIKUr3SF6B54nlIJMNopZtkQgdEdrXq4JxofoajxhoAxY922dhXEleV2ZOX7YdRnvf32CnPUENctl8rVEmBc9JLBARuF1KBevSPzfy+PxZgCxo4DZMtKAdH5Db8ulgNLYKO9/QYmDVxWBDdjN4FmVxahDFj+PswhAguYJz1vFWTJ/St7SmPA2Ap4y51A8+esenAds8rzFwr7WvtcCYzWj1m51Fyxh5UXS4FRH4xBAqPB/V66LdguVsTCxYw5h2pzwHx299ODPS4/VFHZQX/r+VsflZTAfBYda7FYkM28R36OkHvhqBRY0SkOEFhe6V8TMCr2v8rs2xwwFp2v9rhb5ebvPX9rB02UwOjqt3hc/jefEzkwVjWGCYz1NLwuwsTRILDXzZ5i3LT9WJgYnBTA2BpJXIypgY0mY09UVjkUqgDGNh+GCWyUzGc8s+tTPKQ9kb69tKq/tsBeg+SMPxOXiWHX2MsUpCYR2h0Ix7pDNbDXL6rI0sehOuMhRS4xz1GbYjH6wQy1blaDcHTvCoYOAeajBk2WRxpWazw+bcL6sWRyIF+9gQg6dDgfP4k34/xxx7BeQeFkv+I8OxznD+ofKg9eJff7M3/acy12p8GBCynAfw4H/gsUqzKKAK/GgglCCIGgvuBjle+iMRElbmCPM/Y2qJ71P737R3kZNXhTAAAAAElFTkSuQmCC";
 const WL_PDF_STYLE = `
     .wlp-page { width: 760px; padding: 28px 32px; background: #fff; font-family: Arial, Helvetica, sans-serif; color: #111; font-size: 10.5px; box-sizing: border-box; }
     .wlp-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
@@ -8521,7 +8637,7 @@ document.head.insertAdjacentHTML('beforeend', `<style>${WL_PDF_STYLE}</style>`);
 
 function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
     const t = wlComputeTotals(r, resident);
-    const { chargesTotal, depositsTotal, feesTotal, prorateAmt, subtotal, totalDue, petCount, parkingCharge, petRent, petDeposit, applicantCount, appFeeAmt, effectiveRent } = t;
+    const { chargesTotal, depositsTotal, feesTotal, prorateAmt, prorateFrom, prorateTo, subtotal, totalDue, petCount, parkingCharge, petRent, petDeposit, applicantCount, appFeeAmt, effectiveRent } = t;
     const fmt = (n) => formatResidentCurrency(n);
     const fullName1 = resident ? `${resident.first} ${resident.last}` : (r.fullName2 || 'Resident');
     const leaseEnd = r.leaseEndManual ? fmtResidentDate(new Date(r.leaseEndManual + 'T00:00:00')) : (resident ? fmtResidentDate(residentMoveOutDate(resident)) : '');
@@ -8615,7 +8731,7 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
         <div class="wlp-summary-concessions">
             <div class="wlp-summary-box">
                 <div style="font-weight:bold;margin-bottom:3px;">SUMMARY OF TOTAL BALANCE DUE:</div>
-                <div class="wlp-row"><span>PRORATE</span><span>${fmt(prorateAmt)}</span></div>
+                <div class="wlp-row"><span>PRORATE${prorateFrom ? ` FROM ${prorateFrom} to ${prorateTo}` : ''}</span><span>${fmt(prorateAmt)}</span></div>
                 <div class="wlp-row"><span>MOVE IN AT/AFTER 25TH, NEXT MONTH CHARGES</span><span>${escapeHtml(r.moveInAfter25th || 'N/A')}</span></div>
                 <div class="wlp-row"><span>TOTAL REFUNDABLE DEPOSITS DUE</span><span>${fmt(depositsTotal)}</span></div>
                 <div class="wlp-row"><span>TOTAL NON REFUNDABLE FEES DUE</span><span>${fmt(feesTotal)}</span></div>
@@ -8654,6 +8770,9 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
         <div class="wlp-final-sig-caption">
             <span>Leasing Consultant</span><span style="flex:0 0 70px;">Date</span>
             <span>Community Manager</span><span style="flex:0 0 70px;">Date</span>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-top:6px;">
+            <img src="${EQUAL_HOUSING_LOGO_SRC}" alt="Equal Housing Opportunity" style="width:42px;height:auto;">
         </div>
     </div>`;
 }
