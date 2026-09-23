@@ -1823,6 +1823,15 @@
             </div>
             <div class="filter-icon-bar">
                 <div class="filter-group icon-mode">
+                    <button type="button" class="filter-caption icon-mode" data-target="moveInDateFilters" title="Move-In Date">
+                        <span class="filter-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="1.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="7.5" y1="2.5" x2="7.5" y2="6.5"/><line x1="16.5" y1="2.5" x2="16.5" y2="6.5"/></svg></span>
+                        <span class="filter-icon-label-text" id="moveInDateFiltersLabel">Move-In Date</span>
+                    </button>
+                    <div class="quick-filters collapsed popover-mode" id="moveInDateFilters">
+                        <input type="date" id="moveInDateFilterInput" style="width:100%;box-sizing:border-box;">
+                    </div>
+                </div>
+                <div class="filter-group icon-mode">
                     <button type="button" class="filter-caption icon-mode" data-target="typeFilters" title="Beds">
                         <span class="filter-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10V4.8a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1V10"/><rect x="4" y="10.3" width="5.5" height="3" rx="1.2"/><path d="M2.5 18.5v-5.2a1.3 1.3 0 0 1 1.3-1.3h16.4a1.3 1.3 0 0 1 1.3 1.3v5.2"/><line x1="2.5" y1="18.5" x2="2.5" y2="20.3"/><line x1="21.5" y1="18.5" x2="21.5" y2="20.3"/></svg></span>
                         <span class="filter-icon-label-text" id="typeFiltersLabel">Beds</span>
@@ -2025,6 +2034,15 @@
 
             <div class="filter-icon-bar">
                 <div class="filter-group icon-mode">
+                    <button type="button" class="filter-caption icon-mode" data-target="availMoveInDateFilters" title="Move-In Date">
+                        <span class="filter-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="1.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="7.5" y1="2.5" x2="7.5" y2="6.5"/><line x1="16.5" y1="2.5" x2="16.5" y2="6.5"/></svg></span>
+                        <span class="filter-icon-label-text" id="availMoveInDateFiltersLabel">Move-In Date</span>
+                    </button>
+                    <div class="quick-filters collapsed popover-mode" id="availMoveInDateFilters">
+                        <input type="date" id="availMoveInDateFilterInput" style="width:100%;box-sizing:border-box;">
+                    </div>
+                </div>
+                <div class="filter-group icon-mode">
                     <button type="button" class="filter-caption icon-mode" data-target="availTypeFilters" title="Beds">
                         <span class="filter-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10V4.8a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1V10"/><rect x="4" y="10.3" width="5.5" height="3" rx="1.2"/><path d="M2.5 18.5v-5.2a1.3 1.3 0 0 1 1.3-1.3h16.4a1.3 1.3 0 0 1 1.3 1.3v5.2"/><line x1="2.5" y1="18.5" x2="2.5" y2="20.3"/><line x1="21.5" y1="18.5" x2="21.5" y2="20.3"/></svg></span>
                         <span class="filter-icon-label-text" id="availTypeFiltersLabel">Beds</span>
@@ -2132,14 +2150,18 @@
                 <button type="button" class="pricing-clear" id="expiringClearBtn" style="display:none;">Clear lease report</button>
             </div>
 
-            <div class="section-label"><span class="dot"></span>Desired move-in date</div>
-            <div class="field">
-                <label>Show expirations on or before</label>
-                <input type="date" id="expiringMoveInDate">
-                <div class="empty-note">Leave blank to show all upcoming expirations.</div>
-            </div>
-
             <div class="filter-icon-bar">
+                <div class="filter-group icon-mode">
+                    <button type="button" class="filter-caption icon-mode" data-target="expMoveInDateFilters" title="Move-In Date">
+                        <span class="filter-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="1.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="7.5" y1="2.5" x2="7.5" y2="6.5"/><line x1="16.5" y1="2.5" x2="16.5" y2="6.5"/></svg></span>
+                        <span class="filter-icon-label-text" id="expMoveInDateFiltersLabel">Move-In Date</span>
+                    </button>
+                    <div class="quick-filters collapsed popover-mode" id="expMoveInDateFilters">
+                        <label style="display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);margin-bottom:5px;">Show expirations on or before</label>
+                        <input type="date" id="expiringMoveInDate" style="width:100%;box-sizing:border-box;">
+                        <div class="empty-note" style="margin-top:5px;">Leave blank to show all upcoming expirations.</div>
+                    </div>
+                </div>
                 <div class="filter-group icon-mode">
                     <button type="button" class="filter-caption icon-mode" data-target="expTypeFilters" title="Beds">
                         <span class="filter-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10V4.8a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1V10"/><rect x="4" y="10.3" width="5.5" height="3" rx="1.2"/><path d="M2.5 18.5v-5.2a1.3 1.3 0 0 1 1.3-1.3h16.4a1.3 1.3 0 0 1 1.3 1.3v5.2"/><line x1="2.5" y1="18.5" x2="2.5" y2="20.3"/><line x1="21.5" y1="18.5" x2="21.5" y2="20.3"/></svg></span>
@@ -2827,6 +2849,12 @@
     </div>
 
     <div class="settings-card" style="margin-top:18px;">
+        <div class="section-label" style="margin-top:0;"><span class="dot"></span>Refresh Site to Update</div>
+        <p class="empty-note" style="font-size:12.5px;">If a feature seems missing or a fix doesn't seem to have taken effect, your browser may be showing a cached copy of the page. This forces a fresh copy from the server &mdash; it does not affect your saved data (Residents, Waitlist, pricing, etc.), which lives in local storage and/or your shared backend, separate from the page itself.</p>
+        <button type="button" class="btn" id="forceRefreshBtn" style="width:auto;padding:8px 16px;">Refresh Site to Update</button>
+    </div>
+
+    <div class="settings-card" style="margin-top:18px;">
         <div class="section-label" style="margin-top:0;"><span class="dot"></span>App Mode</div>
         <p class="empty-note" style="font-size:12.5px;">
             <b>Live</b> uses whatever you've actually uploaded on the Tour, Expiring, and Renewals tabs.
@@ -3434,7 +3462,9 @@ function updateFilterCaptionStates() {
     const priceMax = document.getElementById('priceMax').value.trim();
     const sqftActive = !!(sqftMin || sqftMax);
     const priceActive = !!(priceMin || priceMax);
+    const moveInVal = document.getElementById('moveInDateFilterInput').value;
     const map = [
+        ['moveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
         ['bldgFilters', !!activeBldgFilter, activeBldgFilter || 'Building'],
         ['sqftFilters', sqftActive, sqftActive ? `${sqftMin || '0'}\u2013${sqftMax || '\u221e'}` : 'Sq Ft'],
         ['priceFilters', priceActive, priceActive ? `$${priceMin || '0'}\u2013$${priceMax || '\u221e'}` : 'Price'],
@@ -3486,6 +3516,14 @@ function runSearch() {
     if (activeAmenity === 'Mountain View') list = list.filter(u => isMountainView(u));
     if (activeAmenity === 'Corner Unit') list = list.filter(u => CORNER_UNITS.has(u.unit));
     if (activeFloorplanFilter) list = list.filter(u => u.floorplan === activeFloorplanFilter);
+    const moveInDateVal = document.getElementById('moveInDateFilterInput').value;
+    if (moveInDateVal) {
+        const cutoff = new Date(moveInDateVal + 'T23:59:59');
+        list = list.filter(u => {
+            const p = PRICING_SUMMARY[u.unit];
+            return p && p.availableSortKey !== undefined && p.availableSortKey <= cutoff.getTime();
+        });
+    }
     list = list.filter(u => {
         const sqft = parseFloat(u.sqft);
         if (!isNaN(sqft) && (sqft < sqftB.min || sqft > sqftB.max)) return false;
@@ -3560,6 +3598,7 @@ searchInput.addEventListener('keydown', (e) => {
 ['sqftMin', 'sqftMax', 'priceMin', 'priceMax'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => { updateFilterCaptionStates(); runSearch(); });
 });
+document.getElementById('moveInDateFilterInput').addEventListener('input', () => { updateFilterCaptionStates(); runSearch(); });
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.picker-block')) resultsBox.classList.remove('open');
 });
@@ -4472,7 +4511,9 @@ function updateAvailCaptionStates() {
     const sqftActive = !!(sqftMin || sqftMax);
     const priceActive = !!(priceMin || priceMax);
 
+    const moveInVal = document.getElementById('availMoveInDateFilterInput').value;
     const map = [
+        ['availMoveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
         ['availSqftFilters', sqftActive, sqftActive ? `${sqftMin || '0'}\u2013${sqftMax || '\u221e'}` : 'Sq Ft'],
         ['availPriceFilters', priceActive, priceActive ? `$${priceMin || '0'}\u2013$${priceMax || '\u221e'}` : 'Price'],
         ['availTypeFilters', !!activeAvailType, activeAvailType || 'Beds'],
@@ -4560,12 +4601,17 @@ function availFilteredUnits() {
     const marketed = marketedUnits();
     const sqftB = availNumBounds('availSqftMin', 'availSqftMax');
     const priceB = availNumBounds('availPriceMin', 'availPriceMax');
+    const moveInVal = document.getElementById('availMoveInDateFilterInput').value;
+    const moveInCutoff = moveInVal ? new Date(moveInVal + 'T23:59:59').getTime() : null;
     return [...marketed].map(unit => byUnit[unit]).filter(Boolean).filter(u => {
         const sqft = parseFloat(u.sqft);
         if (!isNaN(sqft) && (sqft < sqftB.min || sqft > sqftB.max)) return false;
         const p = PRICING_SUMMARY[u.unit];
         const price = p ? parsePriceNum(p.bestPrice) : null;
         if (price !== null && (price < priceB.min || price > priceB.max)) return false;
+        if (moveInCutoff !== null) {
+            if (!p || p.availableSortKey === undefined || p.availableSortKey > moveInCutoff) return false;
+        }
         if (activeAvailType && unitTypeCategoryPH(u) !== activeAvailType) return false;
         if (activeAvailFloorplan && u.floorplan !== activeAvailFloorplan) return false;
         if (activeAvailFloor && u.floor !== activeAvailFloor) return false;
@@ -4853,6 +4899,7 @@ document.getElementById('calViewWeekBtn').addEventListener('click', () => {
 ['availSqftMin', 'availSqftMax', 'availPriceMin', 'availPriceMax'].forEach(id => {
     document.getElementById(id).addEventListener('input', renderCalendar);
 });
+document.getElementById('availMoveInDateFilterInput').addEventListener('input', renderCalendar);
 document.getElementById('availClearBtn').addEventListener('click', () => {
     document.getElementById('availSqftMin').value = '';
     document.getElementById('availSqftMax').value = '';
@@ -5058,7 +5105,9 @@ document.getElementById('expiringClearBtn').addEventListener('click', () => {
 });
 
 function updateExpCaptionStates() {
+    const moveInVal = document.getElementById('expiringMoveInDate').value;
     const map = [
+        ['expMoveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
         ['expTypeFilters', !!activeExpType, activeExpType || 'Beds'],
         ['expNameFilters', !!activeExpFloorplan, activeExpFloorplan || 'Floorplan'],
         ['expFloorFilters', !!activeExpFloor, activeExpFloor ? `Fl ${activeExpFloor}` : 'Floor'],
@@ -5109,7 +5158,7 @@ function rebuildExpiringFilters() {
     updateExpCaptionStates();
 }
 
-document.getElementById('expiringMoveInDate').addEventListener('input', renderExpiringList);
+document.getElementById('expiringMoveInDate').addEventListener('input', () => { updateExpCaptionStates(); renderExpiringList(); });
 document.getElementById('expClearFiltersBtn').addEventListener('click', () => {
     document.getElementById('expiringMoveInDate').value = '';
     activeExpType = null; activeExpFloorplan = null; activeExpFloor = null; activeExpBldg = null;
@@ -5810,6 +5859,12 @@ function newWaitlistRowId() {
 // The 13 prospects Justin provided as the starting list — only used to
 // seed a genuinely empty board (see initWaitlist below), never to
 // overwrite anything that's already there locally or on the backend.
+// IDs are stable (not randomly generated) specifically so that if this
+// ever runs more than once — e.g. two devices both finding an empty
+// backend on first load, before either's push has synced to the other
+// — the second run produces the SAME 13 keys and simply overwrites
+// them on merge, instead of random IDs creating a second, duplicate
+// copy of the whole list.
 function seedWaitlistRows() {
     const seed = [
         ['Madi Lillie', 'Ken Anderson', '1', '', '8/31/2026', 'Looking for a top floor one-bedroom unit; preferrably A5 or larger but would consider a smaller option if the view is right', 'Notified of 4420 on 7/2', false, false],
@@ -5827,8 +5882,8 @@ function seedWaitlistRows() {
         ['David Brooke', 'Manfred Melcher', '1', '$3,000.00', '3/1/2027', 'A3 and A5 preference, prefers top floor', '', false, false]
     ];
     const rows = {};
-    seed.forEach(r => {
-        const id = newWaitlistRowId();
+    seed.forEach((r, i) => {
+        const id = 'wl_seed_' + i;
         rows[id] = { agent: r[0], prospect: r[1], beds: r[2], rent: r[3], moveIn: r[4], phone: '', email: '', details: r[5], followUp: r[6], cancel: r[7], leased: r[8] };
     });
     return rows;
@@ -5836,6 +5891,33 @@ function seedWaitlistRows() {
 
 function persistWaitlistLocal() {
     try { localStorage.setItem(WAITLIST_KEY, JSON.stringify(WAITLIST_ROWS)); } catch (e) {}
+}
+
+// One-time cleanup for duplicates created by the old random-seed-ID
+// bug (multiple devices each seeding an empty backend independently,
+// before either's push synced to the other, produced two full copies
+// of the starter list under different IDs). Matches on agent+prospect
+// name — keeps the first occurrence, drops the rest, and pushes the
+// cleanup so it sticks instead of reappearing on the next sync.
+function dedupeWaitlistRows() {
+    const seen = new Set();
+    let removed = 0;
+    Object.keys(WAITLIST_ROWS).sort().forEach(id => {
+        const row = WAITLIST_ROWS[id];
+        const key = `${(row.agent || '').trim()}|${(row.prospect || '').trim()}`.toLowerCase();
+        if (key === '|') return; // blank/manually-added rows aren't deduped
+        if (seen.has(key)) {
+            delete WAITLIST_ROWS[id];
+            WAITLIST_DIRTY.add(id);
+            removed++;
+        } else {
+            seen.add(key);
+        }
+    });
+    if (removed > 0) {
+        persistWaitlistLocal();
+        pushWaitlistDirtyDebounced();
+    }
 }
 
 // Pull-merge-push: before writing a local change out to the shared
@@ -5905,6 +5987,7 @@ function initWaitlist() {
                     persistWaitlistLocal();
                     backendPush(WAITLIST_BACKEND_KEY, WAITLIST_ROWS);
                 }
+                dedupeWaitlistRows();
                 renderWaitlist();
             });
             return;
@@ -5912,6 +5995,7 @@ function initWaitlist() {
         WAITLIST_ROWS = seedWaitlistRows();
         persistWaitlistLocal();
     }
+    dedupeWaitlistRows();
     renderWaitlist();
 }
 
@@ -8393,6 +8477,7 @@ document.getElementById('residentsUploadInput').addEventListener('change', (e) =
         }
         if (!confirm(`This will replace ALL current Residents data with ${Object.keys(residents).length} record(s) from this file. Continue?`)) return;
         RESIDENT_ROWS = residents;
+        residentFixBrokenDeposits();
         residentPersistLocal();
         residentPushDebounced();
         renderResidentsBody();
@@ -9466,6 +9551,18 @@ try {
 
 document.getElementById('modeLiveBtn').addEventListener('click', () => applyAppMode('live'));
 document.getElementById('modeTestBtn').addEventListener('click', () => applyAppMode('test'));
+document.getElementById('forceRefreshBtn').addEventListener('click', () => {
+    const btn = document.getElementById('forceRefreshBtn');
+    btn.textContent = 'Refreshing\u2026';
+    btn.disabled = true;
+    // Cache-bust via a version query param and hard-reload — this
+    // forces the browser to fetch a fresh copy of the page instead of
+    // serving a stale cached one. Saved data (localStorage, backend)
+    // is untouched by this; only the page itself is what's cached.
+    const url = new URL(window.location.href);
+    url.searchParams.set('_refresh', Date.now().toString());
+    window.location.href = url.toString();
+});
 
 /* ============================================================
    UNIT INFO — an editable view of the full unit roster, in Settings.
