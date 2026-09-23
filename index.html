@@ -1299,17 +1299,20 @@
         color: var(--ink);
     }
 
-    .renewal-month-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; justify-content: center; }
+    .renewal-top-wrap { max-width: 700px; margin: 0 auto 14px; }
+    .renewal-top-wrap .exp-toolbar { max-width: none; margin-left: 0; margin-right: 0; text-align: left; }
+    .renewal-month-stats { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
     .renewal-month-card {
         background: #fff;
         border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 8px 14px;
-        min-width: 150px;
+        border-radius: 10px;
+        padding: 14px 20px;
+        flex: 1;
+        min-width: 170px;
     }
-    .renewal-month-card .rms-title { font-family: 'Oswald', var(--sans); font-weight: 600; font-size: 12.5px; margin-bottom: 4px; }
-    .renewal-month-card .rms-row { display: flex; justify-content: space-between; font-size: 11.5px; padding: 1px 0; }
-    .renewal-month-card .rms-row .v { font-weight: 700; }
+    .renewal-month-card .rms-title { font-family: 'Oswald', var(--sans); font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+    .renewal-month-card .rms-row { display: flex; justify-content: space-between; font-size: 14px; padding: 3px 0; }
+    .renewal-month-card .rms-row .v { font-weight: 700; font-size: 16px; }
     .renewal-month-card .rms-pending .v { color: #b8860b; }
     .renewal-month-card .rms-renewed .v { color: var(--good); }
     .renewal-month-card .rms-notice .v { color: #b03a2e; }
@@ -2137,12 +2140,11 @@
             </div>
         </div>
         <div class="editor-scroll">
-            <div class="section-label" style="margin-top:0;"><span class="dot"></span>FILTERS</div>
             <div class="avail-count-summary">
                 <div class="avail-count-row"><span>Total Availability</span><b id="availCountTotal">0</b></div>
-                <div class="avail-count-row"><span>Immediate</span><b id="availCountImmediate">0</b></div>
                 <div class="avail-count-row"><span>Within 30 Days</span><b id="availCountWithin30">0</b></div>
             </div>
+            <div class="section-label"><span class="dot"></span>FILTERS</div>
 
             <div class="filter-icon-bar">
                 <div class="filter-group icon-mode">
@@ -2380,20 +2382,22 @@
     </div>
 
     <div class="avail-main">
-        <div id="renewalMonthStats" class="renewal-month-stats"></div>
-        <div class="wl-filter-bar" style="margin-bottom:10px;justify-content:center;">
-            <input type="text" id="renewalSearchBar" placeholder="Search any unit (any status)&hellip;" autocomplete="off" style="width:220px;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:var(--sans);font-size:12.5px;">
-            <select id="renewalFilterStatus">
-                <option value="pending">Status: Pending</option>
-                <option value="renewed">Status: Renewed</option>
-                <option value="notice">Status: Notice</option>
-                <option value="all">Status: All</option>
-            </select>
-            <select id="renewalFilterMonth"><option value="">All Months</option></select>
-            <button type="button" class="add-term-btn" id="renewalFilterClearBtn" style="width:auto;padding:8px 14px;">Reset filters</button>
-        </div>
-        <div class="exp-toolbar">
-            <span id="renewalCountLabel">No renewal report loaded</span>
+        <div class="renewal-top-wrap">
+            <div id="renewalMonthStats" class="renewal-month-stats"></div>
+            <div class="wl-filter-bar" style="margin-bottom:4px;">
+                <input type="text" id="renewalSearchBar" placeholder="Search any unit (any status)&hellip;" autocomplete="off" style="width:220px;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:var(--sans);font-size:12.5px;">
+                <select id="renewalFilterStatus">
+                    <option value="pending">Status: Pending</option>
+                    <option value="renewed">Status: Renewed</option>
+                    <option value="notice">Status: Notice</option>
+                    <option value="all">Status: All</option>
+                </select>
+                <select id="renewalFilterMonth"><option value="">All Months</option></select>
+                <button type="button" class="add-term-btn" id="renewalFilterClearBtn" style="width:auto;padding:8px 14px;">Reset filters</button>
+            </div>
+            <div class="exp-toolbar" style="margin-top:0;">
+                <span id="renewalCountLabel">No renewal report loaded</span>
+            </div>
         </div>
         <div id="renewalList"></div>
     </div>
@@ -4704,7 +4708,6 @@ function renderAvailFilterCounts() {
     if (!totalEl) return;
     if (!PRICING_META) {
         totalEl.textContent = '0';
-        document.getElementById('availCountImmediate').textContent = '0';
         document.getElementById('availCountWithin30').textContent = '0';
         return;
     }
@@ -4712,16 +4715,14 @@ function renderAvailFilterCounts() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const in30 = new Date(today.getTime() + 30 * 86400000);
-    let immediate = 0, within30 = 0;
+    let within30 = 0;
     units.forEach(u => {
         const p = PRICING_SUMMARY[u.unit];
         if (!p || p.availableSortKey === undefined || !isFinite(p.availableSortKey)) return;
         const d = new Date(p.availableSortKey);
-        if (d <= today) immediate++;
         if (d <= in30) within30++;
     });
     totalEl.textContent = units.length;
-    document.getElementById('availCountImmediate').textContent = immediate;
     document.getElementById('availCountWithin30').textContent = within30;
 }
 
@@ -5020,6 +5021,11 @@ document.getElementById('calViewMonthBtn').addEventListener('click', () => {
 document.getElementById('calViewWeekBtn').addEventListener('click', () => {
     calViewMode = 'week';
     calFocusedDay = null;
+    // Week view should open on the CURRENT week, not whatever day-of-
+    // month Month view happened to leave calViewDate at (typically the
+    // 1st, since month rendering normalizes to that) — reset to today
+    // whenever entering week view fresh from month view.
+    calViewDate = new Date();
     document.getElementById('calViewWeekBtn').classList.add('active');
     document.getElementById('calViewMonthBtn').classList.remove('active');
     renderCalendar();
@@ -8253,10 +8259,23 @@ const residentPushDebounced = debounce(async () => {
     // can't silently overwrite the unsaved edit with stale remote data.
     const dirtyIds = [...RESIDENT_DIRTY];
     const remote = await backendPull('residents');
-    const merged = Object.assign({}, remote || {});
-    dirtyIds.forEach(id => { if (RESIDENT_ROWS[id]) merged[id] = RESIDENT_ROWS[id]; else delete merged[id]; });
-    RESIDENT_ROWS = merged;
-    residentPersistLocal();
+    if (remote) {
+        // Pull succeeded — merge it with our dirty local rows layered
+        // on top, so another agent's edits to OTHER residents aren't
+        // clobbered. If the pull FAILED (remote is null: network
+        // hiccup, timeout, etc.), we deliberately do NOT touch
+        // RESIDENT_ROWS at all here — replacing it with an empty-or-
+        // partial merge in that case was the actual bug: any transient
+        // pull failure during this debounced push would wipe every
+        // resident except the one just edited, both locally and then
+        // on the backend once the push below "succeeded" with that
+        // wiped data. Skipping the merge on failure and just pushing
+        // our current best-known local state is the safe fallback.
+        const merged = Object.assign({}, remote);
+        dirtyIds.forEach(id => { if (RESIDENT_ROWS[id]) merged[id] = RESIDENT_ROWS[id]; else delete merged[id]; });
+        RESIDENT_ROWS = merged;
+        residentPersistLocal();
+    }
     const ok = await backendPush('residents', RESIDENT_ROWS);
     if (ok) dirtyIds.forEach(id => RESIDENT_DIRTY.delete(id));
     renderResidentsBody();
