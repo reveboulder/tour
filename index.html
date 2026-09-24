@@ -1735,15 +1735,23 @@
     /* A still-false checkbox/status cell inside an otherwise-colored row
        gets flagged red, same as the source sheet's per-cell highlight. */
     .res-cell-incomplete { background: #ffb3b3 !important; }
-    /* Residents move-in calendar */
-    .res-cal-wrap { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 18px; }
-    .res-cal-grid { margin-top: 10px; }
-    .res-cal-grid .cal-day { min-height: 70px; }
+    /* Residents move-in calendar — compact and centred so the table stays in view */
+    .res-cal-wrap { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; margin: -8px auto 12px; max-width: 520px; }
+    .res-cal-wrap .cal-toolbar-top { gap: 6px; }
+    .res-cal-wrap .cal-nav-btn { width: 24px; height: 24px; font-size: 14px; line-height: 1; padding: 0; }
+    .res-cal-wrap .cal-month-block { display: flex; align-items: baseline; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .res-cal-wrap .cal-month-label { font-size: 13.5px; }
+    .res-cal-wrap .cal-month-summary { font-size: 10px; margin-top: 0; }
+    .res-cal-grid { margin-top: 4px; gap: 2px; }
+    .res-cal-grid .cal-dow { font-size: 8.5px; padding-bottom: 1px; }
+    .res-cal-grid .cal-day { min-height: 20px; padding: 2px 3px; gap: 2px; border-radius: 4px; flex-direction: row; flex-wrap: wrap; align-items: center; }
+    .res-cal-grid .cal-day-num { font-size: 8.5px; line-height: 1.1; margin-right: 1px; }
+    .res-cal-grid .cal-unit-pill { font-size: 9px; padding: 0 3px; line-height: 1.45; border-radius: 3px; text-align: center; }
     .res-cal-grid .cal-unit-pill.done { background: var(--line-soft); color: var(--ink-soft); }
     .res-cal-grid .cal-unit-pill.done:hover { background: var(--ink-soft); color: #fff; }
-    .res-cal-legend { font-size: 11px; color: var(--ink-soft); margin-top: 8px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-    .res-cal-pill-demo { display: inline-block; width: 12px; height: 10px; border-radius: 3px; background: #fbeee8; border: 1px solid var(--reve-orange); }
-    .res-cal-pill-demo.done { background: var(--line-soft); border-color: var(--line); margin-left: 8px; }
+    .res-cal-legend { font-size: 9.5px; color: var(--ink-soft); margin-top: 3px; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
+    .res-cal-pill-demo { display: inline-block; width: 10px; height: 8px; border-radius: 2px; background: #fbeee8; border: 1px solid var(--reve-orange); }
+    .res-cal-pill-demo.done { background: var(--line-soft); border-color: var(--line); margin-left: 6px; }
     body.dark-mode .res-cal-wrap { background: var(--dm-card, #24221e); }
     /* Three-tier status coloring on the control itself */
     select.mmr-lease-field.res-tier-pending { background: #ffe0d6; border-color: #de5426; }
@@ -1799,6 +1807,8 @@
     }
     .mmr-count-badge { font-weight: 400; opacity: 0.8; }
     /* Lease: Next buttons in section headers, Copy buttons on filled cells */
+    .lease-renewal-toggle { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ink); margin: 4px 0 10px; cursor: pointer; }
+    .lease-renewal-toggle input { width: 16px; height: 16px; accent-color: var(--reve-orange); }
     .lease-section-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .lease-next-btn {
         font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
@@ -2596,7 +2606,7 @@
             <button type="button" class="cal-nav-btn" id="resCalNext" title="Next month">&rsaquo;</button>
         </div>
         <div class="avail-cal-grid res-cal-grid" id="resCalGrid"></div>
-        <div class="res-cal-legend"><span class="res-cal-pill-demo"></span>Upcoming move-in <span class="res-cal-pill-demo done"></span>Moved in &nbsp;&middot;&nbsp; Click a unit to jump to its row.</div>
+        <div class="res-cal-legend"><span class="res-cal-pill-demo"></span>Upcoming <span class="res-cal-pill-demo done"></span>Moved in &nbsp;&middot;&nbsp; Click a unit to jump to its row</div>
     </div>
 
     <div class="res-trackers">
@@ -2759,6 +2769,9 @@
         <span class="wl-legend-item"><span class="wl-swatch wl-swatch-manual"></span>Manual entry (yours)</span>
         <span class="wl-legend-item"><span class="wl-swatch wl-swatch-auto"></span>Autofilled from Welcome Letter</span>
     </div>
+
+    <label class="lease-renewal-toggle"><input type="checkbox" id="leaseRenewalToggle" disabled> Select if Renewal Lease</label>
+    <div class="empty-note" id="leaseRenewalNote" style="margin:-4px 0 12px;"></div>
 
     <div id="leaseFormBody" style="max-width:760px;">
         <div class="mmr-section-title">LEASE TERMS</div>
@@ -10002,16 +10015,16 @@ function renderResidentCalendar() {
     });
     const all = Object.values(byDay).flat();
     const pending = all.filter(x => !x.r.movedIn).length;
-    document.getElementById('resCalSummary').innerHTML = `<b>${all.length}</b> move-in${all.length === 1 ? '' : 's'} this month &middot; <b>${pending}</b> still upcoming`;
+    document.getElementById('resCalSummary').innerHTML = `<b>${all.length}</b> move-in${all.length === 1 ? '' : 's'} &middot; <b>${pending}</b> upcoming`;
     const today = new Date();
     const daysInMonth = new Date(y, m + 1, 0).getDate();
-    let html = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="cal-dow">${d}</div>`).join('');
+    let html = ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => `<div class="cal-dow">${d}</div>`).join('');
     for (let i = 0; i < new Date(y, m, 1).getDay(); i++) html += '<div class="cal-day empty"></div>';
     for (let d = 1; d <= daysInMonth; d++) {
         const isToday = today.getFullYear() === y && today.getMonth() === m && today.getDate() === d;
         const items = (byDay[d] || []).sort((a, b) => (a.r.unit || '').localeCompare(b.r.unit || ''));
         html += `<div class="cal-day${isToday ? ' today' : ''}"><div class="cal-day-num">${d}</div>${items.map(({ id, r }) =>
-            `<div class="cal-unit-pill${r.movedIn ? ' done' : ''}" data-res-id="${escapeAttr(id)}" title="${escapeAttr(`${r.first || ''} ${r.last || ''}`.trim())} \u2014 click to jump to this row">${escapeHtml(r.unit || '?')}${r.last ? ' ' + escapeHtml(r.last) : ''}</div>`).join('')}</div>`;
+            `<div class="cal-unit-pill${r.movedIn ? ' done' : ''}" data-res-id="${escapeAttr(id)}" title="${escapeAttr(`${r.unit || ''} ${r.first || ''} ${r.last || ''}`.trim())} \u2014 click to jump to this row">${escapeHtml(r.unit || '?')}</div>`).join('')}</div>`;
     }
     grid.innerHTML = html;
     [...grid.querySelectorAll('[data-res-id]')].forEach(el => el.addEventListener('click', () => residentJumpToRow(el.getAttribute('data-res-id'))));
@@ -10958,7 +10971,8 @@ function leaseDefaultRecord() {
         animalName: '', animalType: '', animalBreed: '', animalColor: '', animalWeight: '', animalAge: '',
         animalCityLicense: '', animalLicenseNo: '', animalRabiesShot: '', animalOwnerName: '',
         vehicleMake: '', vehicleModel: '', vehicleState: '', vehiclePlate: '', vehiclePermit: 'N/A', vehiclePhone: '',
-        merManual: '', specialProvisionsNotes: ''
+        merManual: '', specialProvisionsNotes: '',
+        isRenewal: false, renewalTermManual: '', renewalRentManual: ''
     };
 }
 
@@ -11035,12 +11049,24 @@ function leaseUpdateClearBtn() {
     document.getElementById('leaseClearBtn').style.display = (leaseSelectedUnit || document.getElementById('leaseUnitSearch').value) ? 'block' : 'none';
 }
 document.getElementById('leaseUnitSearch').addEventListener('input', leaseUpdateClearBtn);
+document.getElementById('leaseRenewalToggle').addEventListener('change', (e) => {
+    if (!leaseSelectedUnit) { e.target.checked = false; return; }
+    leaseCommit('isRenewal', e.target.checked);
+    renderLeaseForm();
+});
 document.getElementById('leaseClearBtn').addEventListener('click', () => {
     leaseSelectedUnit = null;
     document.getElementById('leaseUnitSearch').value = '';
     document.getElementById('leaseUnitResults').classList.remove('open');
     document.getElementById('leaseSelectedNote').textContent = 'No resident selected \u2014 search above to load one.';
     [...document.querySelectorAll('#leaseFormBody tbody')].forEach(tb => { tb.innerHTML = ''; });
+    const toggle = document.getElementById('leaseRenewalToggle');
+    toggle.checked = false;
+    toggle.disabled = true;
+    document.getElementById('leaseRenewalNote').textContent = '';
+    const inv = document.getElementById('leaseInventorySection').closest('table');
+    inv.style.display = '';
+    inv.previousElementSibling.style.display = '';
     leaseUpdateClearBtn();
 });
 document.getElementById('leaseUnitSearch').addEventListener('focus', leaseRunSearch);
@@ -11060,6 +11086,8 @@ function wireLeaseInputs() {
     [...document.querySelectorAll('#leaseFormBody [data-lease-field]')].forEach(el => {
         const evt = el.tagName === 'SELECT' ? 'change' : 'input';
         el.addEventListener(evt, (e) => leaseCommit(e.target.getAttribute('data-lease-field'), e.target.value));
+        // Renewal term/rent drive the dates and amounts, so redraw once edited.
+        if (el.hasAttribute('data-lease-rerender')) el.addEventListener('change', () => renderLeaseForm());
     });
 }
 
@@ -11077,9 +11105,20 @@ function renderLeaseForm() {
     const t = wlComputeTotals(wr, resident);
     const fmt = (n) => formatResidentCurrency(n);
 
-    const moveIn = resident ? new Date(resident.moveInDate + 'T00:00:00') : null;
-    const leaseEndDate = resident ? residentMoveOutDate(resident) : null;
-    const monthlyRent = wlEffectiveRent(wr, resident);
+    // Renewal lease: starts the day after the Residents Move-Out date;
+    // term and rent default to the current lease and can be overwritten.
+    const isRenewal = !!lr.isRenewal;
+    const currentEnd = resident ? residentMoveOutDate(resident) : null;
+    const renewalTermDefault = resident && parseFloat(resident.leaseTerm) ? parseFloat(resident.leaseTerm) : 12;
+    const renewalTerm = parseFloat(lr.renewalTermManual) || renewalTermDefault;
+    let moveIn = resident && resident.moveInDate ? new Date(resident.moveInDate + 'T00:00:00') : null;
+    let leaseEndDate = currentEnd;
+    let monthlyRent = wlEffectiveRent(wr, resident);
+    if (isRenewal) {
+        moveIn = currentEnd ? new Date(currentEnd.getFullYear(), currentEnd.getMonth(), currentEnd.getDate() + 1) : null;
+        leaseEndDate = moveIn ? new Date(moveIn.getFullYear(), moveIn.getMonth() + renewalTerm, moveIn.getDate() - 1) : null;
+        monthlyRent = (lr.renewalRentManual || '').trim() ? wlNum(lr.renewalRentManual) : wlNum(resident ? resident.rate : 0);
+    }
     const mandatoryFees = WL_RATE_PACKAGE + WL_RATE_VALET + WL_RATE_CITY_TRASH + WL_RATE_UTILITY_ADMIN;
     const totalDuePerMonth = monthlyRent + mandatoryFees;
 
@@ -11101,8 +11140,11 @@ function renderLeaseForm() {
         <tr><td class="wl-row-label">Address</td><td class="wl-auto" data-copy colspan="2">${escapeHtml(unitRec ? unitRec.address : '\u2014')}</td></tr>
         <tr><td class="wl-row-label">Begins On</td><td class="wl-auto" data-copy colspan="2">${escapeHtml(fmtResidentDate(moveIn))}</td></tr>
         <tr><td class="wl-row-label">Ends On</td><td class="wl-auto" colspan="2">${escapeHtml(fmtResidentDate(leaseEndDate))}</td></tr>
-        <tr><td class="wl-row-label">Months</td><td class="wl-auto" data-copy colspan="2">${escapeHtml(resident ? String(resident.leaseTerm) : '\u2014')}</td></tr>
-        <tr><td class="wl-row-label">Monthly Rent</td><td class="wl-auto" data-copy colspan="2">${fmt(monthlyRent)}</td></tr>
+        ${isRenewal
+            ? `<tr><td class="wl-row-label">Months <span class="wl-hint">(renewal term)</span></td><td class="wl-manual" data-copy colspan="2"><input type="text" inputmode="numeric" data-lease-field="renewalTermManual" data-lease-rerender value="${escapeAttr(lr.renewalTermManual || '')}" placeholder="${escapeAttr(String(renewalTermDefault))}"></td></tr>
+        <tr><td class="wl-row-label">Monthly Rent <span class="wl-hint">(renewal rent)</span></td><td class="wl-manual" data-copy colspan="2"><input type="text" data-lease-field="renewalRentManual" data-lease-rerender value="${escapeAttr(lr.renewalRentManual || '')}" placeholder="${escapeAttr(fmt(wlNum(resident ? resident.rate : 0)))}"></td></tr>`
+            : `<tr><td class="wl-row-label">Months</td><td class="wl-auto" data-copy colspan="2">${escapeHtml(resident ? String(resident.leaseTerm) : '\u2014')}</td></tr>
+        <tr><td class="wl-row-label">Monthly Rent</td><td class="wl-auto" data-copy colspan="2">${fmt(monthlyRent)}</td></tr>`}
         <tr><td class="wl-row-label">Security Deposit</td><td class="wl-auto" data-copy colspan="2">${fmt(wlNum(wr.deposit1Manual))}</td></tr>
         <tr><td class="wl-row-label">Prorated Rent</td><td class="wl-auto" colspan="2">${fmt(proratedRent)}</td></tr>
         <tr><td class="wl-row-label">Per Diem <span class="wl-hint">(rent \u00f7 days in month)</span></td><td class="wl-auto" colspan="2">${fmt(perDiem)}</td></tr>
@@ -11162,7 +11204,9 @@ function renderLeaseForm() {
     const conc = wlConcessionSchedule(wr, resident);
     const concMonths = conc.lines.filter(l => l.amt).map(l => `${l.month || 'TBD'} (${fmt(l.amt)})`);
     const oneTimeTotal = conc.postedTotal;
-    document.getElementById('leaseConcessionSection').innerHTML = `
+    document.getElementById('leaseConcessionSection').innerHTML = isRenewal ? `
+        <tr><td class="wl-row-label">MER <span class="wl-hint">(override; defaults to rent)</span></td><td class="wl-manual" data-copy colspan="2"><input type="text" data-lease-field="merManual" value="${escapeAttr(lr.merManual)}" placeholder="${fmt(monthlyRent)}"></td></tr>
+    ` : `
         <tr><td class="wl-row-label">One-Time <span class="wl-hint">(from Welcome Letter schedule)</span></td><td class="wl-auto" data-copy colspan="2">${fmt(oneTimeTotal)}</td></tr>
         <tr><td class="wl-row-label">For the Months</td><td class="wl-auto" data-copy colspan="2">${escapeHtml(concMonths.length ? concMonths.join('; ') : 'N/A')}</td></tr>
         <tr><td class="wl-row-label">MER <span class="wl-hint">(override; defaults to rent)</span></td><td class="wl-manual" data-copy colspan="2"><input type="text" data-lease-field="merManual" value="${escapeAttr(lr.merManual)}" placeholder="${fmt(monthlyRent)}"></td></tr>
@@ -11174,6 +11218,16 @@ function renderLeaseForm() {
 
     wireLeaseInputs();
     leaseAddCopyButtons();
+    // Renewal leases skip Inventory and Condition.
+    const inv = document.getElementById('leaseInventorySection').closest('table');
+    inv.style.display = isRenewal ? 'none' : '';
+    inv.previousElementSibling.style.display = isRenewal ? 'none' : '';
+    const toggle = document.getElementById('leaseRenewalToggle');
+    toggle.checked = isRenewal;
+    toggle.disabled = false;
+    document.getElementById('leaseRenewalNote').textContent = isRenewal
+        ? (moveIn ? `Renewal starts ${fmtResidentDate(moveIn)} (day after the current move-out date, ${fmtResidentDate(currentEnd)}).` : 'No move-in date / term in Residents \u2014 renewal dates can\u2019t be calculated.')
+        : '';
 }
 
 // A "copy" button beside every filled-in autofilled (green) value, for
@@ -11201,7 +11255,9 @@ function leaseCellCopyValue(td) {
     if (!input) return td.querySelector('.lease-copy-value').textContent.replace(/\s+/g, ' ').trim();
     const v = input.value.trim();
     if (input.type === 'date' && v) return fmtResidentDate(new Date(v + 'T00:00:00'));
-    return v || (input.getAttribute('data-lease-field') === 'merManual' ? (input.placeholder || '') : '');
+    // Fields that show a default when left blank copy that default.
+    const defaulted = ['merManual', 'renewalTermManual', 'renewalRentManual'];
+    return v || (defaulted.includes(input.getAttribute('data-lease-field')) ? (input.placeholder || '') : '');
 }
 function leaseAddCopyButtons() {
     [...document.querySelectorAll('#leaseFormBody td[data-copy]')].forEach(td => {
@@ -11252,7 +11308,11 @@ function leaseAddCopyButtons() {
         btn.className = 'lease-next-btn';
         btn.textContent = 'Next \u203a';
         btn.title = 'Scroll to ' + next.textContent.trim();
-        btn.addEventListener('click', () => next.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        // Next visible section at click time (renewals hide Inventory).
+        btn.addEventListener('click', () => {
+            const target = titles.slice(i + 1).find(t => t.offsetParent !== null) || next;
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
         title.appendChild(label);
         title.appendChild(btn);
     });
