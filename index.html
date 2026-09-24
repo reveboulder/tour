@@ -249,12 +249,12 @@
 
     /* -- Icon-based filter bar (Tour / Availability / Expiring) -- */
     .filter-icon-bar { display: flex; gap: 10px; flex-wrap: wrap; justify-content: space-between; margin-bottom: 16px; }
-    .filter-group.icon-mode { position: relative; margin-bottom: 0; width: auto; flex: 0 0 auto; min-width: 78px; }
+    .filter-group.icon-mode { position: relative; margin-bottom: 0; width: 76px; flex: 0 0 76px; }
     .filter-caption.icon-mode {
         flex-direction: column;
         align-items: center;
         gap: 4px;
-        width: auto;
+        width: 100%;
         padding: 0;
         margin-bottom: 0;
         text-align: center;
@@ -264,24 +264,26 @@
         border-radius: 50%;
         border: 1.5px solid var(--line);
         display: flex; align-items: center; justify-content: center;
-        background: #fff;
+        background: #f0eee8;
         color: var(--ink-soft);
         transition: border-color 0.15s, color 0.15s, background 0.15s;
+        flex-shrink: 0;
     }
     .filter-caption.icon-mode:hover .filter-icon-circle,
     .filter-caption.icon-mode.has-active .filter-icon-circle { border-color: var(--reve-orange); color: var(--reve-orange-dark); }
     .filter-caption.icon-mode.has-active .filter-icon-circle { background: #fbeee8; }
     .filter-icon-circle svg { width: 19px; height: 19px; }
     .filter-icon-label-text {
+        display: block;
+        width: 100%;
         font-size: 9px;
         font-weight: 700;
         text-transform: none;
         letter-spacing: 0;
+        white-space: normal;
+        line-height: 1.2;
+        text-align: center;
         color: var(--ink-soft);
-        max-width: 62px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
     .filter-caption.icon-mode.has-active .filter-icon-label-text { color: var(--reve-orange-dark); }
     .quick-filters.popover-mode {
@@ -1681,11 +1683,24 @@
         position: sticky;
         top: 16px;
     }
+    .comm-top-row { display: flex; align-items: stretch; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
     .pay-period-horizontal {
         display: flex;
-        gap: 24px;
+        align-items: center;
+        gap: 0;
         position: static;
-        margin-bottom: 20px;
+        margin-bottom: 0;
+        padding: 10px 18px;
+        width: auto;
+    }
+    .pay-period-horizontal .pp-block { padding: 0 16px; }
+    .pay-period-horizontal .pp-divider { width: 1px; align-self: stretch; background: var(--line); }
+    .pay-period-horizontal .pp-label { white-space: nowrap; }
+    .pay-period-horizontal input#ppCurrentStart {
+        background: #fff9e0;
+        border: 1.5px solid #e0b400;
+        border-radius: 5px;
+        padding: 3px 6px;
     }
     .pay-period-horizontal .pp-block { margin-bottom: 0; flex: 1; }
     .comm-suggest-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
@@ -1874,6 +1889,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&display=swap" rel="stylesheet">
@@ -2842,26 +2858,27 @@
             </div>
         </div>
         <div id="adminPanel-commissions" class="admin-subpanel" style="display:none;">
-            <div class="mmr-io-bar">
+            <div class="comm-top-row">
+                <div class="pay-period-card pay-period-horizontal">
+                    <div class="pp-block">
+                        <div class="pp-label">Previous</div>
+                        <div class="pp-dates" id="ppPrevRange">&mdash;</div>
+                    </div>
+                    <div class="pp-divider"></div>
+                    <div class="pp-block current">
+                        <div class="pp-label">Current <span class="hint">(editable)</span></div>
+                        <input type="date" id="ppCurrentStart">
+                        <div class="pp-dates" id="ppCurrentRange">&mdash;</div>
+                    </div>
+                    <div class="pp-divider"></div>
+                    <div class="pp-block">
+                        <div class="pp-label">Next</div>
+                        <div class="pp-dates" id="ppNextRange">&mdash;</div>
+                    </div>
+                </div>
                 <button type="button" class="btn primary" id="commExportBtn" style="width:auto;flex:none;padding:8px 16px;">Export to Excel</button>
-                <div class="empty-note">Exports only officially added Move-Ins and Renewals &mdash; suggested move-ins not yet added are excluded.</div>
             </div>
-
-            <div class="pay-period-card pay-period-horizontal">
-                <div class="pp-block">
-                    <div class="pp-label">Previous Pay Period</div>
-                    <div class="pp-dates" id="ppPrevRange">&mdash;</div>
-                </div>
-                <div class="pp-block current">
-                    <div class="pp-label">Current Pay Period <span class="hint">start date is editable</span></div>
-                    <input type="date" id="ppCurrentStart">
-                    <div class="pp-dates" id="ppCurrentRange">&mdash;</div>
-                </div>
-                <div class="pp-block">
-                    <div class="pp-label">Next Pay Period</div>
-                    <div class="pp-dates" id="ppNextRange">&mdash;</div>
-                </div>
-            </div>
+            <div class="empty-note" style="margin-bottom:14px;">Exports only officially added Move-Ins and Renewals &mdash; suggested move-ins not yet added are excluded.</div>
 
             <div class="commissions-layout">
                 <div class="commissions-main">
@@ -2886,6 +2903,8 @@
                     <div class="mmr-section-title" style="margin-top:28px;">RENEWALS <span class="mmr-count-badge" id="commRenewalCount">(0)</span></div>
                     <button type="button" class="btn primary" id="commRenewalAddBtn" style="width:auto;padding:8px 16px;">+ Add Renewal</button>
                     <button type="button" class="btn" id="commRenewalClearBtn" style="width:auto;padding:8px 16px;">Clear Section</button>
+                    <button type="button" class="btn" id="commImportRenewalsBtn" style="width:auto;padding:8px 16px;">Import Renewals</button>
+                    <input type="file" id="commImportRenewalsInput" accept=".xlsx,.xls" style="display:none;">
                     <div class="mmr-table-wrap" style="margin-top:10px;">
                         <table class="mmr-table mmr-lease-table">
                             <thead><tr>
@@ -3458,7 +3477,14 @@ function ordinalFloor(f) {
 // resurfacing a stale price from an earlier day's sheet; the concession
 // fields avoid a stale concession sticking around after the qualifying
 // rules change (or not auto-applying to a unit that newly qualifies).
-const PRICING_FIELDS = ['available', 'bestPrice', 'bestTerm', 'otherTerms', 'concessionEnabled', 'concessionWeeks'];
+// Video/location/floorplan/apply-link fields are also always-fresh —
+// these all derive straight from Settings > Unit Info, and a unit's
+// FIRST ever Tour visit silently saves a draft snapshot that would
+// otherwise shadow every later Unit Info edit forever, since drafts
+// are loaded local-storage-first. Title/subtitle-as-typed stay as
+// genuine per-flyer customization points (an agent may deliberately
+// write flyer-specific copy), so they're intentionally left out.
+const PRICING_FIELDS = ['available', 'bestPrice', 'bestTerm', 'otherTerms', 'concessionEnabled', 'concessionWeeks', 'videoLabel', 'videoUrl', 'floorplanImg', 'applyUrl', 'subtitle', 'location'];
 
 function loadDraft(unit) {
     const base = defaultDraft(byUnit[unit]); // always today's best-5, fresh
@@ -6727,9 +6753,22 @@ function unitMatchesConcessionQualifier(u, qualifierText) {
     const raw = (qualifierText || '').trim();
     if (!raw) return false;
     if (/^(all|all else|\*)$/i.test(raw)) return true;
+    // "All Immediate" / "All Vacant(s)" — matches a unit that's
+    // available RIGHT NOW (not a future-dated availability). Checked
+    // before the generic catch-all/token matching below so it isn't
+    // swallowed by "all" as a substring — this specific phrase needs
+    // its own real meaning, not just a synonym for "every unit".
+    if (/^all\s*(immediate|immediately|vacant|vacants)$/i.test(raw)) {
+        const p = PRICING_SUMMARY[u.unit];
+        return !!(p && /immediate/i.test(p.available || ''));
+    }
     const cat = unitTypeCategoryPH(u);
     const tokens = raw.split(/[,/]/).map(t => t.trim().toLowerCase().replace(/\s+/g, '')).filter(Boolean);
     return tokens.some(t => {
+        if (t === 'immediate' || t === 'immediately' || t === 'vacant' || t === 'vacants') {
+            const p = PRICING_SUMMARY[u.unit];
+            return !!(p && /immediate/i.test(p.available || ''));
+        }
         if (t === u.unit.toLowerCase()) return true;
         if (t === u.floorplan.toLowerCase()) return true;
         if (t === 'studio' && cat === 'Studio') return true;
@@ -7441,6 +7480,7 @@ function recomputeMMR() {
    List) untouched so nothing from the original file is lost.
    ============================================================ */
 let MMR_TEMPLATE_WORKBOOK = null;
+let MMR_TEMPLATE_BYTES = null; // raw file bytes, needed for the XML-surgery export path below
 
 document.getElementById('mmrTemplateUpload').addEventListener('change', (e) => {
     const file = e.target.files[0];
@@ -7449,8 +7489,9 @@ document.getElementById('mmrTemplateUpload').addEventListener('change', (e) => {
     reader.onload = (evt) => {
         try {
             const data = new Uint8Array(evt.target.result);
+            MMR_TEMPLATE_BYTES = data;
             MMR_TEMPLATE_WORKBOOK = XLSX.read(data, { type: 'array', cellDates: true });
-            document.getElementById('mmrTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; its other sheets (Weekly Traffic Detail, Instructions, List) will be carried over as-is in the export.`;
+            document.getElementById('mmrTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; new rows will be appended directly into Unit Leasing Detail and Unit Renewal Detail (keeping the original formatting). <b style="color:var(--warn);">Note:</b> Weekly Stats and any other sheets are carried over unchanged from this file rather than refreshed with this week's numbers \u2014 fill those in on the export afterward if needed.`;
         } catch (err) {
             alert("Could not read that file. Make sure it's a valid MMR .xlsx export.");
         }
@@ -7458,6 +7499,141 @@ document.getElementById('mmrTemplateUpload').addEventListener('change', (e) => {
     reader.readAsArrayBuffer(file);
     e.target.value = '';
 });
+
+/* ============================================================
+   XML-surgery XLSX row insertion — operates on the raw ZIP/XML of an
+   uploaded .xlsx directly, instead of going through SheetJS's writer.
+   This is the actual fix for formatting loss: SheetJS's community
+   build reads styles fine but silently drops them on write (confirmed
+   by direct testing — reading a styled cell, writing it back
+   unchanged, and re-reading shows the style gone). New rows here copy
+   the LAST existing data row's exact per-column style references from
+   its raw XML and reuse them verbatim, so a cell that was yellow
+   stays yellow and a currency format stays a currency format, because
+   the style itself was never re-serialized through SheetJS at all.
+   ============================================================ */
+function xmlEscapeText(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function excelSerialFromDate(date) {
+    const utcDate = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    const utcEpoch = Date.UTC(1899, 11, 30);
+    return Math.round((utcDate - utcEpoch) / 86400000);
+}
+function xmlResolveSheetPath(wbXml, relsXml, sheetName) {
+    const esc = sheetName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const sheetMatch = new RegExp(`<sheet[^>]*name="${esc}"[^>]*r:id="([^"]+)"`).exec(wbXml);
+    if (!sheetMatch) return null;
+    const relMatch = new RegExp(`<Relationship[^>]*Id="${sheetMatch[1]}"[^>]*Target="([^"]+)"`).exec(relsXml);
+    return relMatch ? 'xl/' + relMatch[1] : null;
+}
+function xmlParseRowStyles(rowXml) {
+    const styles = {};
+    const re = /<c r="([A-Z]+)\d+"(?:\s+s="(\d+)")?/g;
+    let m;
+    while ((m = re.exec(rowXml))) styles[m[1]] = m[2] || null;
+    return styles;
+}
+function xmlBuildCell(colLetter, rowNum, value, styleIdx, formula) {
+    const ref = colLetter + rowNum;
+    const sAttr = styleIdx ? ` s="${styleIdx}"` : '';
+    if (formula) return `<c r="${ref}"${sAttr}><f>${xmlEscapeText(formula.replace(/\{row\}/g, rowNum))}</f></c>`;
+    if (value === null || value === undefined || value === '') return `<c r="${ref}"${sAttr}/>`;
+    if (value instanceof Date) return `<c r="${ref}"${sAttr}><v>${excelSerialFromDate(value)}</v></c>`;
+    if (typeof value === 'number') return `<c r="${ref}"${sAttr}><v>${value}</v></c>`;
+    return `<c r="${ref}"${sAttr} t="inlineStr"><is><t>${xmlEscapeText(value)}</t></is></c>`;
+}
+// Finds the last row (at/after minRow) whose first populated cell has a
+// real <v> value — i.e. the last genuine data row, not the thousands
+// of pre-formatted-but-empty rows many of these templates carry far
+// beyond their actual data (this file's Leasing sheet declares a
+// dimension out to row 1160 but real data stops at 827).
+function xmlFindLastDataRow(sheetXml, minRow) {
+    let last = minRow;
+    const re = /<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+    let m;
+    while ((m = re.exec(sheetXml))) {
+        const rNum = parseInt(m[1], 10);
+        if (rNum < minRow) continue;
+        if (/<c r="[A-Z]+\d+"[^>]*><v>/.test(m[2])) last = Math.max(last, rNum);
+    }
+    return last;
+}
+// Appends dataRows onto sheetXml, styled to match the last existing
+// data row. formulaColMap maps a column letter to a formula template
+// using {row} as a placeholder, for columns that should be live
+// formulas (e.g. Net Effective Rent) rather than static values.
+function xmlAppendRows(sheetXml, dataRows, colLetters, formulaColMap, minDataRow) {
+    if (!dataRows.length) return sheetXml;
+    const lastRow = xmlFindLastDataRow(sheetXml, minDataRow);
+    const templateMatch = sheetXml.match(new RegExp(`<row r="${lastRow}"[^>]*>[\\s\\S]*?<\\/row>`));
+    const styles = templateMatch ? xmlParseRowStyles(templateMatch[0]) : {};
+    const htMatch = templateMatch ? templateMatch[0].match(/ ht="([\d.]+)"/) : null;
+    const htAttr = htMatch ? ` ht="${htMatch[1]}" customHeight="1"` : '';
+
+    let newRowsXml = '';
+    dataRows.forEach((rowValues, i) => {
+        const rowNum = lastRow + 1 + i;
+        let cells = '';
+        colLetters.forEach((col, ci) => {
+            const styleIdx = styles[col];
+            cells += formulaColMap[col]
+                ? xmlBuildCell(col, rowNum, null, styleIdx, formulaColMap[col])
+                : xmlBuildCell(col, rowNum, rowValues[ci], styleIdx);
+        });
+        newRowsXml += `<row r="${rowNum}" spans="1:${colLetters.length}"${htAttr} x14ac:dyDescent="0.25">${cells}</row>`;
+    });
+
+    let result = sheetXml.replace('</sheetData>', newRowsXml + '</sheetData>');
+    result = result.replace(/<dimension ref="[A-Z]+\d+:([A-Z]+)(\d+)"\/>/, (match, maxCol, maxRowStr) => {
+        const maxRow = Math.max(parseInt(maxRowStr, 10), lastRow + dataRows.length);
+        return `<dimension ref="A1:${maxCol}${maxRow}"/>`;
+    });
+    return result;
+}
+// The full MMR export path when a template was uploaded: edits the
+// original file's bytes directly via JSZip rather than rebuilding a
+// workbook through SheetJS, so untouched sheets (and the two sheets
+// this does append to) keep their exact original formatting.
+async function exportMmrViaXmlSurgery(dateLabel) {
+    const zip = await JSZip.loadAsync(MMR_TEMPLATE_BYTES);
+    const wbXml = await zip.file('xl/workbook.xml').async('string');
+    const relsXml = await zip.file('xl/_rels/workbook.xml.rels').async('string');
+
+    const leasingPath = xmlResolveSheetPath(wbXml, relsXml, 'Unit Leasing Detail');
+    if (leasingPath) {
+        let xml = await zip.file(leasingPath).async('string');
+        xml = xmlAppendRows(xml, computeUnitLeasingDataRows(), ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'], {
+            K: 'IF(I{row}="","",(IFERROR(SUM((I{row}-(J{row}/G{row}))),"ERROR")))',
+            L: 'SUM(H{row}/K{row})-100%',
+            M: 'SUM(H{row}/I{row})-100%'
+        }, 4);
+        zip.file(leasingPath, xml);
+    }
+    const renewalPath = xmlResolveSheetPath(wbXml, relsXml, 'Unit Renewal Detail');
+    if (renewalPath) {
+        let xml = await zip.file(renewalPath).async('string');
+        xml = xmlAppendRows(xml, computeUnitRenewalDataRows(), ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'], {
+            J: 'IF(H{row}="","",(IFERROR(SUM((H{row}-(I{row}/F{row}))),"ERROR")))',
+            K: '100%-(G{row}/J{row})'
+        }, 4);
+        zip.file(renewalPath, xml);
+    }
+    // calcChain.xml (Excel's cached formula dependency order) is left
+    // untouched rather than deleted — Excel treats a stale calc chain
+    // as a hint, not a requirement, and safely recalculates on open;
+    // surgically removing it (plus its rels/content-type entries) is
+    // extra risk for no real benefit here.
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `MMR_-_${dateLabel}_-_REVE.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
 
 function mmrExcelDateFromInput(inputVal) {
     if (!inputVal) return null;
@@ -7593,6 +7769,16 @@ function appendRowsToTemplateSheet(ws, dataRows, dateCols, pctCols) {
         dateCols.forEach(c => { const ref = XLSX.utils.encode_cell({ r: rowNum, c }); if (ws[ref]) ws[ref].z = 'mm/dd/yyyy'; });
         pctCols.forEach(c => { const ref = XLSX.utils.encode_cell({ r: rowNum, c }); if (ws[ref] && ws[ref].v !== null) ws[ref].z = '0.0%'; });
     }
+    // A column width inherited from the uploaded template can be
+    // narrower than "mm/dd/yyyy" needs (~11 chars) — Excel shows a
+    // narrow numeric/date column as ####### rather than truncating
+    // the text, which is the exact symptom this guards against.
+    // Widen (never narrow) any column that now holds a date.
+    if (!ws['!cols']) ws['!cols'] = [];
+    dateCols.forEach(c => {
+        const cur = ws['!cols'][c] && ws['!cols'][c].wch;
+        if (!cur || cur < 11) ws['!cols'][c] = Object.assign({}, ws['!cols'][c], { wch: 11 });
+    });
     return ws;
 }
 
@@ -7634,41 +7820,28 @@ function buildUnitRenewalDetailSheet() {
     return ws;
 }
 
-document.getElementById('mmrExportBtn').addEventListener('click', () => {
-    const wb = XLSX.utils.book_new();
+document.getElementById('mmrExportBtn').addEventListener('click', async () => {
     const dateVal = document.getElementById('mmrDate').value;
     const dateLabel = dateVal ? dateVal.replace(/-/g, '_') : 'undated';
 
-    XLSX.utils.book_append_sheet(wb, buildWeeklyStatsSheet(), 'Weekly Stats');
-
-    // Append this week's rows onto the uploaded template's existing
-    // sheets (keeping prior weeks' rows and formatting) rather than
-    // replacing them outright — only fall back to building a fresh
-    // sheet from scratch when no template (or no matching sheet in it)
-    // was uploaded.
-    const leasingTemplate = MMR_TEMPLATE_WORKBOOK && MMR_TEMPLATE_WORKBOOK.Sheets['Unit Leasing Detail'];
-    const leasingSheet = leasingTemplate
-        ? appendRowsToTemplateSheet(leasingTemplate, computeUnitLeasingDataRows(), [4, 5], [11, 12])
-        : buildUnitLeasingDetailSheet();
-    XLSX.utils.book_append_sheet(wb, leasingSheet, 'Unit Leasing Detail');
-
-    const renewalTemplate = MMR_TEMPLATE_WORKBOOK && MMR_TEMPLATE_WORKBOOK.Sheets['Unit Renewal Detail'];
-    const renewalSheet = renewalTemplate
-        ? appendRowsToTemplateSheet(renewalTemplate, computeUnitRenewalDataRows(), [4], [10])
-        : buildUnitRenewalDetailSheet();
-    XLSX.utils.book_append_sheet(wb, renewalSheet, 'Unit Renewal Detail');
-
-    // Carry over any other sheets from an uploaded template untouched
-    // (Weekly Traffic Detail, Instructions, List) — this app doesn't
-    // collect that data, so there's nothing to refresh in them, but no
-    // reason to drop them from the export either.
-    if (MMR_TEMPLATE_WORKBOOK) {
-        MMR_TEMPLATE_WORKBOOK.SheetNames.forEach(name => {
-            if (['Weekly Stats', 'Unit Leasing Detail', 'Unit Renewal Detail'].includes(name)) return;
-            XLSX.utils.book_append_sheet(wb, MMR_TEMPLATE_WORKBOOK.Sheets[name], name);
-        });
+    if (MMR_TEMPLATE_BYTES) {
+        try {
+            await exportMmrViaXmlSurgery(dateLabel);
+            return;
+        } catch (err) {
+            console.error(err);
+            alert("Couldn't edit the uploaded file directly (it may be an unusual format) \u2014 falling back to building a fresh sheet without the original formatting.");
+        }
     }
 
+    // No template uploaded (or the direct-edit path failed) — fall
+    // back to building a plain workbook with SheetJS. This keeps the
+    // export usable either way, just without the original file's
+    // formatting when there's no template to edit in place.
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, buildWeeklyStatsSheet(), 'Weekly Stats');
+    XLSX.utils.book_append_sheet(wb, buildUnitLeasingDetailSheet(), 'Unit Leasing Detail');
+    XLSX.utils.book_append_sheet(wb, buildUnitRenewalDetailSheet(), 'Unit Renewal Detail');
     XLSX.writeFile(wb, `MMR_-_${dateLabel}_-_REVE.xlsx`);
 });
 
@@ -7695,14 +7868,29 @@ function createMMRLeaseTableController(opts) {
     async function pushDirty() {
         persistLocal();
         if (!BACKEND_URL || APP_MODE === 'test') return;
+        const dirtyIds = [...DIRTY];
         const remote = await backendPull(opts.backendKey);
-        const merged = Object.assign({}, remote || {});
-        DIRTY.forEach(id => { if (ROWS[id]) merged[id] = ROWS[id]; else delete merged[id]; });
-        ROWS = merged;
-        DIRTY.clear();
-        persistLocal();
-        backendPush(opts.backendKey, ROWS);
-        render();
+        if (remote) {
+            const merged = Object.assign({}, remote);
+            dirtyIds.forEach(id => { if (ROWS[id]) merged[id] = ROWS[id]; else delete merged[id]; });
+            ROWS = merged;
+            persistLocal();
+        }
+        const ok = await backendPush(opts.backendKey, ROWS);
+        if (ok) dirtyIds.forEach(id => DIRTY.delete(id));
+        // A full render() replaces the whole tbody's innerHTML, which
+        // destroys and recreates every row's DOM node — including
+        // whatever the user is actively typing in or has a dropdown
+        // open on right now, even if THAT row's own data didn't
+        // change. This debounced push fires on a timer independent of
+        // what the user is doing at that moment, so re-rendering
+        // unconditionally here was stealing focus / closing an open
+        // <select> mid-edit. Skip the visual refresh entirely while
+        // any field in this table has focus — the data is already
+        // safely merged into ROWS regardless, and it'll show up on
+        // the next render once the user blurs away.
+        const tbody = document.getElementById(opts.tbodyId);
+        if (!tbody || !tbody.contains(document.activeElement)) render();
     }
     const pushDirtyDebounced = debounce(pushDirty, 900);
 
@@ -7717,7 +7905,9 @@ function createMMRLeaseTableController(opts) {
                 ROWS[id] = remote[id];
             });
             persistLocal();
-            render();
+            const tbody = document.getElementById(opts.tbodyId);
+            if (!tbody || !tbody.contains(document.activeElement)) render();
+            if (DIRTY.size) pushDirtyDebounced();
         } else if (Object.keys(ROWS).length) {
             backendPush(opts.backendKey, ROWS);
         }
@@ -8032,6 +8222,32 @@ function calcCommLeaseExpiration(row) {
     exp.setDate(exp.getDate() - 1);
     return `${exp.getFullYear()}-${String(exp.getMonth() + 1).padStart(2, '0')}-${String(exp.getDate()).padStart(2, '0')}`;
 }
+function isoDate(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+// Renewals: Lease Expiration is manual entry (typed directly, or
+// filled by the Import Renewals upload) — not derived from anything
+// else, since it's a fact from the resident's actual prior lease, not
+// something this app can compute. Lease Start and Move Out DO derive
+// from it: the new lease term starts the day the old one ends, and
+// Move Out is the day before that term's anniversary N months later
+// (EDATE(start, term) - 1), matching how Yardi/property systems
+// compute a lease's last day.
+function calcCommRenewalLeaseStart(row) {
+    if (!row.leaseExpiration) return undefined;
+    const [y, m, d] = row.leaseExpiration.split('-').map(Number);
+    const start = new Date(y, m - 1, d);
+    start.setDate(start.getDate() + 1);
+    return isoDate(start);
+}
+function calcCommRenewalMoveOut(row) {
+    if (!row.leaseStart || !row.leaseTerm) return undefined;
+    const term = parseFloat(row.leaseTerm);
+    if (isNaN(term)) return undefined;
+    const [y, m, d] = row.leaseStart.split('-').map(Number);
+    const out = new Date(y, m - 1, d);
+    out.setMonth(out.getMonth() + term);
+    out.setDate(out.getDate() - 1);
+    return isoDate(out);
+}
 // Looked up from the roster's per-unit commission amount (added from
 // Justin's Unit/Commission list) — fills in once and then leaves a
 // manual override alone (see onlyIfEmpty in refreshRow).
@@ -8059,7 +8275,82 @@ const commRenewalController = createMMRLeaseTableController({
     countId: 'commRenewalCount', seedRows: seedCommRenewals,
     defaults: { property: '01382', deposit: '500' },
     clearBtnId: 'commRenewalClearBtn',
-    computedFields: [{ key: 'leaseExpiration', calc: calcCommLeaseExpiration }]
+    computedFields: [
+        { key: 'leaseStart', calc: calcCommRenewalLeaseStart },
+        { key: 'moveOut', calc: calcCommRenewalMoveOut }
+    ]
+});
+
+// Import Renewals — reads a Resident Activity Detail export (Property,
+// Unit, Unit Type, Resident, Date, Status, Rent, Deposit, Move In,
+// Lease Expiration, Move Out) and adds a row per data line. Lease Term
+// isn't in that export, so it's left blank on import — filling it in
+// triggers the Lease Start / Move Out auto-calc chain above. The
+// header spans two rows in the source file ("Lease" / "Expiration"
+// stacked), so this locates the header by content ("Property" in the
+// first column) rather than assuming a fixed row number, then skips
+// forward past that wrapped second header line to the real data.
+function excelSerialToIso(val) {
+    if (val instanceof Date) return isoDate(val);
+    if (typeof val === 'number') {
+        const d = new Date(Math.round((val - 25569) * 86400000));
+        return isoDate(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    }
+    if (typeof val === 'string' && val.trim()) {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) return isoDate(d);
+    }
+    return '';
+}
+document.getElementById('commImportRenewalsBtn').addEventListener('click', () => {
+    document.getElementById('commImportRenewalsInput').click();
+});
+document.getElementById('commImportRenewalsInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        let rows;
+        try {
+            const wb = XLSX.read(ev.target.result, { type: 'array', cellDates: true });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
+        } catch (err) {
+            alert('Couldn\u2019t read that file \u2014 is it a Resident Activity Detail export?');
+            return;
+        }
+        const headerIdx = rows.findIndex(r => r && String(r[0] || '').trim() === 'Property' && String(r[1] || '').trim() === 'Unit');
+        if (headerIdx === -1) {
+            alert('Couldn\u2019t find the expected column headers (Property, Unit, Unit Type, Resident...) in this file.');
+            return;
+        }
+        // The next row is the wrapped "Expiration" half of the "Lease
+        // Expiration" header — real data starts after that.
+        let imported = 0;
+        for (let i = headerIdx + 2; i < rows.length; i++) {
+            const r = rows[i];
+            if (!r || !r[1] || String(r[3] || '').toLowerCase().startsWith('count')) continue;
+            commRenewalController.addRowWithData({
+                property: String(r[0] || '01382'),
+                unit: String(r[1]),
+                resident: String(r[3] || ''),
+                date: excelSerialToIso(r[4]),
+                status: String(r[5] || ''),
+                rent: r[6] != null ? String(r[6]) : '',
+                deposit: r[7] != null ? String(r[7]) : '',
+                moveIn: excelSerialToIso(r[8]),
+                leaseExpiration: excelSerialToIso(r[9])
+            });
+            imported++;
+        }
+        if (imported === 0) {
+            alert('No renewal rows found in this file.');
+        } else {
+            alert(`Imported ${imported} renewal(s). Fill in Lease Term on each to auto-calculate Lease Start and Move Out.`);
+        }
+    };
+    reader.readAsArrayBuffer(file);
 });
 
 /* ---------- Commissions export ---------- */
@@ -8077,7 +8368,11 @@ function commExcelDate(inputVal) {
     return new Date(y, m - 1, d);
 }
 function commNumOrRaw(v) {
-    const n = parseFloat(v);
+    // parseFloat alone chokes on a leading "$" (commission values are
+    // often typed/stored with one), silently falling back to exporting
+    // the raw currency-formatted string instead of a clean number —
+    // strip everything but digits/decimal/minus first.
+    const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, ''));
     return isNaN(n) ? (v || '') : n;
 }
 
@@ -8087,7 +8382,7 @@ document.getElementById('commExportBtn').addEventListener('click', () => {
     const renewalRows = commRenewalController.getRows();
     const renewalIds = Object.keys(renewalRows).filter(id => !renewalRows[id].deleted);
 
-    const moveInHeader = ['Property', 'Unit', 'Unit Type', 'Resident', 'Date', 'Status', 'Rent', 'Deposit', 'Move In', 'Lease Expiration', 'Move Out', 'Lease Term', 'Agent', 'Bonus'];
+    const moveInHeader = ['Property', 'Unit', 'Unit Type', 'Resident', 'Date', 'Status', 'Rent', 'Deposit', 'Move In', 'Lease\n Expiration', 'Move Out', 'Lease Term', 'Agent', 'Bonus'];
     const renewalHeader = ['Property', 'Unit', 'Unit Type', 'Resident', 'Date', 'Status', 'Rent', 'Deposit', 'Move In', 'Lease Expiration', 'Move Out', 'Lease Term', 'Lease Start'];
 
     const aoa = [];
@@ -8099,7 +8394,7 @@ document.getElementById('commExportBtn').addEventListener('click', () => {
             r.property || '', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].yardi : '', r.resident || '',
             commExcelDate(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit),
             commExcelDate(r.moveIn), commExcelDate(r.leaseExpiration), commExcelDate(r.moveOut),
-            commNumOrRaw(r.leaseTerm), r.agent || '', r.bonus || ''
+            commNumOrRaw(r.leaseTerm), r.agent || '', commNumOrRaw(r.bonus)
         ]);
     });
     for (let i = 0; i < 3; i++) aoa.push([]);
@@ -8118,7 +8413,16 @@ document.getElementById('commExportBtn').addEventListener('click', () => {
     });
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws['!cols'] = moveInHeader.map(() => ({ wch: 14 }));
+    // Column widths matched to the reference commissions file (D/Resident
+    // needs real room for full names; narrow numeric-format date columns
+    // like these can otherwise show as ####### in Excel when the column
+    // is too narrow for the formatted value, even though the underlying
+    // value and format are both correct).
+    ws['!cols'] = [
+        { wch: 9 }, { wch: 8 }, { wch: 10 }, { wch: 22 }, { wch: 11 },
+        { wch: 18.38 }, { wch: 9 }, { wch: 9 }, { wch: 11 }, { wch: 14 },
+        { wch: 11 }, { wch: 10 }, { wch: 16.13 }, { wch: 9 }
+    ];
     // Date-format every cell that actually holds a Date value.
     aoa.forEach((row, r) => {
         row.forEach((val, c) => {
@@ -8278,7 +8582,14 @@ const residentPushDebounced = debounce(async () => {
     }
     const ok = await backendPush('residents', RESIDENT_ROWS);
     if (ok) dirtyIds.forEach(id => RESIDENT_DIRTY.delete(id));
-    renderResidentsBody();
+    // Same reasoning as the MMR/Commissions controller: renderResidentsBody()
+    // fully replaces #residentsBody's innerHTML, destroying every row's
+    // DOM node — including whatever the user currently has focused or
+    // a <select> dropdown open on, even though this debounced push is
+    // firing on its own timer and has nothing to do with what they're
+    // doing right now. Skip the redraw while any field in the table is
+    // focused; the data is already safely in RESIDENT_ROWS regardless.
+    if (!document.getElementById('residentsBody').contains(document.activeElement)) renderResidentsBody();
 }, 900);
 async function pullResidentsFromBackend() {
     if (!BACKEND_URL || APP_MODE === 'test') return;
@@ -8291,7 +8602,7 @@ async function pullResidentsFromBackend() {
             RESIDENT_ROWS[id] = remote[id];
         });
         residentPersistLocal();
-        renderResidentsBody();
+        if (!document.getElementById('residentsBody').contains(document.activeElement)) renderResidentsBody();
         // Any row still marked dirty here means an earlier push never
         // actually landed on the backend — retry it now rather than
         // leaving that edit stranded client-side indefinitely.
@@ -9577,7 +9888,10 @@ function renderCommSuggested() {
     const start = new Date(startVal + 'T00:00:00');
     const end = ppAddDays(start, 13);
     end.setHours(23, 59, 59, 999);
-    const existingUnits = new Set(Object.values(commMoveInController.getRows()).filter(r => !r.deleted).map(r => r.unit));
+    const existingUnits = new Set([
+        ...Object.values(commMoveInController.getRows()).filter(r => !r.deleted).map(r => r.unit),
+        ...Object.values(commRenewalController.getRows()).filter(r => !r.deleted).map(r => r.unit)
+    ]);
     const candidates = Object.keys(RESIDENT_ROWS).filter(id => {
         const r = RESIDENT_ROWS[id];
         if (r.deleted || !r.moveInDate || existingUnits.has(r.unit)) return false;
@@ -9603,10 +9917,22 @@ function renderCommSuggested() {
             const id = btn.getAttribute('data-suggest-add');
             const r = RESIDENT_ROWS[id];
             if (!r) return;
-            commMoveInController.addRowWithData({
-                property: '01382', unit: r.unit, resident: `${r.first} ${r.last}`,
-                deposit: '500', moveIn: r.moveInDate, leaseTerm: String(r.leaseTerm || ''), agent: r.agent || ''
-            });
+            // A resident whose Agent is "TRANSFER" belongs in Renewals
+            // (their new lease is a transfer, not a fresh move-in) —
+            // route the add there automatically instead of Move-Ins.
+            const isTransfer = (r.agent || '').trim().toUpperCase() === 'TRANSFER';
+            const rent = r.rate ? String(r.rate).replace(/[^0-9.]/g, '') : '';
+            if (isTransfer) {
+                commRenewalController.addRowWithData({
+                    property: '01382', unit: r.unit, resident: `${r.first} ${r.last}`,
+                    status: 'TRANSFER', rent, deposit: '500', moveIn: r.moveInDate, leaseTerm: String(r.leaseTerm || '')
+                });
+            } else {
+                commMoveInController.addRowWithData({
+                    property: '01382', unit: r.unit, resident: `${r.first} ${r.last}`,
+                    status: 'Move-In', rent, deposit: '500', moveIn: r.moveInDate, leaseTerm: String(r.leaseTerm || ''), agent: r.agent || ''
+                });
+            }
             renderCommSuggested();
         });
     });
