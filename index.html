@@ -3672,11 +3672,30 @@ const buildings = [...new Set(UNITS.map(u => u.bldg))].sort();
 const floors = [...new Set(UNITS.map(u => u.floor))].sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
 const typeOrder = ['Studio', '1-Bed', '2-Bed', '3-Bed', 'Townhome', 'Live/Work'];
 
-let activeBldgFilter = null;
-let activeFloorFilter = null;
-let activeTypeFilter = null;
-let activeAmenity = null;
-let activeFloorplanFilter = null;
+// Each chip filter is multi-select: an array of picked values, empty =
+// no filter. Within one filter a unit matches ANY picked value; across
+// filters, every active filter must match.
+let activeBldgFilter = [];
+let activeFloorFilter = [];
+let activeTypeFilter = [];
+let activeAmenity = [];
+let activeFloorplanFilter = [];
+
+// Toggles v in/out of a multi-select chip filter's array.
+function toggleChipValue(arr, v) {
+    return arr.includes(v) ? arr.filter(x => x !== v) : arr.concat([v]);
+}
+// Collapsed-caption text for a multi-select filter: the one pick, or
+// the first pick plus a count of the rest.
+function chipFilterLabel(arr, fmt, fallback) {
+    if (!arr.length) return fallback;
+    return arr.length === 1 ? fmt(arr[0]) : `${fmt(arr[0])} +${arr.length - 1}`;
+}
+function unitMatchesAmenity(u, amenity) {
+    if (amenity === 'Mountain View') return isMountainView(u);
+    if (amenity === 'Corner Unit') return CORNER_UNITS.has(u.unit);
+    return true;
+}
 
 function buildChipRow(box, values, labelFn, getActive, setActive) {
     box.innerHTML = '';
@@ -3685,18 +3704,13 @@ function buildChipRow(box, values, labelFn, getActive, setActive) {
         chip.className = 'chip';
         chip.type = 'button';
         chip.textContent = labelFn(v);
-        if (getActive() === v) chip.classList.add('active');
+        if (getActive().includes(v)) chip.classList.add('active');
         chip.addEventListener('click', () => {
-            setActive(getActive() === v ? null : v);
-            [...box.children].forEach(c => c.classList.remove('active'));
-            if (getActive() === v) chip.classList.add('active');
+            setActive(toggleChipValue(getActive(), v));
+            chip.classList.toggle('active', getActive().includes(v));
             updateFilterCaptionStates();
             runSearch();
-            if (box.classList.contains('popover-mode')) {
-                box.classList.add('collapsed');
-                const cap = document.querySelector(`.filter-caption[data-target="${box.id}"]`);
-                if (cap) cap.classList.remove('expanded');
-            }
+            // Popover stays open so several chips can be picked in a row.
         });
         box.appendChild(chip);
     });
@@ -3718,7 +3732,7 @@ function rebuildFloorplanFilter() {
         [...marketed].map(unit => byUnit[unit] && byUnit[unit].floorplan).filter(Boolean)
     )].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-    if (activeFloorplanFilter && !codes.includes(activeFloorplanFilter)) activeFloorplanFilter = null;
+    activeFloorplanFilter = activeFloorplanFilter.filter(c => codes.includes(c));
 
     if (!codes.length) {
         floorplanFilterBox.innerHTML = `<span class="empty-note">No pricing sheet loaded yet.</span>`;
@@ -3740,13 +3754,13 @@ function updateFilterCaptionStates() {
     const moveInVal = document.getElementById('moveInDateFilterInput').value;
     const map = [
         ['moveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
-        ['bldgFilters', !!activeBldgFilter, activeBldgFilter || 'Building'],
+        ['bldgFilters', activeBldgFilter.length > 0, chipFilterLabel(activeBldgFilter, b => b, 'Building')],
         ['sqftFilters', sqftActive, sqftActive ? `${sqftMin || '0'}\u2013${sqftMax || '\u221e'}` : 'Sq Ft'],
         ['priceFilters', priceActive, priceActive ? `$${priceMin || '0'}\u2013$${priceMax || '\u221e'}` : 'Price'],
-        ['floorFilters', !!activeFloorFilter, activeFloorFilter ? `Fl ${activeFloorFilter}` : 'Floor'],
-        ['typeFilters', !!activeTypeFilter, activeTypeFilter || 'Beds'],
-        ['viewFilters', !!activeAmenity, activeAmenity || 'Amenity'],
-        ['floorplanFilters', !!activeFloorplanFilter, activeFloorplanFilter || 'Floorplan']
+        ['floorFilters', activeFloorFilter.length > 0, chipFilterLabel(activeFloorFilter, f => `Fl ${f}`, 'Floor')],
+        ['typeFilters', activeTypeFilter.length > 0, chipFilterLabel(activeTypeFilter, t => t, 'Beds')],
+        ['viewFilters', activeAmenity.length > 0, chipFilterLabel(activeAmenity, a => a, 'Amenity')],
+        ['floorplanFilters', activeFloorplanFilter.length > 0, chipFilterLabel(activeFloorplanFilter, c => c, 'Floorplan')]
     ];
     map.forEach(([id, isActive, labelText]) => {
         const caption = document.querySelector(`.filter-caption[data-target="${id}"]`);
@@ -3785,12 +3799,11 @@ function runSearch() {
     const sqftB = availNumBounds('sqftMin', 'sqftMax');
     const priceB = availNumBounds('priceMin', 'priceMax');
     let list = UNITS.filter(u => marketed.has(u.unit));
-    if (activeBldgFilter) list = list.filter(u => u.bldg === activeBldgFilter);
-    if (activeFloorFilter) list = list.filter(u => u.floor === activeFloorFilter);
-    if (activeTypeFilter) list = list.filter(u => unitTypeCategory(u) === activeTypeFilter);
-    if (activeAmenity === 'Mountain View') list = list.filter(u => isMountainView(u));
-    if (activeAmenity === 'Corner Unit') list = list.filter(u => CORNER_UNITS.has(u.unit));
-    if (activeFloorplanFilter) list = list.filter(u => u.floorplan === activeFloorplanFilter);
+    if (activeBldgFilter.length) list = list.filter(u => activeBldgFilter.includes(u.bldg));
+    if (activeFloorFilter.length) list = list.filter(u => activeFloorFilter.includes(u.floor));
+    if (activeTypeFilter.length) list = list.filter(u => activeTypeFilter.includes(unitTypeCategory(u)));
+    if (activeAmenity.length) list = list.filter(u => activeAmenity.some(a => unitMatchesAmenity(u, a)));
+    if (activeFloorplanFilter.length) list = list.filter(u => activeFloorplanFilter.includes(u.floorplan));
     const moveInDateVal = document.getElementById('moveInDateFilterInput').value;
     if (moveInDateVal) {
         const cutoff = new Date(moveInDateVal + 'T23:59:59');
@@ -4732,20 +4745,14 @@ function buildFilterChips(box, values, labelFn, getActive, setActive, onChange, 
         chip.className = 'chip';
         chip.type = 'button';
         chip.textContent = labelFn(v);
-        if (getActive() === v) chip.classList.add('active');
+        if (getActive().includes(v)) chip.classList.add('active');
         chip.addEventListener('click', () => {
-            setActive(getActive() === v ? null : v);
-            [...box.children].forEach(c => c.classList.remove('active'));
-            if (getActive() === v) chip.classList.add('active');
+            setActive(toggleChipValue(getActive(), v));
+            chip.classList.toggle('active', getActive().includes(v));
             if (captionUpdateFn) captionUpdateFn();
             onChange();
-            // Icon-mode popovers close on selection — the icon bar then
-            // shows the pick under the icon, and clicking either reopens it.
-            if (box.classList.contains('popover-mode')) {
-                box.classList.add('collapsed');
-                const cap = document.querySelector(`.filter-caption[data-target="${box.id}"]`);
-                if (cap) cap.classList.remove('expanded');
-            }
+            // Popover stays open so several chips can be picked in a row;
+            // the icon bar shows the picks under the icon.
         });
         box.appendChild(chip);
     });
@@ -4774,7 +4781,7 @@ const typeOrderPH = ['Studio', '1-Bed', '2-Bed', '3-Bed', 'Townhome', 'Live/Work
 let calViewDate = new Date();
 calViewDate.setDate(1);
 let calFocusedDay = null; // null = month view; otherwise the JS Date being focused
-let activeAvailType = null, activeAvailFloorplan = null, activeAvailFloor = null, activeAvailBldg = null, activeAvailAmenity = null;
+let activeAvailType = [], activeAvailFloorplan = [], activeAvailFloor = [], activeAvailBldg = [], activeAvailAmenity = [];
 
 const availTypeBox = document.getElementById('availTypeFilters');
 buildFilterChips(availTypeBox, typeOrderPH, t => t, () => activeAvailType, v => activeAvailType = v, renderCalendar, updateAvailCaptionStates);
@@ -4793,11 +4800,11 @@ function updateAvailCaptionStates() {
         ['availMoveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
         ['availSqftFilters', sqftActive, sqftActive ? `${sqftMin || '0'}\u2013${sqftMax || '\u221e'}` : 'Sq Ft'],
         ['availPriceFilters', priceActive, priceActive ? `$${priceMin || '0'}\u2013$${priceMax || '\u221e'}` : 'Price'],
-        ['availTypeFilters', !!activeAvailType, activeAvailType || 'Beds'],
-        ['availNameFilters', !!activeAvailFloorplan, activeAvailFloorplan || 'Floorplan'],
-        ['availFloorFilters', !!activeAvailFloor, activeAvailFloor ? `Fl ${activeAvailFloor}` : 'Floor'],
-        ['availBldgFilters', !!activeAvailBldg, activeAvailBldg || 'Building'],
-        ['availAmenityFilters', !!activeAvailAmenity, activeAvailAmenity || 'Amenity']
+        ['availTypeFilters', activeAvailType.length > 0, chipFilterLabel(activeAvailType, t => t, 'Beds')],
+        ['availNameFilters', activeAvailFloorplan.length > 0, chipFilterLabel(activeAvailFloorplan, c => c, 'Floorplan')],
+        ['availFloorFilters', activeAvailFloor.length > 0, chipFilterLabel(activeAvailFloor, f => `Fl ${f}`, 'Floor')],
+        ['availBldgFilters', activeAvailBldg.length > 0, chipFilterLabel(activeAvailBldg, b => b, 'Building')],
+        ['availAmenityFilters', activeAvailAmenity.length > 0, chipFilterLabel(activeAvailAmenity, a => a, 'Amenity')]
     ];
     map.forEach(([id, isActive, labelText]) => {
         const cap = document.querySelector(`.filter-caption[data-target="${id}"]`);
@@ -4817,9 +4824,9 @@ function rebuildAvailFilters() {
     const floorCodes = [...new Set(marketed.map(u => u.floor))].sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
     const bldgCodes = [...new Set(marketed.map(u => u.bldg))].sort();
 
-    if (activeAvailFloorplan && floorplanCodes.indexOf(activeAvailFloorplan) === -1) activeAvailFloorplan = null;
-    if (activeAvailFloor && floorCodes.indexOf(activeAvailFloor) === -1) activeAvailFloor = null;
-    if (activeAvailBldg && bldgCodes.indexOf(activeAvailBldg) === -1) activeAvailBldg = null;
+    activeAvailFloorplan = activeAvailFloorplan.filter(c => floorplanCodes.includes(c));
+    activeAvailFloor = activeAvailFloor.filter(f => floorCodes.includes(f));
+    activeAvailBldg = activeAvailBldg.filter(b => bldgCodes.includes(b));
 
     const nameBox = document.getElementById('availNameFilters');
     if (floorplanCodes.length) {
@@ -4886,12 +4893,11 @@ function availFilteredUnits() {
         if (moveInCutoff !== null) {
             if (!p || p.availableSortKey === undefined || p.availableSortKey > moveInCutoff) return false;
         }
-        if (activeAvailType && unitTypeCategoryPH(u) !== activeAvailType) return false;
-        if (activeAvailFloorplan && u.floorplan !== activeAvailFloorplan) return false;
-        if (activeAvailFloor && u.floor !== activeAvailFloor) return false;
-        if (activeAvailBldg && u.bldg !== activeAvailBldg) return false;
-        if (activeAvailAmenity === 'Mountain View' && !isMountainView(u)) return false;
-        if (activeAvailAmenity === 'Corner Unit' && !CORNER_UNITS.has(u.unit)) return false;
+        if (activeAvailType.length && !activeAvailType.includes(unitTypeCategoryPH(u))) return false;
+        if (activeAvailFloorplan.length && !activeAvailFloorplan.includes(u.floorplan)) return false;
+        if (activeAvailFloor.length && !activeAvailFloor.includes(u.floor)) return false;
+        if (activeAvailBldg.length && !activeAvailBldg.includes(u.bldg)) return false;
+        if (activeAvailAmenity.length && !activeAvailAmenity.some(a => unitMatchesAmenity(u, a))) return false;
         return true;
     });
 }
@@ -5184,8 +5190,8 @@ document.getElementById('availClearBtn').addEventListener('click', () => {
     document.getElementById('availSqftMax').value = '';
     document.getElementById('availPriceMin').value = '';
     document.getElementById('availPriceMax').value = '';
-    activeAvailType = null; activeAvailFloorplan = null; activeAvailFloor = null; activeAvailBldg = null;
-    [...availTypeBox.children].forEach(c => c.classList.remove('active'));
+    activeAvailType = []; activeAvailFloorplan = []; activeAvailFloor = []; activeAvailBldg = []; activeAvailAmenity = [];
+    [...availTypeBox.children, ...document.getElementById('availAmenityFilters').children].forEach(c => c.classList.remove('active'));
     rebuildAvailFilters();
     renderCalendar();
 });
@@ -5199,7 +5205,7 @@ const EXPIRING_META_KEY = 'reve-expiring-meta';
 const EXPIRING_DATA_KEY = 'reve-expiring-data';
 let EXPIRING_UNITS = [];
 let EXPIRING_META = null;
-let activeExpType = null, activeExpFloorplan = null, activeExpFloor = null, activeExpBldg = null, activeExpAmenity = null;
+let activeExpType = [], activeExpFloorplan = [], activeExpFloor = [], activeExpBldg = [], activeExpAmenity = [];
 
 // Excel's epoch is 1899-12-30 (keeps the historical Feb 29 1900 bug intact).
 function excelSerialToDate(serial) {
@@ -5394,11 +5400,11 @@ function updateExpCaptionStates() {
     const moveInVal = document.getElementById('expiringMoveInDate').value;
     const map = [
         ['expMoveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
-        ['expTypeFilters', !!activeExpType, activeExpType || 'Beds'],
-        ['expNameFilters', !!activeExpFloorplan, activeExpFloorplan || 'Floorplan'],
-        ['expFloorFilters', !!activeExpFloor, activeExpFloor ? `Fl ${activeExpFloor}` : 'Floor'],
-        ['expBldgFilters', !!activeExpBldg, activeExpBldg || 'Building'],
-        ['expAmenityFilters', !!activeExpAmenity, activeExpAmenity || 'Amenity']
+        ['expTypeFilters', activeExpType.length > 0, chipFilterLabel(activeExpType, t => t, 'Beds')],
+        ['expNameFilters', activeExpFloorplan.length > 0, chipFilterLabel(activeExpFloorplan, c => c, 'Floorplan')],
+        ['expFloorFilters', activeExpFloor.length > 0, chipFilterLabel(activeExpFloor, f => `Fl ${f}`, 'Floor')],
+        ['expBldgFilters', activeExpBldg.length > 0, chipFilterLabel(activeExpBldg, b => b, 'Building')],
+        ['expAmenityFilters', activeExpAmenity.length > 0, chipFilterLabel(activeExpAmenity, a => a, 'Amenity')]
     ];
     map.forEach(([id, isActive, labelText]) => {
         const cap = document.querySelector(`.filter-caption[data-target="${id}"]`);
@@ -5413,9 +5419,9 @@ function rebuildExpiringFilters() {
     const floorCodes = [...new Set(EXPIRING_UNITS.map(r => r.floor).filter(Boolean))].sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
     const bldgCodes = [...new Set(EXPIRING_UNITS.map(r => r.bldg).filter(Boolean))].sort();
 
-    if (activeExpFloorplan && floorplanCodes.indexOf(activeExpFloorplan) === -1) activeExpFloorplan = null;
-    if (activeExpFloor && floorCodes.indexOf(activeExpFloor) === -1) activeExpFloor = null;
-    if (activeExpBldg && bldgCodes.indexOf(activeExpBldg) === -1) activeExpBldg = null;
+    activeExpFloorplan = activeExpFloorplan.filter(c => floorplanCodes.includes(c));
+    activeExpFloor = activeExpFloor.filter(f => floorCodes.includes(f));
+    activeExpBldg = activeExpBldg.filter(b => bldgCodes.includes(b));
 
     buildFilterChips(document.getElementById('expTypeFilters'), typeOrderPH, t => t, () => activeExpType, v => activeExpType = v, renderExpiringList, updateExpCaptionStates);
     buildFilterChips(document.getElementById('expAmenityFilters'), ['Mountain View', 'Corner Unit'], v => v, () => activeExpAmenity, v => activeExpAmenity = v, renderExpiringList, updateExpCaptionStates);
@@ -5447,7 +5453,7 @@ function rebuildExpiringFilters() {
 document.getElementById('expiringMoveInDate').addEventListener('input', () => { updateExpCaptionStates(); renderExpiringList(); });
 document.getElementById('expClearFiltersBtn').addEventListener('click', () => {
     document.getElementById('expiringMoveInDate').value = '';
-    activeExpType = null; activeExpFloorplan = null; activeExpFloor = null; activeExpBldg = null;
+    activeExpType = []; activeExpFloorplan = []; activeExpFloor = []; activeExpBldg = []; activeExpAmenity = [];
     rebuildExpiringFilters();
     renderExpiringList();
 });
@@ -5468,15 +5474,14 @@ function renderExpiringList() {
 
     const list = EXPIRING_UNITS.filter(r => {
         if (moveInDate && r.leaseTo > moveInDate) return false;
-        if (activeExpFloorplan && r.floorplan !== activeExpFloorplan) return false;
-        if (activeExpFloor && r.floor !== activeExpFloor) return false;
-        if (activeExpBldg && r.bldg !== activeExpBldg) return false;
-        if (activeExpType) {
+        if (activeExpFloorplan.length && !activeExpFloorplan.includes(r.floorplan)) return false;
+        if (activeExpFloor.length && !activeExpFloor.includes(r.floor)) return false;
+        if (activeExpBldg.length && !activeExpBldg.includes(r.bldg)) return false;
+        if (activeExpType.length) {
             const u = byUnit[r.unit];
-            if (!u || unitTypeCategoryPH(u) !== activeExpType) return false;
+            if (!u || !activeExpType.includes(unitTypeCategoryPH(u))) return false;
         }
-        if (activeExpAmenity === 'Mountain View' && !MOUNTAIN_VIEW_UNITS.has(r.unit)) return false;
-        if (activeExpAmenity === 'Corner Unit' && !CORNER_UNITS.has(r.unit)) return false;
+        if (activeExpAmenity.length && !activeExpAmenity.some(a => a === 'Mountain View' ? MOUNTAIN_VIEW_UNITS.has(r.unit) : CORNER_UNITS.has(r.unit))) return false;
         return true;
     });
 
