@@ -7682,6 +7682,28 @@ function xmlFindLastDataRow(sheetXml, minRow) {
 // data row. formulaColMap maps a column letter to a formula template
 // using {row} as a placeholder, for columns that should be live
 // formulas (e.g. Net Effective Rent) rather than static values.
+// Fills an EXISTING row's cell values in place (used for the
+// pre-formatted-but-empty "padding" rows many of these templates
+// carry far beyond their real data), preserving that row's own style
+// refs and leaving any column in skipCols (formula columns using a
+// shared-formula reference) completely untouched — those recalculate
+// correctly on their own once Excel opens the file, since a shared
+// formula's relative references are resolved per-row automatically.
+function xmlFillExistingRow(sheetXml, rowNum, values, colLetters, skipCols) {
+    const rowMatch = sheetXml.match(new RegExp(`<row r="${rowNum}"[^>]*>[\\s\\S]*?<\\/row>`));
+    if (!rowMatch) return null;
+    let rowXml = rowMatch[0];
+    colLetters.forEach((col, ci) => {
+        if (skipCols.includes(col)) return;
+        const cellRe = new RegExp(`<c r="${col}${rowNum}"([^>]*?)(?:/>|>[\\s\\S]*?<\\/c>)`);
+        const cellMatch = rowXml.match(cellRe);
+        if (!cellMatch) return;
+        const styleIdx = (cellMatch[1].match(/s="(\d+)"/) || [])[1];
+        const newCell = xmlBuildCell(col, rowNum, values[ci], styleIdx);
+        rowXml = rowXml.slice(0, cellMatch.index) + newCell + rowXml.slice(cellMatch.index + cellMatch[0].length);
+    });
+    return sheetXml.slice(0, rowMatch.index) + rowXml + sheetXml.slice(rowMatch.index + rowMatch[0].length);
+}
 function xmlAppendRows(sheetXml, dataRows, colLetters, formulaColMap, minDataRow) {
     if (!dataRows.length) return sheetXml;
     const lastRow = xmlFindLastDataRow(sheetXml, minDataRow);
@@ -7689,21 +7711,38 @@ function xmlAppendRows(sheetXml, dataRows, colLetters, formulaColMap, minDataRow
     const styles = templateMatch ? xmlParseRowStyles(templateMatch[0]) : {};
     const htMatch = templateMatch ? templateMatch[0].match(/ ht="([\d.]+)"/) : null;
     const htAttr = htMatch ? ` ht="${htMatch[1]}" customHeight="1"` : '';
+    const formulaCols = Object.keys(formulaColMap);
 
     let newRowsXml = '';
+    let workingXml = sheetXml;
     dataRows.forEach((rowValues, i) => {
         const rowNum = lastRow + 1 + i;
-        let cells = '';
-        colLetters.forEach((col, ci) => {
-            const styleIdx = styles[col];
-            cells += formulaColMap[col]
-                ? xmlBuildCell(col, rowNum, null, styleIdx, formulaColMap[col])
-                : xmlBuildCell(col, rowNum, rowValues[ci], styleIdx);
-        });
-        newRowsXml += `<row r="${rowNum}" spans="1:${colLetters.length}"${htAttr} x14ac:dyDescent="0.25">${cells}</row>`;
+        // The template usually already HAS a row at this number —
+        // thousands of them, pre-styled and pre-formula'd but empty,
+        // extending far past the real data. Blindly appending a brand
+        // new <row> with the same number as one of these creates two
+        // rows sharing one row index, which is invalid OOXML — Excel's
+        // "repair on open" then silently discards the newly-added one,
+        // which is exactly the corruption/missing-data bug this
+        // guards against. Filling the existing row's cells in place
+        // (skipping its formula columns, which resolve on their own)
+        // avoids the collision entirely.
+        const filled = xmlFillExistingRow(workingXml, rowNum, rowValues, colLetters, formulaCols);
+        if (filled) {
+            workingXml = filled;
+        } else {
+            let cells = '';
+            colLetters.forEach((col, ci) => {
+                const styleIdx = styles[col];
+                cells += formulaColMap[col]
+                    ? xmlBuildCell(col, rowNum, null, styleIdx, formulaColMap[col])
+                    : xmlBuildCell(col, rowNum, rowValues[ci], styleIdx);
+            });
+            newRowsXml += `<row r="${rowNum}" spans="1:${colLetters.length}"${htAttr} x14ac:dyDescent="0.25">${cells}</row>`;
+        }
     });
 
-    let result = sheetXml.replace('</sheetData>', newRowsXml + '</sheetData>');
+    let result = newRowsXml ? workingXml.replace('</sheetData>', newRowsXml + '</sheetData>') : workingXml;
     result = result.replace(/<dimension ref="[A-Z]+\d+:([A-Z]+)(\d+)"\/>/, (match, maxCol, maxRowStr) => {
         const maxRow = Math.max(parseInt(maxRowStr, 10), lastRow + dataRows.length);
         return `<dimension ref="A1:${maxCol}${maxRow}"/>`;
@@ -9176,6 +9215,16 @@ function renderResidentRow(id, row, derived) {
     return `<tr class="${rowClass}" data-row="${id}">${cells}</tr>`;
 }
 
+function refreshResidentRow(id) {
+    const tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
+    const row = RESIDENT_ROWS[id];
+    if (!tr || !row) return;
+    const derived = computeResidentDerived(row);
+    const temp = document.createElement('tbody');
+    temp.innerHTML = renderResidentRow(id, row, derived);
+    tr.replaceWith(temp.firstElementChild);
+    wireResidentRow(id);
+}
 function wireResidentRow(id) {
     const tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
     if (!tr) return;
@@ -9190,16 +9239,31 @@ function wireResidentRow(id) {
             residentPushDebounced();
         }
         if (isCheckbox || isSelect) {
-            el.addEventListener('change', (e) => { commit(e); renderResidentsBody(); });
+            el.addEventListener('change', (e) => { commit(e); refreshResidentRow(id); });
         } else {
             el.addEventListener('input', commit);
-            el.addEventListener('blur', () => renderResidentsBody());
+            // A full renderResidentsBody() here used to destroy every
+            // row's DOM the instant you left ANY field — including
+            // whatever you were about to click/tab into next, which
+            // could silently drop the next keystroke or make an edit
+            // look like it "didn't save". This only refreshes THIS one
+            // row (to pick up computed fields / row coloring), and even
+            // then only once focus has actually left the row — deferred
+            // a tick so a same-row Tab (e.g. First → Last) isn't
+            // interrupted mid-transition.
+            el.addEventListener('blur', () => {
+                setTimeout(() => {
+                    const stillInRow = document.activeElement && document.activeElement.closest(`tr[data-row="${id}"]`);
+                    if (!stillInRow) refreshResidentRow(id);
+                }, 0);
+            });
         }
     });
     tr.querySelector('.wl-remove').addEventListener('click', () => {
         if (!confirm('Remove this resident?')) return;
         RESIDENT_ROWS[id].deleted = true;
         RESIDENT_DIRTY.add(id);
+        residentPersistLocal();
         residentPushDebounced();
         renderResidentsBody();
     });
@@ -10479,6 +10543,13 @@ function forceSiteRefresh(btn) {
         btn.textContent = 'Refreshing\u2026';
         btn.disabled = true;
     }
+    // Remember which tab was open so the reload can return to it,
+    // instead of dumping the person back on Tour after a refresh they
+    // triggered from somewhere else entirely.
+    const activeTab = document.querySelector('.top-tab.active');
+    if (activeTab) {
+        try { sessionStorage.setItem('reve-refresh-return-tab', activeTab.getAttribute('data-tab')); } catch (e) {}
+    }
     // Cache-bust via a version query param and hard-reload — this
     // forces the browser to fetch a fresh copy of the page instead of
     // serving a stale cached one. Saved data (localStorage, backend)
@@ -11212,6 +11283,18 @@ if (BACKEND_URL) {
     pullLeaseFromBackend();
     pullHowToFromBackend();
 }
+
+// If this load followed a "Refresh to Update" click, return to
+// whichever tab that was clicked from instead of defaulting to Tour.
+// sessionStorage (not localStorage) so this is a one-time instruction
+// for this reload only, not a standing "always open here" preference.
+try {
+    const returnTab = sessionStorage.getItem('reve-refresh-return-tab');
+    if (returnTab) {
+        sessionStorage.removeItem('reve-refresh-return-tab');
+        if (document.getElementById('tab-' + returnTab)) switchTab(returnTab);
+    }
+} catch (e) {}
 </script>
 </body>
 </html>
