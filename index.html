@@ -1758,13 +1758,13 @@
     #leaseFormBody > .mmr-section-title { scroll-margin-top: 8px; }
     .lease-copy-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
     .lease-copy-btn {
-        flex: none; font-family: var(--sans); font-size: 10px; font-weight: 600;
-        color: var(--ink-soft); background: #fff; border: 1px solid var(--line); border-radius: 4px;
-        padding: 1px 6px; cursor: pointer; line-height: 1.5;
+        flex: none; display: inline-flex; align-items: center; justify-content: center;
+        width: 22px; height: 20px; padding: 0; color: var(--ink-soft);
+        background: transparent; border: 1px solid transparent; border-radius: 4px; cursor: pointer;
     }
-    .lease-copy-btn:hover { border-color: var(--ink-soft); color: var(--ink); }
+    .lease-copy-btn:hover { border-color: var(--line); background: #fff; color: var(--ink); }
     .lease-copy-btn.copied { color: #fff; background: var(--good); border-color: var(--good); }
-    body.dark-mode .lease-copy-btn { background: #2a2824; }
+    body.dark-mode .lease-copy-btn:hover { background: #2a2824; }
     .pay-period-card {
         background: #fff;
         border: 1px solid var(--line);
@@ -10729,6 +10729,8 @@ function leaseCopyText(text) {
     try { document.execCommand('copy'); } finally { document.body.removeChild(ta); }
     return Promise.resolve();
 }
+const LEASE_COPY_ICON = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8.5" height="8.5" rx="1.5"/><path d="M10.5 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v6.5a1 1 0 0 0 1 1h.5"/></svg>';
+const LEASE_COPIED_ICON = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>';
 function leaseAddCopyButtons() {
     [...document.querySelectorAll('#leaseFormBody td.wl-auto')].forEach(td => {
         const value = td.textContent.replace(/\s+/g, ' ').trim();
@@ -10738,13 +10740,14 @@ function leaseAddCopyButtons() {
         btn.className = 'lease-copy-btn';
         btn.title = 'Copy text to clipboard';
         btn.setAttribute('aria-label', `Copy "${value}" to clipboard`);
-        btn.textContent = 'Copy';
+        btn.innerHTML = LEASE_COPY_ICON;
         btn.addEventListener('click', () => {
             leaseCopyText(value).then(() => {
-                btn.textContent = 'Copied';
+                btn.innerHTML = LEASE_COPIED_ICON;
                 btn.classList.add('copied');
-                setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1200);
-            }).catch(() => { btn.textContent = 'Failed'; });
+                btn.title = 'Copied';
+                setTimeout(() => { btn.innerHTML = LEASE_COPY_ICON; btn.classList.remove('copied'); btn.title = 'Copy text to clipboard'; }, 1200);
+            }).catch(() => { btn.title = 'Copy failed'; });
         });
         const row = document.createElement('div');
         row.className = 'lease-copy-row';
