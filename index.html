@@ -1746,6 +1746,25 @@
         margin-bottom: 8px;
     }
     .mmr-count-badge { font-weight: 400; opacity: 0.8; }
+    /* Lease: Next buttons in section headers, Copy buttons on filled cells */
+    .lease-section-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .lease-next-btn {
+        font-family: var(--sans); font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+        color: #fff; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.35);
+        border-radius: 4px; padding: 3px 10px; cursor: pointer;
+    }
+    .lease-next-btn:hover { background: rgba(255,255,255,0.28); }
+    #leaseFormBody { padding-bottom: 90vh; } /* lets the last sections scroll to the top */
+    #leaseFormBody > .mmr-section-title { scroll-margin-top: 8px; }
+    .lease-copy-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .lease-copy-btn {
+        flex: none; display: inline-flex; align-items: center; justify-content: center;
+        width: 22px; height: 20px; padding: 0; color: var(--ink-soft);
+        background: transparent; border: 1px solid transparent; border-radius: 4px; cursor: pointer;
+    }
+    .lease-copy-btn:hover { border-color: var(--line); background: #fff; color: var(--ink); }
+    .lease-copy-btn.copied { color: #fff; background: var(--good); border-color: var(--good); }
+    body.dark-mode .lease-copy-btn:hover { background: #2a2824; }
     .pay-period-card {
         background: #fff;
         border: 1px solid var(--line);
@@ -10693,7 +10712,74 @@ function renderLeaseForm() {
     `;
 
     wireLeaseInputs();
+    leaseAddCopyButtons();
 }
+
+// A "copy" button beside every filled-in autofilled (green) value, for
+// pasting into the lease documents. Blank / dash cells get none.
+function leaseCopyText(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    // Fallback for non-secure contexts (e.g. opened from a local file).
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } finally { document.body.removeChild(ta); }
+    return Promise.resolve();
+}
+const LEASE_COPY_ICON = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8.5" height="8.5" rx="1.5"/><path d="M10.5 3.5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v6.5a1 1 0 0 0 1 1h.5"/></svg>';
+const LEASE_COPIED_ICON = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>';
+function leaseAddCopyButtons() {
+    [...document.querySelectorAll('#leaseFormBody td.wl-auto')].forEach(td => {
+        const value = td.textContent.replace(/\s+/g, ' ').trim();
+        if (!value || value === '\u2014' || value === '-') return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'lease-copy-btn';
+        btn.title = 'Copy text to clipboard';
+        btn.setAttribute('aria-label', `Copy "${value}" to clipboard`);
+        btn.innerHTML = LEASE_COPY_ICON;
+        btn.addEventListener('click', () => {
+            leaseCopyText(value).then(() => {
+                btn.innerHTML = LEASE_COPIED_ICON;
+                btn.classList.add('copied');
+                btn.title = 'Copied';
+                setTimeout(() => { btn.innerHTML = LEASE_COPY_ICON; btn.classList.remove('copied'); btn.title = 'Copy text to clipboard'; }, 1200);
+            }).catch(() => { btn.title = 'Copy failed'; });
+        });
+        const row = document.createElement('div');
+        row.className = 'lease-copy-row';
+        const wrap = document.createElement('span');
+        wrap.className = 'lease-copy-value';
+        while (td.firstChild) wrap.appendChild(td.firstChild);
+        row.appendChild(wrap);
+        row.appendChild(btn);
+        td.appendChild(row);
+    });
+}
+
+// "Next" button at the right of each black section header: scrolls the
+// following section's header to the top of the window.
+(function addLeaseNextButtons() {
+    const titles = [...document.querySelectorAll('#leaseFormBody > .mmr-section-title')];
+    titles.forEach((title, i) => {
+        const next = titles[i + 1];
+        if (!next) return;
+        title.classList.add('lease-section-title');
+        const label = document.createElement('span');
+        while (title.firstChild) label.appendChild(title.firstChild);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'lease-next-btn';
+        btn.textContent = 'Next \u203a';
+        btn.title = 'Scroll to ' + next.textContent.trim();
+        btn.addEventListener('click', () => next.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+        title.appendChild(label);
+        title.appendChild(btn);
+    });
+})();
 
 
 const PAY_PERIOD_KEY = 'reve-pay-period-start';
