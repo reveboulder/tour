@@ -532,6 +532,7 @@
     .file-label:hover { background: var(--reve-orange-dark); }
     #pricingFileInput { display: none; }
     #mmrTemplateUpload { display: none; }
+    #commTemplateUpload { display: none; }
     .mmr-io-bar {
         display: flex;
         align-items: center;
@@ -2877,6 +2878,11 @@
                     </div>
                 </div>
                 <button type="button" class="btn primary" id="commExportBtn" style="width:auto;flex:none;padding:8px 16px;">Export to Excel</button>
+            </div>
+            <div class="mmr-io-bar" style="margin-top:8px;">
+                <label class="file-label" for="commTemplateUpload">Upload Previous Commissions File (.xlsx, optional)</label>
+                <input type="file" id="commTemplateUpload" accept=".xlsx">
+                <div class="empty-note" id="commTemplateStatus">No file uploaded &mdash; export will build a fresh sheet.</div>
             </div>
             <div class="empty-note" style="margin-bottom:14px;">Exports only officially added Move-Ins and Renewals &mdash; suggested move-ins not yet added are excluded.</div>
 
@@ -7491,7 +7497,7 @@ document.getElementById('mmrTemplateUpload').addEventListener('change', (e) => {
             const data = new Uint8Array(evt.target.result);
             MMR_TEMPLATE_BYTES = data;
             MMR_TEMPLATE_WORKBOOK = XLSX.read(data, { type: 'array', cellDates: true });
-            document.getElementById('mmrTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; new rows will be appended directly into Unit Leasing Detail and Unit Renewal Detail (keeping the original formatting). <b style="color:var(--warn);">Note:</b> Weekly Stats and any other sheets are carried over unchanged from this file rather than refreshed with this week's numbers \u2014 fill those in on the export afterward if needed.`;
+            document.getElementById('mmrTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; Weekly Stats will be updated with this week's numbers, and new rows will be appended into Unit Leasing Detail and Unit Renewal Detail, all directly in this file so the original formatting stays intact. Other sheets are carried over unchanged.`;
         } catch (err) {
             alert("Could not read that file. Make sure it's a valid MMR .xlsx export.");
         }
@@ -7595,10 +7601,72 @@ function xmlAppendRows(sheetXml, dataRows, colLetters, formulaColMap, minDataRow
 // original file's bytes directly via JSZip rather than rebuilding a
 // workbook through SheetJS, so untouched sheets (and the two sheets
 // this does append to) keep their exact original formatting.
+// Updates specific cells by reference in place (e.g. Weekly Stats'
+// input numbers), preserving each cell's existing style attribute
+// completely untouched — only the value changes. Cells the app
+// doesn't have a number for are simply skipped, and formula cells
+// (Percentage Leased, Closing Ratio, etc.) are never in this map, so
+// they keep recalculating from the values that ARE written.
+function xmlSetCellValue(sheetXml, cellRef, value) {
+    const re = new RegExp(`<c r="${cellRef}"([^>]*?)(?:/>|>([\\s\\S]*?)<\\/c>)`);
+    const m = sheetXml.match(re);
+    if (!m) return sheetXml;
+    const attrs = m[1].replace(/\s+t="[^"]*"/, '');
+    let newCell;
+    if (value instanceof Date) newCell = `<c r="${cellRef}"${attrs}><v>${excelSerialFromDate(value)}</v></c>`;
+    else if (typeof value === 'number') newCell = `<c r="${cellRef}"${attrs}><v>${value}</v></c>`;
+    else newCell = `<c r="${cellRef}"${attrs} t="inlineStr"><is><t>${xmlEscapeText(value)}</t></is></c>`;
+    return sheetXml.slice(0, m.index) + newCell + sheetXml.slice(m.index + m[0].length);
+}
+function xmlSetCells(sheetXml, cellMap) {
+    Object.keys(cellMap).forEach(ref => {
+        if (cellMap[ref] !== null && cellMap[ref] !== undefined) sheetXml = xmlSetCellValue(sheetXml, ref, cellMap[ref]);
+    });
+    return sheetXml;
+}
+// The B-column input cells on Weekly Stats, gathered fresh from the
+// app's own form fields — everything else on that sheet (labels,
+// hint text, and the % / ratio FORMULA cells) is left completely
+// alone so the formulas keep recalculating from whatever's written
+// here rather than being overwritten with a static snapshot.
+function weeklyStatsCellUpdates() {
+    const totalVacant = mmrNumOrNull('mmrTotalVacant') || 0;
+    const vacantRented = mmrNumOrNull('mmrVacantRented') || 0;
+    const totalNotices = mmrNumOrNull('mmrTotalNotices') || 0;
+    const noticeRented = mmrNumOrNull('mmrNoticeRented') || 0;
+    const weeklyTraffic = mmrNumOrNull('mmrWeeklyTraffic') || 0;
+    const weeklyRentals = mmrNumOrNull('mmrWeeklyRentals') || 0;
+    const leasesExpiring = mmrNumOrNull('mmrLeasesExpiring') || 0;
+    const leasesRenewed = mmrNumOrNull('mmrLeasesRenewed') || 0;
+    return {
+        B1: mmrExcelDateFromInput(document.getElementById('mmrDate').value),
+        B4: totalVacant,
+        B5: vacantRented,
+        B7: totalNotices,
+        B8: noticeRented,
+        B10: mmrNumOrNull('mmrRentReady') || 0,
+        B11: mmrNumOrNull('mmrModelGuest') || 0,
+        B12: mmrNumOrNull('mmrDownUnits') || 0,
+        B13: weeklyTraffic,
+        B14: weeklyRentals,
+        B16: parseMoneyLoose(document.getElementById('mmrMtdIncome').value),
+        B17: parseMoneyLoose(document.getElementById('mmrDelinquency').value),
+        B18: parseMoneyLoose(document.getElementById('mmrDelinquencyUncollectable').value),
+        B19: leasesExpiring,
+        B20: leasesRenewed
+    };
+}
 async function exportMmrViaXmlSurgery(dateLabel) {
     const zip = await JSZip.loadAsync(MMR_TEMPLATE_BYTES);
     const wbXml = await zip.file('xl/workbook.xml').async('string');
     const relsXml = await zip.file('xl/_rels/workbook.xml.rels').async('string');
+
+    const statsPath = xmlResolveSheetPath(wbXml, relsXml, 'Weekly Stats');
+    if (statsPath) {
+        let xml = await zip.file(statsPath).async('string');
+        xml = xmlSetCells(xml, weeklyStatsCellUpdates());
+        zip.file(statsPath, xml);
+    }
 
     const leasingPath = xmlResolveSheetPath(wbXml, relsXml, 'Unit Leasing Detail');
     if (leasingPath) {
@@ -7629,6 +7697,176 @@ async function exportMmrViaXmlSurgery(dateLabel) {
     const a = document.createElement('a');
     a.href = url;
     a.download = `MMR_-_${dateLabel}_-_REVE.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Inserts newRowsXmlArray right after row `insertAfterRow`, shifting
+// every row below it (and every cell reference inside those rows) down
+// by the number of new rows. This is a different operation from
+// xmlAppendRows above: Commissions stacks Move-Ins directly above
+// Renewals in the SAME sheet, so adding Move-In rows has to push the
+// Renewals title/header/data down rather than just appending at the
+// sheet's end. Safe for this file specifically because it has zero
+// formulas (confirmed by inspection) — there's no cross-row formula
+// reference that shifting could silently break.
+function xmlShiftRowsAndInsert(sheetXml, insertAfterRow, newRowsXmlArray) {
+    const rowRe = /<row r="(\d+)"[^>]*>[\s\S]*?<\/row>/g;
+    const rows = [];
+    let m;
+    while ((m = rowRe.exec(sheetXml))) rows.push({ num: parseInt(m[1], 10), xml: m[0] });
+    const shiftCount = newRowsXmlArray.length;
+    const shiftRow = (r) => {
+        const newNum = r.num + shiftCount;
+        let xml = r.xml.replace(new RegExp(`^<row r="${r.num}"`), `<row r="${newNum}"`);
+        xml = xml.replace(new RegExp(`r="([A-Z]+)${r.num}(?!\\d)"`, 'g'), `r="$1${newNum}"`);
+        return xml;
+    };
+    const before = rows.filter(r => r.num <= insertAfterRow).map(r => r.xml);
+    const afterShifted = rows.filter(r => r.num > insertAfterRow).map(shiftRow);
+    const allRowsXml = before.join('') + newRowsXmlArray.join('') + afterShifted.join('');
+    let result = sheetXml.replace(/<sheetData>[\s\S]*?<\/sheetData>/, `<sheetData>${allRowsXml}</sheetData>`);
+    result = result.replace(/<dimension ref="[A-Z]+\d+:([A-Z]+)(\d+)"\/>/, (match, maxCol, maxRowStr) => {
+        return `<dimension ref="A1:${maxCol}${parseInt(maxRowStr, 10) + shiftCount}"/>`;
+    });
+    return result;
+}
+// Builds a single <row> XML string for one new Commissions data row,
+// styled to match an existing row's per-column style references.
+function xmlBuildDataRowXml(rowNum, values, colLetters, styles, htAttr) {
+    let cells = '';
+    colLetters.forEach((col, ci) => { cells += xmlBuildCell(col, rowNum, values[ci], styles[col]); });
+    return `<row r="${rowNum}" spans="1:${colLetters.length}"${htAttr} x14ac:dyDescent="0.25">${cells}</row>`;
+}
+// Reads a title cell's current "NAME   (N)" text and returns N — used
+// to compute the new count after appending rows.
+function xmlReadTitleCount(sheetXml, sharedStrings, cellRef) {
+    const m = sheetXml.match(new RegExp(`<c r="${cellRef}"[^>]*t="s"[^>]*><v>(\\d+)</v></c>`));
+    if (!m) return 0;
+    const text = sharedStrings[parseInt(m[1], 10)] || '';
+    const countMatch = text.match(/\((\d+)\)/);
+    return countMatch ? parseInt(countMatch[1], 10) : 0;
+}
+function xmlParseSharedStrings(xml) {
+    const strings = [];
+    const siRe = /<si>([\s\S]*?)<\/si>/g;
+    let m;
+    while ((m = siRe.exec(xml))) {
+        const tRe = /<t[^>]*>([^<]*)<\/t>/g;
+        let text = '', tm;
+        while ((tm = tRe.exec(m[1]))) text += tm[1];
+        strings.push(text);
+    }
+    return strings;
+}
+
+/* ============================================================
+   Commissions XML-surgery export — same idea as MMR: edit an uploaded
+   previous Commissions file's raw XML directly so new rows keep the
+   original formatting, instead of building a fresh workbook. Unlike
+   MMR, Move-Ins and Renewals are two stacked tables in ONE sheet, so
+   adding Move-In rows has to shift the Renewals section down first.
+   ============================================================ */
+let COMM_TEMPLATE_BYTES = null;
+document.getElementById('commTemplateUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+        COMM_TEMPLATE_BYTES = new Uint8Array(evt.target.result);
+        document.getElementById('commTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; officially added Move-Ins and Renewals will be appended directly into this file, keeping its original formatting.`;
+    };
+    reader.onerror = () => alert("Could not read that file. Make sure it's a valid Commissions .xlsx export.");
+    reader.readAsArrayBuffer(file);
+    e.target.value = '';
+});
+async function exportCommissionsViaXmlSurgery() {
+    const zip = await JSZip.loadAsync(COMM_TEMPLATE_BYTES);
+    const sheetPath = 'xl/worksheets/sheet1.xml';
+    let xml = await zip.file(sheetPath).async('string');
+    const sharedStringsXml = await zip.file('xl/sharedStrings.xml').async('string');
+    const sharedStrings = xmlParseSharedStrings(sharedStringsXml);
+
+    // Locate the two section title rows ("MOVE - INS   (N)" / "RENEWALS   (N)")
+    // by content rather than assuming fixed row numbers, since a
+    // template from a different week could have a different number of
+    // existing rows in either section.
+    const rowRe = /<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+    let moveInTitleRow = null, renewalTitleRow = null, m;
+    while ((m = rowRe.exec(xml))) {
+        const rNum = parseInt(m[1], 10);
+        const cellMatch = m[2].match(/<c r="[A-Z]+\d+"[^>]*t="s"[^>]*><v>(\d+)<\/v><\/c>/);
+        if (!cellMatch) continue;
+        const text = sharedStrings[parseInt(cellMatch[1], 10)] || '';
+        if (/MOVE\s*-?\s*INS/i.test(text)) moveInTitleRow = rNum;
+        else if (/RENEWALS/i.test(text)) renewalTitleRow = rNum;
+    }
+    if (moveInTitleRow === null || renewalTitleRow === null) {
+        throw new Error('Could not locate the Move-Ins / Renewals section titles in this file.');
+    }
+
+    const moveInRows = Object.values(commMoveInController.getRows()).filter(r => !r.deleted);
+    const renewalRows = Object.values(commRenewalController.getRows()).filter(r => !r.deleted);
+    const moveInCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
+    const renewalCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
+
+    // Insert Move-Ins first (closer to the top), using the LAST row of
+    // the Move-Ins section (the row right before "RENEWALS") as both
+    // the insertion point and the style template.
+    const lastMoveInRow = renewalTitleRow - 1;
+    const templateRowMatch = xml.match(new RegExp(`<row r="${lastMoveInRow}"[^>]*>[\\s\\S]*?<\\/row>`));
+    const moveInStyles = templateRowMatch ? xmlParseRowStyles(templateRowMatch[0]) : {};
+    const moveInHt = templateRowMatch ? (templateRowMatch[0].match(/ ht="([\d.]+)"/) || [])[1] : null;
+    const moveInHtAttr = moveInHt ? ` ht="${moveInHt}" customHeight="1"` : '';
+    const newMoveInRowsXml = moveInRows.map((r, i) => xmlBuildDataRowXml(
+        lastMoveInRow + 1 + i,
+        [r.property || '01382', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].floorplan : '', r.resident || '', mmrExcelDateFromInput(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit), mmrExcelDateFromInput(r.moveIn), mmrExcelDateFromInput(r.leaseExpiration), mmrExcelDateFromInput(r.moveOut), commNumOrRaw(r.leaseTerm), r.agent || '', commNumOrRaw(r.bonus)],
+        moveInCols, moveInStyles, moveInHtAttr
+    ));
+    if (newMoveInRowsXml.length) xml = xmlShiftRowsAndInsert(xml, lastMoveInRow, newMoveInRowsXml);
+
+    // Renewals section (and its title row) has now shifted down by
+    // however many Move-In rows were just inserted.
+    const shift = newMoveInRowsXml.length;
+    const shiftedRenewalTitleRow = renewalTitleRow + shift;
+    const lastRenewalRow = xmlFindLastDataRow(xml, shiftedRenewalTitleRow + 2);
+    const renewalTemplateMatch = xml.match(new RegExp(`<row r="${lastRenewalRow}"[^>]*>[\\s\\S]*?<\\/row>`));
+    const renewalStyles = renewalTemplateMatch ? xmlParseRowStyles(renewalTemplateMatch[0]) : {};
+    const renewalHt = renewalTemplateMatch ? (renewalTemplateMatch[0].match(/ ht="([\d.]+)"/) || [])[1] : null;
+    const renewalHtAttr = renewalHt ? ` ht="${renewalHt}" customHeight="1"` : '';
+    const newRenewalRowsXml = renewalRows.map((r, i) => xmlBuildDataRowXml(
+        lastRenewalRow + 1 + i,
+        [r.property || '01382', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].floorplan : '', r.resident || '', mmrExcelDateFromInput(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit), mmrExcelDateFromInput(r.moveIn), mmrExcelDateFromInput(r.leaseExpiration), mmrExcelDateFromInput(r.moveOut), commNumOrRaw(r.leaseTerm), mmrExcelDateFromInput(r.leaseStart)],
+        renewalCols, renewalStyles, renewalHtAttr
+    ));
+    if (newRenewalRowsXml.length) {
+        xml = xml.replace('</sheetData>', newRenewalRowsXml.join('') + '</sheetData>');
+        xml = xml.replace(/<dimension ref="[A-Z]+\d+:([A-Z]+)(\d+)"\/>/, (match, maxCol, maxRowStr) => {
+            const maxRow = Math.max(parseInt(maxRowStr, 10), lastRenewalRow + newRenewalRowsXml.length);
+            return `<dimension ref="A1:${maxCol}${maxRow}"/>`;
+        });
+    }
+
+    // Update the two title cells' counts to reflect the new totals.
+    const moveInTitleCell = xml.match(new RegExp(`<row r="${moveInTitleRow}"[^>]*>(<c r="([A-Z]+)${moveInTitleRow}"[^>]*t="s")`));
+    if (moveInTitleCell) {
+        const oldCount = xmlReadTitleCount(xml, sharedStrings, moveInTitleCell[2] + moveInTitleRow);
+        xml = xmlSetCellValue(xml, moveInTitleCell[2] + moveInTitleRow, `MOVE - INS   (${oldCount + newMoveInRowsXml.length})`);
+    }
+    const renewalTitleCell = xml.match(new RegExp(`<row r="${shiftedRenewalTitleRow}"[^>]*>(<c r="([A-Z]+)${shiftedRenewalTitleRow}"[^>]*t="s")`));
+    if (renewalTitleCell) {
+        const oldCount = xmlReadTitleCount(xml, sharedStrings, renewalTitleCell[2] + shiftedRenewalTitleRow);
+        xml = xmlSetCellValue(xml, renewalTitleCell[2] + shiftedRenewalTitleRow, `RENEWALS   (${oldCount + newRenewalRowsXml.length})`);
+    }
+
+    zip.file(sheetPath, xml);
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Commissions_${new Date().toISOString().slice(0, 10)}.xlsx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -8376,7 +8614,16 @@ function commNumOrRaw(v) {
     return isNaN(n) ? (v || '') : n;
 }
 
-document.getElementById('commExportBtn').addEventListener('click', () => {
+document.getElementById('commExportBtn').addEventListener('click', async () => {
+    if (COMM_TEMPLATE_BYTES) {
+        try {
+            await exportCommissionsViaXmlSurgery();
+            return;
+        } catch (err) {
+            console.error(err);
+            alert("Couldn't edit the uploaded file directly (" + err.message + ") \u2014 falling back to building a fresh sheet without the original formatting.");
+        }
+    }
     const moveInRows = commMoveInController.getRows();
     const moveInIds = Object.keys(moveInRows).filter(id => !moveInRows[id].deleted);
     const renewalRows = commRenewalController.getRows();
