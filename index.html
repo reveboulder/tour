@@ -1320,6 +1320,52 @@
     .renewal-month-card .rms-renewed .v { color: var(--good); }
     .renewal-month-card .rms-notice .v { color: #b03a2e; }
 
+    /* -- How-To tab -- */
+    .howto-tile-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 14px;
+    }
+    .howto-tile {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px;
+        cursor: pointer;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        text-align: center;
+    }
+    .howto-tile:hover { border-color: var(--reve-orange); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .howto-tile .howto-tile-icon { font-size: 30px; margin-bottom: 8px; display: block; }
+    .howto-tile .howto-tile-title { font-family: 'Oswald', var(--sans); font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .howto-tile .howto-tile-category { font-size: 10.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.03em; }
+    .howto-tile .howto-tile-count { font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
+    .howto-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .howto-detail-card {
+        background: var(--panel);
+        border-radius: 12px;
+        max-width: 560px;
+        width: 100%;
+        max-height: 85vh;
+        overflow-y: auto;
+        padding: 22px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .howto-detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .howto-detail-icon { font-size: 32px; }
+    .howto-detail-steps { margin: 0; padding-left: 22px; }
+    .howto-detail-steps li { margin-bottom: 10px; line-height: 1.5; font-size: 13.5px; }
+    body.dark-mode .howto-tile { background: var(--dm-card-alt); }
+
     /* -- Media: Live Sitemap (schematic, hardcoded shapes) -- */
     .sitemap-wrap { max-width: 1150px; margin: 0 auto; }
     .sitemap-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
@@ -1906,6 +1952,7 @@
         <button type="button" class="top-tab" data-tab="media">Media</button>
         <div class="top-tabs-right">
             <span class="test-mode-badge" id="testModeBadge">Test Mode</span>
+            <button type="button" class="top-tab" data-tab="howto">How-To</button>
             <button type="button" class="top-tab settings-tab" data-tab="settings">Settings</button>
         </div>
     </div>
@@ -2461,6 +2508,7 @@
     <div style="margin:14px 0; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button type="button" class="btn primary" id="residentAddBtn" style="width:auto;flex:none;padding:8px 16px;">+ New Resident</button>
         <button type="button" class="btn" id="residentFilterClearBtn" style="width:auto;flex:none;padding:8px 16px;">Clear Filters</button>
+        <button type="button" class="btn" id="residentRefreshBtn" style="width:auto;flex:none;padding:8px 16px;">Refresh to Update</button>
         <span class="empty-note" id="residentsSortNote" style="margin:0;">Sorted by Move-In Date (latest first)</span>
     </div>
 
@@ -2968,6 +3016,70 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+</div>
+
+<!-- ============ HOW-TO TAB ============ -->
+<div class="tab-panel" id="tab-howto">
+<div class="settings-wrap">
+    <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 24px;">
+        <img class="mark mark-logo-img" alt="RÊVE">
+        <div>
+            <h2>How-To</h2>
+            <div class="subtle">Step-by-step guides &mdash; shared across agents</div>
+        </div>
+    </div>
+
+    <div style="margin-bottom:14px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <button type="button" class="btn primary" id="howtoAddBtn" style="width:auto;flex:none;padding:8px 16px;">+ Add Guide</button>
+        <input type="text" id="howtoSearchBar" placeholder="Search guides&hellip;" autocomplete="off" style="width:220px;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:var(--sans);font-size:12.5px;">
+        <div class="filter-icon-bar" id="howtoCategoryChips" style="margin-bottom:0;flex:1;"></div>
+    </div>
+
+    <div id="howtoTileGrid" class="howto-tile-grid"></div>
+    <div class="empty-note" id="howtoEmptyNote" style="display:none;">No guides yet &mdash; click "+ Add Guide" to create the first one.</div>
+</div>
+
+<!-- Tile detail overlay -->
+<div id="howtoDetailOverlay" class="howto-overlay" style="display:none;">
+    <div class="howto-detail-card">
+        <div class="howto-detail-header">
+            <span id="howtoDetailIcon" class="howto-detail-icon"></span>
+            <div style="flex:1;">
+                <h3 id="howtoDetailTitle" style="margin:0;"></h3>
+                <div class="empty-note" id="howtoDetailCategory" style="margin:2px 0 0;"></div>
+            </div>
+            <button type="button" class="btn" id="howtoDetailEditBtn" style="width:auto;padding:6px 12px;">Edit</button>
+            <button type="button" class="btn" id="howtoDetailCloseBtn" style="width:auto;padding:6px 12px;">&times;</button>
+        </div>
+        <ol id="howtoDetailSteps" class="howto-detail-steps"></ol>
+    </div>
+</div>
+
+<!-- Add/edit guide overlay -->
+<div id="howtoEditOverlay" class="howto-overlay" style="display:none;">
+    <div class="howto-detail-card">
+        <form id="howtoEditForm">
+            <div class="mmr-section-title" id="howtoEditFormTitle">New Guide</div>
+            <label class="empty-note">Title
+                <input type="text" id="howtoEditTitleInput" required style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:var(--sans);font-size:13px;margin-top:4px;">
+            </label>
+            <label class="empty-note" style="display:block;margin-top:10px;">Icon (any emoji)
+                <input type="text" id="howtoEditIconInput" maxlength="4" placeholder="\ud83d\udcdd" style="width:70px;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:var(--sans);font-size:16px;margin-top:4px;text-align:center;">
+            </label>
+            <label class="empty-note" style="display:block;margin-top:10px;">Category
+                <input type="text" id="howtoEditCategoryInput" placeholder="e.g. Leasing, Admin, Games" style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:var(--sans);font-size:13px;margin-top:4px;">
+            </label>
+            <label class="empty-note" style="display:block;margin-top:10px;">Steps (one per line)
+                <textarea id="howtoEditStepsInput" rows="8" style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:var(--sans);font-size:13px;margin-top:4px;resize:vertical;"></textarea>
+            </label>
+            <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end;">
+                <button type="button" class="btn" id="howtoEditDeleteBtn" style="width:auto;padding:8px 16px;display:none;color:#b03a2e;">Delete Guide</button>
+                <button type="button" class="btn" id="howtoEditCancelBtn" style="width:auto;padding:8px 16px;">Cancel</button>
+                <button type="submit" class="btn primary" style="width:auto;padding:8px 16px;">Save Guide</button>
+            </div>
+        </form>
     </div>
 </div>
 </div>
@@ -4603,6 +4715,7 @@ function switchTab(name) {
     if (name === 'residents') renderResidents();
     if (name === 'wl') wlEnsureFormVisible();
     if (name === 'media' && typeof renderSitemap === 'function') renderSitemap();
+    if (name === 'howto' && typeof renderHowTo === 'function') renderHowTo();
 }
 [...document.querySelectorAll('.top-tab')].forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
@@ -10361,10 +10474,11 @@ try {
 
 document.getElementById('modeLiveBtn').addEventListener('click', () => applyAppMode('live'));
 document.getElementById('modeTestBtn').addEventListener('click', () => applyAppMode('test'));
-document.getElementById('forceRefreshBtn').addEventListener('click', () => {
-    const btn = document.getElementById('forceRefreshBtn');
-    btn.textContent = 'Refreshing\u2026';
-    btn.disabled = true;
+function forceSiteRefresh(btn) {
+    if (btn) {
+        btn.textContent = 'Refreshing\u2026';
+        btn.disabled = true;
+    }
     // Cache-bust via a version query param and hard-reload — this
     // forces the browser to fetch a fresh copy of the page instead of
     // serving a stale cached one. Saved data (localStorage, backend)
@@ -10372,7 +10486,9 @@ document.getElementById('forceRefreshBtn').addEventListener('click', () => {
     const url = new URL(window.location.href);
     url.searchParams.set('_refresh', Date.now().toString());
     window.location.href = url.toString();
-});
+}
+document.getElementById('forceRefreshBtn').addEventListener('click', (e) => forceSiteRefresh(e.currentTarget));
+document.getElementById('residentRefreshBtn').addEventListener('click', (e) => forceSiteRefresh(e.currentTarget));
 
 /* ============================================================
    UNIT INFO — an editable view of the full unit roster, in Settings.
@@ -10650,6 +10766,7 @@ setInterval(() => {
     pullResidentsFromBackend();
     pullWlFromBackend();
     pullLeaseFromBackend();
+    pullHowToFromBackend();
 }, 25000);
 
 [...document.querySelectorAll('.mark-logo-img')].forEach(img => { img.src = WATERMARK_IMG_SRC; });
@@ -10675,6 +10792,196 @@ restorePayPeriodLocal();
 initResidents();
 restoreWlLocal();
 restoreLeaseLocal();
+
+/* ============================================================
+   How-To — a tileable library of step-by-step guides, editable
+   in-app so more can be added later without a code change. Same
+   robust local+backend persistence pattern used elsewhere in this
+   app: write to localStorage immediately, debounce a backend push,
+   and never let a failed/periodic pull silently overwrite local data.
+   ============================================================ */
+const HOWTO_KEY = 'reve-howto-guides';
+const HOWTO_BACKEND_KEY = 'howto-guides';
+let HOWTO_GUIDES = {};
+const HOWTO_DIRTY = new Set();
+let howtoActiveCategory = null;
+let howtoEditingId = null;
+
+function seedHowToGuides() {
+    // A few starter guides so the tab isn't empty on first use —
+    // ordinary content, not special-cased in any way; delete or edit
+    // them like any other guide.
+    return {
+        'seed-pricing': {
+            title: 'Upload the Daily Pricing Sheet', icon: '\ud83d\udcc4', category: 'Leasing',
+            steps: ['Export today\u2019s pricing CSV from Yardi.', 'Go to the Tour tab.', 'Click "Upload CSV" under Daily Pricing Sheet.', 'Select the file \u2014 availability and pricing auto-fill across Tour, Availability, and Expiring.']
+        },
+        'seed-tour': {
+            title: 'Build a Tour Pamphlet', icon: '\ud83c\udfe0', category: 'Leasing',
+            steps: ['Search for a unit number or floorplan in "Find a Unit".', 'Confirm the auto-filled specs, price, and availability.', 'Add a photo and video link if not already set.', 'Click "Download PDF" to get a flyer with clickable links, or "Download Printable PDF" for a handout copy.']
+        },
+        'seed-renewal': {
+            title: 'Generate a Renewal Offer', icon: '\ud83d\udcdd', category: 'Leasing',
+            steps: ['Upload the Renewal Offer Analysis report on the Renewals tab.', 'Find the resident\u2019s unit in "Create Renewal Offer".', 'Review the auto-filled current and proposed terms.', 'Click "Generate Renewal Offer PDF".']
+        },
+        'seed-mmr': {
+            title: 'Export the Weekly MMR', icon: '\ud83d\udcca', category: 'Admin',
+            steps: ['Go to Admin > MMR and enter this week\u2019s stats.', 'Upload last week\u2019s MMR file under "Upload Previous Week\u2019s MMR" \u2014 this keeps its original formatting.', 'Add this week\u2019s New Leases and Renewals rows.', 'Click "Download New MMR" \u2014 new rows and stats are written directly into the uploaded file.']
+        }
+    };
+}
+function applyHowToDefaults() {
+    if (Object.keys(HOWTO_GUIDES).length === 0) HOWTO_GUIDES = seedHowToGuides();
+}
+function persistHowToLocal() {
+    try { localStorage.setItem(HOWTO_KEY, JSON.stringify(HOWTO_GUIDES)); } catch (e) {}
+}
+function restoreHowToLocal() {
+    try {
+        const raw = localStorage.getItem(HOWTO_KEY);
+        if (raw) HOWTO_GUIDES = JSON.parse(raw);
+    } catch (e) {}
+    applyHowToDefaults();
+}
+const pushHowToDebounced = debounce(async () => {
+    persistHowToLocal();
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const dirtyIds = [...HOWTO_DIRTY];
+    const remote = await backendPull(HOWTO_BACKEND_KEY);
+    if (remote) {
+        const merged = Object.assign({}, remote);
+        dirtyIds.forEach(id => { if (HOWTO_GUIDES[id]) merged[id] = HOWTO_GUIDES[id]; else delete merged[id]; });
+        HOWTO_GUIDES = merged;
+        persistHowToLocal();
+    }
+    const ok = await backendPush(HOWTO_BACKEND_KEY, HOWTO_GUIDES);
+    if (ok) dirtyIds.forEach(id => HOWTO_DIRTY.delete(id));
+    if (document.getElementById('tab-howto').classList.contains('active') && !document.getElementById('howtoEditOverlay').contains(document.activeElement)) renderHowTo();
+}, 900);
+async function pullHowToFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(HOWTO_BACKEND_KEY);
+    if (remote) {
+        const merged = Object.assign({}, remote);
+        HOWTO_DIRTY.forEach(id => { if (HOWTO_GUIDES[id]) merged[id] = HOWTO_GUIDES[id]; });
+        HOWTO_GUIDES = merged;
+        persistHowToLocal();
+        const overlaysOpen = document.getElementById('howtoEditOverlay').style.display !== 'none' || document.getElementById('howtoDetailOverlay').style.display !== 'none';
+        if (document.getElementById('tab-howto').classList.contains('active') && !overlaysOpen) renderHowTo();
+        if (HOWTO_DIRTY.size) pushHowToDebounced();
+    } else if (Object.keys(HOWTO_GUIDES).length) {
+        backendPush(HOWTO_BACKEND_KEY, HOWTO_GUIDES);
+    }
+}
+
+function renderHowTo() {
+    const grid = document.getElementById('howtoTileGrid');
+    const emptyNote = document.getElementById('howtoEmptyNote');
+    const searchTerm = document.getElementById('howtoSearchBar').value.trim().toLowerCase();
+    const categories = [...new Set(Object.values(HOWTO_GUIDES).map(g => g.category).filter(Boolean))].sort();
+
+    const chipBar = document.getElementById('howtoCategoryChips');
+    chipBar.innerHTML = categories.map(cat => `<button type="button" class="chip howto-cat-chip${howtoActiveCategory === cat ? ' active' : ''}" data-cat="${escapeAttr(cat)}">${escapeHtml(cat)}</button>`).join('');
+    chipBar.querySelectorAll('.howto-cat-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const cat = chip.getAttribute('data-cat');
+            howtoActiveCategory = howtoActiveCategory === cat ? null : cat;
+            renderHowTo();
+        });
+    });
+
+    const ids = Object.keys(HOWTO_GUIDES).filter(id => {
+        const g = HOWTO_GUIDES[id];
+        if (howtoActiveCategory && g.category !== howtoActiveCategory) return false;
+        if (searchTerm && !g.title.toLowerCase().includes(searchTerm) && !(g.category || '').toLowerCase().includes(searchTerm)) return false;
+        return true;
+    }).sort((a, b) => HOWTO_GUIDES[a].title.localeCompare(HOWTO_GUIDES[b].title));
+
+    emptyNote.style.display = ids.length ? 'none' : 'block';
+    grid.innerHTML = ids.map(id => {
+        const g = HOWTO_GUIDES[id];
+        const stepCount = (g.steps || []).length;
+        return `<div class="howto-tile" data-id="${escapeAttr(id)}">
+            <span class="howto-tile-icon">${escapeHtml(g.icon || '\ud83d\udcc4')}</span>
+            <div class="howto-tile-title">${escapeHtml(g.title)}</div>
+            ${g.category ? `<div class="howto-tile-category">${escapeHtml(g.category)}</div>` : ''}
+            <div class="howto-tile-count">${stepCount} step${stepCount === 1 ? '' : 's'}</div>
+        </div>`;
+    }).join('');
+    grid.querySelectorAll('.howto-tile').forEach(tile => {
+        tile.addEventListener('click', () => showHowToDetail(tile.getAttribute('data-id')));
+    });
+}
+
+function showHowToDetail(id) {
+    const g = HOWTO_GUIDES[id];
+    if (!g) return;
+    document.getElementById('howtoDetailIcon').textContent = g.icon || '\ud83d\udcc4';
+    document.getElementById('howtoDetailTitle').textContent = g.title;
+    document.getElementById('howtoDetailCategory').textContent = g.category || '';
+    document.getElementById('howtoDetailSteps').innerHTML = (g.steps || []).map(s => `<li>${escapeHtml(s)}</li>`).join('');
+    document.getElementById('howtoDetailEditBtn').setAttribute('data-id', id);
+    document.getElementById('howtoDetailOverlay').style.display = 'flex';
+}
+document.getElementById('howtoDetailCloseBtn').addEventListener('click', () => {
+    document.getElementById('howtoDetailOverlay').style.display = 'none';
+});
+document.getElementById('howtoDetailOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'howtoDetailOverlay') document.getElementById('howtoDetailOverlay').style.display = 'none';
+});
+document.getElementById('howtoDetailEditBtn').addEventListener('click', (e) => {
+    document.getElementById('howtoDetailOverlay').style.display = 'none';
+    openHowToEditor(e.currentTarget.getAttribute('data-id'));
+});
+
+function openHowToEditor(id) {
+    howtoEditingId = id || null;
+    const g = id ? HOWTO_GUIDES[id] : null;
+    document.getElementById('howtoEditFormTitle').textContent = id ? 'Edit Guide' : 'New Guide';
+    document.getElementById('howtoEditTitleInput').value = g ? g.title : '';
+    document.getElementById('howtoEditIconInput').value = g ? (g.icon || '') : '';
+    document.getElementById('howtoEditCategoryInput').value = g ? (g.category || '') : '';
+    document.getElementById('howtoEditStepsInput').value = g ? (g.steps || []).join('\n') : '';
+    document.getElementById('howtoEditDeleteBtn').style.display = id ? 'inline-block' : 'none';
+    document.getElementById('howtoEditOverlay').style.display = 'flex';
+    document.getElementById('howtoEditTitleInput').focus();
+}
+document.getElementById('howtoAddBtn').addEventListener('click', () => openHowToEditor(null));
+document.getElementById('howtoEditCancelBtn').addEventListener('click', () => {
+    document.getElementById('howtoEditOverlay').style.display = 'none';
+});
+document.getElementById('howtoEditOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'howtoEditOverlay') document.getElementById('howtoEditOverlay').style.display = 'none';
+});
+document.getElementById('howtoEditForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = document.getElementById('howtoEditTitleInput').value.trim();
+    if (!title) return;
+    const id = howtoEditingId || ('g' + Date.now() + Math.random().toString(36).slice(2, 7));
+    HOWTO_GUIDES[id] = {
+        title,
+        icon: document.getElementById('howtoEditIconInput').value.trim() || '\ud83d\udcc4',
+        category: document.getElementById('howtoEditCategoryInput').value.trim(),
+        steps: document.getElementById('howtoEditStepsInput').value.split('\n').map(s => s.trim()).filter(Boolean)
+    };
+    HOWTO_DIRTY.add(id);
+    persistHowToLocal();
+    pushHowToDebounced();
+    document.getElementById('howtoEditOverlay').style.display = 'none';
+    renderHowTo();
+});
+document.getElementById('howtoEditDeleteBtn').addEventListener('click', () => {
+    if (!howtoEditingId) return;
+    if (!confirm('Delete this guide? This cannot be undone.')) return;
+    delete HOWTO_GUIDES[howtoEditingId];
+    HOWTO_DIRTY.add(howtoEditingId);
+    persistHowToLocal();
+    pushHowToDebounced();
+    document.getElementById('howtoEditOverlay').style.display = 'none';
+    renderHowTo();
+});
+document.getElementById('howtoSearchBar').addEventListener('input', renderHowTo);
+restoreHowToLocal();
 
 /* ============================================================
    Media > Property — Live Sitemap, v2: hardcoded schematic shapes
@@ -10715,11 +11022,14 @@ const SITEMAP_LAYOUTS = {
             { gx: 1, gy: 4, rows: [['4231', '4229', '4227', '4225', '4223', '4221']] },
             { gx: 0, gy: 5, rows: [['4232', '4230', '4228', '4226', '4224', '4222', '4220']] }
         ] },
-        { name: 'Building 1 \u2014 3000 Pearl Parkway', blocks: [
-            { gx: 0, gy: 0, rows: [['1227', '1229', '1231', '1233', '1235', '1237', '1239', '1241', '1243', '1245', '1247']] },
-            { gx: 0, gy: 1, rows: [['1225', null, '1234', '1236', '1238', '1240', '1242', '1244', null, '1248']] },
-            { gx: 0, gy: 2, rows: [['1223'], ['1221'], ['1219'], ['1217'], ['1215']] },
-            { gx: 2, gy: 3, rows: [['1214', '1212', '1210', '1208', '1206', '1204', '1202'], ['1213', '1211', '1209', '1207', '1205', '1203', '1201']] }
+        { name: 'Building 1 \u2014 3000 Pearl Parkway (ring around Pool/Lounge)', blocks: [
+            { gx: 0, gy: 0, rows: [['1247', '1248']] },
+            { gx: 5, gy: 0, rows: [['1202']] },
+            { gx: 0, gy: 1, rows: [['1245'], ['1243'], ['1241'], ['1239'], ['1237'], ['1235'], ['1233'], ['1231'], ['1229'], ['1227']] },
+            { gx: 1, gy: 1, rows: [['1244'], ['1242'], ['1240'], ['1238'], ['1236'], ['1234']] },
+            { gx: 4, gy: 1, rows: [['1204'], ['1206'], ['1208'], ['1210'], ['1212'], ['1214']] },
+            { gx: 5, gy: 1, rows: [['1201'], ['1203'], ['1205'], ['1207'], ['1209'], ['1211'], ['1213']] },
+            { gx: 0, gy: 11, rows: [['1225', '1223', '1221', '1219', '1217', '1215']] }
         ] }
     ],
     3: [
@@ -10733,12 +11043,15 @@ const SITEMAP_LAYOUTS = {
         { name: 'Building 3 \u2014 2130 30th Street', blocks: [
             { gx: 0, gy: 0, rows: [['3302', '3304', '3306', '3308', '3310', '3312', '3314'], ['3301', '3303', null, '3305', null, '3307', '3309']] }
         ] },
-        { name: 'Building 1 \u2014 3000 Pearl Parkway', blocks: [
-            { gx: 0, gy: 0, rows: [['1327', '1329', '1331', '1333', '1335', '1337', '1339', '1341', '1343', '1345', '1347']] },
-            { gx: 0, gy: 1, rows: [['1325', '1332', '1334', '1336', '1338', '1340', '1342', '1344', null, '1348']] },
-            { gx: 0, gy: 2, rows: [['1323'], ['1321'], ['1319'], ['1317'], ['1315']] },
-            { gx: 1, gy: 3, rows: [['1322'], ['1318']] },
-            { gx: 2, gy: 6, rows: [['1314', '1312', '1310', '1308', null, '1306', '1304', '1302'], ['1313', '1311', '1309', '1307', null, '1305', '1303', '1301']] }
+        { name: 'Building 1 \u2014 3000 Pearl Parkway (open ring around courtyard)', blocks: [
+            { gx: 0, gy: 0, rows: [['1347', '1348']] },
+            { gx: 0, gy: 1, rows: [['1345'], ['1343'], ['1341'], ['1339'], ['1337'], ['1335'], ['1333'], ['1331'], ['1329'], ['1327']] },
+            { gx: 1, gy: 1, rows: [['1344'], ['1342'], ['1340'], ['1338'], ['1336'], ['1334'], ['1332']] },
+            { gx: 2, gy: 8, rows: [['1322'], ['1318']] },
+            { gx: 0, gy: 11, rows: [['1325', '1323', '1321', '1319', '1317', '1315']] },
+            { gx: 5, gy: 0, rows: [['1302']] },
+            { gx: 5, gy: 1, rows: [['1304'], ['1306'], ['1308'], ['1310'], ['1312'], ['1314']] },
+            { gx: 6, gy: 1, rows: [['1301'], ['1303'], ['1305'], ['1307'], ['1309'], ['1311'], ['1313']] }
         ] }
     ],
     4: [
@@ -10754,12 +11067,14 @@ const SITEMAP_LAYOUTS = {
             { gx: 0, gy: 0, rows: [['3404', '3406', '3408', '3410', '3412'], ['3403', null, '3405', null, '3407']] },
             { gx: 5, gy: 0, rows: [['3414']] }
         ] },
-        { name: 'Building 1 \u2014 3000 Pearl Parkway', blocks: [
-            { gx: 0, gy: 0, rows: [['1427', '1429', '1431', '1433', '1435', '1437', '1439', '1441', '1443', '1445', '1447']] },
-            { gx: 0, gy: 1, rows: [[null, '1423', '1434', '1436', '1438', '1440', '1442', '1444']] },
-            { gx: 0, gy: 2, rows: [['1421'], ['1422'], ['1417'], ['1415']] },
-            { gx: 1, gy: 3, rows: [['1419']] },
-            { gx: 2, gy: 6, rows: [['1414', '1412', '1410', '1408', '1406', '1404'], ['1413', '1411', '1409', '1407', '1405', '1403']] }
+        { name: 'Building 1 \u2014 3000 Pearl Parkway (open ring around courtyard)', blocks: [
+            { gx: 0, gy: 0, rows: [['1447']] },
+            { gx: 0, gy: 1, rows: [['1445'], ['1443'], ['1441'], ['1439'], ['1437'], ['1435'], ['1433'], ['1431'], ['1429'], ['1427']] },
+            { gx: 1, gy: 1, rows: [['1444'], ['1442'], ['1440'], ['1438'], ['1436'], ['1434'], ['1432']] },
+            { gx: 2, gy: 8, rows: [['1422'], ['1420']] },
+            { gx: 0, gy: 11, rows: [['1425', '1423', '1421', '1419', '1417', '1415']] },
+            { gx: 5, gy: 1, rows: [['1404'], ['1406'], ['1408'], ['1410'], ['1412'], ['1414']] },
+            { gx: 6, gy: 1, rows: [['1403'], ['1405'], ['1407'], ['1409'], ['1411'], ['1413']] }
         ] }
     ]
 };
@@ -10895,6 +11210,7 @@ if (BACKEND_URL) {
     pullResidentsFromBackend();
     pullWlFromBackend();
     pullLeaseFromBackend();
+    pullHowToFromBackend();
 }
 </script>
 </body>
