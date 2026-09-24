@@ -2611,6 +2611,7 @@
 
             <div style="margin-bottom:14px;">
                 <button type="button" class="btn primary wl-download-btn" id="wlDownloadBtnTop" style="width:auto;flex:none;padding:9px 18px;">Download Welcome Letter PDF</button>
+                <button type="button" class="btn" id="wlEmailDraftBtn" style="width:auto;flex:none;padding:9px 18px;margin-left:6px;">Create Email Draft</button>
             </div>
             <div class="wl-sticker-bar">
                 <label for="wlStickerName">Name on sticker</label>
@@ -10625,6 +10626,34 @@ async function wlDownloadSticker(btn) {
     }
 }
 document.getElementById('wlStickerBtn').addEventListener('click', (e) => wlDownloadSticker(e.currentTarget));
+
+/* ---------- Create Email Draft ----------
+   Asks for the resident's email (remembering the last one used for this
+   unit), then opens a new draft in the computer's default mail app
+   (e.g. desktop Outlook) via a mailto: link, addressed and with a
+   subject line — the Outlook template and attachments are added there. */
+function wlCreateEmailDraft() {
+    const unit = wlSelectedUnit;
+    if (!unit || unit === '_new') { alert('Select a resident first.'); return; }
+    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
+    const resident = findResidentByUnit(unit);
+    const who = wlStickerAutoName(resident);
+    const entered = prompt(`Email address for ${who || 'Apt ' + unit}:\n(separate several with commas)`, WL_RECORDS[unit].residentEmail || '');
+    if (entered === null) return; // cancelled
+    const emails = entered.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
+    if (!emails.length) { alert('Enter an email address.'); return; }
+    const bad = emails.filter(e => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
+    if (bad.length) { alert(`That doesn't look like a valid email address: ${bad.join(', ')}`); return; }
+    wlCommit('residentEmail', emails.join(', '));
+    const subject = `Welcome to REVE Boulder \u2014 Apt ${unit}`;
+    const a = document.createElement('a');
+    // Keep '@' literal: some Outlook versions show an encoded %40 as-is.
+    a.href = `mailto:${emails.map(e => encodeURIComponent(e).replace(/%40/g, '@')).join(',')}?subject=${encodeURIComponent(subject)}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+document.getElementById('wlEmailDraftBtn').addEventListener('click', wlCreateEmailDraft);
 
 /* ============================================================
    NEW LEASE — auto-filled from the Welcome Letter record for the same
