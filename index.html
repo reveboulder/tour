@@ -1236,6 +1236,8 @@
         color: var(--ink);
     }
     .mmr-value input:focus { outline: 1px solid var(--reve-orange); }
+    #residentsBody tr.res-row-moved td { animation: resRowMoved 1.8s ease-out; }
+    @keyframes resRowMoved { 0%, 40% { box-shadow: inset 0 0 0 9999px rgba(242, 140, 40, 0.35); } 100% { box-shadow: inset 0 0 0 9999px rgba(242, 140, 40, 0); } }
     .mmr-value input.mmr-error, .mmr-value textarea.mmr-error { border-color: #c0392b; background: #fbebe9; }
     .mmr-value.mmr-locked { background: var(--line-soft); color: var(--ink-soft); font-weight: 700; }
     .mmr-value.mmr-computed { background: #fbeee8; color: var(--reve-orange-dark); font-weight: 700; }
@@ -2510,6 +2512,7 @@
         <button type="button" class="btn" id="residentFilterClearBtn" style="width:auto;flex:none;padding:8px 16px;">Clear Filters</button>
         <button type="button" class="btn" id="residentRefreshBtn" style="width:auto;flex:none;padding:8px 16px;">Refresh to Update</button>
         <span class="empty-note" id="residentsSortNote" style="margin:0;">Sorted by Move-In Date (latest first)</span>
+        <span class="empty-note" id="residentSyncStatus" style="margin:0 0 0 auto;font-weight:600;"></span>
     </div>
 
     <div class="mmr-table-wrap res-table-wrap">
@@ -9180,7 +9183,19 @@ function residentAgentColor(name) {
 }
 
 let RESIDENT_ROWS = {};
-const RESIDENT_DIRTY = new Set();
+// Rows edited here but not yet CONFIRMED stored on the backend. Kept in
+// localStorage (not just memory) so a page refresh mid-save can't
+// forget them — otherwise the first pull after reload would overwrite
+// those local edits with the backend's older copy.
+const RESIDENT_DIRTY_KEY = 'reve-residents-dirty';
+const RESIDENT_DIRTY = new Set((() => {
+    try { return JSON.parse(localStorage.getItem(RESIDENT_DIRTY_KEY) || '[]'); } catch (e) { return []; }
+})());
+function residentPersistDirty() { try { localStorage.setItem(RESIDENT_DIRTY_KEY, JSON.stringify([...RESIDENT_DIRTY])); } catch (e) {} }
+// Rows just added with "+ New Resident" stay pinned to the top of the
+// table (instead of sorting to the bottom with no move-in date) until a
+// move-in date is entered.
+const RESIDENT_PINNED = new Set();
 let resSubTab = 'active';
 let resFilters = {};
 let residentsHeaderBuilt = false;
@@ -9191,44 +9206,89 @@ function seedResidentRows() {
     RESIDENT_SEED.forEach(r => { rows[newResidentId()] = Object.assign({}, r); });
     return rows;
 }
-function residentPersistLocal() { try { localStorage.setItem('reve-residents', JSON.stringify(RESIDENT_ROWS)); } catch (e) {} }
-const residentPushDebounced = debounce(async () => {
+function residentPersistLocal() {
+    try { localStorage.setItem('reve-residents', JSON.stringify(RESIDENT_ROWS)); } catch (e) {}
+    residentPersistDirty();
+    renderResidentSyncStatus();
+}
+// Key-order-independent comparison, for checking the backend really
+// holds what we pushed.
+function residentStableJson(v) {
+    if (v === null || typeof v !== 'object') return JSON.stringify(v === undefined ? null : v);
+    return '{' + Object.keys(v).sort().filter(k => v[k] !== undefined).map(k => JSON.stringify(k) + ':' + residentStableJson(v[k])).join(',') + '}';
+}
+let residentSyncState = 'idle'; // 'idle' | 'saving' | 'failed'
+function renderResidentSyncStatus() {
+    const el = document.getElementById('residentSyncStatus');
+    if (!el) return;
+    // Can run before the backend settings further down are initialized.
+    try { BACKEND_URL; APP_MODE; } catch (e) { return; }
+    const n = RESIDENT_DIRTY.size;
+    if (!BACKEND_URL) { el.textContent = 'Saved in this browser only (no shared backend configured).'; el.style.color = ''; return; }
+    if (APP_MODE === 'test') { el.textContent = 'Test mode \u2014 changes stay in this browser.'; el.style.color = ''; return; }
+    if (residentSyncState === 'saving') { el.textContent = `Saving ${n} change${n === 1 ? '' : 's'} to the shared backend\u2026`; el.style.color = ''; return; }
+    if (!n) { el.textContent = 'All changes saved to the shared backend.'; el.style.color = 'var(--good)'; return; }
+    el.textContent = residentSyncState === 'failed'
+        ? `${n} change${n === 1 ? '' : 's'} NOT confirmed by the shared backend \u2014 kept in this browser and retrying.`
+        : `${n} unsaved change${n === 1 ? '' : 's'} \u2014 saving shortly.`;
+    el.style.color = residentSyncState === 'failed' ? '#c0392b' : '';
+}
+// Pull, merge our dirty rows on top, push, then pull AGAIN and only
+// clear a row's dirty flag once the backend demonstrably holds it. An
+// Apps Script can answer "OK" even when its own write failed, so the
+// HTTP status alone isn't proof. Only one sync runs at a time; edits
+// made meanwhile trigger one follow-up run.
+let residentSyncInFlight = null;
+let residentSyncAgain = false;
+function residentSyncNow() {
+    if (residentSyncInFlight) { residentSyncAgain = true; return residentSyncInFlight; }
+    residentSyncInFlight = (async () => {
+        try {
+            do {
+                residentSyncAgain = false;
+                await residentSyncOnce();
+            } while (residentSyncAgain);
+        } finally {
+            residentSyncInFlight = null;
+            renderResidentSyncStatus();
+        }
+    })();
+    return residentSyncInFlight;
+}
+async function residentSyncOnce() {
     residentPersistLocal();
-    if (!BACKEND_URL || APP_MODE === 'test') return;
-    // Only clear the dirty flag for rows we actually confirmed made it
-    // to the backend — if the push fails (network hiccup, backend
-    // timeout), those rows stay marked dirty so the next periodic pull
-    // can't silently overwrite the unsaved edit with stale remote data.
+    if (!BACKEND_URL || APP_MODE === 'test' || !RESIDENT_DIRTY.size) return;
+    residentSyncState = 'saving';
+    renderResidentSyncStatus();
     const dirtyIds = [...RESIDENT_DIRTY];
     const remote = await backendPull('residents');
     if (remote) {
-        // Pull succeeded — merge it with our dirty local rows layered
-        // on top, so another agent's edits to OTHER residents aren't
-        // clobbered. If the pull FAILED (remote is null: network
-        // hiccup, timeout, etc.), we deliberately do NOT touch
-        // RESIDENT_ROWS at all here — replacing it with an empty-or-
-        // partial merge in that case was the actual bug: any transient
-        // pull failure during this debounced push would wipe every
-        // resident except the one just edited, both locally and then
-        // on the backend once the push below "succeeded" with that
-        // wiped data. Skipping the merge on failure and just pushing
-        // our current best-known local state is the safe fallback.
+        // Layer our dirty rows over the backend's copy so another
+        // agent's edits to OTHER residents aren't clobbered. If the
+        // pull failed, don't touch RESIDENT_ROWS — just push our
+        // best-known local state.
         const merged = Object.assign({}, remote);
-        dirtyIds.forEach(id => { if (RESIDENT_ROWS[id]) merged[id] = RESIDENT_ROWS[id]; else delete merged[id]; });
+        Object.keys(RESIDENT_ROWS).forEach(id => { if (RESIDENT_DIRTY.has(id) || !(id in merged)) merged[id] = RESIDENT_ROWS[id]; });
         RESIDENT_ROWS = merged;
         residentPersistLocal();
     }
     const ok = await backendPush('residents', RESIDENT_ROWS);
-    if (ok) dirtyIds.forEach(id => RESIDENT_DIRTY.delete(id));
-    // Same reasoning as the MMR/Commissions controller: renderResidentsBody()
-    // fully replaces #residentsBody's innerHTML, destroying every row's
-    // DOM node — including whatever the user currently has focused or
-    // a <select> dropdown open on, even though this debounced push is
-    // firing on its own timer and has nothing to do with what they're
-    // doing right now. Skip the redraw while any field in the table is
-    // focused; the data is already safely in RESIDENT_ROWS regardless.
+    const check = ok ? await backendPull('residents') : null;
+    let allConfirmed = !!check;
+    if (check) {
+        dirtyIds.forEach(id => {
+            // Only confirm rows unchanged since this push started.
+            if (check[id] && residentStableJson(check[id]) === residentStableJson(RESIDENT_ROWS[id])) RESIDENT_DIRTY.delete(id);
+            else allConfirmed = false;
+        });
+    }
+    residentSyncState = allConfirmed || !RESIDENT_DIRTY.size ? 'idle' : (residentSyncAgain ? 'saving' : 'failed');
+    residentPersistLocal();
+    // Don't redraw while a field in the table is focused (it would
+    // destroy the element being typed in); the data is safe either way.
     if (!document.getElementById('residentsBody').contains(document.activeElement)) renderResidentsBody();
-}, 900);
+}
+const residentPushDebounced = debounce(() => { residentSyncNow(); }, 900);
 async function pullResidentsFromBackend() {
     if (!BACKEND_URL || APP_MODE === 'test') return;
     const remote = await backendPull('residents');
@@ -9245,9 +9305,11 @@ async function pullResidentsFromBackend() {
         // actually landed on the backend — retry it now rather than
         // leaving that edit stranded client-side indefinitely.
         if (RESIDENT_DIRTY.size) residentPushDebounced();
-    } else if (Object.keys(RESIDENT_ROWS).length) {
-        backendPush('residents', RESIDENT_ROWS);
     }
+    // A failed (or empty) pull changes nothing here. Rows the backend
+    // doesn't have yet are included by the next sync's merge, so a
+    // transient network error can't push stale data over other agents'.
+    renderResidentSyncStatus();
 }
 function initResidents() {
     try {
@@ -9276,6 +9338,9 @@ function initResidents() {
     residentFixBrokenDeposits();
     renderResidents();
     if (typeof renderCommSuggested === 'function') renderCommSuggested();
+    // Edits left unconfirmed by the previous page load resume uploading.
+    if (RESIDENT_DIRTY.size) residentPushDebounced();
+    renderResidentSyncStatus();
 }
 
 // One-time self-heal: earlier data (local cache or a backend that
@@ -9464,6 +9529,24 @@ function refreshResidentRow(id) {
     tr.replaceWith(temp.firstElementChild);
     wireResidentRow(id);
 }
+// Re-sorts after a Move-In Date change, keeping focus on whatever field
+// was just tabbed/clicked into, and briefly highlighting the moved row.
+function residentResortAfterMoveIn(id) {
+    const active = document.activeElement;
+    const activeRow = active && active.closest ? active.closest('#residentsBody tr[data-row]') : null;
+    const refocus = activeRow && active.getAttribute('data-field')
+        ? { id: activeRow.getAttribute('data-row'), field: active.getAttribute('data-field') } : null;
+    if (RESIDENT_ROWS[id] && RESIDENT_ROWS[id].moveInDate) RESIDENT_PINNED.delete(id);
+    renderResidentsBody();
+    const tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
+    const refocusEl = refocus && document.querySelector(`#residentsBody tr[data-row="${refocus.id}"] [data-field="${refocus.field}"]`);
+    if (refocusEl) refocusEl.focus();
+    else if (tr) tr.scrollIntoView({ block: 'center' });
+    if (tr) {
+        tr.classList.add('res-row-moved');
+        setTimeout(() => tr.classList.remove('res-row-moved'), 1800);
+    }
+}
 function wireResidentRow(id) {
     const tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
     if (!tr) return;
@@ -9490,8 +9573,17 @@ function wireResidentRow(id) {
             // then only once focus has actually left the row — deferred
             // a tick so a same-row Tab (e.g. First → Last) isn't
             // interrupted mid-transition.
+            if (el.getAttribute('data-field') === 'moveInDate') {
+                el.addEventListener('focus', () => { el.dataset.startValue = el.value; });
+            }
             el.addEventListener('blur', () => {
                 setTimeout(() => {
+                    // A changed Move-In Date re-sorts the whole table
+                    // (latest first) once you leave that field.
+                    if (el.getAttribute('data-field') === 'moveInDate' && el.value !== el.dataset.startValue) {
+                        residentResortAfterMoveIn(id);
+                        return;
+                    }
                     const stillInRow = document.activeElement && document.activeElement.closest(`tr[data-row="${id}"]`);
                     if (!stillInRow) refreshResidentRow(id);
                 }, 0);
@@ -9592,7 +9684,13 @@ function renderResidentsBody() {
 
     // Always sorted by Move-In Date, latest first — this isn't a
     // toggleable column sort, it's the table's one fixed order.
-    list.sort((a, b) => (b.row.moveInDate || '').localeCompare(a.row.moveInDate || ''));
+    // A just-added row always shows, whatever sub-tab/search/filters.
+    RESIDENT_PINNED.forEach(pid => {
+        if (RESIDENT_ROWS[pid] && !RESIDENT_ROWS[pid].deleted && !list.some(x => x.id === pid)) {
+            list.push({ id: pid, row: RESIDENT_ROWS[pid], derived: computeResidentDerived(RESIDENT_ROWS[pid]) });
+        }
+    });
+    list.sort((a, b) => (RESIDENT_PINNED.has(b.id) - RESIDENT_PINNED.has(a.id)) || (b.row.moveInDate || '').localeCompare(a.row.moveInDate || ''));
 
     if (!list.length) {
         tbody.innerHTML = `<tr><td colspan="${RESIDENT_FIELDS.length + 1}" class="no-unit" style="border:none;">No residents match these filters.</td></tr>`;
@@ -9618,6 +9716,7 @@ document.getElementById('residentAddBtn').addEventListener('click', () => {
         blank[f.key] = f.type === 'checkbox' ? false : '';
     });
     RESIDENT_ROWS[id] = blank;
+    RESIDENT_PINNED.add(id);
     RESIDENT_DIRTY.add(id);
     residentPersistLocal();
     renderResidentsBody();
@@ -10846,10 +10945,17 @@ try {
 
 document.getElementById('modeLiveBtn').addEventListener('click', () => applyAppMode('live'));
 document.getElementById('modeTestBtn').addEventListener('click', () => applyAppMode('test'));
-function forceSiteRefresh(btn) {
+async function forceSiteRefresh(btn) {
     if (btn) {
         btn.textContent = 'Refreshing\u2026';
         btn.disabled = true;
+    }
+    // Finish uploading any unsaved Residents edits first (up to 20s) so
+    // other agents see them right away. Unconfirmed edits also survive
+    // the reload in this browser and keep retrying afterwards.
+    if (BACKEND_URL && APP_MODE !== 'test' && RESIDENT_DIRTY.size) {
+        if (btn) btn.textContent = 'Saving\u2026';
+        await Promise.race([residentSyncNow(), new Promise(r => setTimeout(r, 20000))]);
     }
     // Remember which tab was open so the reload can return to it,
     // instead of dumping the person back on Tour after a refresh they
@@ -10991,7 +11097,13 @@ function debounce(fn, wait) {
     };
 }
 
-async function backendPull(key) {
+// Values bigger than this are split across several keys. A Google
+// Sheets cell holds at most 50,000 characters, and a full Residents
+// table is well past that — a single oversized write can fail inside
+// the Apps Script while the request itself still comes back "OK".
+const BACKEND_CHUNK_CHARS = 40000;
+
+async function backendPullRaw(key) {
     if (!BACKEND_URL) return null;
     try {
         const res = await fetch(`${BACKEND_URL}?key=${encodeURIComponent(key)}`);
@@ -11002,8 +11114,34 @@ async function backendPull(key) {
         return null;
     }
 }
+async function backendPull(key) {
+    const value = await backendPullRaw(key);
+    if (!value || typeof value !== 'object' || !value.__chunks) return value;
+    // Chunked value: the key holds a small manifest; the JSON text is
+    // spread over key__part0..N. Any missing/short part = failed pull.
+    const parts = await Promise.all(Array.from({ length: value.__chunks }, (_, i) => backendPullRaw(`${key}__part${i}`)));
+    if (parts.some(p => typeof p !== 'string')) return null;
+    const json = parts.join('');
+    if (json.length !== value.length) return null;
+    try { return JSON.parse(json); } catch (e) { return null; }
+}
 
 async function backendPush(key, value) {
+    if (!BACKEND_URL) return false;
+    const json = JSON.stringify(value);
+    if (json.length <= BACKEND_CHUNK_CHARS) return backendPushRaw(key, value);
+    const parts = [];
+    for (let i = 0; i < json.length; i += BACKEND_CHUNK_CHARS) parts.push(json.slice(i, i + BACKEND_CHUNK_CHARS));
+    // One at a time (not in parallel) so the Apps Script never handles
+    // two writes to the same Sheet at once. Parts first, manifest last,
+    // so a reader never sees a manifest pointing at unwritten parts.
+    for (let i = 0; i < parts.length; i++) {
+        if (!(await backendPushRaw(`${key}__part${i}`, parts[i]))) return false;
+    }
+    return backendPushRaw(key, { __chunks: parts.length, length: json.length });
+}
+
+async function backendPushRaw(key, value) {
     if (!BACKEND_URL) return false;
     try {
         // text/plain avoids a CORS preflight (OPTIONS) request, which
