@@ -1236,7 +1236,7 @@
         color: var(--ink);
     }
     .mmr-value input:focus { outline: 1px solid var(--reve-orange); }
-    .mmr-value input.mmr-error { border-color: #c0392b; background: #fbebe9; }
+    .mmr-value input.mmr-error, .mmr-value textarea.mmr-error { border-color: #c0392b; background: #fbebe9; }
     .mmr-value.mmr-locked { background: var(--line-soft); color: var(--ink-soft); font-weight: 700; }
     .mmr-value.mmr-computed { background: #fbeee8; color: var(--reve-orange-dark); font-weight: 700; }
     .mmr-report { color: var(--ink-soft); font-size: 11px; white-space: pre-line; min-width: 220px; }
@@ -2761,6 +2761,7 @@
                 <button type="button" class="wl-subtab active" data-mmr-subtab="weekly">Weekly Stats</button>
                 <button type="button" class="wl-subtab" data-mmr-subtab="newleases">New Leases</button>
                 <button type="button" class="wl-subtab" data-mmr-subtab="renewals">Unit Renewals</button>
+                <button type="button" class="wl-subtab" data-mmr-subtab="traffic">Weekly Traffic Detail</button>
             </div>
 
             <div id="mmrPanel-weekly" class="mmr-subpanel">
@@ -2902,6 +2903,22 @@
                             <th>Previous Eff Rent</th><th>New Eff Rent</th><th></th>
                         </tr></thead>
                         <tbody id="mmrRenewalBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="mmrPanel-traffic" class="mmr-subpanel" style="display:none;">
+                <div class="empty-note" style="margin-bottom:8px;">Reasons for not leasing this week (Report: Traffic Detail). Replaces last week's numbers in the uploaded file on Download New MMR.</div>
+                <button type="button" class="btn" id="mmrTrafficClearBtn" style="width:auto;padding:8px 16px;">Clear for New Week</button>
+                <div class="mmr-table-wrap" style="margin-top:12px;">
+                    <table class="mmr-table">
+                        <colgroup><col style="width:32%"><col style="width:110px"><col></colgroup>
+                        <thead><tr><th>Reason</th><th># of Shows</th><th>Comments</th></tr></thead>
+                        <tbody id="mmrTrafficBody"></tbody>
+                        <tfoot><tr>
+                            <td class="mmr-label"><b>TOTAL</b></td>
+                            <td class="mmr-value mmr-computed" id="mmrTrafficTotal">0</td>
+                            <td class="mmr-report" id="mmrTrafficTotalNote"></td>
+                        </tr></tfoot>
                     </table>
                 </div>
             </div>
@@ -7585,11 +7602,135 @@ function recomputeMMR() {
     btn.addEventListener('click', () => {
         const target = btn.getAttribute('data-mmr-subtab');
         [...document.querySelectorAll('.mmr-subtabs .wl-subtab')].forEach(b => b.classList.toggle('active', b === btn));
-        ['weekly', 'newleases', 'renewals'].forEach(name => {
+        ['weekly', 'newleases', 'renewals', 'traffic'].forEach(name => {
             document.getElementById('mmrPanel-' + name).style.display = (name === target) ? 'block' : 'none';
         });
     });
 });
+
+/* ============================================================
+   MMR — Weekly Traffic Detail ("Reasons for not leasing"). One current
+   week's record: # of Shows and Comments per reason, in the same order
+   as the MMR sheet's rows. On export these REPLACE the uploaded file's
+   values (last week's numbers never carry over). The TOTAL should
+   match Weekly Stats' Total Weekly Traffic, same as the sheet notes.
+   ============================================================ */
+const MMR_TRAFFIC_REASONS = [
+    'Amenities lacking', 'Unit too small', 'Decided not to move', 'Disliked unit floor plan/location',
+    'Desired floor plan unavailable', 'Future (over 30 days)', 'Future (over 90 Days)', 'Desired lease term unavailable',
+    'Leased at competitor', 'Garage/storage not available', 'Unqualified', 'Not sure if moving yet',
+    'Price-too expensive', 'Roommate/relative needs to see', 'Pet does not meet community policies', 'Pending',
+    'Pending employment offer', 'Looking for friend/relative', 'Just started search', 'Application',
+    'Other - Virtual showing via Rent Caf\u00e9', 'Other - Market Tour', 'Other - Deciding between floorplans', 'Leased'
+];
+// Reasons whose sheet note says a comment is required.
+const MMR_TRAFFIC_COMMENT_REQUIRED = r => r === 'Pending' || r.startsWith('Other');
+const MMR_TRAFFIC_KEY = 'reve-mmr-traffic';
+const MMR_TRAFFIC_BACKEND_KEY = 'mmr-traffic-detail';
+let MMR_TRAFFIC = {}; // reason -> { shows, comments }
+
+function mmrTrafficPersistLocal() { try { localStorage.setItem(MMR_TRAFFIC_KEY, JSON.stringify(MMR_TRAFFIC)); } catch (e) {} }
+const mmrTrafficPushDebounced = debounce(() => {
+    if (BACKEND_URL && APP_MODE !== 'test') backendPush(MMR_TRAFFIC_BACKEND_KEY, MMR_TRAFFIC);
+}, 900);
+function restoreMmrTrafficLocal() {
+    try { const raw = localStorage.getItem(MMR_TRAFFIC_KEY); if (raw) MMR_TRAFFIC = JSON.parse(raw) || {}; } catch (e) { MMR_TRAFFIC = {}; }
+}
+async function pullMmrTrafficFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(MMR_TRAFFIC_BACKEND_KEY);
+    if (remote) {
+        MMR_TRAFFIC = remote;
+        mmrTrafficPersistLocal();
+        if (!(document.activeElement && document.activeElement.closest('#mmrTrafficBody'))) renderMmrTraffic();
+    } else if (Object.keys(MMR_TRAFFIC).length) {
+        backendPush(MMR_TRAFFIC_BACKEND_KEY, MMR_TRAFFIC);
+    }
+}
+function mmrTrafficShows(reason) {
+    const n = parseInt((MMR_TRAFFIC[reason] || {}).shows, 10);
+    return isNaN(n) ? 0 : n;
+}
+function renderMmrTrafficTotal() {
+    const total = MMR_TRAFFIC_REASONS.reduce((sum, r) => sum + mmrTrafficShows(r), 0);
+    const weekly = mmrNum('mmrWeeklyTraffic');
+    const el = document.getElementById('mmrTrafficTotal');
+    if (!el) return;
+    el.textContent = String(total);
+    const note = document.getElementById('mmrTrafficTotalNote');
+    const matches = total === weekly;
+    note.textContent = matches ? `Matches Weekly Stats (${weekly} shows).` : `Should match Weekly Stats \u2014 Total Weekly Traffic is ${weekly}.`;
+    note.style.color = matches ? 'var(--good)' : 'var(--bad, #c0392b)';
+}
+function renderMmrTraffic() {
+    const body = document.getElementById('mmrTrafficBody');
+    if (!body) return;
+    body.innerHTML = MMR_TRAFFIC_REASONS.map((reason, i) => {
+        const rec = MMR_TRAFFIC[reason] || {};
+        const req = MMR_TRAFFIC_COMMENT_REQUIRED(reason);
+        const missing = req && mmrTrafficShows(reason) > 0 && !(rec.comments || '').trim();
+        return `<tr>
+            <td class="mmr-label">${escapeHtml(reason)}${req ? ' <span class="mmr-hint">(comment required)</span>' : ''}</td>
+            <td class="mmr-value"><input type="number" min="0" step="1" data-traffic-i="${i}" data-traffic-field="shows" value="${escapeAttr(rec.shows || '')}"></td>
+            <td class="mmr-value"><textarea rows="1" data-traffic-i="${i}" data-traffic-field="comments" class="${missing ? 'mmr-error' : ''}" style="width:100%;box-sizing:border-box;resize:vertical;font-family:var(--sans);font-size:12px;">${escapeHtml(rec.comments || '')}</textarea></td>
+        </tr>`;
+    }).join('');
+    [...body.querySelectorAll('[data-traffic-field]')].forEach(el => {
+        el.addEventListener('input', () => {
+            const reason = MMR_TRAFFIC_REASONS[parseInt(el.getAttribute('data-traffic-i'), 10)];
+            MMR_TRAFFIC[reason] = Object.assign({ shows: '', comments: '' }, MMR_TRAFFIC[reason], { [el.getAttribute('data-traffic-field')]: el.value });
+            const row = el.closest('tr');
+            const comments = row.querySelector('[data-traffic-field="comments"]');
+            comments.classList.toggle('mmr-error', MMR_TRAFFIC_COMMENT_REQUIRED(reason) && mmrTrafficShows(reason) > 0 && !(MMR_TRAFFIC[reason].comments || '').trim());
+            mmrTrafficPersistLocal();
+            mmrTrafficPushDebounced();
+            renderMmrTrafficTotal();
+        });
+    });
+    renderMmrTrafficTotal();
+}
+document.getElementById('mmrTrafficClearBtn').addEventListener('click', () => {
+    if (!confirm('Clear all Weekly Traffic Detail shows and comments for a new week?')) return;
+    MMR_TRAFFIC = {};
+    mmrTrafficPersistLocal();
+    mmrTrafficPushDebounced();
+    renderMmrTraffic();
+});
+document.getElementById('mmrWeeklyTraffic').addEventListener('input', renderMmrTrafficTotal);
+restoreMmrTrafficLocal();
+renderMmrTraffic();
+
+// Writes the Traffic record into the uploaded file's Weekly Traffic
+// Detail sheet. Rows are found by their reason label in column A (not
+// fixed row numbers); each row's # of Shows (C) and Comments (D) are
+// replaced — blank when there's nothing this week — keeping every
+// cell's own style. Each row drops last week's stored height so Excel
+// sizes it to this week's wrapped text.
+function xmlWriteTrafficDetail(sheetXml, sharedStrings) {
+    const norm = t => String(t || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const wanted = {};
+    MMR_TRAFFIC_REASONS.forEach(r => { wanted[norm(r)] = r; });
+    const rowRe = /<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+    const targets = [];
+    let m;
+    while ((m = rowRe.exec(sheetXml))) {
+        const rNum = parseInt(m[1], 10);
+        const a = m[2].match(new RegExp(`<c r="A${rNum}"[^>]*?t="s"[^>]*><v>(\\d+)<\\/v>`)) ;
+        const aInline = m[2].match(new RegExp(`<c r="A${rNum}"[^>]*?t="inlineStr"[^>]*><is><t[^>]*>([^<]*)<\\/t>`));
+        const label = a ? sharedStrings[parseInt(a[1], 10)] : (aInline ? aInline[1] : null);
+        if (label && wanted[norm(label)]) targets.push({ rNum, reason: wanted[norm(label)] });
+    }
+    targets.forEach(({ rNum, reason }) => {
+        const rec = MMR_TRAFFIC[reason] || {};
+        const shows = parseInt(rec.shows, 10);
+        const comments = (rec.comments || '').trim();
+        sheetXml = xmlSetCellValue(sheetXml, 'C' + rNum, isNaN(shows) || shows === 0 ? '' : shows);
+        sheetXml = xmlSetCellValue(sheetXml, 'D' + rNum, comments);
+        sheetXml = sheetXml.replace(new RegExp(`<row r="${rNum}"([^>]*)>`), (tag, attrs) =>
+            /customHeight="1"/.test(attrs) ? tag : `<row r="${rNum}"${attrs.replace(/\s+ht="[\d.]+"/, '')}>`);
+    });
+    return sheetXml;
+}
 
 /* ============================================================
    MMR upload / export. Uploading last week's .xlsx isn't stored beyond
@@ -7615,7 +7756,7 @@ document.getElementById('mmrTemplateUpload').addEventListener('change', (e) => {
             const data = new Uint8Array(evt.target.result);
             MMR_TEMPLATE_BYTES = data;
             MMR_TEMPLATE_WORKBOOK = XLSX.read(data, { type: 'array', cellDates: true });
-            document.getElementById('mmrTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; Weekly Stats will be updated with this week's numbers, and new rows will be appended into Unit Leasing Detail and Unit Renewal Detail, all directly in this file so the original formatting stays intact. Other sheets are carried over unchanged.`;
+            document.getElementById('mmrTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; Weekly Stats and Weekly Traffic Detail will be updated with this week's numbers, and new rows will be appended into Unit Leasing Detail and Unit Renewal Detail, all directly in this file so the original formatting stays intact. Other sheets are carried over unchanged.`;
         } catch (err) {
             alert("Could not read that file. Make sure it's a valid MMR .xlsx export.");
         }
@@ -7694,31 +7835,64 @@ function xmlFindLastDataRow(sheetXml, minRow) {
 // shared-formula reference) completely untouched — those recalculate
 // correctly on their own once Excel opens the file, since a shared
 // formula's relative references are resolved per-row automatically.
-function xmlFillExistingRow(sheetXml, rowNum, values, colLetters, skipCols) {
+function xmlColNum(col) { let n = 0; for (const ch of col) n = n * 26 + ch.charCodeAt(0) - 64; return n; }
+function xmlFillExistingRow(sheetXml, rowNum, values, colLetters, skipCols, fallbackStyles) {
     const rowMatch = sheetXml.match(new RegExp(`<row r="${rowNum}"[^>]*>[\\s\\S]*?<\\/row>`));
     if (!rowMatch) return null;
-    let rowXml = rowMatch[0];
+    const openTag = rowMatch[0].match(/^<row[^>]*>/)[0];
+    const body = rowMatch[0].slice(openTag.length, rowMatch[0].length - '</row>'.length);
+    const cells = [];
+    const cellRe = /<c r="([A-Z]+)\d+"([^>]*?)(?:\/>|>[\s\S]*?<\/c>)/g;
+    let m;
+    while ((m = cellRe.exec(body))) cells.push({ col: m[1], attrs: m[2], xml: m[0] });
     colLetters.forEach((col, ci) => {
         if (skipCols.includes(col)) return;
-        const cellRe = new RegExp(`<c r="${col}${rowNum}"([^>]*?)(?:/>|>[\\s\\S]*?<\\/c>)`);
-        const cellMatch = rowXml.match(cellRe);
-        if (!cellMatch) return;
-        const styleIdx = (cellMatch[1].match(/s="(\d+)"/) || [])[1];
+        const existing = cells.find(c => c.col === col);
+        const styleIdx = existing ? (existing.attrs.match(/s="(\d+)"/) || [])[1] : (fallbackStyles || {})[col];
         const newCell = xmlBuildCell(col, rowNum, values[ci], styleIdx);
-        rowXml = rowXml.slice(0, cellMatch.index) + newCell + rowXml.slice(cellMatch.index + cellMatch[0].length);
+        // A padding row may not carry every column (the Leasing sheet's
+        // have no Notes cell) — add the missing cell rather than
+        // silently dropping that value.
+        if (existing) existing.xml = newCell;
+        else cells.push({ col, xml: newCell });
     });
-    return sheetXml.slice(0, rowMatch.index) + rowXml + sheetXml.slice(rowMatch.index + rowMatch[0].length);
+    // Cells must stay in column order or Excel "repairs" the row away.
+    cells.sort((a, b) => xmlColNum(a.col) - xmlColNum(b.col));
+    return sheetXml.slice(0, rowMatch.index) + openTag + cells.map(c => c.xml).join('') + '</row>' + sheetXml.slice(rowMatch.index + rowMatch[0].length);
+}
+// Last row (at/after minRow) with an actual value in column A — the
+// unit number. Padding rows often carry placeholder values elsewhere
+// (the Renewal sheet's have a 0 in every Concession cell), so "any
+// cell has a value" would put new rows below hundreds of blank ones.
+function xmlFindLastRowWithColA(sheetXml, minRow) {
+    let last = minRow;
+    const re = /<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+    let m;
+    while ((m = re.exec(sheetXml))) {
+        const rNum = parseInt(m[1], 10);
+        if (rNum < minRow) continue;
+        if (new RegExp(`<c r="A${rNum}"[^>]*>(?:<v>|<is>)`).test(m[2])) last = Math.max(last, rNum);
+    }
+    return last;
+}
+// Inserts a new <row> in row-number order (rows must be ascending).
+function xmlInsertRowInOrder(sheetXml, rowNum, rowXml) {
+    const re = /<row r="(\d+)"/g;
+    let m;
+    while ((m = re.exec(sheetXml))) {
+        if (parseInt(m[1], 10) > rowNum) return sheetXml.slice(0, m.index) + rowXml + sheetXml.slice(m.index);
+    }
+    return sheetXml.replace('</sheetData>', rowXml + '</sheetData>');
 }
 function xmlAppendRows(sheetXml, dataRows, colLetters, formulaColMap, minDataRow) {
     if (!dataRows.length) return sheetXml;
-    const lastRow = xmlFindLastDataRow(sheetXml, minDataRow);
+    const lastRow = xmlFindLastRowWithColA(sheetXml, minDataRow);
     const templateMatch = sheetXml.match(new RegExp(`<row r="${lastRow}"[^>]*>[\\s\\S]*?<\\/row>`));
     const styles = templateMatch ? xmlParseRowStyles(templateMatch[0]) : {};
     const htMatch = templateMatch ? templateMatch[0].match(/ ht="([\d.]+)"/) : null;
     const htAttr = htMatch ? ` ht="${htMatch[1]}" customHeight="1"` : '';
     const formulaCols = Object.keys(formulaColMap);
 
-    let newRowsXml = '';
     let workingXml = sheetXml;
     dataRows.forEach((rowValues, i) => {
         const rowNum = lastRow + 1 + i;
@@ -7732,7 +7906,7 @@ function xmlAppendRows(sheetXml, dataRows, colLetters, formulaColMap, minDataRow
         // guards against. Filling the existing row's cells in place
         // (skipping its formula columns, which resolve on their own)
         // avoids the collision entirely.
-        const filled = xmlFillExistingRow(workingXml, rowNum, rowValues, colLetters, formulaCols);
+        const filled = xmlFillExistingRow(workingXml, rowNum, rowValues, colLetters, formulaCols, styles);
         if (filled) {
             workingXml = filled;
         } else {
@@ -7743,11 +7917,12 @@ function xmlAppendRows(sheetXml, dataRows, colLetters, formulaColMap, minDataRow
                     ? xmlBuildCell(col, rowNum, null, styleIdx, formulaColMap[col])
                     : xmlBuildCell(col, rowNum, rowValues[ci], styleIdx);
             });
-            newRowsXml += `<row r="${rowNum}" spans="1:${colLetters.length}"${htAttr} x14ac:dyDescent="0.25">${cells}</row>`;
+            const dyAttr = /xmlns:x14ac=/.test(workingXml) ? ' x14ac:dyDescent="0.25"' : '';
+            workingXml = xmlInsertRowInOrder(workingXml, rowNum, `<row r="${rowNum}" spans="1:${colLetters.length}"${htAttr}${dyAttr}>${cells}</row>`);
         }
     });
 
-    let result = newRowsXml ? workingXml.replace('</sheetData>', newRowsXml + '</sheetData>') : workingXml;
+    let result = workingXml;
     result = result.replace(/<dimension ref="[A-Z]+\d+:([A-Z]+)(\d+)"\/>/, (match, maxCol, maxRowStr) => {
         const maxRow = Math.max(parseInt(maxRowStr, 10), lastRow + dataRows.length);
         return `<dimension ref="A1:${maxCol}${maxRow}"/>`;
@@ -7770,7 +7945,8 @@ function xmlSetCellValue(sheetXml, cellRef, value) {
     if (!m) return sheetXml;
     const attrs = m[1].replace(/\s+t="[^"]*"/, '');
     let newCell;
-    if (value instanceof Date) newCell = `<c r="${cellRef}"${attrs}><v>${excelSerialFromDate(value)}</v></c>`;
+    if (value === '' || value === null || (typeof value === 'number' && !isFinite(value))) newCell = `<c r="${cellRef}"${attrs}/>`;
+    else if (value instanceof Date) newCell = `<c r="${cellRef}"${attrs}><v>${excelSerialFromDate(value)}</v></c>`;
     else if (typeof value === 'number') newCell = `<c r="${cellRef}"${attrs}><v>${value}</v></c>`;
     else newCell = `<c r="${cellRef}"${attrs} t="inlineStr"><is><t>${xmlEscapeText(value)}</t></is></c>`;
     return sheetXml.slice(0, m.index) + newCell + sheetXml.slice(m.index + m[0].length);
@@ -7844,6 +8020,24 @@ async function exportMmrViaXmlSurgery(dateLabel) {
         }, 4);
         zip.file(renewalPath, xml);
     }
+    const trafficPath = xmlResolveSheetPath(wbXml, relsXml, 'Weekly Traffic Detail');
+    if (trafficPath) {
+        let xml = await zip.file(trafficPath).async('string');
+        const ssFile = zip.file('xl/sharedStrings.xml');
+        const sharedStrings = ssFile ? xmlParseSharedStrings(await ssFile.async('string')) : [];
+        xml = xmlWriteTrafficDetail(xml, sharedStrings);
+        zip.file(trafficPath, xml);
+    }
+    // Cached results of every formula (Percentage Leased, Closing Ratio,
+    // the Traffic TOTAL, new rows' Net Effective Rent...) are stale after
+    // these edits — have Excel recalculate everything when it opens.
+    let wbXmlOut = wbXml;
+    if (/<calcPr\b/.test(wbXmlOut)) {
+        if (!/fullCalcOnLoad=/.test(wbXmlOut)) wbXmlOut = wbXmlOut.replace(/<calcPr\b/, '<calcPr fullCalcOnLoad="1"');
+    } else {
+        wbXmlOut = wbXmlOut.replace('</workbook>', '<calcPr fullCalcOnLoad="1"/></workbook>');
+    }
+    zip.file('xl/workbook.xml', wbXmlOut);
     // calcChain.xml (Excel's cached formula dependency order) is left
     // untouched rather than deleted — Excel treats a stale calc chain
     // as a hint, not a requirement, and safely recalculates on open;
@@ -10942,6 +11136,7 @@ setInterval(() => {
     pullConcessionFromBackend();
     pullStorageFromBackend();
     pullMMRFromBackend();
+    pullMmrTrafficFromBackend();
     mmrNewLeaseController.pullFromBackend();
     mmrRenewalController.pullFromBackend();
     commMoveInController.pullFromBackend();
@@ -11387,7 +11582,7 @@ try {
     if (localStorage.getItem(APP_MODE_KEY) === 'test') applyAppMode('test');
 } catch (e) { /* ignore */ }
 if (BACKEND_URL) {
-    pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); pullMMRFromBackend();
+    pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); pullMMRFromBackend(); pullMmrTrafficFromBackend();
     mmrNewLeaseController.pullFromBackend(); mmrRenewalController.pullFromBackend();
     commMoveInController.pullFromBackend(); commRenewalController.pullFromBackend();
     pullPayPeriodFromBackend();
