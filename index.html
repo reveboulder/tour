@@ -1548,6 +1548,12 @@
         color: var(--ink);
     }
     .wl-picker-bar .empty-note { display: block; margin-top: 6px; }
+    .wl-sticker-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; max-width: 620px; }
+    .wl-sticker-bar label { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+    .wl-sticker-bar input {
+        flex: 1; min-width: 180px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px;
+        font-family: var(--sans); font-size: 13px; background: #fffbe6; color: var(--ink);
+    }
     .wl-legend { display: flex; gap: 18px; margin: 10px 0 16px; font-size: 11.5px; color: var(--ink-soft); }
     .wl-legend-item { display: flex; align-items: center; gap: 6px; }
     .wl-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
@@ -1991,7 +1997,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Inter:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -2605,6 +2611,11 @@
 
             <div style="margin-bottom:14px;">
                 <button type="button" class="btn primary wl-download-btn" id="wlDownloadBtnTop" style="width:auto;flex:none;padding:9px 18px;">Download Welcome Letter PDF</button>
+            </div>
+            <div class="wl-sticker-bar">
+                <label for="wlStickerName">Name on sticker</label>
+                <input type="text" id="wlStickerName" placeholder="Defaults to the resident's name" autocomplete="off">
+                <button type="button" class="btn" id="wlStickerBtn" style="width:auto;flex:none;padding:8px 14px;">Download Move-in Folder Sticker</button>
             </div>
 
             <div class="wl-legend">
@@ -10153,6 +10164,9 @@ function renderWlForm() {
     const t = wlComputeTotals(r, resident);
     const { chargesTotal, depositsTotal, feesTotal, prorateAmt, prorateFrom, prorateTo, moveInAfter25th, subtotal, totalDue, petCount, parkingCharge, petRent, petDeposit, applicantCount, appFeeAmt, effectiveRent } = t;
 
+    const stickerInput = document.getElementById('wlStickerName');
+    if (document.activeElement !== stickerInput) stickerInput.value = r.stickerNameManual || '';
+    stickerInput.placeholder = wlStickerAutoName(resident) || 'Resident name';
 
     document.getElementById('wlNamesSection').innerHTML = `
         <tr><td class="wl-row-label">Full Name 1</td><td class="wl-auto" colspan="2">${escapeHtml(resident ? `${resident.first} ${resident.last}` : '\u2014')}</td></tr>
@@ -10504,6 +10518,113 @@ async function wlDownloadPdf(btn) {
 [...document.querySelectorAll('.wl-download-btn')].forEach(btn => {
     btn.addEventListener('click', () => wlDownloadPdf(btn));
 });
+
+/* ---------- Move-in folder sticker ----------
+   The approved sticker artwork (logo, frame, and the three live QR
+   codes: Facebook reviews, maintenance request, community bulletin),
+   with only the "Resident Name / Unit" text drawn in. The artwork is
+   the 182-dpi original cropped to the sticker (913 x 1190 px = 5.02 x
+   6.54 in) with the sample text blanked out; it's placed at the same
+   spot on a landscape US Letter page as the original, so printing at
+   100% / "Actual size" reproduces the exact dimensions. */
+const STICKER_TEMPLATE_SRC = 'stickers/move-in-folder-sticker.jpg';
+const STICKER_DPI = 182, STICKER_W = 913, STICKER_H = 1190, STICKER_OFFSET = 21; // px at STICKER_DPI
+const STICKER_TEXT_COLOR = '#D9562B';
+function wlStickerAutoName(resident) {
+    return resident ? `${resident.first || ''} ${resident.last || ''}`.trim() : '';
+}
+document.getElementById('wlStickerName').addEventListener('input', (e) => {
+    if (!wlSelectedUnit) return;
+    wlCommit('stickerNameManual', e.target.value);
+});
+function wlLoadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Could not load ' + src));
+        img.src = src;
+    });
+}
+// Splits a long name into two lines, preferring "&" / "and" / a comma,
+// otherwise the space nearest the middle.
+function wlStickerSplitName(name) {
+    const m = name.match(/^(.+?)\s+(&|and)\s+(.+)$/i);
+    if (m) return [`${m[1]} ${m[2]}`, m[3]];
+    const c = name.indexOf(',');
+    if (c > 0) return [name.slice(0, c + 1), name.slice(c + 1).trim()];
+    const mid = name.length / 2;
+    let best = -1;
+    for (let i = 0; i < name.length; i++) if (name[i] === ' ' && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
+    return best > 0 ? [name.slice(0, best), name.slice(best + 1)] : [name];
+}
+async function wlDownloadSticker(btn) {
+    const unit = wlSelectedUnit;
+    if (!unit || unit === '_new') { alert('Select a resident first.'); return; }
+    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
+    const resident = findResidentByUnit(unit);
+    const name = (WL_RECORDS[unit].stickerNameManual || '').trim() || wlStickerAutoName(resident);
+    if (!name) { alert('No resident name found \u2014 type one in "Name on sticker".'); return; }
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generating\u2026';
+    try {
+        const img = await wlLoadImage(STICKER_TEMPLATE_SRC);
+        const family = '"Inter", "Helvetica Neue", Arial, sans-serif';
+        if (document.fonts && document.fonts.load) { try { await document.fonts.load(`700 70px Inter`); } catch (e) {} }
+        const S = 3; // draw at 3x (546 dpi) so the text prints crisp
+        const canvas = document.createElement('canvas');
+        canvas.width = STICKER_W * S;
+        canvas.height = STICKER_H * S;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.scale(S, S);
+        ctx.fillStyle = STICKER_TEXT_COLOR;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        const setFont = fs => { ctx.font = `700 ${fs}px ${family}`; };
+        const fits = (text, fs, maxW) => { setFont(fs); return ctx.measureText(text).width <= maxW; };
+        // Text area in the artwork: the blanked panel, centred at x 463.
+        const CX = 463, MAXW = 560, BLOCK_CY = 592;
+        // Original layout: name ~70px, "Unit XXXX" ~67px (cap heights 51/48).
+        let nameLines = [name], nameFs = 70;
+        while (nameFs > 50 && !fits(name, nameFs, MAXW)) nameFs -= 2;
+        if (!fits(name, nameFs, MAXW)) {
+            nameLines = wlStickerSplitName(name);
+            nameFs = 56;
+            while (nameFs > 30 && !nameLines.every(l => fits(l, nameFs, MAXW))) nameFs -= 2;
+        }
+        const lines = nameLines.map(t => ({ text: t, fs: nameFs })).concat([{ text: `Unit ${unit}`, fs: 67 }]);
+        const cap = fs => fs * 0.727;
+        const gap = 23 * (nameFs / 70);
+        const blockH = lines.reduce((h, l) => h + cap(l.fs), 0) + gap * (lines.length - 1);
+        let top = BLOCK_CY - blockH / 2;
+        lines.forEach(l => {
+            setFont(l.fs);
+            // Last-resort squeeze for anything still too wide.
+            const w = ctx.measureText(l.text).width;
+            const baseline = top + cap(l.fs);
+            if (w > MAXW) {
+                ctx.save(); ctx.translate(CX, baseline); ctx.scale(MAXW / w, 1); ctx.fillText(l.text, 0, 0); ctx.restore();
+            } else {
+                ctx.fillText(l.text, CX, baseline);
+            }
+            top = baseline + gap;
+        });
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'in', format: 'letter', compress: true });
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG',
+            STICKER_OFFSET / STICKER_DPI, STICKER_OFFSET / STICKER_DPI, STICKER_W / STICKER_DPI, STICKER_H / STICKER_DPI);
+        pdf.save(`move-in-sticker-apt-${unit}.pdf`);
+    } catch (err) {
+        console.error(err);
+        alert('Could not generate the sticker. Please try again.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+    }
+}
+document.getElementById('wlStickerBtn').addEventListener('click', (e) => wlDownloadSticker(e.currentTarget));
 
 /* ============================================================
    NEW LEASE — auto-filled from the Welcome Letter record for the same
