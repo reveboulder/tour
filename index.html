@@ -1238,6 +1238,34 @@
     .mmr-value input:focus { outline: 1px solid var(--reve-orange); }
     #residentsBody tr.res-row-moved td { animation: resRowMoved 1.8s ease-out; }
     @keyframes resRowMoved { 0%, 40% { box-shadow: inset 0 0 0 9999px rgba(242, 140, 40, 0.35); } 100% { box-shadow: inset 0 0 0 9999px rgba(242, 140, 40, 0); } }
+    /* MMR Weekly Traffic Detail */
+    .traffic-wrap { max-width: 960px; margin: 0 auto; }
+    .traffic-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+    .traffic-table { width: 100%; border-collapse: collapse; background: #fff; font-size: 12.5px; }
+    .traffic-table th, .traffic-table td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+    .traffic-table th {
+        background: var(--line-soft); font-family: 'Oswald', var(--sans); text-transform: uppercase;
+        letter-spacing: 0.03em; font-size: 10.5px; font-weight: 600; white-space: nowrap;
+    }
+    .traffic-table td.traffic-reason { font-weight: 700; white-space: nowrap; width: 1%; }
+    .traffic-table .traffic-shows { width: 1%; text-align: center; white-space: nowrap; }
+    .traffic-table td.traffic-shows { font-weight: 700; color: var(--reve-orange-dark); background: #fbeee8; }
+    .traffic-table td.traffic-shows.zero { color: var(--ink-soft); background: transparent; font-weight: 400; }
+    .traffic-table tfoot td { font-weight: 700; background: var(--line-soft); }
+    .traffic-comment {
+        min-height: 18px; padding: 3px 6px; border: 1px solid transparent; border-radius: 4px;
+        white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; font-family: var(--sans); font-size: 12.5px;
+        color: var(--ink); cursor: text; outline: none;
+    }
+    .traffic-comment:hover { border-color: var(--line); }
+    .traffic-comment:focus { border-color: var(--reve-orange); background: #fffdf8; }
+    .traffic-comment:empty:focus::before { content: attr(data-placeholder); color: #b5b0a3; }
+    .traffic-table td.traffic-comment-cell { padding: 3px 5px; }
+    .traffic-comment b { font-weight: 700; }
+    body.dark-mode .traffic-table { background: var(--dm-card, #24221e); }
+    body.dark-mode .traffic-comment:focus { background: #2a2824; }
+    body.dark-mode .traffic-table td.traffic-shows { background: #3a2a20; color: var(--dm-accent); }
+    body.dark-mode .traffic-table td.traffic-shows.zero { background: transparent; color: var(--ink-soft); }
     .mmr-value input.mmr-error, .mmr-value textarea.mmr-error { border-color: #c0392b; background: #fbebe9; }
     .mmr-value.mmr-locked { background: var(--line-soft); color: var(--ink-soft); font-weight: 700; }
     .mmr-value.mmr-computed { background: #fbeee8; color: var(--reve-orange-dark); font-weight: 700; }
@@ -2973,19 +3001,22 @@
                 </div>
             </div>
             <div id="mmrPanel-traffic" class="mmr-subpanel" style="display:none;">
-                <div class="empty-note" style="margin-bottom:8px;">Reasons for not leasing this week (Report: Traffic Detail). Replaces last week's numbers in the uploaded file on Download New MMR.</div>
-                <button type="button" class="btn" id="mmrTrafficClearBtn" style="width:auto;padding:8px 16px;">Clear for New Week</button>
-                <div class="mmr-table-wrap" style="margin-top:12px;">
-                    <table class="mmr-table">
-                        <colgroup><col style="width:32%"><col style="width:110px"><col></colgroup>
-                        <thead><tr><th>Reason</th><th># of Shows</th><th>Comments</th></tr></thead>
-                        <tbody id="mmrTrafficBody"></tbody>
-                        <tfoot><tr>
-                            <td class="mmr-label"><b>TOTAL</b></td>
-                            <td class="mmr-value mmr-computed" id="mmrTrafficTotal">0</td>
-                            <td class="mmr-report" id="mmrTrafficTotalNote"></td>
-                        </tr></tfoot>
-                    </table>
+                <div class="traffic-wrap">
+                    <div class="traffic-toolbar">
+                        <div class="empty-note" style="margin:0;">Reasons for not leasing this week (Report: Traffic Detail). One sentence per show, starting with the prospect's first and last name &mdash; each sentence that starts with a name and ends in a period counts as one show (follow-up sentences about the same prospect don't). Replaces last week's numbers in the uploaded file on Download New MMR.</div>
+                        <button type="button" class="btn" id="mmrTrafficClearBtn" style="width:auto;flex:none;padding:8px 16px;">Clear for New Week</button>
+                    </div>
+                    <div class="mmr-table-wrap">
+                        <table class="traffic-table">
+                            <thead><tr><th>Reason</th><th class="traffic-shows">Shows</th><th>Comments</th></tr></thead>
+                            <tbody id="mmrTrafficBody"></tbody>
+                            <tfoot><tr>
+                                <td class="traffic-reason">TOTAL</td>
+                                <td class="traffic-shows" id="mmrTrafficTotal">0</td>
+                                <td id="mmrTrafficTotalNote"></td>
+                            </tr></tfoot>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -7689,8 +7720,6 @@ const MMR_TRAFFIC_REASONS = [
     'Pending employment offer', 'Looking for friend/relative', 'Just started search', 'Application',
     'Other - Virtual showing via Rent Caf\u00e9', 'Other - Market Tour', 'Other - Deciding between floorplans', 'Leased'
 ];
-// Reasons whose sheet note says a comment is required.
-const MMR_TRAFFIC_COMMENT_REQUIRED = r => r === 'Pending' || r.startsWith('Other');
 const MMR_TRAFFIC_KEY = 'reve-mmr-traffic';
 const MMR_TRAFFIC_BACKEND_KEY = 'mmr-traffic-detail';
 let MMR_TRAFFIC = {}; // reason -> { shows, comments }
@@ -7708,14 +7737,88 @@ async function pullMmrTrafficFromBackend() {
     if (remote) {
         MMR_TRAFFIC = remote;
         mmrTrafficPersistLocal();
-        if (!(document.activeElement && document.activeElement.closest('#mmrTrafficBody'))) renderMmrTraffic();
+        if (!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#mmrTrafficBody'))) renderMmrTraffic();
     } else if (Object.keys(MMR_TRAFFIC).length) {
         backendPush(MMR_TRAFFIC_BACKEND_KEY, MMR_TRAFFIC);
     }
 }
+// Comments hold one sentence per show, each starting with the
+// prospect's first and last name. A period followed by a space (or the
+// end) ends a sentence, except after a middle initial ("T.") or a
+// common abbreviation ("res.", "St."). A sentence counts as a show (and
+// gets its first two words bolded) only when it starts with a name —
+// two capitalized words — so a follow-up sentence about the same
+// prospect ("Needs a walk-in shower.") isn't counted twice.
+const TRAFFIC_ABBREVIATIONS = new Set(['mr', 'mrs', 'ms', 'dr', 'jr', 'sr', 'st', 'res', 'apt', 'approx', 'vs', 'e.g', 'i.e', 'bldg', 'ft', 'sq']);
+function mmrTrafficSentences(text) {
+    const segs = [];
+    let start = 0;
+    const re = /\.(?=\s|$)/g;
+    let m;
+    while ((m = re.exec(text))) {
+        const before = text.slice(start, m.index);
+        const token = (before.match(/(\S+)$/) || [])[1] || '';
+        if (/^[A-Z]$/.test(token) || TRAFFIC_ABBREVIATIONS.has(token.toLowerCase())) continue;
+        segs.push({ start, end: m.index + 1, complete: true });
+        start = m.index + 1;
+    }
+    if (text.slice(start).trim()) segs.push({ start, end: text.length, complete: false });
+    return segs;
+}
+const TRAFFIC_NAME_START = /^\s*(\p{Lu}[\p{L}'\u2019.-]*)[ \t]+(\p{Lu}[\p{L}'\u2019.-]*)/u;
+function mmrTrafficIsShow(sentence) { return TRAFFIC_NAME_START.test(sentence); }
+function mmrTrafficCount(text) {
+    text = text || '';
+    return mmrTrafficSentences(text).filter(s => s.complete && mmrTrafficIsShow(text.slice(s.start, s.end))).length;
+}
 function mmrTrafficShows(reason) {
-    const n = parseInt((MMR_TRAFFIC[reason] || {}).shows, 10);
-    return isNaN(n) ? 0 : n;
+    return mmrTrafficCount((MMR_TRAFFIC[reason] || {}).comments || '');
+}
+// Comment HTML with the first two words of every sentence bolded.
+function mmrTrafficCommentHtml(text) {
+    let html = '', pos = 0;
+    mmrTrafficSentences(text).forEach(seg => {
+        html += escapeHtml(text.slice(pos, seg.start));
+        const part = text.slice(seg.start, seg.end);
+        const m = part.match(/^(\s*)(\S+[ \t]+\S+)([\s\S]*)$/);
+        html += m && mmrTrafficIsShow(part) ? `${escapeHtml(m[1])}<b>${escapeHtml(m[2])}</b>${escapeHtml(m[3])}` : escapeHtml(part);
+        pos = seg.end;
+    });
+    html += escapeHtml(text.slice(pos));
+    // A trailing line break only shows in an editable box if something follows it.
+    if (text.endsWith('\n')) html += '<br>';
+    return html;
+}
+// Caret position as a character offset into the box's text, and back.
+function mmrTrafficGetCaret(el) {
+    const sel = window.getSelection();
+    if (!sel.rangeCount || !el.contains(sel.anchorNode)) return null;
+    const r = sel.getRangeAt(0).cloneRange();
+    r.selectNodeContents(el);
+    r.setEnd(sel.anchorNode, sel.anchorOffset);
+    return r.toString().length;
+}
+function mmrTrafficSetCaret(el, offset) {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let node, left = offset;
+    while ((node = walker.nextNode())) {
+        if (left <= node.length) {
+            const r = document.createRange();
+            r.setStart(node, left);
+            r.collapse(true);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(r);
+            return;
+        }
+        left -= node.length;
+    }
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    r.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
 }
 function renderMmrTrafficTotal() {
     const total = MMR_TRAFFIC_REASONS.reduce((sum, r) => sum + mmrTrafficShows(r), 0);
@@ -7725,29 +7828,46 @@ function renderMmrTrafficTotal() {
     el.textContent = String(total);
     const note = document.getElementById('mmrTrafficTotalNote');
     const matches = total === weekly;
-    note.textContent = matches ? `Matches Weekly Stats (${weekly} shows).` : `Should match Weekly Stats \u2014 Total Weekly Traffic is ${weekly}.`;
+    note.textContent = matches ? `Matches Weekly Stats (${weekly} shows).` : `Should match Weekly Stats — Total Weekly Traffic is ${weekly}.`;
     note.style.color = matches ? 'var(--good)' : 'var(--bad, #c0392b)';
 }
 function renderMmrTraffic() {
     const body = document.getElementById('mmrTrafficBody');
     if (!body) return;
     body.innerHTML = MMR_TRAFFIC_REASONS.map((reason, i) => {
-        const rec = MMR_TRAFFIC[reason] || {};
-        const req = MMR_TRAFFIC_COMMENT_REQUIRED(reason);
-        const missing = req && mmrTrafficShows(reason) > 0 && !(rec.comments || '').trim();
+        const text = (MMR_TRAFFIC[reason] || {}).comments || '';
+        const n = mmrTrafficCount(text);
         return `<tr>
-            <td class="mmr-label">${escapeHtml(reason)}${req ? ' <span class="mmr-hint">(comment required)</span>' : ''}</td>
-            <td class="mmr-value"><input type="number" min="0" step="1" data-traffic-i="${i}" data-traffic-field="shows" value="${escapeAttr(rec.shows || '')}"></td>
-            <td class="mmr-value"><textarea rows="1" data-traffic-i="${i}" data-traffic-field="comments" class="${missing ? 'mmr-error' : ''}" style="width:100%;box-sizing:border-box;resize:vertical;font-family:var(--sans);font-size:12px;">${escapeHtml(rec.comments || '')}</textarea></td>
+            <td class="traffic-reason">${escapeHtml(reason)}</td>
+            <td class="traffic-shows${n ? '' : ' zero'}" data-traffic-count="${i}">${n}</td>
+            <td class="traffic-comment-cell"><div class="traffic-comment" contenteditable="true" role="textbox" aria-multiline="true" aria-label="${escapeAttr(reason)} comments" data-traffic-i="${i}" data-placeholder="First Last is looking for...">${mmrTrafficCommentHtml(text)}</div></td>
         </tr>`;
     }).join('');
-    [...body.querySelectorAll('[data-traffic-field]')].forEach(el => {
-        el.addEventListener('input', () => {
-            const reason = MMR_TRAFFIC_REASONS[parseInt(el.getAttribute('data-traffic-i'), 10)];
-            MMR_TRAFFIC[reason] = Object.assign({ shows: '', comments: '' }, MMR_TRAFFIC[reason], { [el.getAttribute('data-traffic-field')]: el.value });
-            const row = el.closest('tr');
-            const comments = row.querySelector('[data-traffic-field="comments"]');
-            comments.classList.toggle('mmr-error', MMR_TRAFFIC_COMMENT_REQUIRED(reason) && mmrTrafficShows(reason) > 0 && !(MMR_TRAFFIC[reason].comments || '').trim());
+    [...body.querySelectorAll('.traffic-comment')].forEach(el => {
+        const i = parseInt(el.getAttribute('data-traffic-i'), 10);
+        const reason = MMR_TRAFFIC_REASONS[i];
+        // Keep it plain text: Enter inserts a line break, paste drops formatting.
+        el.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); document.execCommand('insertText', false, '\n'); }
+        });
+        el.addEventListener('paste', e => {
+            e.preventDefault();
+            document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain'));
+        });
+        el.addEventListener('input', e => {
+            if (e.isComposing) return;
+            const text = el.textContent;
+            const caret = mmrTrafficGetCaret(el);
+            const n = mmrTrafficCount(text);
+            MMR_TRAFFIC[reason] = Object.assign({}, MMR_TRAFFIC[reason], { comments: text, shows: n ? String(n) : '' });
+            const html = mmrTrafficCommentHtml(text);
+            if (el.innerHTML !== html) {
+                el.innerHTML = html;
+                if (caret !== null) mmrTrafficSetCaret(el, caret);
+            }
+            const cell = body.querySelector(`[data-traffic-count="${i}"]`);
+            cell.textContent = String(n);
+            cell.classList.toggle('zero', !n);
             mmrTrafficPersistLocal();
             mmrTrafficPushDebounced();
             renderMmrTrafficTotal();
@@ -7788,9 +7908,9 @@ function xmlWriteTrafficDetail(sheetXml, sharedStrings) {
     }
     targets.forEach(({ rNum, reason }) => {
         const rec = MMR_TRAFFIC[reason] || {};
-        const shows = parseInt(rec.shows, 10);
+        const shows = mmrTrafficShows(reason);
         const comments = (rec.comments || '').trim();
-        sheetXml = xmlSetCellValue(sheetXml, 'C' + rNum, isNaN(shows) || shows === 0 ? '' : shows);
+        sheetXml = xmlSetCellValue(sheetXml, 'C' + rNum, shows || '');
         sheetXml = xmlSetCellValue(sheetXml, 'D' + rNum, comments);
         sheetXml = sheetXml.replace(new RegExp(`<row r="${rNum}"([^>]*)>`), (tag, attrs) =>
             /customHeight="1"/.test(attrs) ? tag : `<row r="${rNum}"${attrs.replace(/\s+ht="[\d.]+"/, '')}>`);
