@@ -1583,11 +1583,12 @@
         color: var(--ink);
     }
     .wl-picker-bar .empty-note { display: block; margin-top: 6px; }
-    .wl-sticker-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; max-width: 620px; }
-    .wl-sticker-bar label { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
-    .wl-sticker-bar input {
-        flex: 1; min-width: 180px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px;
-        font-family: var(--sans); font-size: 13px; background: #fffbe6; color: var(--ink);
+    .wl-actions { display: flex; flex-direction: column; align-items: stretch; gap: 8px; width: 240px; max-width: 100%; margin-bottom: 16px; }
+    .wl-actions .btn { width: 100%; padding: 9px 14px; }
+    .wl-sticker-label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+    .wl-sticker-name {
+        border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font-family: var(--sans);
+        font-size: 12.5px; font-weight: 400; background: #fffbe6; color: var(--ink);
     }
     .wl-legend { display: flex; gap: 18px; margin: 10px 0 16px; font-size: 11.5px; color: var(--ink-soft); }
     .wl-legend-item { display: flex; align-items: center; gap: 6px; }
@@ -1734,6 +1735,16 @@
     /* A still-false checkbox/status cell inside an otherwise-colored row
        gets flagged red, same as the source sheet's per-cell highlight. */
     .res-cell-incomplete { background: #ffb3b3 !important; }
+    /* Residents move-in calendar */
+    .res-cal-wrap { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 18px; }
+    .res-cal-grid { margin-top: 10px; }
+    .res-cal-grid .cal-day { min-height: 70px; }
+    .res-cal-grid .cal-unit-pill.done { background: var(--line-soft); color: var(--ink-soft); }
+    .res-cal-grid .cal-unit-pill.done:hover { background: var(--ink-soft); color: #fff; }
+    .res-cal-legend { font-size: 11px; color: var(--ink-soft); margin-top: 8px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .res-cal-pill-demo { display: inline-block; width: 12px; height: 10px; border-radius: 3px; background: #fbeee8; border: 1px solid var(--reve-orange); }
+    .res-cal-pill-demo.done { background: var(--line-soft); border-color: var(--line); margin-left: 8px; }
+    body.dark-mode .res-cal-wrap { background: var(--dm-card, #24221e); }
     /* Three-tier status coloring on the control itself */
     select.mmr-lease-field.res-tier-pending { background: #ffe0d6; border-color: #de5426; }
     select.mmr-lease-field.res-tier-partial { background: #dcf3e3; border-color: #3d9e5a; }
@@ -2166,6 +2177,7 @@
                     <div class="quick-filters collapsed popover-mode" id="viewFilters"></div>
                 </div>
             </div>
+            <button type="button" class="add-term-btn" id="tourClearFiltersBtn" style="margin:-6px 0 14px;">Clear filters</button>
 
             <div id="editorBody" style="display:none;">
 
@@ -2574,6 +2586,19 @@
         </div>
     </div>
 
+    <div class="res-cal-wrap">
+        <div class="cal-toolbar-top">
+            <button type="button" class="cal-nav-btn" id="resCalPrev" title="Previous month">&lsaquo;</button>
+            <div class="cal-month-block">
+                <div class="cal-month-label" id="resCalLabel"></div>
+                <div class="cal-month-summary" id="resCalSummary"></div>
+            </div>
+            <button type="button" class="cal-nav-btn" id="resCalNext" title="Next month">&rsaquo;</button>
+        </div>
+        <div class="avail-cal-grid res-cal-grid" id="resCalGrid"></div>
+        <div class="res-cal-legend"><span class="res-cal-pill-demo"></span>Upcoming move-in <span class="res-cal-pill-demo done"></span>Moved in &nbsp;&middot;&nbsp; Click a unit to jump to its row.</div>
+    </div>
+
     <div class="res-trackers">
         <div class="res-tracker-card">
             <div class="res-tracker-num" id="resTrackMissingHolding">0</div>
@@ -2646,15 +2671,14 @@
                 <span class="empty-note" id="wlSelectedNote" style="margin:0;">No resident selected &mdash; search above to load one, or start typing to create a new record.</span>
             </div>
 
-            <div style="margin-bottom:14px;">
-                <button type="button" class="btn primary wl-download-btn" id="wlDownloadBtnTop" style="width:auto;flex:none;padding:9px 18px;">Download Welcome Letter PDF</button>
-                <button type="button" class="btn" id="wlEmailDraftBtn" style="width:auto;flex:none;padding:9px 18px;margin-left:6px;">Create Email Draft</button>
-            </div>
-            <div class="wl-sticker-bar">
-                <label for="wlStickerName">Name on sticker</label>
-                <input type="text" id="wlStickerName" placeholder="Defaults to the resident's name" autocomplete="off">
-                <button type="button" class="btn" id="wlStickerBtn" style="width:auto;flex:none;padding:8px 14px;">Download Move-in Folder Sticker</button>
-            </div>
+            <div class="wl-actions">
+                    <button type="button" class="btn primary wl-download-btn">Download WL PDF</button>
+                    <button type="button" class="btn wl-email-btn">Create Email Draft</button>
+                    <button type="button" class="btn wl-sticker-btn">Download M/I Sticker</button>
+                    <label class="wl-sticker-label">Name on Sticker
+                        <input type="text" class="wl-sticker-name" placeholder="Defaults to the resident's name" autocomplete="off">
+                    </label>
+                </div>
 
             <div class="wl-legend">
                 <span class="wl-legend-item"><span class="wl-swatch wl-swatch-manual"></span>Manual override (yours)</span>
@@ -2692,7 +2716,14 @@
                 <table class="mmr-table wl-table"><colgroup><col style="width:150px"><col style="width:90px"><col style="width:90px"></colgroup><tbody id="wlUtilitiesSection"></tbody></table>
 
                 <div style="margin:20px 0;">
-                    <button type="button" class="btn primary wl-download-btn" id="wlDownloadBtn" style="width:auto;flex:none;padding:10px 20px;">Download Welcome Letter PDF</button>
+                <div class="wl-actions">
+                    <button type="button" class="btn primary wl-download-btn">Download WL PDF</button>
+                    <button type="button" class="btn wl-email-btn">Create Email Draft</button>
+                    <button type="button" class="btn wl-sticker-btn">Download M/I Sticker</button>
+                    <label class="wl-sticker-label">Name on Sticker
+                        <input type="text" class="wl-sticker-name" placeholder="Defaults to the resident's name" autocomplete="off">
+                    </label>
+                </div>
                 </div>
             </div>
         </div>
@@ -3912,10 +3943,19 @@ function updateFilterCaptionStates() {
     });
 });
 document.addEventListener('click', (e) => {
-    if (e.target.closest('.filter-group.icon-mode')) return;
+    // Only the bubble and its open options box count as "inside" — empty
+    // space around them (e.g. beside the centred bubble) closes the menu.
+    if (e.target.closest('.filter-caption.icon-mode, .quick-filters.popover-mode')) return;
     [...document.querySelectorAll('.quick-filters.popover-mode:not(.collapsed)')].forEach(qf => qf.classList.add('collapsed'));
     [...document.querySelectorAll('.filter-caption.icon-mode.expanded')].forEach(b => b.classList.remove('expanded'));
     updateFilterFocus();
+});
+document.getElementById('tourClearFiltersBtn').addEventListener('click', () => {
+    ['sqftMin', 'sqftMax', 'priceMin', 'priceMax', 'moveInDateFilterInput'].forEach(id => { document.getElementById(id).value = ''; });
+    activeBldgFilter = []; activeFloorFilter = []; activeTypeFilter = []; activeAmenity = []; activeFloorplanFilter = [];
+    [...document.querySelectorAll('#tab-tour .filter-icon-bar .chip.active')].forEach(c => c.classList.remove('active'));
+    updateFilterCaptionStates();
+    runSearch();
 });
 // While a filter's options are open, its bar shows only that filter,
 // centred, with the options directly beneath — so a filter near the
@@ -6318,7 +6358,9 @@ let wlFilterAgent = '', wlFilterBeds = '', wlFilterMonth = '';
 
 const WAITLIST_AGENT_PRESETS = ['Justin Fox', 'Madi Lillie', 'David Brooke'];
 // Agent colors, shared by Waitlist and Residents (defined here, ahead of
-// the first Waitlist render, so both tabs can use them).
+// the first Waitlist render, so both tabs can use them): a small fixed
+// palette, hashed from the name so the same agent always lands on the
+// same color, with a few names pinned to a specific color on request.
 const RESIDENT_AGENT_PALETTE = ['#c0392b', '#2980b9', '#27ae60', '#8e44ad', '#d35400', '#16a085', '#c2185b', '#00838f', '#6d4c41', '#455a64'];
 const RESIDENT_AGENT_COLOR_OVERRIDES = { 'madi lillie': '#27ae60', 'david brooke': '#2980b9' };
 function residentAgentColor(name) {
@@ -6333,6 +6375,13 @@ function residentAgentColor(name) {
 function agentFieldStyle(name) {
     const c = residentAgentColor(name);
     return c ? `color:${c};font-weight:700;border-left:3px solid ${c};` : '';
+}
+// Waitlist: a non-listed ("Other") agent is always shown in purple.
+const WAITLIST_OTHER_AGENT_COLOR = '#8e44ad';
+function waitlistAgentStyle(agent, isOther) {
+    if (!isOther) return agentFieldStyle(agent);
+    const c = WAITLIST_OTHER_AGENT_COLOR;
+    return `color:${c};font-weight:700;border-left:3px solid ${c};`;
 }
 
 const WAITLIST_BEDS_OPTIONS = ['0', '1', '2', '3', '0-1', '1-2', '2-3', 'TH', 'LW', 'PH'];
@@ -6695,11 +6744,11 @@ function renderWaitlist() {
             <div class="wl-top-row">
                 <div class="wl-fb">
                     <label>Agent</label>
-                    <select class="wl-field wl-agent-select" data-field="agentSelect" style="${agentFieldStyle(r.agent)}">
+                    <select class="wl-field wl-agent-select" data-field="agentSelect" style="${waitlistAgentStyle(r.agent, !isPreset)}">
                         ${WAITLIST_AGENT_PRESETS.map(a => `<option value="${escapeAttr(a)}"${r.agent === a ? ' selected' : ''}>${escapeHtml(a)}</option>`).join('')}
                         <option value="Other"${!isPreset ? ' selected' : ''}>Other</option>
                     </select>
-                    <input type="text" class="wl-field wl-agent-other" data-field="agent" placeholder="Agent name" value="${escapeAttr(isPreset ? '' : r.agent)}" style="display:${!isPreset ? 'block' : 'none'};${agentFieldStyle(isPreset ? '' : r.agent)}">
+                    <input type="text" class="wl-field wl-agent-other" data-field="agent" placeholder="Agent name" value="${escapeAttr(isPreset ? '' : r.agent)}" style="display:${!isPreset ? 'block' : 'none'};${!isPreset ? waitlistAgentStyle('', true) : ''}">
                 </div>
                 <div class="wl-fb"><label>Prospect</label><input class="wl-field" data-field="prospect" placeholder="Prospect name" value="${escapeAttr(r.prospect)}"></div>
                 <div class="wl-fb">
@@ -6751,9 +6800,11 @@ function renderWaitlist() {
                 }
                 if (fieldName === 'agentSelect' || fieldName === 'agent') {
                     const agent = WAITLIST_ROWS[id].agent;
-                    card.querySelector('.wl-agent-select').style.cssText = agentFieldStyle(agent);
+                    const sel = card.querySelector('.wl-agent-select');
+                    const isOther = sel.value === 'Other';
+                    sel.style.cssText = waitlistAgentStyle(agent, isOther);
                     const other = card.querySelector('.wl-agent-other');
-                    other.style.cssText = `display:${other.style.display || 'none'};` + agentFieldStyle(other.value);
+                    other.style.cssText = `display:${other.style.display || 'none'};` + (isOther ? waitlistAgentStyle('', true) : '');
                 }
                 WAITLIST_DIRTY.add(id);
                 persistWaitlistLocal();
@@ -9362,6 +9413,20 @@ const RESIDENT_FIELDS = [
 ];
 const RESIDENT_CHECKLIST_KEYS = ['idCheck', 'welcomeLetter', 'insurance', 'miPayment', 'miFolder', 'walkThrough', 'movedIn', 'latch'];
 const RESIDENT_RED_FLAG_KEYS = ['insurance', 'miPayment'];
+// Once Screen is Approved or Uploaded, every step from ID through Latch
+// that isn't finished is shaded pink: an unchecked box, or a dropdown
+// short of its final value.
+const RESIDENT_FOLLOWUP_KEYS = ['idCheck', 'welcomeLetter', 'lease', 'deposit', 'pet', 'parking', 'insurance', 'miPayment', 'inventoryConditions', 'miFolder', 'walkThrough', 'movedIn', 'latch'];
+function residentStepIncomplete(row, key) {
+    if (RESIDENT_RED_FLAG_KEYS.indexOf(key) !== -1 && !row[key]) return true; // always flagged
+    if (row.screen !== 'Approved' && row.screen !== '\u2191') return false;
+    if (RESIDENT_FOLLOWUP_KEYS.indexOf(key) === -1) return false;
+    const v = row[key];
+    if (key === 'lease' || key === 'inventoryConditions') return v !== '\u2191';
+    if (key === 'deposit') return v !== '\u2713';
+    if (key === 'pet' || key === 'parking') return !v;
+    return !v; // checkboxes
+}
 // Three-tier status coloring for the interactive cell controls themselves
 // (separate from the row-level pending/complete/notice background):
 // orange-red = sent/initiated/pending, green = complete but not uploaded,
@@ -9396,10 +9461,6 @@ function residentStatusClass(key, val) {
     const tier = residentStatusTier(key, val);
     return tier ? ` res-tier-${tier}` : '';
 }
-// Per-agent color coding — a small fixed palette, hashed from the name
-// so the same agent always lands on the same color across renders/
-// sessions, without needing to maintain an explicit agent->color map.
-// A few names are pinned to a specific color on request, checked first.
 let RESIDENT_ROWS = {};
 // Rows edited here but not yet CONFIRMED stored on the backend. Kept in
 // localStorage (not just memory) so a page refresh mid-save can't
@@ -9716,8 +9777,7 @@ function renderResidentRow(id, row, derived) {
             const cls = noticeDue ? ' res-cell-notice-due' : '';
             cells += `<td class="res-computed${cls}">${derived.movedOut ? 'Yes' : 'No'}</td>`;
         } else if (f.type === 'checkbox') {
-            const isRedFlag = RESIDENT_RED_FLAG_KEYS.indexOf(f.key) !== -1 && !row[f.key];
-            cells += `<td class="res-check-cell${isRedFlag ? ' res-cell-incomplete' : ''}"><input type="checkbox" class="res-check${residentStatusClass(f.key, row[f.key])}" data-field="${f.key}" ${row[f.key] ? 'checked' : ''}></td>`;
+            cells += `<td class="res-check-cell${residentStepIncomplete(row, f.key) ? ' res-cell-incomplete' : ''}"><input type="checkbox" class="res-check${residentStatusClass(f.key, row[f.key])}" data-field="${f.key}" ${row[f.key] ? 'checked' : ''}></td>`;
         } else if (f.type === 'agent') {
             // Same agent list as the Waitlist; a name typed in before this
             // was a dropdown stays selectable so no row loses its agent.
@@ -9727,7 +9787,7 @@ function renderResidentRow(id, row, derived) {
             cells += `<td><select class="mmr-lease-field res-agent-select" data-field="${f.key}" style="${agentFieldStyle(val)}">${opts.map(o => `<option value="${escapeAttr(o)}"${val === o ? ' selected' : ''}>${o ? escapeHtml(o) : '\u2014'}</option>`).join('')}</select></td>`;
         } else if (f.type === 'select') {
             const val = row[f.key] || '';
-            cells += `<td><select class="mmr-lease-field${residentStatusClass(f.key, val)}" data-field="${f.key}">${f.options.map(o => `<option value="${escapeAttr(o)}"${val === o ? ' selected' : ''}>${(f.optionLabels && f.optionLabels[o]) || o || '\u2014'}</option>`).join('')}</select></td>`;
+            cells += `<td${residentStepIncomplete(row, f.key) ? ' class="res-cell-incomplete"' : ''}><select class="mmr-lease-field${residentStatusClass(f.key, val)}" data-field="${f.key}">${f.options.map(o => `<option value="${escapeAttr(o)}"${val === o ? ' selected' : ''}>${(f.optionLabels && f.optionLabels[o]) || o || '\u2014'}</option>`).join('')}</select></td>`;
         } else if (f.type === 'date') {
             cells += `<td><input type="date" class="mmr-lease-field" data-field="${f.key}" value="${escapeAttr(String(row[f.key] || ''))}"></td>`;
         } else if (f.type === 'number') {
@@ -9751,6 +9811,7 @@ function refreshResidentRow(id) {
     temp.innerHTML = renderResidentRow(id, row, derived);
     tr.replaceWith(temp.firstElementChild);
     wireResidentRow(id);
+    renderResidentCalendar();
 }
 // Re-sorts after a Move-In Date change, keeping focus on whatever field
 // was just tabbed/clicked into, and briefly highlighting the moved row.
@@ -9864,6 +9925,7 @@ function renderResidentsBody() {
     const tbody = document.getElementById('residentsBody');
     if (!tbody) return;
     const ids = Object.keys(RESIDENT_ROWS).filter(id => !RESIDENT_ROWS[id].deleted);
+    renderResidentCalendar();
 
     let list = ids.map(id => {
         const row = RESIDENT_ROWS[id];
@@ -9922,6 +9984,63 @@ function renderResidentsBody() {
     tbody.innerHTML = list.map(({ id, row, derived }) => renderResidentRow(id, row, derived)).join('');
     list.forEach(({ id }) => wireResidentRow(id));
 }
+
+// ---- Move-in calendar (top of the Residents tab) ----
+let resCalMonth = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+function renderResidentCalendar() {
+    const grid = document.getElementById('resCalGrid');
+    if (!grid) return;
+    const y = resCalMonth.getFullYear(), m = resCalMonth.getMonth();
+    document.getElementById('resCalLabel').textContent = resCalMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const prefix = `${y}-${String(m + 1).padStart(2, '0')}-`;
+    const byDay = {};
+    Object.keys(RESIDENT_ROWS).forEach(id => {
+        const r = RESIDENT_ROWS[id];
+        if (r.deleted || !r.moveInDate || !r.moveInDate.startsWith(prefix)) return;
+        const day = parseInt(r.moveInDate.slice(8, 10), 10);
+        (byDay[day] = byDay[day] || []).push({ id, r });
+    });
+    const all = Object.values(byDay).flat();
+    const pending = all.filter(x => !x.r.movedIn).length;
+    document.getElementById('resCalSummary').innerHTML = `<b>${all.length}</b> move-in${all.length === 1 ? '' : 's'} this month &middot; <b>${pending}</b> still upcoming`;
+    const today = new Date();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    let html = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="cal-dow">${d}</div>`).join('');
+    for (let i = 0; i < new Date(y, m, 1).getDay(); i++) html += '<div class="cal-day empty"></div>';
+    for (let d = 1; d <= daysInMonth; d++) {
+        const isToday = today.getFullYear() === y && today.getMonth() === m && today.getDate() === d;
+        const items = (byDay[d] || []).sort((a, b) => (a.r.unit || '').localeCompare(b.r.unit || ''));
+        html += `<div class="cal-day${isToday ? ' today' : ''}"><div class="cal-day-num">${d}</div>${items.map(({ id, r }) =>
+            `<div class="cal-unit-pill${r.movedIn ? ' done' : ''}" data-res-id="${escapeAttr(id)}" title="${escapeAttr(`${r.first || ''} ${r.last || ''}`.trim())} \u2014 click to jump to this row">${escapeHtml(r.unit || '?')}${r.last ? ' ' + escapeHtml(r.last) : ''}</div>`).join('')}</div>`;
+    }
+    grid.innerHTML = html;
+    [...grid.querySelectorAll('[data-res-id]')].forEach(el => el.addEventListener('click', () => residentJumpToRow(el.getAttribute('data-res-id'))));
+}
+// Scrolls the table to a resident's row (showing it first if the
+// current sub-tab, search or filters would hide it) and flashes it.
+function residentJumpToRow(id) {
+    let tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
+    if (!tr) {
+        const row = RESIDENT_ROWS[id];
+        if (!row) return;
+        resFilters = {};
+        [...document.querySelectorAll('#residentsHeaderRow [data-filter]')].forEach(el => { el.value = ''; });
+        if (typeof updateResidentsFilterCaptionStates === 'function') updateResidentsFilterCaptionStates();
+        document.getElementById('residentSearchBar').value = '';
+        resSubTab = computeResidentDerived(row).movedOut ? 'moveouts' : 'active';
+        [...document.querySelectorAll('[data-res-subtab]')].forEach(b => b.classList.toggle('active', b.getAttribute('data-res-subtab') === resSubTab));
+        renderResidentsBody();
+        tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
+        if (!tr) return;
+    }
+    tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    tr.classList.remove('res-row-moved');
+    void tr.offsetWidth; // restart the flash animation
+    tr.classList.add('res-row-moved');
+    setTimeout(() => tr.classList.remove('res-row-moved'), 1800);
+}
+document.getElementById('resCalPrev').addEventListener('click', () => { resCalMonth = new Date(resCalMonth.getFullYear(), resCalMonth.getMonth() - 1, 1); renderResidentCalendar(); });
+document.getElementById('resCalNext').addEventListener('click', () => { resCalMonth = new Date(resCalMonth.getFullYear(), resCalMonth.getMonth() + 1, 1); renderResidentCalendar(); });
 
 function renderResidents() {
     if (!residentsHeaderBuilt) {
@@ -10325,9 +10444,10 @@ function renderWlForm() {
     const t = wlComputeTotals(r, resident);
     const { chargesTotal, depositsTotal, feesTotal, prorateAmt, prorateFrom, prorateTo, moveInAfter25th, subtotal, totalDue, petCount, parkingCharge, petRent, petDeposit, applicantCount, appFeeAmt, effectiveRent } = t;
 
-    const stickerInput = document.getElementById('wlStickerName');
-    if (document.activeElement !== stickerInput) stickerInput.value = r.stickerNameManual || '';
-    stickerInput.placeholder = wlStickerAutoName(resident) || 'Resident name';
+    [...document.querySelectorAll('.wl-sticker-name')].forEach(inp => {
+        if (document.activeElement !== inp) inp.value = r.stickerNameManual || '';
+        inp.placeholder = wlStickerAutoName(resident) || 'Resident name';
+    });
 
     document.getElementById('wlNamesSection').innerHTML = `
         <tr><td class="wl-row-label">Full Name 1</td><td class="wl-auto" colspan="2">${escapeHtml(resident ? `${resident.first} ${resident.last}` : '\u2014')}</td></tr>
@@ -10694,9 +10814,14 @@ const STICKER_TEXT_COLOR = '#D9562B';
 function wlStickerAutoName(resident) {
     return resident ? `${resident.first || ''} ${resident.last || ''}`.trim() : '';
 }
-document.getElementById('wlStickerName').addEventListener('input', (e) => {
-    if (!wlSelectedUnit) return;
-    wlCommit('stickerNameManual', e.target.value);
+// The same controls appear at the top and bottom of the editor; the two
+// "Name on Sticker" boxes mirror each other.
+[...document.querySelectorAll('.wl-sticker-name')].forEach(inp => {
+    inp.addEventListener('input', (e) => {
+        [...document.querySelectorAll('.wl-sticker-name')].forEach(other => { if (other !== inp) other.value = inp.value; });
+        if (!wlSelectedUnit) return;
+        wlCommit('stickerNameManual', e.target.value);
+    });
 });
 function wlLoadImage(src) {
     return new Promise((resolve, reject) => {
@@ -10785,7 +10910,7 @@ async function wlDownloadSticker(btn) {
         btn.textContent = originalLabel;
     }
 }
-document.getElementById('wlStickerBtn').addEventListener('click', (e) => wlDownloadSticker(e.currentTarget));
+[...document.querySelectorAll('.wl-sticker-btn')].forEach(btn => btn.addEventListener('click', (e) => wlDownloadSticker(e.currentTarget)));
 
 /* ---------- Create Email Draft ----------
    Asks for the resident's email (remembering the last one used for this
@@ -10813,7 +10938,7 @@ function wlCreateEmailDraft() {
     a.click();
     document.body.removeChild(a);
 }
-document.getElementById('wlEmailDraftBtn').addEventListener('click', wlCreateEmailDraft);
+[...document.querySelectorAll('.wl-email-btn')].forEach(btn => btn.addEventListener('click', wlCreateEmailDraft));
 
 /* ============================================================
    NEW LEASE — auto-filled from the Welcome Letter record for the same
