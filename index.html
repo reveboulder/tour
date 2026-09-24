@@ -1236,7 +1236,7 @@
         color: var(--ink);
     }
     .mmr-value input:focus { outline: 1px solid var(--reve-orange); }
-    .mmr-value input.mmr-error { border-color: #c0392b; background: #fbebe9; }
+    .mmr-value input.mmr-error, .mmr-value textarea.mmr-error { border-color: #c0392b; background: #fbebe9; }
     .mmr-value.mmr-locked { background: var(--line-soft); color: var(--ink-soft); font-weight: 700; }
     .mmr-value.mmr-computed { background: #fbeee8; color: var(--reve-orange-dark); font-weight: 700; }
     .mmr-report { color: var(--ink-soft); font-size: 11px; white-space: pre-line; min-width: 220px; }
@@ -2761,6 +2761,7 @@
                 <button type="button" class="wl-subtab active" data-mmr-subtab="weekly">Weekly Stats</button>
                 <button type="button" class="wl-subtab" data-mmr-subtab="newleases">New Leases</button>
                 <button type="button" class="wl-subtab" data-mmr-subtab="renewals">Unit Renewals</button>
+                <button type="button" class="wl-subtab" data-mmr-subtab="traffic">Weekly Traffic Detail</button>
             </div>
 
             <div id="mmrPanel-weekly" class="mmr-subpanel">
@@ -2902,6 +2903,22 @@
                             <th>Previous Eff Rent</th><th>New Eff Rent</th><th></th>
                         </tr></thead>
                         <tbody id="mmrRenewalBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="mmrPanel-traffic" class="mmr-subpanel" style="display:none;">
+                <div class="empty-note" style="margin-bottom:8px;">Reasons for not leasing this week (Report: Traffic Detail). Replaces last week's numbers in the uploaded file on Download New MMR.</div>
+                <button type="button" class="btn" id="mmrTrafficClearBtn" style="width:auto;padding:8px 16px;">Clear for New Week</button>
+                <div class="mmr-table-wrap" style="margin-top:12px;">
+                    <table class="mmr-table">
+                        <colgroup><col style="width:32%"><col style="width:110px"><col></colgroup>
+                        <thead><tr><th>Reason</th><th># of Shows</th><th>Comments</th></tr></thead>
+                        <tbody id="mmrTrafficBody"></tbody>
+                        <tfoot><tr>
+                            <td class="mmr-label"><b>TOTAL</b></td>
+                            <td class="mmr-value mmr-computed" id="mmrTrafficTotal">0</td>
+                            <td class="mmr-report" id="mmrTrafficTotalNote"></td>
+                        </tr></tfoot>
                     </table>
                 </div>
             </div>
@@ -3672,11 +3689,30 @@ const buildings = [...new Set(UNITS.map(u => u.bldg))].sort();
 const floors = [...new Set(UNITS.map(u => u.floor))].sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
 const typeOrder = ['Studio', '1-Bed', '2-Bed', '3-Bed', 'Townhome', 'Live/Work'];
 
-let activeBldgFilter = null;
-let activeFloorFilter = null;
-let activeTypeFilter = null;
-let activeAmenity = null;
-let activeFloorplanFilter = null;
+// Each chip filter is multi-select: an array of picked values, empty =
+// no filter. Within one filter a unit matches ANY picked value; across
+// filters, every active filter must match.
+let activeBldgFilter = [];
+let activeFloorFilter = [];
+let activeTypeFilter = [];
+let activeAmenity = [];
+let activeFloorplanFilter = [];
+
+// Toggles v in/out of a multi-select chip filter's array.
+function toggleChipValue(arr, v) {
+    return arr.includes(v) ? arr.filter(x => x !== v) : arr.concat([v]);
+}
+// Collapsed-caption text for a multi-select filter: the one pick, or
+// the first pick plus a count of the rest.
+function chipFilterLabel(arr, fmt, fallback) {
+    if (!arr.length) return fallback;
+    return arr.length === 1 ? fmt(arr[0]) : `${fmt(arr[0])} +${arr.length - 1}`;
+}
+function unitMatchesAmenity(u, amenity) {
+    if (amenity === 'Mountain View') return isMountainView(u);
+    if (amenity === 'Corner Unit') return CORNER_UNITS.has(u.unit);
+    return true;
+}
 
 function buildChipRow(box, values, labelFn, getActive, setActive) {
     box.innerHTML = '';
@@ -3685,18 +3721,13 @@ function buildChipRow(box, values, labelFn, getActive, setActive) {
         chip.className = 'chip';
         chip.type = 'button';
         chip.textContent = labelFn(v);
-        if (getActive() === v) chip.classList.add('active');
+        if (getActive().includes(v)) chip.classList.add('active');
         chip.addEventListener('click', () => {
-            setActive(getActive() === v ? null : v);
-            [...box.children].forEach(c => c.classList.remove('active'));
-            if (getActive() === v) chip.classList.add('active');
+            setActive(toggleChipValue(getActive(), v));
+            chip.classList.toggle('active', getActive().includes(v));
             updateFilterCaptionStates();
             runSearch();
-            if (box.classList.contains('popover-mode')) {
-                box.classList.add('collapsed');
-                const cap = document.querySelector(`.filter-caption[data-target="${box.id}"]`);
-                if (cap) cap.classList.remove('expanded');
-            }
+            // Popover stays open so several chips can be picked in a row.
         });
         box.appendChild(chip);
     });
@@ -3718,7 +3749,7 @@ function rebuildFloorplanFilter() {
         [...marketed].map(unit => byUnit[unit] && byUnit[unit].floorplan).filter(Boolean)
     )].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
-    if (activeFloorplanFilter && !codes.includes(activeFloorplanFilter)) activeFloorplanFilter = null;
+    activeFloorplanFilter = activeFloorplanFilter.filter(c => codes.includes(c));
 
     if (!codes.length) {
         floorplanFilterBox.innerHTML = `<span class="empty-note">No pricing sheet loaded yet.</span>`;
@@ -3740,13 +3771,13 @@ function updateFilterCaptionStates() {
     const moveInVal = document.getElementById('moveInDateFilterInput').value;
     const map = [
         ['moveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
-        ['bldgFilters', !!activeBldgFilter, activeBldgFilter || 'Building'],
+        ['bldgFilters', activeBldgFilter.length > 0, chipFilterLabel(activeBldgFilter, b => b, 'Building')],
         ['sqftFilters', sqftActive, sqftActive ? `${sqftMin || '0'}\u2013${sqftMax || '\u221e'}` : 'Sq Ft'],
         ['priceFilters', priceActive, priceActive ? `$${priceMin || '0'}\u2013$${priceMax || '\u221e'}` : 'Price'],
-        ['floorFilters', !!activeFloorFilter, activeFloorFilter ? `Fl ${activeFloorFilter}` : 'Floor'],
-        ['typeFilters', !!activeTypeFilter, activeTypeFilter || 'Beds'],
-        ['viewFilters', !!activeAmenity, activeAmenity || 'Amenity'],
-        ['floorplanFilters', !!activeFloorplanFilter, activeFloorplanFilter || 'Floorplan']
+        ['floorFilters', activeFloorFilter.length > 0, chipFilterLabel(activeFloorFilter, f => `Fl ${f}`, 'Floor')],
+        ['typeFilters', activeTypeFilter.length > 0, chipFilterLabel(activeTypeFilter, t => t, 'Beds')],
+        ['viewFilters', activeAmenity.length > 0, chipFilterLabel(activeAmenity, a => a, 'Amenity')],
+        ['floorplanFilters', activeFloorplanFilter.length > 0, chipFilterLabel(activeFloorplanFilter, c => c, 'Floorplan')]
     ];
     map.forEach(([id, isActive, labelText]) => {
         const caption = document.querySelector(`.filter-caption[data-target="${id}"]`);
@@ -3785,12 +3816,11 @@ function runSearch() {
     const sqftB = availNumBounds('sqftMin', 'sqftMax');
     const priceB = availNumBounds('priceMin', 'priceMax');
     let list = UNITS.filter(u => marketed.has(u.unit));
-    if (activeBldgFilter) list = list.filter(u => u.bldg === activeBldgFilter);
-    if (activeFloorFilter) list = list.filter(u => u.floor === activeFloorFilter);
-    if (activeTypeFilter) list = list.filter(u => unitTypeCategory(u) === activeTypeFilter);
-    if (activeAmenity === 'Mountain View') list = list.filter(u => isMountainView(u));
-    if (activeAmenity === 'Corner Unit') list = list.filter(u => CORNER_UNITS.has(u.unit));
-    if (activeFloorplanFilter) list = list.filter(u => u.floorplan === activeFloorplanFilter);
+    if (activeBldgFilter.length) list = list.filter(u => activeBldgFilter.includes(u.bldg));
+    if (activeFloorFilter.length) list = list.filter(u => activeFloorFilter.includes(u.floor));
+    if (activeTypeFilter.length) list = list.filter(u => activeTypeFilter.includes(unitTypeCategory(u)));
+    if (activeAmenity.length) list = list.filter(u => activeAmenity.some(a => unitMatchesAmenity(u, a)));
+    if (activeFloorplanFilter.length) list = list.filter(u => activeFloorplanFilter.includes(u.floorplan));
     const moveInDateVal = document.getElementById('moveInDateFilterInput').value;
     if (moveInDateVal) {
         const cutoff = new Date(moveInDateVal + 'T23:59:59');
@@ -4732,20 +4762,14 @@ function buildFilterChips(box, values, labelFn, getActive, setActive, onChange, 
         chip.className = 'chip';
         chip.type = 'button';
         chip.textContent = labelFn(v);
-        if (getActive() === v) chip.classList.add('active');
+        if (getActive().includes(v)) chip.classList.add('active');
         chip.addEventListener('click', () => {
-            setActive(getActive() === v ? null : v);
-            [...box.children].forEach(c => c.classList.remove('active'));
-            if (getActive() === v) chip.classList.add('active');
+            setActive(toggleChipValue(getActive(), v));
+            chip.classList.toggle('active', getActive().includes(v));
             if (captionUpdateFn) captionUpdateFn();
             onChange();
-            // Icon-mode popovers close on selection — the icon bar then
-            // shows the pick under the icon, and clicking either reopens it.
-            if (box.classList.contains('popover-mode')) {
-                box.classList.add('collapsed');
-                const cap = document.querySelector(`.filter-caption[data-target="${box.id}"]`);
-                if (cap) cap.classList.remove('expanded');
-            }
+            // Popover stays open so several chips can be picked in a row;
+            // the icon bar shows the picks under the icon.
         });
         box.appendChild(chip);
     });
@@ -4774,7 +4798,7 @@ const typeOrderPH = ['Studio', '1-Bed', '2-Bed', '3-Bed', 'Townhome', 'Live/Work
 let calViewDate = new Date();
 calViewDate.setDate(1);
 let calFocusedDay = null; // null = month view; otherwise the JS Date being focused
-let activeAvailType = null, activeAvailFloorplan = null, activeAvailFloor = null, activeAvailBldg = null, activeAvailAmenity = null;
+let activeAvailType = [], activeAvailFloorplan = [], activeAvailFloor = [], activeAvailBldg = [], activeAvailAmenity = [];
 
 const availTypeBox = document.getElementById('availTypeFilters');
 buildFilterChips(availTypeBox, typeOrderPH, t => t, () => activeAvailType, v => activeAvailType = v, renderCalendar, updateAvailCaptionStates);
@@ -4793,11 +4817,11 @@ function updateAvailCaptionStates() {
         ['availMoveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
         ['availSqftFilters', sqftActive, sqftActive ? `${sqftMin || '0'}\u2013${sqftMax || '\u221e'}` : 'Sq Ft'],
         ['availPriceFilters', priceActive, priceActive ? `$${priceMin || '0'}\u2013$${priceMax || '\u221e'}` : 'Price'],
-        ['availTypeFilters', !!activeAvailType, activeAvailType || 'Beds'],
-        ['availNameFilters', !!activeAvailFloorplan, activeAvailFloorplan || 'Floorplan'],
-        ['availFloorFilters', !!activeAvailFloor, activeAvailFloor ? `Fl ${activeAvailFloor}` : 'Floor'],
-        ['availBldgFilters', !!activeAvailBldg, activeAvailBldg || 'Building'],
-        ['availAmenityFilters', !!activeAvailAmenity, activeAvailAmenity || 'Amenity']
+        ['availTypeFilters', activeAvailType.length > 0, chipFilterLabel(activeAvailType, t => t, 'Beds')],
+        ['availNameFilters', activeAvailFloorplan.length > 0, chipFilterLabel(activeAvailFloorplan, c => c, 'Floorplan')],
+        ['availFloorFilters', activeAvailFloor.length > 0, chipFilterLabel(activeAvailFloor, f => `Fl ${f}`, 'Floor')],
+        ['availBldgFilters', activeAvailBldg.length > 0, chipFilterLabel(activeAvailBldg, b => b, 'Building')],
+        ['availAmenityFilters', activeAvailAmenity.length > 0, chipFilterLabel(activeAvailAmenity, a => a, 'Amenity')]
     ];
     map.forEach(([id, isActive, labelText]) => {
         const cap = document.querySelector(`.filter-caption[data-target="${id}"]`);
@@ -4817,9 +4841,9 @@ function rebuildAvailFilters() {
     const floorCodes = [...new Set(marketed.map(u => u.floor))].sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
     const bldgCodes = [...new Set(marketed.map(u => u.bldg))].sort();
 
-    if (activeAvailFloorplan && floorplanCodes.indexOf(activeAvailFloorplan) === -1) activeAvailFloorplan = null;
-    if (activeAvailFloor && floorCodes.indexOf(activeAvailFloor) === -1) activeAvailFloor = null;
-    if (activeAvailBldg && bldgCodes.indexOf(activeAvailBldg) === -1) activeAvailBldg = null;
+    activeAvailFloorplan = activeAvailFloorplan.filter(c => floorplanCodes.includes(c));
+    activeAvailFloor = activeAvailFloor.filter(f => floorCodes.includes(f));
+    activeAvailBldg = activeAvailBldg.filter(b => bldgCodes.includes(b));
 
     const nameBox = document.getElementById('availNameFilters');
     if (floorplanCodes.length) {
@@ -4886,12 +4910,11 @@ function availFilteredUnits() {
         if (moveInCutoff !== null) {
             if (!p || p.availableSortKey === undefined || p.availableSortKey > moveInCutoff) return false;
         }
-        if (activeAvailType && unitTypeCategoryPH(u) !== activeAvailType) return false;
-        if (activeAvailFloorplan && u.floorplan !== activeAvailFloorplan) return false;
-        if (activeAvailFloor && u.floor !== activeAvailFloor) return false;
-        if (activeAvailBldg && u.bldg !== activeAvailBldg) return false;
-        if (activeAvailAmenity === 'Mountain View' && !isMountainView(u)) return false;
-        if (activeAvailAmenity === 'Corner Unit' && !CORNER_UNITS.has(u.unit)) return false;
+        if (activeAvailType.length && !activeAvailType.includes(unitTypeCategoryPH(u))) return false;
+        if (activeAvailFloorplan.length && !activeAvailFloorplan.includes(u.floorplan)) return false;
+        if (activeAvailFloor.length && !activeAvailFloor.includes(u.floor)) return false;
+        if (activeAvailBldg.length && !activeAvailBldg.includes(u.bldg)) return false;
+        if (activeAvailAmenity.length && !activeAvailAmenity.some(a => unitMatchesAmenity(u, a))) return false;
         return true;
     });
 }
@@ -5184,8 +5207,8 @@ document.getElementById('availClearBtn').addEventListener('click', () => {
     document.getElementById('availSqftMax').value = '';
     document.getElementById('availPriceMin').value = '';
     document.getElementById('availPriceMax').value = '';
-    activeAvailType = null; activeAvailFloorplan = null; activeAvailFloor = null; activeAvailBldg = null;
-    [...availTypeBox.children].forEach(c => c.classList.remove('active'));
+    activeAvailType = []; activeAvailFloorplan = []; activeAvailFloor = []; activeAvailBldg = []; activeAvailAmenity = [];
+    [...availTypeBox.children, ...document.getElementById('availAmenityFilters').children].forEach(c => c.classList.remove('active'));
     rebuildAvailFilters();
     renderCalendar();
 });
@@ -5199,7 +5222,7 @@ const EXPIRING_META_KEY = 'reve-expiring-meta';
 const EXPIRING_DATA_KEY = 'reve-expiring-data';
 let EXPIRING_UNITS = [];
 let EXPIRING_META = null;
-let activeExpType = null, activeExpFloorplan = null, activeExpFloor = null, activeExpBldg = null, activeExpAmenity = null;
+let activeExpType = [], activeExpFloorplan = [], activeExpFloor = [], activeExpBldg = [], activeExpAmenity = [];
 
 // Excel's epoch is 1899-12-30 (keeps the historical Feb 29 1900 bug intact).
 function excelSerialToDate(serial) {
@@ -5394,11 +5417,11 @@ function updateExpCaptionStates() {
     const moveInVal = document.getElementById('expiringMoveInDate').value;
     const map = [
         ['expMoveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
-        ['expTypeFilters', !!activeExpType, activeExpType || 'Beds'],
-        ['expNameFilters', !!activeExpFloorplan, activeExpFloorplan || 'Floorplan'],
-        ['expFloorFilters', !!activeExpFloor, activeExpFloor ? `Fl ${activeExpFloor}` : 'Floor'],
-        ['expBldgFilters', !!activeExpBldg, activeExpBldg || 'Building'],
-        ['expAmenityFilters', !!activeExpAmenity, activeExpAmenity || 'Amenity']
+        ['expTypeFilters', activeExpType.length > 0, chipFilterLabel(activeExpType, t => t, 'Beds')],
+        ['expNameFilters', activeExpFloorplan.length > 0, chipFilterLabel(activeExpFloorplan, c => c, 'Floorplan')],
+        ['expFloorFilters', activeExpFloor.length > 0, chipFilterLabel(activeExpFloor, f => `Fl ${f}`, 'Floor')],
+        ['expBldgFilters', activeExpBldg.length > 0, chipFilterLabel(activeExpBldg, b => b, 'Building')],
+        ['expAmenityFilters', activeExpAmenity.length > 0, chipFilterLabel(activeExpAmenity, a => a, 'Amenity')]
     ];
     map.forEach(([id, isActive, labelText]) => {
         const cap = document.querySelector(`.filter-caption[data-target="${id}"]`);
@@ -5413,9 +5436,9 @@ function rebuildExpiringFilters() {
     const floorCodes = [...new Set(EXPIRING_UNITS.map(r => r.floor).filter(Boolean))].sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
     const bldgCodes = [...new Set(EXPIRING_UNITS.map(r => r.bldg).filter(Boolean))].sort();
 
-    if (activeExpFloorplan && floorplanCodes.indexOf(activeExpFloorplan) === -1) activeExpFloorplan = null;
-    if (activeExpFloor && floorCodes.indexOf(activeExpFloor) === -1) activeExpFloor = null;
-    if (activeExpBldg && bldgCodes.indexOf(activeExpBldg) === -1) activeExpBldg = null;
+    activeExpFloorplan = activeExpFloorplan.filter(c => floorplanCodes.includes(c));
+    activeExpFloor = activeExpFloor.filter(f => floorCodes.includes(f));
+    activeExpBldg = activeExpBldg.filter(b => bldgCodes.includes(b));
 
     buildFilterChips(document.getElementById('expTypeFilters'), typeOrderPH, t => t, () => activeExpType, v => activeExpType = v, renderExpiringList, updateExpCaptionStates);
     buildFilterChips(document.getElementById('expAmenityFilters'), ['Mountain View', 'Corner Unit'], v => v, () => activeExpAmenity, v => activeExpAmenity = v, renderExpiringList, updateExpCaptionStates);
@@ -5447,7 +5470,7 @@ function rebuildExpiringFilters() {
 document.getElementById('expiringMoveInDate').addEventListener('input', () => { updateExpCaptionStates(); renderExpiringList(); });
 document.getElementById('expClearFiltersBtn').addEventListener('click', () => {
     document.getElementById('expiringMoveInDate').value = '';
-    activeExpType = null; activeExpFloorplan = null; activeExpFloor = null; activeExpBldg = null;
+    activeExpType = []; activeExpFloorplan = []; activeExpFloor = []; activeExpBldg = []; activeExpAmenity = [];
     rebuildExpiringFilters();
     renderExpiringList();
 });
@@ -5468,15 +5491,14 @@ function renderExpiringList() {
 
     const list = EXPIRING_UNITS.filter(r => {
         if (moveInDate && r.leaseTo > moveInDate) return false;
-        if (activeExpFloorplan && r.floorplan !== activeExpFloorplan) return false;
-        if (activeExpFloor && r.floor !== activeExpFloor) return false;
-        if (activeExpBldg && r.bldg !== activeExpBldg) return false;
-        if (activeExpType) {
+        if (activeExpFloorplan.length && !activeExpFloorplan.includes(r.floorplan)) return false;
+        if (activeExpFloor.length && !activeExpFloor.includes(r.floor)) return false;
+        if (activeExpBldg.length && !activeExpBldg.includes(r.bldg)) return false;
+        if (activeExpType.length) {
             const u = byUnit[r.unit];
-            if (!u || unitTypeCategoryPH(u) !== activeExpType) return false;
+            if (!u || !activeExpType.includes(unitTypeCategoryPH(u))) return false;
         }
-        if (activeExpAmenity === 'Mountain View' && !MOUNTAIN_VIEW_UNITS.has(r.unit)) return false;
-        if (activeExpAmenity === 'Corner Unit' && !CORNER_UNITS.has(r.unit)) return false;
+        if (activeExpAmenity.length && !activeExpAmenity.some(a => a === 'Mountain View' ? MOUNTAIN_VIEW_UNITS.has(r.unit) : CORNER_UNITS.has(r.unit))) return false;
         return true;
     });
 
@@ -7580,11 +7602,135 @@ function recomputeMMR() {
     btn.addEventListener('click', () => {
         const target = btn.getAttribute('data-mmr-subtab');
         [...document.querySelectorAll('.mmr-subtabs .wl-subtab')].forEach(b => b.classList.toggle('active', b === btn));
-        ['weekly', 'newleases', 'renewals'].forEach(name => {
+        ['weekly', 'newleases', 'renewals', 'traffic'].forEach(name => {
             document.getElementById('mmrPanel-' + name).style.display = (name === target) ? 'block' : 'none';
         });
     });
 });
+
+/* ============================================================
+   MMR — Weekly Traffic Detail ("Reasons for not leasing"). One current
+   week's record: # of Shows and Comments per reason, in the same order
+   as the MMR sheet's rows. On export these REPLACE the uploaded file's
+   values (last week's numbers never carry over). The TOTAL should
+   match Weekly Stats' Total Weekly Traffic, same as the sheet notes.
+   ============================================================ */
+const MMR_TRAFFIC_REASONS = [
+    'Amenities lacking', 'Unit too small', 'Decided not to move', 'Disliked unit floor plan/location',
+    'Desired floor plan unavailable', 'Future (over 30 days)', 'Future (over 90 Days)', 'Desired lease term unavailable',
+    'Leased at competitor', 'Garage/storage not available', 'Unqualified', 'Not sure if moving yet',
+    'Price-too expensive', 'Roommate/relative needs to see', 'Pet does not meet community policies', 'Pending',
+    'Pending employment offer', 'Looking for friend/relative', 'Just started search', 'Application',
+    'Other - Virtual showing via Rent Caf\u00e9', 'Other - Market Tour', 'Other - Deciding between floorplans', 'Leased'
+];
+// Reasons whose sheet note says a comment is required.
+const MMR_TRAFFIC_COMMENT_REQUIRED = r => r === 'Pending' || r.startsWith('Other');
+const MMR_TRAFFIC_KEY = 'reve-mmr-traffic';
+const MMR_TRAFFIC_BACKEND_KEY = 'mmr-traffic-detail';
+let MMR_TRAFFIC = {}; // reason -> { shows, comments }
+
+function mmrTrafficPersistLocal() { try { localStorage.setItem(MMR_TRAFFIC_KEY, JSON.stringify(MMR_TRAFFIC)); } catch (e) {} }
+const mmrTrafficPushDebounced = debounce(() => {
+    if (BACKEND_URL && APP_MODE !== 'test') backendPush(MMR_TRAFFIC_BACKEND_KEY, MMR_TRAFFIC);
+}, 900);
+function restoreMmrTrafficLocal() {
+    try { const raw = localStorage.getItem(MMR_TRAFFIC_KEY); if (raw) MMR_TRAFFIC = JSON.parse(raw) || {}; } catch (e) { MMR_TRAFFIC = {}; }
+}
+async function pullMmrTrafficFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(MMR_TRAFFIC_BACKEND_KEY);
+    if (remote) {
+        MMR_TRAFFIC = remote;
+        mmrTrafficPersistLocal();
+        if (!(document.activeElement && document.activeElement.closest('#mmrTrafficBody'))) renderMmrTraffic();
+    } else if (Object.keys(MMR_TRAFFIC).length) {
+        backendPush(MMR_TRAFFIC_BACKEND_KEY, MMR_TRAFFIC);
+    }
+}
+function mmrTrafficShows(reason) {
+    const n = parseInt((MMR_TRAFFIC[reason] || {}).shows, 10);
+    return isNaN(n) ? 0 : n;
+}
+function renderMmrTrafficTotal() {
+    const total = MMR_TRAFFIC_REASONS.reduce((sum, r) => sum + mmrTrafficShows(r), 0);
+    const weekly = mmrNum('mmrWeeklyTraffic');
+    const el = document.getElementById('mmrTrafficTotal');
+    if (!el) return;
+    el.textContent = String(total);
+    const note = document.getElementById('mmrTrafficTotalNote');
+    const matches = total === weekly;
+    note.textContent = matches ? `Matches Weekly Stats (${weekly} shows).` : `Should match Weekly Stats \u2014 Total Weekly Traffic is ${weekly}.`;
+    note.style.color = matches ? 'var(--good)' : 'var(--bad, #c0392b)';
+}
+function renderMmrTraffic() {
+    const body = document.getElementById('mmrTrafficBody');
+    if (!body) return;
+    body.innerHTML = MMR_TRAFFIC_REASONS.map((reason, i) => {
+        const rec = MMR_TRAFFIC[reason] || {};
+        const req = MMR_TRAFFIC_COMMENT_REQUIRED(reason);
+        const missing = req && mmrTrafficShows(reason) > 0 && !(rec.comments || '').trim();
+        return `<tr>
+            <td class="mmr-label">${escapeHtml(reason)}${req ? ' <span class="mmr-hint">(comment required)</span>' : ''}</td>
+            <td class="mmr-value"><input type="number" min="0" step="1" data-traffic-i="${i}" data-traffic-field="shows" value="${escapeAttr(rec.shows || '')}"></td>
+            <td class="mmr-value"><textarea rows="1" data-traffic-i="${i}" data-traffic-field="comments" class="${missing ? 'mmr-error' : ''}" style="width:100%;box-sizing:border-box;resize:vertical;font-family:var(--sans);font-size:12px;">${escapeHtml(rec.comments || '')}</textarea></td>
+        </tr>`;
+    }).join('');
+    [...body.querySelectorAll('[data-traffic-field]')].forEach(el => {
+        el.addEventListener('input', () => {
+            const reason = MMR_TRAFFIC_REASONS[parseInt(el.getAttribute('data-traffic-i'), 10)];
+            MMR_TRAFFIC[reason] = Object.assign({ shows: '', comments: '' }, MMR_TRAFFIC[reason], { [el.getAttribute('data-traffic-field')]: el.value });
+            const row = el.closest('tr');
+            const comments = row.querySelector('[data-traffic-field="comments"]');
+            comments.classList.toggle('mmr-error', MMR_TRAFFIC_COMMENT_REQUIRED(reason) && mmrTrafficShows(reason) > 0 && !(MMR_TRAFFIC[reason].comments || '').trim());
+            mmrTrafficPersistLocal();
+            mmrTrafficPushDebounced();
+            renderMmrTrafficTotal();
+        });
+    });
+    renderMmrTrafficTotal();
+}
+document.getElementById('mmrTrafficClearBtn').addEventListener('click', () => {
+    if (!confirm('Clear all Weekly Traffic Detail shows and comments for a new week?')) return;
+    MMR_TRAFFIC = {};
+    mmrTrafficPersistLocal();
+    mmrTrafficPushDebounced();
+    renderMmrTraffic();
+});
+document.getElementById('mmrWeeklyTraffic').addEventListener('input', renderMmrTrafficTotal);
+restoreMmrTrafficLocal();
+renderMmrTraffic();
+
+// Writes the Traffic record into the uploaded file's Weekly Traffic
+// Detail sheet. Rows are found by their reason label in column A (not
+// fixed row numbers); each row's # of Shows (C) and Comments (D) are
+// replaced — blank when there's nothing this week — keeping every
+// cell's own style. Each row drops last week's stored height so Excel
+// sizes it to this week's wrapped text.
+function xmlWriteTrafficDetail(sheetXml, sharedStrings) {
+    const norm = t => String(t || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const wanted = {};
+    MMR_TRAFFIC_REASONS.forEach(r => { wanted[norm(r)] = r; });
+    const rowRe = /<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+    const targets = [];
+    let m;
+    while ((m = rowRe.exec(sheetXml))) {
+        const rNum = parseInt(m[1], 10);
+        const a = m[2].match(new RegExp(`<c r="A${rNum}"[^>]*?t="s"[^>]*><v>(\\d+)<\\/v>`)) ;
+        const aInline = m[2].match(new RegExp(`<c r="A${rNum}"[^>]*?t="inlineStr"[^>]*><is><t[^>]*>([^<]*)<\\/t>`));
+        const label = a ? sharedStrings[parseInt(a[1], 10)] : (aInline ? aInline[1] : null);
+        if (label && wanted[norm(label)]) targets.push({ rNum, reason: wanted[norm(label)] });
+    }
+    targets.forEach(({ rNum, reason }) => {
+        const rec = MMR_TRAFFIC[reason] || {};
+        const shows = parseInt(rec.shows, 10);
+        const comments = (rec.comments || '').trim();
+        sheetXml = xmlSetCellValue(sheetXml, 'C' + rNum, isNaN(shows) || shows === 0 ? '' : shows);
+        sheetXml = xmlSetCellValue(sheetXml, 'D' + rNum, comments);
+        sheetXml = sheetXml.replace(new RegExp(`<row r="${rNum}"([^>]*)>`), (tag, attrs) =>
+            /customHeight="1"/.test(attrs) ? tag : `<row r="${rNum}"${attrs.replace(/\s+ht="[\d.]+"/, '')}>`);
+    });
+    return sheetXml;
+}
 
 /* ============================================================
    MMR upload / export. Uploading last week's .xlsx isn't stored beyond
@@ -7610,7 +7756,7 @@ document.getElementById('mmrTemplateUpload').addEventListener('change', (e) => {
             const data = new Uint8Array(evt.target.result);
             MMR_TEMPLATE_BYTES = data;
             MMR_TEMPLATE_WORKBOOK = XLSX.read(data, { type: 'array', cellDates: true });
-            document.getElementById('mmrTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; Weekly Stats will be updated with this week's numbers, and new rows will be appended into Unit Leasing Detail and Unit Renewal Detail, all directly in this file so the original formatting stays intact. Other sheets are carried over unchanged.`;
+            document.getElementById('mmrTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; Weekly Stats and Weekly Traffic Detail will be updated with this week's numbers, and new rows will be appended into Unit Leasing Detail and Unit Renewal Detail, all directly in this file so the original formatting stays intact. Other sheets are carried over unchanged.`;
         } catch (err) {
             alert("Could not read that file. Make sure it's a valid MMR .xlsx export.");
         }
@@ -7682,28 +7828,101 @@ function xmlFindLastDataRow(sheetXml, minRow) {
 // data row. formulaColMap maps a column letter to a formula template
 // using {row} as a placeholder, for columns that should be live
 // formulas (e.g. Net Effective Rent) rather than static values.
+// Fills an EXISTING row's cell values in place (used for the
+// pre-formatted-but-empty "padding" rows many of these templates
+// carry far beyond their real data), preserving that row's own style
+// refs and leaving any column in skipCols (formula columns using a
+// shared-formula reference) completely untouched — those recalculate
+// correctly on their own once Excel opens the file, since a shared
+// formula's relative references are resolved per-row automatically.
+function xmlColNum(col) { let n = 0; for (const ch of col) n = n * 26 + ch.charCodeAt(0) - 64; return n; }
+function xmlFillExistingRow(sheetXml, rowNum, values, colLetters, skipCols, fallbackStyles) {
+    const rowMatch = sheetXml.match(new RegExp(`<row r="${rowNum}"[^>]*>[\\s\\S]*?<\\/row>`));
+    if (!rowMatch) return null;
+    const openTag = rowMatch[0].match(/^<row[^>]*>/)[0];
+    const body = rowMatch[0].slice(openTag.length, rowMatch[0].length - '</row>'.length);
+    const cells = [];
+    const cellRe = /<c r="([A-Z]+)\d+"([^>]*?)(?:\/>|>[\s\S]*?<\/c>)/g;
+    let m;
+    while ((m = cellRe.exec(body))) cells.push({ col: m[1], attrs: m[2], xml: m[0] });
+    colLetters.forEach((col, ci) => {
+        if (skipCols.includes(col)) return;
+        const existing = cells.find(c => c.col === col);
+        const styleIdx = existing ? (existing.attrs.match(/s="(\d+)"/) || [])[1] : (fallbackStyles || {})[col];
+        const newCell = xmlBuildCell(col, rowNum, values[ci], styleIdx);
+        // A padding row may not carry every column (the Leasing sheet's
+        // have no Notes cell) — add the missing cell rather than
+        // silently dropping that value.
+        if (existing) existing.xml = newCell;
+        else cells.push({ col, xml: newCell });
+    });
+    // Cells must stay in column order or Excel "repairs" the row away.
+    cells.sort((a, b) => xmlColNum(a.col) - xmlColNum(b.col));
+    return sheetXml.slice(0, rowMatch.index) + openTag + cells.map(c => c.xml).join('') + '</row>' + sheetXml.slice(rowMatch.index + rowMatch[0].length);
+}
+// Last row (at/after minRow) with an actual value in column A — the
+// unit number. Padding rows often carry placeholder values elsewhere
+// (the Renewal sheet's have a 0 in every Concession cell), so "any
+// cell has a value" would put new rows below hundreds of blank ones.
+function xmlFindLastRowWithColA(sheetXml, minRow) {
+    let last = minRow;
+    const re = /<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+    let m;
+    while ((m = re.exec(sheetXml))) {
+        const rNum = parseInt(m[1], 10);
+        if (rNum < minRow) continue;
+        if (new RegExp(`<c r="A${rNum}"[^>]*>(?:<v>|<is>)`).test(m[2])) last = Math.max(last, rNum);
+    }
+    return last;
+}
+// Inserts a new <row> in row-number order (rows must be ascending).
+function xmlInsertRowInOrder(sheetXml, rowNum, rowXml) {
+    const re = /<row r="(\d+)"/g;
+    let m;
+    while ((m = re.exec(sheetXml))) {
+        if (parseInt(m[1], 10) > rowNum) return sheetXml.slice(0, m.index) + rowXml + sheetXml.slice(m.index);
+    }
+    return sheetXml.replace('</sheetData>', rowXml + '</sheetData>');
+}
 function xmlAppendRows(sheetXml, dataRows, colLetters, formulaColMap, minDataRow) {
     if (!dataRows.length) return sheetXml;
-    const lastRow = xmlFindLastDataRow(sheetXml, minDataRow);
+    const lastRow = xmlFindLastRowWithColA(sheetXml, minDataRow);
     const templateMatch = sheetXml.match(new RegExp(`<row r="${lastRow}"[^>]*>[\\s\\S]*?<\\/row>`));
     const styles = templateMatch ? xmlParseRowStyles(templateMatch[0]) : {};
     const htMatch = templateMatch ? templateMatch[0].match(/ ht="([\d.]+)"/) : null;
     const htAttr = htMatch ? ` ht="${htMatch[1]}" customHeight="1"` : '';
+    const formulaCols = Object.keys(formulaColMap);
 
-    let newRowsXml = '';
+    let workingXml = sheetXml;
     dataRows.forEach((rowValues, i) => {
         const rowNum = lastRow + 1 + i;
-        let cells = '';
-        colLetters.forEach((col, ci) => {
-            const styleIdx = styles[col];
-            cells += formulaColMap[col]
-                ? xmlBuildCell(col, rowNum, null, styleIdx, formulaColMap[col])
-                : xmlBuildCell(col, rowNum, rowValues[ci], styleIdx);
-        });
-        newRowsXml += `<row r="${rowNum}" spans="1:${colLetters.length}"${htAttr} x14ac:dyDescent="0.25">${cells}</row>`;
+        // The template usually already HAS a row at this number —
+        // thousands of them, pre-styled and pre-formula'd but empty,
+        // extending far past the real data. Blindly appending a brand
+        // new <row> with the same number as one of these creates two
+        // rows sharing one row index, which is invalid OOXML — Excel's
+        // "repair on open" then silently discards the newly-added one,
+        // which is exactly the corruption/missing-data bug this
+        // guards against. Filling the existing row's cells in place
+        // (skipping its formula columns, which resolve on their own)
+        // avoids the collision entirely.
+        const filled = xmlFillExistingRow(workingXml, rowNum, rowValues, colLetters, formulaCols, styles);
+        if (filled) {
+            workingXml = filled;
+        } else {
+            let cells = '';
+            colLetters.forEach((col, ci) => {
+                const styleIdx = styles[col];
+                cells += formulaColMap[col]
+                    ? xmlBuildCell(col, rowNum, null, styleIdx, formulaColMap[col])
+                    : xmlBuildCell(col, rowNum, rowValues[ci], styleIdx);
+            });
+            const dyAttr = /xmlns:x14ac=/.test(workingXml) ? ' x14ac:dyDescent="0.25"' : '';
+            workingXml = xmlInsertRowInOrder(workingXml, rowNum, `<row r="${rowNum}" spans="1:${colLetters.length}"${htAttr}${dyAttr}>${cells}</row>`);
+        }
     });
 
-    let result = sheetXml.replace('</sheetData>', newRowsXml + '</sheetData>');
+    let result = workingXml;
     result = result.replace(/<dimension ref="[A-Z]+\d+:([A-Z]+)(\d+)"\/>/, (match, maxCol, maxRowStr) => {
         const maxRow = Math.max(parseInt(maxRowStr, 10), lastRow + dataRows.length);
         return `<dimension ref="A1:${maxCol}${maxRow}"/>`;
@@ -7726,7 +7945,8 @@ function xmlSetCellValue(sheetXml, cellRef, value) {
     if (!m) return sheetXml;
     const attrs = m[1].replace(/\s+t="[^"]*"/, '');
     let newCell;
-    if (value instanceof Date) newCell = `<c r="${cellRef}"${attrs}><v>${excelSerialFromDate(value)}</v></c>`;
+    if (value === '' || value === null || (typeof value === 'number' && !isFinite(value))) newCell = `<c r="${cellRef}"${attrs}/>`;
+    else if (value instanceof Date) newCell = `<c r="${cellRef}"${attrs}><v>${excelSerialFromDate(value)}</v></c>`;
     else if (typeof value === 'number') newCell = `<c r="${cellRef}"${attrs}><v>${value}</v></c>`;
     else newCell = `<c r="${cellRef}"${attrs} t="inlineStr"><is><t>${xmlEscapeText(value)}</t></is></c>`;
     return sheetXml.slice(0, m.index) + newCell + sheetXml.slice(m.index + m[0].length);
@@ -7800,6 +8020,24 @@ async function exportMmrViaXmlSurgery(dateLabel) {
         }, 4);
         zip.file(renewalPath, xml);
     }
+    const trafficPath = xmlResolveSheetPath(wbXml, relsXml, 'Weekly Traffic Detail');
+    if (trafficPath) {
+        let xml = await zip.file(trafficPath).async('string');
+        const ssFile = zip.file('xl/sharedStrings.xml');
+        const sharedStrings = ssFile ? xmlParseSharedStrings(await ssFile.async('string')) : [];
+        xml = xmlWriteTrafficDetail(xml, sharedStrings);
+        zip.file(trafficPath, xml);
+    }
+    // Cached results of every formula (Percentage Leased, Closing Ratio,
+    // the Traffic TOTAL, new rows' Net Effective Rent...) are stale after
+    // these edits — have Excel recalculate everything when it opens.
+    let wbXmlOut = wbXml;
+    if (/<calcPr\b/.test(wbXmlOut)) {
+        if (!/fullCalcOnLoad=/.test(wbXmlOut)) wbXmlOut = wbXmlOut.replace(/<calcPr\b/, '<calcPr fullCalcOnLoad="1"');
+    } else {
+        wbXmlOut = wbXmlOut.replace('</workbook>', '<calcPr fullCalcOnLoad="1"/></workbook>');
+    }
+    zip.file('xl/workbook.xml', wbXmlOut);
     // calcChain.xml (Excel's cached formula dependency order) is left
     // untouched rather than deleted — Excel treats a stale calc chain
     // as a hint, not a requirement, and safely recalculates on open;
@@ -7816,34 +8054,59 @@ async function exportMmrViaXmlSurgery(dateLabel) {
     URL.revokeObjectURL(url);
 }
 
-// Inserts newRowsXmlArray right after row `insertAfterRow`, shifting
-// every row below it (and every cell reference inside those rows) down
-// by the number of new rows. This is a different operation from
-// xmlAppendRows above: Commissions stacks Move-Ins directly above
-// Renewals in the SAME sheet, so adding Move-In rows has to push the
-// Renewals title/header/data down rather than just appending at the
-// sheet's end. Safe for this file specifically because it has zero
-// formulas (confirmed by inspection) — there's no cross-row formula
-// reference that shifting could silently break.
-function xmlShiftRowsAndInsert(sheetXml, insertAfterRow, newRowsXmlArray) {
-    const rowRe = /<row r="(\d+)"[^>]*>[\s\S]*?<\/row>/g;
-    const rows = [];
+// Commissions stacks Move-Ins directly above Renewals in the SAME
+// sheet, so replacing Move-In rows shifts the Renewals section. Safe
+// for this file specifically because it has zero formulas (confirmed
+// by inspection) — no cross-row formula reference can silently break.
+// Last row in [minRow, maxRow] holding any cell value, or 0 if none.
+function xmlFindLastDataRowBetween(sheetXml, minRow, maxRow) {
+    let last = 0;
+    const re = /<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
     let m;
-    while ((m = rowRe.exec(sheetXml))) rows.push({ num: parseInt(m[1], 10), xml: m[0] });
-    const shiftCount = newRowsXmlArray.length;
-    const shiftRow = (r) => {
-        const newNum = r.num + shiftCount;
-        let xml = r.xml.replace(new RegExp(`^<row r="${r.num}"`), `<row r="${newNum}"`);
-        xml = xml.replace(new RegExp(`r="([A-Z]+)${r.num}(?!\\d)"`, 'g'), `r="$1${newNum}"`);
-        return xml;
-    };
-    const before = rows.filter(r => r.num <= insertAfterRow).map(r => r.xml);
-    const afterShifted = rows.filter(r => r.num > insertAfterRow).map(shiftRow);
-    const allRowsXml = before.join('') + newRowsXmlArray.join('') + afterShifted.join('');
-    let result = sheetXml.replace(/<sheetData>[\s\S]*?<\/sheetData>/, `<sheetData>${allRowsXml}</sheetData>`);
-    result = result.replace(/<dimension ref="[A-Z]+\d+:([A-Z]+)(\d+)"\/>/, (match, maxCol, maxRowStr) => {
-        return `<dimension ref="A1:${maxCol}${parseInt(maxRowStr, 10) + shiftCount}"/>`;
+    while ((m = re.exec(sheetXml))) {
+        const rNum = parseInt(m[1], 10);
+        if (rNum < minRow || rNum > maxRow) continue;
+        if (/<c r="[A-Z]+\d+"[^>]*><v>/.test(m[2]) || /<is>/.test(m[2])) last = Math.max(last, rNum);
+    }
+    return last;
+}
+// Renumbers (or drops) every row via mapRow(oldNum) -> newNum | null,
+// then lets insertRows splice brand-new row XML into the kept list.
+// Merged-cell ranges are remapped the same way (a merge touching a
+// dropped row is removed), and the dimension is recomputed.
+function xmlRemapRows(sheetXml, mapRow, insertRows) {
+    const rowRe = /<row r="(\d+)"[^>]*>[\s\S]*?<\/row>/g;
+    const kept = [];
+    let m;
+    while ((m = rowRe.exec(sheetXml))) {
+        const oldNum = parseInt(m[1], 10);
+        const newNum = mapRow(oldNum);
+        if (newNum === null) continue;
+        let xml = m[0];
+        if (newNum !== oldNum) {
+            xml = xml.replace(new RegExp(`^<row r="${oldNum}"`), `<row r="${newNum}"`);
+            xml = xml.replace(new RegExp(`r="([A-Z]+)${oldNum}(?!\\d)"`, 'g'), `r="$1${newNum}"`);
+        }
+        kept.push({ num: newNum, xml });
+    }
+    const allRows = insertRows(kept);
+    let result = sheetXml.replace(/<sheetData>[\s\S]*<\/sheetData>/, `<sheetData>${allRows.map(r => r.xml).join('')}</sheetData>`);
+    result = result.replace(/<mergeCell ref="([A-Z]+)(\d+):([A-Z]+)(\d+)"\s*\/>/g, (all, c1, r1, c2, r2) => {
+        const n1 = mapRow(parseInt(r1, 10)), n2 = mapRow(parseInt(r2, 10));
+        return (n1 === null || n2 === null) ? '' : `<mergeCell ref="${c1}${n1}:${c2}${n2}"/>`;
     });
+    result = result.replace(/<mergeCells count="\d+"\s*>([\s\S]*?)<\/mergeCells>/, (all, inner) => {
+        const n = (inner.match(/<mergeCell /g) || []).length;
+        return n ? `<mergeCells count="${n}">${inner}</mergeCells>` : '';
+    });
+    let maxRow = 1;
+    const numRe = /<row r="(\d+)"/g;
+    while ((m = numRe.exec(result))) maxRow = Math.max(maxRow, parseInt(m[1], 10));
+    result = result.replace(/<dimension ref="([A-Z]+)\d+(?::([A-Z]+)\d+)?"\s*\/>/, (all, c1, c2) => `<dimension ref="${c1}1:${c2 || c1}${maxRow}"/>`);
+    // New rows carry Excel's x14ac:dyDescent attribute; a file saved by
+    // something other than Excel (e.g. Google Sheets) may not declare
+    // that namespace, which would make the attribute invalid XML.
+    if (!/xmlns:x14ac=/.test(result)) result = result.replace(/ x14ac:dyDescent="[\d.]+"/g, '');
     return result;
 }
 // Builds a single <row> XML string for one new Commissions data row,
@@ -7877,10 +8140,11 @@ function xmlParseSharedStrings(xml) {
 
 /* ============================================================
    Commissions XML-surgery export — same idea as MMR: edit an uploaded
-   previous Commissions file's raw XML directly so new rows keep the
+   previous Commissions file's raw XML directly so the rows keep the
    original formatting, instead of building a fresh workbook. Unlike
-   MMR, Move-Ins and Renewals are two stacked tables in ONE sheet, so
-   adding Move-In rows has to shift the Renewals section down first.
+   MMR, the file's old data rows are cleared and replaced (not added
+   to), and Move-Ins and Renewals are two stacked tables in ONE sheet,
+   so the Renewals section shifts as the Move-In count changes.
    ============================================================ */
 let COMM_TEMPLATE_BYTES = null;
 document.getElementById('commTemplateUpload').addEventListener('change', (e) => {
@@ -7889,7 +8153,7 @@ document.getElementById('commTemplateUpload').addEventListener('change', (e) => 
     const reader = new FileReader();
     reader.onload = (evt) => {
         COMM_TEMPLATE_BYTES = new Uint8Array(evt.target.result);
-        document.getElementById('commTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; officially added Move-Ins and Renewals will be appended directly into this file, keeping its original formatting.`;
+        document.getElementById('commTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; its existing Move-In and Renewal rows will be cleared and replaced with the officially added ones below, keeping the file's original formatting.`;
     };
     reader.onerror = () => alert("Could not read that file. Make sure it's a valid Commissions .xlsx export.");
     reader.readAsArrayBuffer(file);
@@ -7925,54 +8189,68 @@ async function exportCommissionsViaXmlSurgery() {
     const moveInCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
     const renewalCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
 
-    // Insert Move-Ins first (closer to the top), using the LAST row of
-    // the Move-Ins section (the row right before "RENEWALS") as both
-    // the insertion point and the style template.
-    const lastMoveInRow = renewalTitleRow - 1;
-    const templateRowMatch = xml.match(new RegExp(`<row r="${lastMoveInRow}"[^>]*>[\\s\\S]*?<\\/row>`));
-    const moveInStyles = templateRowMatch ? xmlParseRowStyles(templateRowMatch[0]) : {};
-    const moveInHt = templateRowMatch ? (templateRowMatch[0].match(/ ht="([\d.]+)"/) || [])[1] : null;
-    const moveInHtAttr = moveInHt ? ` ht="${moveInHt}" customHeight="1"` : '';
+    // Clear-and-replace: the uploaded file's existing Move-In and Renewal
+    // data rows are dropped and replaced with exactly what's on screen,
+    // rather than appended beneath. Titles, header rows, the blank
+    // spacer rows between the sections, and anything below the Renewals
+    // data are kept (renumbered as needed), so the file's formatting
+    // stays intact.
+    const moveInHeaderRow = moveInTitleRow + 1;
+    const renewalHeaderRow = renewalTitleRow + 1;
+    const lastOldMoveInRow = xmlFindLastDataRowBetween(xml, moveInHeaderRow + 1, renewalTitleRow - 1) || moveInHeaderRow;
+    const lastOldRenewalRow = xmlFindLastDataRowBetween(xml, renewalHeaderRow + 1, Infinity) || renewalHeaderRow;
+    const moveInShift = moveInRows.length - (lastOldMoveInRow - moveInHeaderRow);
+    const renewalShift = moveInShift + renewalRows.length - (lastOldRenewalRow - renewalHeaderRow);
+
+    // Style new rows after an existing data row of the same section
+    // (falls back to the row just above the Renewals title, as before,
+    // when that section had no data rows to copy from).
+    const rowXmlAt = (n) => (xml.match(new RegExp(`<row r="${n}"[^>]*>[\\s\\S]*?<\\/row>`)) || [])[0] || null;
+    const rowFormat = (rowXml) => {
+        if (!rowXml) return { styles: {}, htAttr: '' };
+        const ht = (rowXml.match(/ ht="([\d.]+)"/) || [])[1];
+        return { styles: xmlParseRowStyles(rowXml), htAttr: ht ? ` ht="${ht}" customHeight="1"` : '' };
+    };
+    const moveInFmt = rowFormat(lastOldMoveInRow > moveInHeaderRow ? rowXmlAt(lastOldMoveInRow) : rowXmlAt(renewalTitleRow - 1));
+    const renewalFmt = rowFormat(lastOldRenewalRow > renewalHeaderRow ? rowXmlAt(lastOldRenewalRow) : null);
+
     const newMoveInRowsXml = moveInRows.map((r, i) => xmlBuildDataRowXml(
-        lastMoveInRow + 1 + i,
+        moveInHeaderRow + 1 + i,
         [r.property || '01382', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].floorplan : '', r.resident || '', mmrExcelDateFromInput(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit), mmrExcelDateFromInput(r.moveIn), mmrExcelDateFromInput(r.leaseExpiration), mmrExcelDateFromInput(r.moveOut), commNumOrRaw(r.leaseTerm), r.agent || '', commNumOrRaw(r.bonus)],
-        moveInCols, moveInStyles, moveInHtAttr
+        moveInCols, moveInFmt.styles, moveInFmt.htAttr
     ));
-    if (newMoveInRowsXml.length) xml = xmlShiftRowsAndInsert(xml, lastMoveInRow, newMoveInRowsXml);
-
-    // Renewals section (and its title row) has now shifted down by
-    // however many Move-In rows were just inserted.
-    const shift = newMoveInRowsXml.length;
-    const shiftedRenewalTitleRow = renewalTitleRow + shift;
-    const lastRenewalRow = xmlFindLastDataRow(xml, shiftedRenewalTitleRow + 2);
-    const renewalTemplateMatch = xml.match(new RegExp(`<row r="${lastRenewalRow}"[^>]*>[\\s\\S]*?<\\/row>`));
-    const renewalStyles = renewalTemplateMatch ? xmlParseRowStyles(renewalTemplateMatch[0]) : {};
-    const renewalHt = renewalTemplateMatch ? (renewalTemplateMatch[0].match(/ ht="([\d.]+)"/) || [])[1] : null;
-    const renewalHtAttr = renewalHt ? ` ht="${renewalHt}" customHeight="1"` : '';
     const newRenewalRowsXml = renewalRows.map((r, i) => xmlBuildDataRowXml(
-        lastRenewalRow + 1 + i,
+        renewalHeaderRow + moveInShift + 1 + i,
         [r.property || '01382', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].floorplan : '', r.resident || '', mmrExcelDateFromInput(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit), mmrExcelDateFromInput(r.moveIn), mmrExcelDateFromInput(r.leaseExpiration), mmrExcelDateFromInput(r.moveOut), commNumOrRaw(r.leaseTerm), mmrExcelDateFromInput(r.leaseStart)],
-        renewalCols, renewalStyles, renewalHtAttr
+        renewalCols, renewalFmt.styles, renewalFmt.htAttr
     ));
-    if (newRenewalRowsXml.length) {
-        xml = xml.replace('</sheetData>', newRenewalRowsXml.join('') + '</sheetData>');
-        xml = xml.replace(/<dimension ref="[A-Z]+\d+:([A-Z]+)(\d+)"\/>/, (match, maxCol, maxRowStr) => {
-            const maxRow = Math.max(parseInt(maxRowStr, 10), lastRenewalRow + newRenewalRowsXml.length);
-            return `<dimension ref="A1:${maxCol}${maxRow}"/>`;
-        });
-    }
 
-    // Update the two title cells' counts to reflect the new totals.
+    // Old row number -> new row number, or null for an old data row
+    // being cleared.
+    const mapRow = (n) => {
+        if (n <= moveInHeaderRow) return n;
+        if (n <= lastOldMoveInRow) return null;
+        if (n <= renewalHeaderRow) return n + moveInShift;
+        if (n <= lastOldRenewalRow) return null;
+        return n + renewalShift;
+    };
+    xml = xmlRemapRows(xml, mapRow, (keptRows) => {
+        const at = (n) => keptRows.findIndex(r => r.num > n);
+        const out = keptRows.slice();
+        // Insert Renewals first so the Move-In insertion index stays valid.
+        const ri = at(renewalHeaderRow + moveInShift);
+        out.splice(ri === -1 ? out.length : ri, 0, ...newRenewalRowsXml.map(x => ({ xml: x })));
+        const mi = at(moveInHeaderRow);
+        out.splice(mi === -1 ? out.length : mi, 0, ...newMoveInRowsXml.map(x => ({ xml: x })));
+        return out;
+    });
+
+    // Title counts now reflect exactly what was exported.
     const moveInTitleCell = xml.match(new RegExp(`<row r="${moveInTitleRow}"[^>]*>(<c r="([A-Z]+)${moveInTitleRow}"[^>]*t="s")`));
-    if (moveInTitleCell) {
-        const oldCount = xmlReadTitleCount(xml, sharedStrings, moveInTitleCell[2] + moveInTitleRow);
-        xml = xmlSetCellValue(xml, moveInTitleCell[2] + moveInTitleRow, `MOVE - INS   (${oldCount + newMoveInRowsXml.length})`);
-    }
+    if (moveInTitleCell) xml = xmlSetCellValue(xml, moveInTitleCell[2] + moveInTitleRow, `MOVE - INS   (${moveInRows.length})`);
+    const shiftedRenewalTitleRow = renewalTitleRow + moveInShift;
     const renewalTitleCell = xml.match(new RegExp(`<row r="${shiftedRenewalTitleRow}"[^>]*>(<c r="([A-Z]+)${shiftedRenewalTitleRow}"[^>]*t="s")`));
-    if (renewalTitleCell) {
-        const oldCount = xmlReadTitleCount(xml, sharedStrings, renewalTitleCell[2] + shiftedRenewalTitleRow);
-        xml = xmlSetCellValue(xml, renewalTitleCell[2] + shiftedRenewalTitleRow, `RENEWALS   (${oldCount + newRenewalRowsXml.length})`);
-    }
+    if (renewalTitleCell) xml = xmlSetCellValue(xml, renewalTitleCell[2] + shiftedRenewalTitleRow, `RENEWALS   (${renewalRows.length})`);
 
     zip.file(sheetPath, xml);
     const blob = await zip.generateAsync({ type: 'blob' });
@@ -9176,6 +9454,16 @@ function renderResidentRow(id, row, derived) {
     return `<tr class="${rowClass}" data-row="${id}">${cells}</tr>`;
 }
 
+function refreshResidentRow(id) {
+    const tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
+    const row = RESIDENT_ROWS[id];
+    if (!tr || !row) return;
+    const derived = computeResidentDerived(row);
+    const temp = document.createElement('tbody');
+    temp.innerHTML = renderResidentRow(id, row, derived);
+    tr.replaceWith(temp.firstElementChild);
+    wireResidentRow(id);
+}
 function wireResidentRow(id) {
     const tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
     if (!tr) return;
@@ -9190,16 +9478,31 @@ function wireResidentRow(id) {
             residentPushDebounced();
         }
         if (isCheckbox || isSelect) {
-            el.addEventListener('change', (e) => { commit(e); renderResidentsBody(); });
+            el.addEventListener('change', (e) => { commit(e); refreshResidentRow(id); });
         } else {
             el.addEventListener('input', commit);
-            el.addEventListener('blur', () => renderResidentsBody());
+            // A full renderResidentsBody() here used to destroy every
+            // row's DOM the instant you left ANY field — including
+            // whatever you were about to click/tab into next, which
+            // could silently drop the next keystroke or make an edit
+            // look like it "didn't save". This only refreshes THIS one
+            // row (to pick up computed fields / row coloring), and even
+            // then only once focus has actually left the row — deferred
+            // a tick so a same-row Tab (e.g. First → Last) isn't
+            // interrupted mid-transition.
+            el.addEventListener('blur', () => {
+                setTimeout(() => {
+                    const stillInRow = document.activeElement && document.activeElement.closest(`tr[data-row="${id}"]`);
+                    if (!stillInRow) refreshResidentRow(id);
+                }, 0);
+            });
         }
     });
     tr.querySelector('.wl-remove').addEventListener('click', () => {
         if (!confirm('Remove this resident?')) return;
         RESIDENT_ROWS[id].deleted = true;
         RESIDENT_DIRTY.add(id);
+        residentPersistLocal();
         residentPushDebounced();
         renderResidentsBody();
     });
@@ -9442,7 +9745,7 @@ function wlPetCount(resident) {
 
 function wlDefaultRecord() {
     return {
-        fullName2: '', fullName3: '', fullName4: '', leaseEndManual: '',
+        fullName2: '', fullName3: '', fullName4: '',
         parkingSpaces: '',
         rentManual: '', storageManual: '',
         deposit1Type: 'Security', deposit1Manual: '500',
@@ -9469,8 +9772,10 @@ function wlDefaultRecord() {
         hasDifferentAddress: 'No', addrPropertyManual: '', addrStreetManual: '', addrCityStateZipManual: '',
         recurringConcessionAmt: 'N/A',
         upfrontConcessionAtMoveIn: 'N/A',
-        concession1Month: 'Nov', concession1Amt: '',
-        concession2Month: 'Dec', concession2Amt: ''
+        // Blank = use the auto schedule from the Residents Promo (see
+        // wlConcessionSchedule); per-line overrides are stored as
+        // concession{n}MonthManual / concession{n}AmtManual.
+        concessionTotalManual: ''
     };
 }
 
@@ -9488,7 +9793,13 @@ async function pullWlFromBackend() {
     if (!BACKEND_URL || APP_MODE === 'test') return;
     const remote = await backendPull(WL_BACKEND_KEY);
     if (remote) {
+        // Merge rather than replace: a unit selected (or edited) here but
+        // not yet pushed would otherwise vanish on the next 25s poll,
+        // leaving the form writing into a missing record and the PDF
+        // export stuck on "Generating…".
+        const local = WL_RECORDS;
         WL_RECORDS = remote;
+        Object.keys(local).forEach(u => { if (!(u in WL_RECORDS)) WL_RECORDS[u] = local[u]; });
         wlPersistLocal();
         if (wlSelectedUnit && document.activeElement && !document.activeElement.closest('#wlFormBody')) renderWlForm();
     } else if (Object.keys(WL_RECORDS).length) {
@@ -9560,6 +9871,7 @@ document.addEventListener('click', (e) => {
 });
 
 function wlCommit(field, value) {
+    if (!WL_RECORDS[wlSelectedUnit]) WL_RECORDS[wlSelectedUnit] = wlDefaultRecord();
     WL_RECORDS[wlSelectedUnit][field] = value;
     wlPersistLocal();
     wlPushDebounced();
@@ -9590,6 +9902,55 @@ function wlEffectiveRent(r, resident) {
     // resident's Rate from the Residents tab.
     return (r.rentManual !== '' && r.rentManual !== undefined) ? wlNum(r.rentManual) : wlNum(resident ? resident.rate : 0);
 }
+// Concession posting schedule. The total (Residents Promo, unless
+// overridden in the Welcome Letter) posts on the 1st of the first full
+// month after move-in — one month later if move-in is on/after the
+// 25th — capped at one month's rent per month, with any remainder
+// rolling to the 1st of each following month. E.g. 9/26 move-in, $2,462
+// rent, $3,693 promo -> Nov $2,462, Dec $1,231. Each line's month and
+// amount can be overridden individually; at least two lines are shown.
+function wlMonthLabel(d) { return d ? d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : ''; }
+function wlConcessionSchedule(r, resident) {
+    const rent = wlEffectiveRent(r, resident);
+    const autoTotal = wlNum(resident ? resident.promo : 0);
+    const totalOverridden = r.concessionTotalManual !== '' && r.concessionTotalManual !== undefined;
+    const total = totalOverridden ? wlNum(r.concessionTotalManual) : autoTotal;
+    let start = null;
+    if (resident && resident.moveInDate) {
+        const m = new Date(resident.moveInDate + 'T00:00:00');
+        if (!isNaN(m)) start = new Date(m.getFullYear(), m.getMonth() + (m.getDate() >= 25 ? 2 : 1), 1);
+    }
+    const auto = [];
+    let remaining = Math.round(total * 100) / 100;
+    while (remaining > 0.004 && auto.length < 24) {
+        const amt = rent > 0 ? Math.min(rent, remaining) : remaining;
+        auto.push({ date: start ? new Date(start.getFullYear(), start.getMonth() + auto.length, 1) : null, amt });
+        remaining = Math.round((remaining - amt) * 100) / 100;
+    }
+    const lineCount = Math.max(2, auto.length);
+    const lines = [];
+    for (let i = 0; i < lineCount; i++) {
+        const n = i + 1;
+        const a = auto[i] || { date: start ? new Date(start.getFullYear(), start.getMonth() + i, 1) : null, amt: 0 };
+        let monthOv = r['concession' + n + 'MonthManual'];
+        let amtOv = r['concession' + n + 'AmtManual'];
+        // Older records stored manual lines as concession{n}Month/Amt
+        // (with 'Nov'/'Dec' placeholder months) — honor them only
+        // where an amount was actually entered.
+        if (amtOv === undefined && r['concession' + n + 'Amt']) {
+            amtOv = r['concession' + n + 'Amt'];
+            if (monthOv === undefined) monthOv = r['concession' + n + 'Month'];
+        }
+        const autoMonth = wlMonthLabel(a.date);
+        lines.push({
+            n, autoMonth, autoAmt: a.amt,
+            month: monthOv ? monthOv : autoMonth,
+            amt: (amtOv !== undefined && amtOv !== '') ? wlNum(amtOv) : a.amt
+        });
+    }
+    return { rent, autoTotal, total, totalOverridden, lines, postedTotal: lines.reduce((s, l) => s + l.amt, 0) };
+}
+
 function wlComputeTotals(r, resident) {
     const petCount = wlPetCount(resident);
     const parkingCharge = (parseInt(r.parkingSpaces, 10) || 0) * WL_RATE_PARKING_PER_SPACE;
@@ -9632,6 +9993,7 @@ function wlComputeTotals(r, resident) {
 function renderWlForm() {
     const unit = wlSelectedUnit;
     if (!unit) return;
+    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
     const r = WL_RECORDS[unit];
     const resident = findResidentByUnit(unit);
     const unitRec = byUnit[unit];
@@ -9661,7 +10023,7 @@ function renderWlForm() {
         <tr><td class="wl-row-label">Mailbox Number</td><td class="wl-auto" colspan="2">${escapeHtml(mailboxAuto || '\u2014')}</td></tr>
         <tr><td class="wl-row-label">Move-In Date</td><td class="wl-auto" colspan="2">${escapeHtml(resident ? fmtResidentDate(new Date(resident.moveInDate + 'T00:00:00')) : '\u2014')}</td></tr>
         <tr><td class="wl-row-label">Lease Term (Months)</td><td class="wl-auto" colspan="2">${escapeHtml(resident ? String(resident.leaseTerm) : '\u2014')}</td></tr>
-        <tr><td class="wl-row-label">Lease End Date <span class="wl-hint">(override)</span></td><td class="wl-manual"><input type="date" data-wl-field="leaseEndManual" value="${escapeAttr(r.leaseEndManual)}"></td><td class="wl-auto">${fmtResidentDate(leaseEnd)}</td></tr>
+        <tr><td class="wl-row-label">Lease End Date</td><td class="wl-auto" colspan="2">${escapeHtml(fmtResidentDate(leaseEnd))}</td></tr>
     `;
 
     document.getElementById('wlChargesSection').innerHTML = `
@@ -9723,11 +10085,13 @@ function renderWlForm() {
         <tr><td class="wl-sub-label">City, State, Zip</td><td class="wl-manual"><input type="text" data-wl-field="addrCityStateZipManual" value="${escapeAttr(r.addrCityStateZipManual)}" placeholder="Override"></td><td class="wl-auto">Boulder, CO, 80301</td></tr>
     `;
 
+    const conc = wlConcessionSchedule(r, resident);
     document.getElementById('wlConcessionsSection').innerHTML = `
         <tr><td class="wl-row-label">Recurring Concession Amount</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="recurringConcessionAmt" value="${escapeAttr(r.recurringConcessionAmt)}" placeholder="N/A"></td></tr>
         <tr><td class="wl-row-label">Upfront Concession At Move-In</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="upfrontConcessionAtMoveIn" value="${escapeAttr(r.upfrontConcessionAtMoveIn)}" placeholder="N/A"></td></tr>
-        ${[1, 2].map(n => `
-        <tr><td class="wl-sub-label">Month</td><td class="wl-manual"><input type="text" data-wl-field="concession${n}Month" value="${escapeAttr(r['concession' + n + 'Month'])}" placeholder="Month"></td><td class="wl-manual"><input type="text" data-wl-field="concession${n}Amt" value="${escapeAttr(r['concession' + n + 'Amt'])}" placeholder="$"></td></tr>
+        <tr><td class="wl-row-label">Promo Total <span class="wl-hint">(override; defaults to Residents Promo)</span></td><td class="wl-manual"><input type="text" data-wl-field="concessionTotalManual" value="${escapeAttr(r.concessionTotalManual || '')}" placeholder="${formatResidentCurrency(conc.autoTotal)}"></td><td class="wl-auto">${formatResidentCurrency(conc.autoTotal)} <span class="wl-hint">(Promo)</span></td></tr>
+        ${conc.lines.map(l => `
+        <tr><td class="wl-sub-label">Concession ${l.n} <span class="wl-hint">(max 1 month rent)</span></td><td class="wl-manual"><input type="text" data-wl-field="concession${l.n}MonthManual" value="${escapeAttr(r['concession' + l.n + 'MonthManual'] || '')}" placeholder="${escapeAttr(l.autoMonth || 'Month')}"></td><td class="wl-manual"><input type="text" data-wl-field="concession${l.n}AmtManual" value="${escapeAttr(r['concession' + l.n + 'AmtManual'] || '')}" placeholder="${l.autoAmt ? formatResidentCurrency(l.autoAmt) : '$'}"></td></tr>
         `).join('')}
     `;
 
@@ -9802,7 +10166,7 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
     const { chargesTotal, depositsTotal, feesTotal, prorateAmt, prorateFrom, prorateTo, moveInAfter25th, subtotal, totalDue, petCount, parkingCharge, petRent, petDeposit, applicantCount, appFeeAmt, effectiveRent } = t;
     const fmt = (n) => formatResidentCurrency(n);
     const fullName1 = resident ? `${resident.first} ${resident.last}` : (r.fullName2 || 'Resident');
-    const leaseEnd = r.leaseEndManual ? fmtResidentDate(new Date(r.leaseEndManual + 'T00:00:00')) : (resident ? fmtResidentDate(residentMoveOutDate(resident)) : '');
+    const leaseEnd = resident ? fmtResidentDate(residentMoveOutDate(resident)) : '';
     const moveInDisp = resident ? fmtResidentDate(new Date(resident.moveInDate + 'T00:00:00')) : '';
     const addrStreet = r.addrStreetManual || (unitRec ? unitRec.address : '') || '';
     const addrCityStateZip = r.addrCityStateZipManual || 'Boulder, CO, 80301';
@@ -9910,8 +10274,7 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
                 <div class="wlp-row"><span>AMOUNT ($)</span><span class="v">${escapeHtml(r.recurringConcessionAmt || 'N/A')}</span></div>
                 <div style="font-style:italic;margin-top:6px;">UPFRONT CONCESSION:</div>
                 <div class="wlp-row"><span>AT MOVE-IN</span><span class="v">${escapeHtml(r.upfrontConcessionAtMoveIn || 'N/A')}</span></div>
-                <div class="wlp-row"><span>${escapeHtml(r.concession1Month || 'Nov')}</span><span class="v">${r.concession1Amt ? fmt(wlNum(r.concession1Amt)) : 'N/A'}</span></div>
-                <div class="wlp-row"><span>${escapeHtml(r.concession2Month || 'Dec')}</span><span class="v">${r.concession2Amt ? fmt(wlNum(r.concession2Amt)) : 'N/A'}</span></div>
+                ${wlConcessionSchedule(r, resident).lines.map(l => `<div class="wlp-row"><span>${escapeHtml(l.month || 'N/A')}</span><span class="v">${l.amt ? fmt(l.amt) : 'N/A'}</span></div>`).join('')}
             </div>
         </div>
         <div class="wlp-lead">The following items are to be paid by ${escapeHtml(fullName1)}:</div>
@@ -9942,6 +10305,7 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
 async function wlDownloadPdf(btn) {
     const unit = wlSelectedUnit;
     if (!unit) { alert('Select a resident first.'); return; }
+    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
     const r = WL_RECORDS[unit];
     const resident = findResidentByUnit(unit);
     const unitRec = byUnit[unit];
@@ -9954,10 +10318,13 @@ async function wlDownloadPdf(btn) {
     holder.style.position = 'fixed';
     holder.style.left = '-10000px';
     holder.style.top = '0';
-    holder.innerHTML = `<style>${WL_PDF_STYLE}</style>${buildWelcomeLetterHtml(unit, r, resident, unitRec)}`;
     document.body.appendChild(holder);
 
+    // Everything after the label change lives inside the try, so any
+    // failure (including building the letter HTML) always resets the
+    // button instead of leaving it stuck on "Generating…".
     try {
+        holder.innerHTML = `<style>${WL_PDF_STYLE}</style>${buildWelcomeLetterHtml(unit, r, resident, unitRec)}`;
         const node = holder.querySelector('.wlp-page');
         if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
         const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
@@ -10024,7 +10391,10 @@ async function pullLeaseFromBackend() {
     if (!BACKEND_URL || APP_MODE === 'test') return;
     const remote = await backendPull(LEASE_BACKEND_KEY);
     if (remote) {
+        // Merge, not replace — same reason as pullWlFromBackend.
+        const local = LEASE_RECORDS;
         LEASE_RECORDS = remote;
+        Object.keys(local).forEach(u => { if (!(u in LEASE_RECORDS)) LEASE_RECORDS[u] = local[u]; });
         leasePersistLocal();
         if (leaseSelectedUnit && document.activeElement && !document.activeElement.closest('#leaseFormBody')) renderLeaseForm();
     } else if (Object.keys(LEASE_RECORDS).length) {
@@ -10081,6 +10451,7 @@ document.addEventListener('click', (e) => {
 });
 
 function leaseCommit(field, value) {
+    if (!LEASE_RECORDS[leaseSelectedUnit]) LEASE_RECORDS[leaseSelectedUnit] = leaseDefaultRecord();
     LEASE_RECORDS[leaseSelectedUnit][field] = value;
     leasePersistLocal();
     leasePushDebounced();
@@ -10098,6 +10469,7 @@ function leaseMonthEnd(year, month1) { return new Date(year, month1, 0).getDate(
 function renderLeaseForm() {
     const unit = leaseSelectedUnit;
     if (!unit) return;
+    if (!LEASE_RECORDS[unit]) LEASE_RECORDS[unit] = leaseDefaultRecord();
     const lr = LEASE_RECORDS[unit];
     const wr = WL_RECORDS[unit] || wlDefaultRecord();
     const resident = findResidentByUnit(unit);
@@ -10106,7 +10478,7 @@ function renderLeaseForm() {
     const fmt = (n) => formatResidentCurrency(n);
 
     const moveIn = resident ? new Date(resident.moveInDate + 'T00:00:00') : null;
-    const leaseEndDate = wr.leaseEndManual ? new Date(wr.leaseEndManual + 'T00:00:00') : (resident ? residentMoveOutDate(resident) : null);
+    const leaseEndDate = resident ? residentMoveOutDate(resident) : null;
     const monthlyRent = wlEffectiveRent(wr, resident);
     const mandatoryFees = WL_RATE_PACKAGE + WL_RATE_VALET + WL_RATE_CITY_TRASH + WL_RATE_UTILITY_ADMIN;
     const totalDuePerMonth = monthlyRent + mandatoryFees;
@@ -10185,12 +10557,12 @@ function renderLeaseForm() {
         <tr><td class="wl-sub-label">Parking Space</td><td class="wl-auto" colspan="2">${escapeHtml(wr.parkingSpaces || 'N/A')}</td></tr>
     `;
 
-    const concMonths = [];
-    if (wr.concession1Amt) concMonths.push(`${wr.concession1Month || 'Month 1'} (${fmt(wlNum(wr.concession1Amt))})`);
-    if (wr.concession2Amt) concMonths.push(`${wr.concession2Month || 'Month 2'} (${fmt(wlNum(wr.concession2Amt))})`);
-    const oneTimeTotal = wlNum(wr.concession1Amt) + wlNum(wr.concession2Amt);
+    // Same posting schedule as the Welcome Letter (including its edits).
+    const conc = wlConcessionSchedule(wr, resident);
+    const concMonths = conc.lines.filter(l => l.amt).map(l => `${l.month || 'TBD'} (${fmt(l.amt)})`);
+    const oneTimeTotal = conc.postedTotal;
     document.getElementById('leaseConcessionSection').innerHTML = `
-        <tr><td class="wl-row-label">One-Time <span class="wl-hint">(sum of concessions)</span></td><td class="wl-auto" colspan="2">${fmt(oneTimeTotal)}</td></tr>
+        <tr><td class="wl-row-label">One-Time <span class="wl-hint">(from Welcome Letter schedule)</span></td><td class="wl-auto" colspan="2">${fmt(oneTimeTotal)}</td></tr>
         <tr><td class="wl-row-label">For the Months</td><td class="wl-auto" colspan="2">${escapeHtml(concMonths.length ? concMonths.join('; ') : 'N/A')}</td></tr>
         <tr><td class="wl-row-label">MER <span class="wl-hint">(override; defaults to rent)</span></td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="merManual" value="${escapeAttr(lr.merManual)}" placeholder="${fmt(monthlyRent)}"></td></tr>
     `;
@@ -10479,6 +10851,13 @@ function forceSiteRefresh(btn) {
         btn.textContent = 'Refreshing\u2026';
         btn.disabled = true;
     }
+    // Remember which tab was open so the reload can return to it,
+    // instead of dumping the person back on Tour after a refresh they
+    // triggered from somewhere else entirely.
+    const activeTab = document.querySelector('.top-tab.active');
+    if (activeTab) {
+        try { sessionStorage.setItem('reve-refresh-return-tab', activeTab.getAttribute('data-tab')); } catch (e) {}
+    }
     // Cache-bust via a version query param and hard-reload — this
     // forces the browser to fetch a fresh copy of the page instead of
     // serving a stale cached one. Saved data (localStorage, backend)
@@ -10757,6 +11136,7 @@ setInterval(() => {
     pullConcessionFromBackend();
     pullStorageFromBackend();
     pullMMRFromBackend();
+    pullMmrTrafficFromBackend();
     mmrNewLeaseController.pullFromBackend();
     mmrRenewalController.pullFromBackend();
     commMoveInController.pullFromBackend();
@@ -11202,7 +11582,7 @@ try {
     if (localStorage.getItem(APP_MODE_KEY) === 'test') applyAppMode('test');
 } catch (e) { /* ignore */ }
 if (BACKEND_URL) {
-    pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); pullMMRFromBackend();
+    pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); pullMMRFromBackend(); pullMmrTrafficFromBackend();
     mmrNewLeaseController.pullFromBackend(); mmrRenewalController.pullFromBackend();
     commMoveInController.pullFromBackend(); commRenewalController.pullFromBackend();
     pullPayPeriodFromBackend();
@@ -11212,6 +11592,18 @@ if (BACKEND_URL) {
     pullLeaseFromBackend();
     pullHowToFromBackend();
 }
+
+// If this load followed a "Refresh to Update" click, return to
+// whichever tab that was clicked from instead of defaulting to Tour.
+// sessionStorage (not localStorage) so this is a one-time instruction
+// for this reload only, not a standing "always open here" preference.
+try {
+    const returnTab = sessionStorage.getItem('reve-refresh-return-tab');
+    if (returnTab) {
+        sessionStorage.removeItem('reve-refresh-return-tab');
+        if (document.getElementById('tab-' + returnTab)) switchTab(returnTab);
+    }
+} catch (e) {}
 </script>
 </body>
 </html>
