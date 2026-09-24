@@ -9578,8 +9578,10 @@ function wlDefaultRecord() {
         hasDifferentAddress: 'No', addrPropertyManual: '', addrStreetManual: '', addrCityStateZipManual: '',
         recurringConcessionAmt: 'N/A',
         upfrontConcessionAtMoveIn: 'N/A',
-        concession1Month: 'Nov', concession1Amt: '',
-        concession2Month: 'Dec', concession2Amt: ''
+        // Blank = use the auto schedule from the Residents Promo (see
+        // wlConcessionSchedule); per-line overrides are stored as
+        // concession{n}MonthManual / concession{n}AmtManual.
+        concessionTotalManual: ''
     };
 }
 
@@ -9706,6 +9708,55 @@ function wlEffectiveRent(r, resident) {
     // resident's Rate from the Residents tab.
     return (r.rentManual !== '' && r.rentManual !== undefined) ? wlNum(r.rentManual) : wlNum(resident ? resident.rate : 0);
 }
+// Concession posting schedule. The total (Residents Promo, unless
+// overridden in the Welcome Letter) posts on the 1st of the first full
+// month after move-in — one month later if move-in is on/after the
+// 25th — capped at one month's rent per month, with any remainder
+// rolling to the 1st of each following month. E.g. 9/26 move-in, $2,462
+// rent, $3,693 promo -> Nov $2,462, Dec $1,231. Each line's month and
+// amount can be overridden individually; at least two lines are shown.
+function wlMonthLabel(d) { return d ? d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : ''; }
+function wlConcessionSchedule(r, resident) {
+    const rent = wlEffectiveRent(r, resident);
+    const autoTotal = wlNum(resident ? resident.promo : 0);
+    const totalOverridden = r.concessionTotalManual !== '' && r.concessionTotalManual !== undefined;
+    const total = totalOverridden ? wlNum(r.concessionTotalManual) : autoTotal;
+    let start = null;
+    if (resident && resident.moveInDate) {
+        const m = new Date(resident.moveInDate + 'T00:00:00');
+        if (!isNaN(m)) start = new Date(m.getFullYear(), m.getMonth() + (m.getDate() >= 25 ? 2 : 1), 1);
+    }
+    const auto = [];
+    let remaining = Math.round(total * 100) / 100;
+    while (remaining > 0.004 && auto.length < 24) {
+        const amt = rent > 0 ? Math.min(rent, remaining) : remaining;
+        auto.push({ date: start ? new Date(start.getFullYear(), start.getMonth() + auto.length, 1) : null, amt });
+        remaining = Math.round((remaining - amt) * 100) / 100;
+    }
+    const lineCount = Math.max(2, auto.length);
+    const lines = [];
+    for (let i = 0; i < lineCount; i++) {
+        const n = i + 1;
+        const a = auto[i] || { date: start ? new Date(start.getFullYear(), start.getMonth() + i, 1) : null, amt: 0 };
+        let monthOv = r['concession' + n + 'MonthManual'];
+        let amtOv = r['concession' + n + 'AmtManual'];
+        // Older records stored manual lines as concession{n}Month/Amt
+        // (with 'Nov'/'Dec' placeholder months) — honor them only
+        // where an amount was actually entered.
+        if (amtOv === undefined && r['concession' + n + 'Amt']) {
+            amtOv = r['concession' + n + 'Amt'];
+            if (monthOv === undefined) monthOv = r['concession' + n + 'Month'];
+        }
+        const autoMonth = wlMonthLabel(a.date);
+        lines.push({
+            n, autoMonth, autoAmt: a.amt,
+            month: monthOv ? monthOv : autoMonth,
+            amt: (amtOv !== undefined && amtOv !== '') ? wlNum(amtOv) : a.amt
+        });
+    }
+    return { rent, autoTotal, total, totalOverridden, lines, postedTotal: lines.reduce((s, l) => s + l.amt, 0) };
+}
+
 function wlComputeTotals(r, resident) {
     const petCount = wlPetCount(resident);
     const parkingCharge = (parseInt(r.parkingSpaces, 10) || 0) * WL_RATE_PARKING_PER_SPACE;
@@ -9840,11 +9891,13 @@ function renderWlForm() {
         <tr><td class="wl-sub-label">City, State, Zip</td><td class="wl-manual"><input type="text" data-wl-field="addrCityStateZipManual" value="${escapeAttr(r.addrCityStateZipManual)}" placeholder="Override"></td><td class="wl-auto">Boulder, CO, 80301</td></tr>
     `;
 
+    const conc = wlConcessionSchedule(r, resident);
     document.getElementById('wlConcessionsSection').innerHTML = `
         <tr><td class="wl-row-label">Recurring Concession Amount</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="recurringConcessionAmt" value="${escapeAttr(r.recurringConcessionAmt)}" placeholder="N/A"></td></tr>
         <tr><td class="wl-row-label">Upfront Concession At Move-In</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="upfrontConcessionAtMoveIn" value="${escapeAttr(r.upfrontConcessionAtMoveIn)}" placeholder="N/A"></td></tr>
-        ${[1, 2].map(n => `
-        <tr><td class="wl-sub-label">Month</td><td class="wl-manual"><input type="text" data-wl-field="concession${n}Month" value="${escapeAttr(r['concession' + n + 'Month'])}" placeholder="Month"></td><td class="wl-manual"><input type="text" data-wl-field="concession${n}Amt" value="${escapeAttr(r['concession' + n + 'Amt'])}" placeholder="$"></td></tr>
+        <tr><td class="wl-row-label">Promo Total <span class="wl-hint">(override; defaults to Residents Promo)</span></td><td class="wl-manual"><input type="text" data-wl-field="concessionTotalManual" value="${escapeAttr(r.concessionTotalManual || '')}" placeholder="${formatResidentCurrency(conc.autoTotal)}"></td><td class="wl-auto">${formatResidentCurrency(conc.autoTotal)} <span class="wl-hint">(Promo)</span></td></tr>
+        ${conc.lines.map(l => `
+        <tr><td class="wl-sub-label">Concession ${l.n} <span class="wl-hint">(max 1 month rent)</span></td><td class="wl-manual"><input type="text" data-wl-field="concession${l.n}MonthManual" value="${escapeAttr(r['concession' + l.n + 'MonthManual'] || '')}" placeholder="${escapeAttr(l.autoMonth || 'Month')}"></td><td class="wl-manual"><input type="text" data-wl-field="concession${l.n}AmtManual" value="${escapeAttr(r['concession' + l.n + 'AmtManual'] || '')}" placeholder="${l.autoAmt ? formatResidentCurrency(l.autoAmt) : '$'}"></td></tr>
         `).join('')}
     `;
 
@@ -10027,8 +10080,7 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
                 <div class="wlp-row"><span>AMOUNT ($)</span><span class="v">${escapeHtml(r.recurringConcessionAmt || 'N/A')}</span></div>
                 <div style="font-style:italic;margin-top:6px;">UPFRONT CONCESSION:</div>
                 <div class="wlp-row"><span>AT MOVE-IN</span><span class="v">${escapeHtml(r.upfrontConcessionAtMoveIn || 'N/A')}</span></div>
-                <div class="wlp-row"><span>${escapeHtml(r.concession1Month || 'Nov')}</span><span class="v">${r.concession1Amt ? fmt(wlNum(r.concession1Amt)) : 'N/A'}</span></div>
-                <div class="wlp-row"><span>${escapeHtml(r.concession2Month || 'Dec')}</span><span class="v">${r.concession2Amt ? fmt(wlNum(r.concession2Amt)) : 'N/A'}</span></div>
+                ${wlConcessionSchedule(r, resident).lines.map(l => `<div class="wlp-row"><span>${escapeHtml(l.month || 'N/A')}</span><span class="v">${l.amt ? fmt(l.amt) : 'N/A'}</span></div>`).join('')}
             </div>
         </div>
         <div class="wlp-lead">The following items are to be paid by ${escapeHtml(fullName1)}:</div>
@@ -10311,12 +10363,12 @@ function renderLeaseForm() {
         <tr><td class="wl-sub-label">Parking Space</td><td class="wl-auto" colspan="2">${escapeHtml(wr.parkingSpaces || 'N/A')}</td></tr>
     `;
 
-    const concMonths = [];
-    if (wr.concession1Amt) concMonths.push(`${wr.concession1Month || 'Month 1'} (${fmt(wlNum(wr.concession1Amt))})`);
-    if (wr.concession2Amt) concMonths.push(`${wr.concession2Month || 'Month 2'} (${fmt(wlNum(wr.concession2Amt))})`);
-    const oneTimeTotal = wlNum(wr.concession1Amt) + wlNum(wr.concession2Amt);
+    // Same posting schedule as the Welcome Letter (including its edits).
+    const conc = wlConcessionSchedule(wr, resident);
+    const concMonths = conc.lines.filter(l => l.amt).map(l => `${l.month || 'TBD'} (${fmt(l.amt)})`);
+    const oneTimeTotal = conc.postedTotal;
     document.getElementById('leaseConcessionSection').innerHTML = `
-        <tr><td class="wl-row-label">One-Time <span class="wl-hint">(sum of concessions)</span></td><td class="wl-auto" colspan="2">${fmt(oneTimeTotal)}</td></tr>
+        <tr><td class="wl-row-label">One-Time <span class="wl-hint">(from Welcome Letter schedule)</span></td><td class="wl-auto" colspan="2">${fmt(oneTimeTotal)}</td></tr>
         <tr><td class="wl-row-label">For the Months</td><td class="wl-auto" colspan="2">${escapeHtml(concMonths.length ? concMonths.join('; ') : 'N/A')}</td></tr>
         <tr><td class="wl-row-label">MER <span class="wl-hint">(override; defaults to rent)</span></td><td class="wl-manual" colspan="2"><input type="text" data-lease-field="merManual" value="${escapeAttr(lr.merManual)}" placeholder="${fmt(monthlyRent)}"></td></tr>
     `;
