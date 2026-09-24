@@ -7855,34 +7855,59 @@ async function exportMmrViaXmlSurgery(dateLabel) {
     URL.revokeObjectURL(url);
 }
 
-// Inserts newRowsXmlArray right after row `insertAfterRow`, shifting
-// every row below it (and every cell reference inside those rows) down
-// by the number of new rows. This is a different operation from
-// xmlAppendRows above: Commissions stacks Move-Ins directly above
-// Renewals in the SAME sheet, so adding Move-In rows has to push the
-// Renewals title/header/data down rather than just appending at the
-// sheet's end. Safe for this file specifically because it has zero
-// formulas (confirmed by inspection) — there's no cross-row formula
-// reference that shifting could silently break.
-function xmlShiftRowsAndInsert(sheetXml, insertAfterRow, newRowsXmlArray) {
-    const rowRe = /<row r="(\d+)"[^>]*>[\s\S]*?<\/row>/g;
-    const rows = [];
+// Commissions stacks Move-Ins directly above Renewals in the SAME
+// sheet, so replacing Move-In rows shifts the Renewals section. Safe
+// for this file specifically because it has zero formulas (confirmed
+// by inspection) — no cross-row formula reference can silently break.
+// Last row in [minRow, maxRow] holding any cell value, or 0 if none.
+function xmlFindLastDataRowBetween(sheetXml, minRow, maxRow) {
+    let last = 0;
+    const re = /<row r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
     let m;
-    while ((m = rowRe.exec(sheetXml))) rows.push({ num: parseInt(m[1], 10), xml: m[0] });
-    const shiftCount = newRowsXmlArray.length;
-    const shiftRow = (r) => {
-        const newNum = r.num + shiftCount;
-        let xml = r.xml.replace(new RegExp(`^<row r="${r.num}"`), `<row r="${newNum}"`);
-        xml = xml.replace(new RegExp(`r="([A-Z]+)${r.num}(?!\\d)"`, 'g'), `r="$1${newNum}"`);
-        return xml;
-    };
-    const before = rows.filter(r => r.num <= insertAfterRow).map(r => r.xml);
-    const afterShifted = rows.filter(r => r.num > insertAfterRow).map(shiftRow);
-    const allRowsXml = before.join('') + newRowsXmlArray.join('') + afterShifted.join('');
-    let result = sheetXml.replace(/<sheetData>[\s\S]*?<\/sheetData>/, `<sheetData>${allRowsXml}</sheetData>`);
-    result = result.replace(/<dimension ref="[A-Z]+\d+:([A-Z]+)(\d+)"\/>/, (match, maxCol, maxRowStr) => {
-        return `<dimension ref="A1:${maxCol}${parseInt(maxRowStr, 10) + shiftCount}"/>`;
+    while ((m = re.exec(sheetXml))) {
+        const rNum = parseInt(m[1], 10);
+        if (rNum < minRow || rNum > maxRow) continue;
+        if (/<c r="[A-Z]+\d+"[^>]*><v>/.test(m[2]) || /<is>/.test(m[2])) last = Math.max(last, rNum);
+    }
+    return last;
+}
+// Renumbers (or drops) every row via mapRow(oldNum) -> newNum | null,
+// then lets insertRows splice brand-new row XML into the kept list.
+// Merged-cell ranges are remapped the same way (a merge touching a
+// dropped row is removed), and the dimension is recomputed.
+function xmlRemapRows(sheetXml, mapRow, insertRows) {
+    const rowRe = /<row r="(\d+)"[^>]*>[\s\S]*?<\/row>/g;
+    const kept = [];
+    let m;
+    while ((m = rowRe.exec(sheetXml))) {
+        const oldNum = parseInt(m[1], 10);
+        const newNum = mapRow(oldNum);
+        if (newNum === null) continue;
+        let xml = m[0];
+        if (newNum !== oldNum) {
+            xml = xml.replace(new RegExp(`^<row r="${oldNum}"`), `<row r="${newNum}"`);
+            xml = xml.replace(new RegExp(`r="([A-Z]+)${oldNum}(?!\\d)"`, 'g'), `r="$1${newNum}"`);
+        }
+        kept.push({ num: newNum, xml });
+    }
+    const allRows = insertRows(kept);
+    let result = sheetXml.replace(/<sheetData>[\s\S]*<\/sheetData>/, `<sheetData>${allRows.map(r => r.xml).join('')}</sheetData>`);
+    result = result.replace(/<mergeCell ref="([A-Z]+)(\d+):([A-Z]+)(\d+)"\s*\/>/g, (all, c1, r1, c2, r2) => {
+        const n1 = mapRow(parseInt(r1, 10)), n2 = mapRow(parseInt(r2, 10));
+        return (n1 === null || n2 === null) ? '' : `<mergeCell ref="${c1}${n1}:${c2}${n2}"/>`;
     });
+    result = result.replace(/<mergeCells count="\d+"\s*>([\s\S]*?)<\/mergeCells>/, (all, inner) => {
+        const n = (inner.match(/<mergeCell /g) || []).length;
+        return n ? `<mergeCells count="${n}">${inner}</mergeCells>` : '';
+    });
+    let maxRow = 1;
+    const numRe = /<row r="(\d+)"/g;
+    while ((m = numRe.exec(result))) maxRow = Math.max(maxRow, parseInt(m[1], 10));
+    result = result.replace(/<dimension ref="([A-Z]+)\d+(?::([A-Z]+)\d+)?"\s*\/>/, (all, c1, c2) => `<dimension ref="${c1}1:${c2 || c1}${maxRow}"/>`);
+    // New rows carry Excel's x14ac:dyDescent attribute; a file saved by
+    // something other than Excel (e.g. Google Sheets) may not declare
+    // that namespace, which would make the attribute invalid XML.
+    if (!/xmlns:x14ac=/.test(result)) result = result.replace(/ x14ac:dyDescent="[\d.]+"/g, '');
     return result;
 }
 // Builds a single <row> XML string for one new Commissions data row,
@@ -7916,10 +7941,11 @@ function xmlParseSharedStrings(xml) {
 
 /* ============================================================
    Commissions XML-surgery export — same idea as MMR: edit an uploaded
-   previous Commissions file's raw XML directly so new rows keep the
+   previous Commissions file's raw XML directly so the rows keep the
    original formatting, instead of building a fresh workbook. Unlike
-   MMR, Move-Ins and Renewals are two stacked tables in ONE sheet, so
-   adding Move-In rows has to shift the Renewals section down first.
+   MMR, the file's old data rows are cleared and replaced (not added
+   to), and Move-Ins and Renewals are two stacked tables in ONE sheet,
+   so the Renewals section shifts as the Move-In count changes.
    ============================================================ */
 let COMM_TEMPLATE_BYTES = null;
 document.getElementById('commTemplateUpload').addEventListener('change', (e) => {
@@ -7928,7 +7954,7 @@ document.getElementById('commTemplateUpload').addEventListener('change', (e) => 
     const reader = new FileReader();
     reader.onload = (evt) => {
         COMM_TEMPLATE_BYTES = new Uint8Array(evt.target.result);
-        document.getElementById('commTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; officially added Move-Ins and Renewals will be appended directly into this file, keeping its original formatting.`;
+        document.getElementById('commTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; its existing Move-In and Renewal rows will be cleared and replaced with the officially added ones below, keeping the file's original formatting.`;
     };
     reader.onerror = () => alert("Could not read that file. Make sure it's a valid Commissions .xlsx export.");
     reader.readAsArrayBuffer(file);
@@ -7964,54 +7990,68 @@ async function exportCommissionsViaXmlSurgery() {
     const moveInCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
     const renewalCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
 
-    // Insert Move-Ins first (closer to the top), using the LAST row of
-    // the Move-Ins section (the row right before "RENEWALS") as both
-    // the insertion point and the style template.
-    const lastMoveInRow = renewalTitleRow - 1;
-    const templateRowMatch = xml.match(new RegExp(`<row r="${lastMoveInRow}"[^>]*>[\\s\\S]*?<\\/row>`));
-    const moveInStyles = templateRowMatch ? xmlParseRowStyles(templateRowMatch[0]) : {};
-    const moveInHt = templateRowMatch ? (templateRowMatch[0].match(/ ht="([\d.]+)"/) || [])[1] : null;
-    const moveInHtAttr = moveInHt ? ` ht="${moveInHt}" customHeight="1"` : '';
+    // Clear-and-replace: the uploaded file's existing Move-In and Renewal
+    // data rows are dropped and replaced with exactly what's on screen,
+    // rather than appended beneath. Titles, header rows, the blank
+    // spacer rows between the sections, and anything below the Renewals
+    // data are kept (renumbered as needed), so the file's formatting
+    // stays intact.
+    const moveInHeaderRow = moveInTitleRow + 1;
+    const renewalHeaderRow = renewalTitleRow + 1;
+    const lastOldMoveInRow = xmlFindLastDataRowBetween(xml, moveInHeaderRow + 1, renewalTitleRow - 1) || moveInHeaderRow;
+    const lastOldRenewalRow = xmlFindLastDataRowBetween(xml, renewalHeaderRow + 1, Infinity) || renewalHeaderRow;
+    const moveInShift = moveInRows.length - (lastOldMoveInRow - moveInHeaderRow);
+    const renewalShift = moveInShift + renewalRows.length - (lastOldRenewalRow - renewalHeaderRow);
+
+    // Style new rows after an existing data row of the same section
+    // (falls back to the row just above the Renewals title, as before,
+    // when that section had no data rows to copy from).
+    const rowXmlAt = (n) => (xml.match(new RegExp(`<row r="${n}"[^>]*>[\\s\\S]*?<\\/row>`)) || [])[0] || null;
+    const rowFormat = (rowXml) => {
+        if (!rowXml) return { styles: {}, htAttr: '' };
+        const ht = (rowXml.match(/ ht="([\d.]+)"/) || [])[1];
+        return { styles: xmlParseRowStyles(rowXml), htAttr: ht ? ` ht="${ht}" customHeight="1"` : '' };
+    };
+    const moveInFmt = rowFormat(lastOldMoveInRow > moveInHeaderRow ? rowXmlAt(lastOldMoveInRow) : rowXmlAt(renewalTitleRow - 1));
+    const renewalFmt = rowFormat(lastOldRenewalRow > renewalHeaderRow ? rowXmlAt(lastOldRenewalRow) : null);
+
     const newMoveInRowsXml = moveInRows.map((r, i) => xmlBuildDataRowXml(
-        lastMoveInRow + 1 + i,
+        moveInHeaderRow + 1 + i,
         [r.property || '01382', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].floorplan : '', r.resident || '', mmrExcelDateFromInput(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit), mmrExcelDateFromInput(r.moveIn), mmrExcelDateFromInput(r.leaseExpiration), mmrExcelDateFromInput(r.moveOut), commNumOrRaw(r.leaseTerm), r.agent || '', commNumOrRaw(r.bonus)],
-        moveInCols, moveInStyles, moveInHtAttr
+        moveInCols, moveInFmt.styles, moveInFmt.htAttr
     ));
-    if (newMoveInRowsXml.length) xml = xmlShiftRowsAndInsert(xml, lastMoveInRow, newMoveInRowsXml);
-
-    // Renewals section (and its title row) has now shifted down by
-    // however many Move-In rows were just inserted.
-    const shift = newMoveInRowsXml.length;
-    const shiftedRenewalTitleRow = renewalTitleRow + shift;
-    const lastRenewalRow = xmlFindLastDataRow(xml, shiftedRenewalTitleRow + 2);
-    const renewalTemplateMatch = xml.match(new RegExp(`<row r="${lastRenewalRow}"[^>]*>[\\s\\S]*?<\\/row>`));
-    const renewalStyles = renewalTemplateMatch ? xmlParseRowStyles(renewalTemplateMatch[0]) : {};
-    const renewalHt = renewalTemplateMatch ? (renewalTemplateMatch[0].match(/ ht="([\d.]+)"/) || [])[1] : null;
-    const renewalHtAttr = renewalHt ? ` ht="${renewalHt}" customHeight="1"` : '';
     const newRenewalRowsXml = renewalRows.map((r, i) => xmlBuildDataRowXml(
-        lastRenewalRow + 1 + i,
+        renewalHeaderRow + moveInShift + 1 + i,
         [r.property || '01382', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].floorplan : '', r.resident || '', mmrExcelDateFromInput(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit), mmrExcelDateFromInput(r.moveIn), mmrExcelDateFromInput(r.leaseExpiration), mmrExcelDateFromInput(r.moveOut), commNumOrRaw(r.leaseTerm), mmrExcelDateFromInput(r.leaseStart)],
-        renewalCols, renewalStyles, renewalHtAttr
+        renewalCols, renewalFmt.styles, renewalFmt.htAttr
     ));
-    if (newRenewalRowsXml.length) {
-        xml = xml.replace('</sheetData>', newRenewalRowsXml.join('') + '</sheetData>');
-        xml = xml.replace(/<dimension ref="[A-Z]+\d+:([A-Z]+)(\d+)"\/>/, (match, maxCol, maxRowStr) => {
-            const maxRow = Math.max(parseInt(maxRowStr, 10), lastRenewalRow + newRenewalRowsXml.length);
-            return `<dimension ref="A1:${maxCol}${maxRow}"/>`;
-        });
-    }
 
-    // Update the two title cells' counts to reflect the new totals.
+    // Old row number -> new row number, or null for an old data row
+    // being cleared.
+    const mapRow = (n) => {
+        if (n <= moveInHeaderRow) return n;
+        if (n <= lastOldMoveInRow) return null;
+        if (n <= renewalHeaderRow) return n + moveInShift;
+        if (n <= lastOldRenewalRow) return null;
+        return n + renewalShift;
+    };
+    xml = xmlRemapRows(xml, mapRow, (keptRows) => {
+        const at = (n) => keptRows.findIndex(r => r.num > n);
+        const out = keptRows.slice();
+        // Insert Renewals first so the Move-In insertion index stays valid.
+        const ri = at(renewalHeaderRow + moveInShift);
+        out.splice(ri === -1 ? out.length : ri, 0, ...newRenewalRowsXml.map(x => ({ xml: x })));
+        const mi = at(moveInHeaderRow);
+        out.splice(mi === -1 ? out.length : mi, 0, ...newMoveInRowsXml.map(x => ({ xml: x })));
+        return out;
+    });
+
+    // Title counts now reflect exactly what was exported.
     const moveInTitleCell = xml.match(new RegExp(`<row r="${moveInTitleRow}"[^>]*>(<c r="([A-Z]+)${moveInTitleRow}"[^>]*t="s")`));
-    if (moveInTitleCell) {
-        const oldCount = xmlReadTitleCount(xml, sharedStrings, moveInTitleCell[2] + moveInTitleRow);
-        xml = xmlSetCellValue(xml, moveInTitleCell[2] + moveInTitleRow, `MOVE - INS   (${oldCount + newMoveInRowsXml.length})`);
-    }
+    if (moveInTitleCell) xml = xmlSetCellValue(xml, moveInTitleCell[2] + moveInTitleRow, `MOVE - INS   (${moveInRows.length})`);
+    const shiftedRenewalTitleRow = renewalTitleRow + moveInShift;
     const renewalTitleCell = xml.match(new RegExp(`<row r="${shiftedRenewalTitleRow}"[^>]*>(<c r="([A-Z]+)${shiftedRenewalTitleRow}"[^>]*t="s")`));
-    if (renewalTitleCell) {
-        const oldCount = xmlReadTitleCount(xml, sharedStrings, renewalTitleCell[2] + shiftedRenewalTitleRow);
-        xml = xmlSetCellValue(xml, renewalTitleCell[2] + shiftedRenewalTitleRow, `RENEWALS   (${oldCount + newRenewalRowsXml.length})`);
-    }
+    if (renewalTitleCell) xml = xmlSetCellValue(xml, renewalTitleCell[2] + shiftedRenewalTitleRow, `RENEWALS   (${renewalRows.length})`);
 
     zip.file(sheetPath, xml);
     const blob = await zip.generateAsync({ type: 'blob' });
@@ -9506,7 +9546,7 @@ function wlPetCount(resident) {
 
 function wlDefaultRecord() {
     return {
-        fullName2: '', fullName3: '', fullName4: '', leaseEndManual: '',
+        fullName2: '', fullName3: '', fullName4: '',
         parkingSpaces: '',
         rentManual: '', storageManual: '',
         deposit1Type: 'Security', deposit1Manual: '500',
@@ -9552,7 +9592,13 @@ async function pullWlFromBackend() {
     if (!BACKEND_URL || APP_MODE === 'test') return;
     const remote = await backendPull(WL_BACKEND_KEY);
     if (remote) {
+        // Merge rather than replace: a unit selected (or edited) here but
+        // not yet pushed would otherwise vanish on the next 25s poll,
+        // leaving the form writing into a missing record and the PDF
+        // export stuck on "Generating…".
+        const local = WL_RECORDS;
         WL_RECORDS = remote;
+        Object.keys(local).forEach(u => { if (!(u in WL_RECORDS)) WL_RECORDS[u] = local[u]; });
         wlPersistLocal();
         if (wlSelectedUnit && document.activeElement && !document.activeElement.closest('#wlFormBody')) renderWlForm();
     } else if (Object.keys(WL_RECORDS).length) {
@@ -9624,6 +9670,7 @@ document.addEventListener('click', (e) => {
 });
 
 function wlCommit(field, value) {
+    if (!WL_RECORDS[wlSelectedUnit]) WL_RECORDS[wlSelectedUnit] = wlDefaultRecord();
     WL_RECORDS[wlSelectedUnit][field] = value;
     wlPersistLocal();
     wlPushDebounced();
@@ -9696,6 +9743,7 @@ function wlComputeTotals(r, resident) {
 function renderWlForm() {
     const unit = wlSelectedUnit;
     if (!unit) return;
+    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
     const r = WL_RECORDS[unit];
     const resident = findResidentByUnit(unit);
     const unitRec = byUnit[unit];
@@ -9725,7 +9773,7 @@ function renderWlForm() {
         <tr><td class="wl-row-label">Mailbox Number</td><td class="wl-auto" colspan="2">${escapeHtml(mailboxAuto || '\u2014')}</td></tr>
         <tr><td class="wl-row-label">Move-In Date</td><td class="wl-auto" colspan="2">${escapeHtml(resident ? fmtResidentDate(new Date(resident.moveInDate + 'T00:00:00')) : '\u2014')}</td></tr>
         <tr><td class="wl-row-label">Lease Term (Months)</td><td class="wl-auto" colspan="2">${escapeHtml(resident ? String(resident.leaseTerm) : '\u2014')}</td></tr>
-        <tr><td class="wl-row-label">Lease End Date <span class="wl-hint">(override)</span></td><td class="wl-manual"><input type="date" data-wl-field="leaseEndManual" value="${escapeAttr(r.leaseEndManual)}"></td><td class="wl-auto">${fmtResidentDate(leaseEnd)}</td></tr>
+        <tr><td class="wl-row-label">Lease End Date</td><td class="wl-auto" colspan="2">${escapeHtml(fmtResidentDate(leaseEnd))}</td></tr>
     `;
 
     document.getElementById('wlChargesSection').innerHTML = `
@@ -9866,7 +9914,7 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
     const { chargesTotal, depositsTotal, feesTotal, prorateAmt, prorateFrom, prorateTo, moveInAfter25th, subtotal, totalDue, petCount, parkingCharge, petRent, petDeposit, applicantCount, appFeeAmt, effectiveRent } = t;
     const fmt = (n) => formatResidentCurrency(n);
     const fullName1 = resident ? `${resident.first} ${resident.last}` : (r.fullName2 || 'Resident');
-    const leaseEnd = r.leaseEndManual ? fmtResidentDate(new Date(r.leaseEndManual + 'T00:00:00')) : (resident ? fmtResidentDate(residentMoveOutDate(resident)) : '');
+    const leaseEnd = resident ? fmtResidentDate(residentMoveOutDate(resident)) : '';
     const moveInDisp = resident ? fmtResidentDate(new Date(resident.moveInDate + 'T00:00:00')) : '';
     const addrStreet = r.addrStreetManual || (unitRec ? unitRec.address : '') || '';
     const addrCityStateZip = r.addrCityStateZipManual || 'Boulder, CO, 80301';
@@ -10006,6 +10054,7 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
 async function wlDownloadPdf(btn) {
     const unit = wlSelectedUnit;
     if (!unit) { alert('Select a resident first.'); return; }
+    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
     const r = WL_RECORDS[unit];
     const resident = findResidentByUnit(unit);
     const unitRec = byUnit[unit];
@@ -10018,10 +10067,13 @@ async function wlDownloadPdf(btn) {
     holder.style.position = 'fixed';
     holder.style.left = '-10000px';
     holder.style.top = '0';
-    holder.innerHTML = `<style>${WL_PDF_STYLE}</style>${buildWelcomeLetterHtml(unit, r, resident, unitRec)}`;
     document.body.appendChild(holder);
 
+    // Everything after the label change lives inside the try, so any
+    // failure (including building the letter HTML) always resets the
+    // button instead of leaving it stuck on "Generating…".
     try {
+        holder.innerHTML = `<style>${WL_PDF_STYLE}</style>${buildWelcomeLetterHtml(unit, r, resident, unitRec)}`;
         const node = holder.querySelector('.wlp-page');
         if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
         const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
@@ -10088,7 +10140,10 @@ async function pullLeaseFromBackend() {
     if (!BACKEND_URL || APP_MODE === 'test') return;
     const remote = await backendPull(LEASE_BACKEND_KEY);
     if (remote) {
+        // Merge, not replace — same reason as pullWlFromBackend.
+        const local = LEASE_RECORDS;
         LEASE_RECORDS = remote;
+        Object.keys(local).forEach(u => { if (!(u in LEASE_RECORDS)) LEASE_RECORDS[u] = local[u]; });
         leasePersistLocal();
         if (leaseSelectedUnit && document.activeElement && !document.activeElement.closest('#leaseFormBody')) renderLeaseForm();
     } else if (Object.keys(LEASE_RECORDS).length) {
@@ -10145,6 +10200,7 @@ document.addEventListener('click', (e) => {
 });
 
 function leaseCommit(field, value) {
+    if (!LEASE_RECORDS[leaseSelectedUnit]) LEASE_RECORDS[leaseSelectedUnit] = leaseDefaultRecord();
     LEASE_RECORDS[leaseSelectedUnit][field] = value;
     leasePersistLocal();
     leasePushDebounced();
@@ -10162,6 +10218,7 @@ function leaseMonthEnd(year, month1) { return new Date(year, month1, 0).getDate(
 function renderLeaseForm() {
     const unit = leaseSelectedUnit;
     if (!unit) return;
+    if (!LEASE_RECORDS[unit]) LEASE_RECORDS[unit] = leaseDefaultRecord();
     const lr = LEASE_RECORDS[unit];
     const wr = WL_RECORDS[unit] || wlDefaultRecord();
     const resident = findResidentByUnit(unit);
@@ -10170,7 +10227,7 @@ function renderLeaseForm() {
     const fmt = (n) => formatResidentCurrency(n);
 
     const moveIn = resident ? new Date(resident.moveInDate + 'T00:00:00') : null;
-    const leaseEndDate = wr.leaseEndManual ? new Date(wr.leaseEndManual + 'T00:00:00') : (resident ? residentMoveOutDate(resident) : null);
+    const leaseEndDate = resident ? residentMoveOutDate(resident) : null;
     const monthlyRent = wlEffectiveRent(wr, resident);
     const mandatoryFees = WL_RATE_PACKAGE + WL_RATE_VALET + WL_RATE_CITY_TRASH + WL_RATE_UTILITY_ADMIN;
     const totalDuePerMonth = monthlyRent + mandatoryFees;
