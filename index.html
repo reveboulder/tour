@@ -3014,7 +3014,6 @@
             <button type="button" class="wl-subtab active" data-admin-subtab="mmr">MMR</button>
             <button type="button" class="wl-subtab" data-admin-subtab="commissions">Commissions</button>
             <button type="button" class="wl-subtab" data-admin-subtab="pcard">PCard</button>
-            <button type="button" class="wl-subtab" data-admin-subtab="games">Games</button>
         </div>
         <div id="adminPanel-mmr" class="admin-subpanel">
             <div class="mmr-io-bar">
@@ -3311,7 +3310,23 @@
                 </aside>
             </div>
         </div>
-        <div id="adminPanel-games" class="admin-subpanel" style="display:none;">
+    </div>
+</div>
+</div>
+
+<!-- ============ GAMES (hidden) ============
+     No tab button: opened by clicking the RÊVE logo on the Settings page
+     and entering the Admin password. -->
+<div class="tab-panel" id="tab-games">
+<div class="admin-wrap">
+    <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 24px;">
+        <img class="mark mark-logo-img" alt="RÊVE">
+        <div>
+            <h1>Games</h1>
+            <div class="tag">Just for fun</div>
+        </div>
+        <button type="button" class="btn" id="gamesBackBtn" style="width:auto;flex:none;padding:8px 16px;margin-left:auto;">&larr; Back to Settings</button>
+    </div>
             <div class="wl-subtabs" style="margin-bottom:16px;">
                 <button type="button" class="wl-subtab active" data-game-select="snake">Snake</button>
                 <button type="button" class="wl-subtab" data-game-select="chess">Chess</button>
@@ -3351,8 +3366,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 </div>
 </div>
 
@@ -5145,6 +5158,7 @@ function switchTab(name) {
     if (name === 'media' && typeof renderSitemap === 'function') renderSitemap();
     if (name === 'howto' && typeof renderHowTo === 'function') renderHowTo();
     if (name === 'documents' && typeof renderDocuments === 'function') renderDocuments();
+    if (name !== 'games' && typeof window.snakeStop === 'function') window.snakeStop();
 }
 [...document.querySelectorAll('.top-tab')].forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
@@ -7458,15 +7472,22 @@ document.getElementById('adminPasswordInput').addEventListener('keydown', (e) =>
     if (e.key === 'Enter') tryAdminUnlock();
 });
 
+// Hidden Games page: click the RÊVE logo on Settings, enter the Admin password.
+document.querySelector('#tab-settings .brand-strip .mark').addEventListener('click', () => {
+    if (!promptAdminPassword('open Games')) return;
+    switchTab('games');
+    window.scrollTo(0, 0);
+});
+document.getElementById('gamesBackBtn').addEventListener('click', () => switchTab('settings'));
+
 let adminSubTab = 'mmr';
 [...document.querySelectorAll('#adminTopSubtabs .wl-subtab')].forEach(btn => {
     btn.addEventListener('click', () => {
         adminSubTab = btn.getAttribute('data-admin-subtab');
         [...document.querySelectorAll('#adminTopSubtabs .wl-subtab')].forEach(b => b.classList.toggle('active', b === btn));
-        ['mmr', 'commissions', 'pcard', 'games'].forEach(name => {
+        ['mmr', 'commissions', 'pcard'].forEach(name => {
             document.getElementById('adminPanel-' + name).style.display = (name === adminSubTab) ? 'block' : 'none';
         });
-        if (adminSubTab !== 'games') snakeStop();
         if (adminSubTab === 'commissions' && typeof renderCommSuggested === 'function') renderCommSuggested();
     });
 });
@@ -7612,9 +7633,9 @@ let adminSubTab = 'mmr';
         // silently hijacked (and preventDefault'd) on every tab,
         // forever — breaking typing in any textbox anywhere on the
         // site. Also bail out whenever an editable field has focus.
-        const adminTab = document.getElementById('tab-admin');
-        if (!adminTab || !adminTab.classList.contains('active')) return;
-        if (document.getElementById('adminPanel-games').style.display === 'none') return;
+        const gamesTab = document.getElementById('tab-games');
+        if (!gamesTab || !gamesTab.classList.contains('active')) return;
+        if (document.getElementById('gamePanel-snake').style.display === 'none') return;
         const active = document.activeElement;
         if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable)) return;
         const key = e.key.toLowerCase();
