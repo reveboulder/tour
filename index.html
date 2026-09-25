@@ -1382,6 +1382,7 @@
     .docs-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
     .docs-thumb { display: block; aspect-ratio: 8.5 / 11; background: #f3efe7; border-bottom: 1px solid var(--line); overflow: hidden; position: relative; }
     .docs-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+    .docs-thumb[data-docs-kind="image"] img { object-fit: contain; object-position: center; }
     .docs-thumb-placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--ink-soft); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
     .docs-thumb-placeholder svg { width: 44px; height: 44px; }
     .docs-card-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
@@ -3294,12 +3295,12 @@
                 <button type="button" data-docs-view="preview">Preview</button>
                 <button type="button" data-docs-view="details">Details</button>
             </div>
-            <button type="button" class="btn" id="docsUploadBtn" style="width:auto;flex:none;padding:8px 16px;">+ Upload PDF</button>
-            <input type="file" id="docsUploadInput" accept="application/pdf,.pdf" style="display:none;">
+            <button type="button" class="btn" id="docsUploadBtn" style="width:auto;flex:none;padding:8px 16px;">+ Upload</button>
+            <input type="file" id="docsUploadInput" accept="application/pdf,.pdf,image/jpeg,.jpg,.jpeg,image/png,.png" style="display:none;">
         </div>
     </div>
     <div class="docs-grid" id="docsGrid"></div>
-    <div class="empty-note" id="docsEmptyNote" style="display:none;">No documents in this section yet &mdash; click &ldquo;+ Upload PDF&rdquo; to add one.</div>
+    <div class="empty-note" id="docsEmptyNote" style="display:none;">No documents in this section yet &mdash; click &ldquo;+ Upload&rdquo; to add one.</div>
     <iframe id="docsPrintFrame" title="Print" style="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;"></iframe>
 </div>
 </div>
@@ -12018,7 +12019,7 @@ document.getElementById('retailInfoImportBtn').addEventListener('click', () => {
 /* ============================================================
    DOCUMENTS TAB — printable common-use documents, grouped into
    sections (sub-tabs). Built-in documents are static files in
-   documents/<section>/. Uploaded PDFs (for handouts that shouldn't
+   documents/<section>/. Uploads — PDF, JPG or PNG (for handouts that shouldn't
    sit in the public repo, e.g. ones carrying promo or property
    codes) live in the shared backend: the list under
    'documents-uploads', each file's base64 under 'document-file-<id>',
@@ -12088,11 +12089,14 @@ async function docsCachePut(id, b64) {
         if (b64 === null) tx.objectStore('files').delete(id); else tx.objectStore('files').put(b64, id);
     } catch (e) {}
 }
-function docsBase64ToBlob(b64) {
+// Upload types: MIME -> label. Entries saved before images were allowed have no mime (PDF).
+const DOCS_UPLOAD_TYPES = { 'application/pdf': 'PDF', 'image/jpeg': 'JPG', 'image/png': 'PNG' };
+function docsIsImage(doc) { return /^image\//.test(doc.mime || ''); }
+function docsBase64ToBlob(b64, type) {
     const bin = atob(b64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new Blob([bytes], { type: 'application/pdf' });
+    return new Blob([bytes], { type: type || 'application/pdf' });
 }
 // URL for a document: a static path, or a blob: URL for an upload
 // (from the IndexedDB cache, else pulled from the backend).
@@ -12105,7 +12109,7 @@ async function docsUrlFor(doc) {
         if (typeof b64 !== 'string' || !b64) return null;
         docsCachePut(doc.uploadId, b64);
     }
-    docsBlobUrls[doc.uploadId] = URL.createObjectURL(docsBase64ToBlob(b64));
+    docsBlobUrls[doc.uploadId] = URL.createObjectURL(docsBase64ToBlob(b64, doc.mime));
     return docsBlobUrls[doc.uploadId];
 }
 function docsForSection(sectionId) {
@@ -12116,7 +12120,7 @@ function docsForSection(sectionId) {
         thumb: `documents/${sectionId}/thumbs/${d.file.replace(/\.pdf$/i, '.jpg')}`
     }));
     const uploaded = DOC_UPLOADS.filter(u => u.section === sectionId).map(u => ({
-        key: `up:${u.id}`, title: u.title, filename: u.name, size: u.size, uploadId: u.id, localOnly: u.localOnly, print: u.print || 'half', added: u.added
+        key: `up:${u.id}`, title: u.title, filename: u.name, size: u.size, uploadId: u.id, localOnly: u.localOnly, print: u.print || 'half', added: u.added, mime: u.mime || 'application/pdf'
     }));
     // Saved order first; anything not in it (new uploads) keeps its default place after.
     const all = builtIn.concat(uploaded);
@@ -12140,8 +12144,11 @@ function docsLoadPdfLib() {
 // Letter landscape; each source page (its crop box) scaled into one
 // half with a small margin, drawn twice, and a gray cut line between.
 async function docsHalfSheetUrl(url) {
+    return docsHalfSheetFromBytes(await (await fetch(url)).arrayBuffer());
+}
+async function docsHalfSheetFromBytes(bytes) {
     const PDFLib = await docsLoadPdfLib();
-    const src = await PDFLib.PDFDocument.load(await (await fetch(url)).arrayBuffer(), { ignoreEncryption: true });
+    const src = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
     const out = await PDFLib.PDFDocument.create();
     const pages = src.getPages();
     const embedded = await out.embedPages(pages, pages.map(pg => {
@@ -12159,6 +12166,24 @@ async function docsHalfSheetUrl(url) {
     return URL.createObjectURL(new Blob([await out.save()], { type: 'application/pdf' }));
 }
 const docsHalfSheetCache = {};
+// An image as a printable PDF: full = fitted to a letter page (portrait or
+// landscape to match), half = run through the two-per-page layout.
+async function docsImagePrintUrl(url, mime, mode) {
+    const PDFLib = await docsLoadPdfLib();
+    const bytes = await (await fetch(url)).arrayBuffer();
+    const doc = await PDFLib.PDFDocument.create();
+    const img = mime === 'image/png' ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+    if (mode === 'full') {
+        const [W, H] = img.width > img.height ? [792, 612] : [612, 792];
+        const margin = 18, scale = Math.min((W - 2 * margin) / img.width, (H - 2 * margin) / img.height);
+        const w = img.width * scale, h = img.height * scale;
+        doc.addPage([W, H]).drawImage(img, { x: (W - w) / 2, y: (H - h) / 2, width: w, height: h });
+        return URL.createObjectURL(new Blob([await doc.save()], { type: 'application/pdf' }));
+    }
+    const w = 612, h = 612 * img.height / img.width;
+    doc.addPage([w, h]).drawImage(img, { x: 0, y: 0, width: w, height: h });
+    return docsHalfSheetFromBytes(await doc.save());
+}
 const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
 const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 let pdfJsPromise = null;
@@ -12177,7 +12202,19 @@ function docsLoadPdfJs() {
     return pdfJsPromise;
 }
 // Page 1 as a 320px-wide JPEG data URL, matching the built-in thumbnails.
-async function docsRenderThumb(url) {
+async function docsRenderThumb(url, mime) {
+    if (/^image\//.test(mime || '')) {
+        const img = new Image();
+        await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = reject; img.src = url; });
+        const canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = Math.max(1, Math.round(320 * img.naturalHeight / img.naturalWidth));
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/jpeg', 0.8);
+    }
     const pdfjsLib = await docsLoadPdfJs();
     const data = new Uint8Array(await (await fetch(url)).arrayBuffer());
     const pdf = await pdfjsLib.getDocument({ data }).promise;
@@ -12211,7 +12248,7 @@ async function docsEnsureThumb(doc) {
             thumb = null;
             try {
                 const url = await docsUrlFor(doc);
-                if (url) thumb = await docsRenderThumb(url);
+                if (url) thumb = await docsRenderThumb(url, doc.mime);
             } catch (e) { thumb = null; }
             if (thumb) await backendPush(`document-thumb-${id}`, thumb);
         }
@@ -12244,7 +12281,7 @@ function renderDocuments() {
     const handleIcon = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
     grid.innerHTML = docs.map((d, i) => {
         const meta = d.uploadId
-            ? `Uploaded PDF${d.size ? ' · ' + docsFormatSize(d.size) : ''}${d.localOnly ? ' · this device only' : ''}`
+            ? `Uploaded ${DOCS_UPLOAD_TYPES[d.mime] || 'PDF'}${d.size ? ' · ' + docsFormatSize(d.size) : ''}${d.localOnly ? ' · this device only' : ''}`
             : `${d.pages} page${d.pages === 1 ? '' : 's'} · PDF`;
         const printNote = d.print === 'full' ? 'Prints full sheet' : 'Prints 2 per page';
         const added = docsFormatAdded(d.added);
@@ -12268,7 +12305,7 @@ function renderDocuments() {
             ? `<img src="${escapeAttr(thumbSrc)}" alt="" loading="lazy">`
             : `<span class="docs-thumb-placeholder">${pdfIcon}PDF</span>`;
         return `<div class="docs-card" data-docs-key="${escapeAttr(d.key)}">
-            <a class="docs-thumb" href="#" data-docs-action="open" data-docs-i="${i}"${d.uploadId ? ` data-docs-thumb="${escapeAttr(d.uploadId)}"` : ''} title="Open ${escapeAttr(d.title)}">${thumb}</a>
+            <a class="docs-thumb" href="#" data-docs-action="open" data-docs-i="${i}"${d.uploadId ? ` data-docs-thumb="${escapeAttr(d.uploadId)}"` : ''}${docsIsImage(d) ? ' data-docs-kind="image"' : ''} title="Open ${escapeAttr(d.title)}">${thumb}</a>
             <div class="docs-card-body">
                 <div class="docs-card-title">${escapeHtml(d.title)}</div>
                 <div class="docs-card-meta">${escapeHtml(meta)}<br>${printNote}${added ? '<br>' + escapeHtml(added) : ''}</div>
@@ -12406,7 +12443,19 @@ document.getElementById('docsGrid').addEventListener('click', async e => {
         a.remove();
     } else if (action === 'print') {
         let printUrl = url;
-        if (doc.print !== 'full') {
+        if (docsIsImage(doc)) {
+            const cacheKey = url + '#' + doc.print;
+            try {
+                if (!docsHalfSheetCache[cacheKey]) {
+                    docsSetStatus('Preparing print\u2026');
+                    docsHalfSheetCache[cacheKey] = await docsImagePrintUrl(url, doc.mime, doc.print);
+                }
+                printUrl = docsHalfSheetCache[cacheKey];
+                docsSetStatus('');
+            } catch (err) {
+                docsSetStatus('Could not prepare the print layout \u2014 printing the image as is.');
+            }
+        } else if (doc.print !== 'full') {
             try {
                 if (!docsHalfSheetCache[url]) {
                     docsSetStatus('Preparing half-sheets…');
@@ -12436,10 +12485,13 @@ document.getElementById('docsUploadInput').addEventListener('change', async e =>
     const file = e.target.files && e.target.files[0];
     e.target.value = '';
     if (!file) return;
-    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { alert('Please choose a PDF file.'); return; }
-    if (file.size > DOCS_MAX_UPLOAD_BYTES) { alert('That PDF is over 10 MB — please use a smaller file.'); return; }
+    const ext = (/\.(pdf|jpe?g|png)$/i.exec(file.name) || [])[1];
+    const mime = DOCS_UPLOAD_TYPES[file.type] ? file.type
+        : ext ? { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' }[ext.toLowerCase()] : '';
+    if (!mime) { alert('Please choose a PDF, JPG or PNG file.'); return; }
+    if (file.size > DOCS_MAX_UPLOAD_BYTES) { alert('That file is over 10 MB — please use a smaller file.'); return; }
     const section = DOC_SECTIONS.find(s => s.id === docsCurrentSection);
-    const title = prompt(`Title for this document (in ${section.label}):`, file.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim());
+    const title = prompt(`Title for this document (in ${section.label}):`, file.name.replace(/\.(pdf|jpe?g|png)$/i, '').replace(/[_-]+/g, ' ').trim());
     if (title === null || !title.trim()) return;
     const b64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -12448,13 +12500,13 @@ document.getElementById('docsUploadInput').addEventListener('change', async e =>
         reader.readAsDataURL(file);
     });
     const half = confirm('Print this as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
-    const entry = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), section: section.id, title: title.trim(), name: file.name, size: file.size, print: half ? 'half' : 'full', added: new Date().toISOString() };
+    const entry = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), section: section.id, title: title.trim(), name: file.name, size: file.size, mime, print: half ? 'half' : 'full', added: new Date().toISOString() };
     await docsCachePut(entry.id, b64);
     docsSetStatus('Uploading…');
     let shared = false;
     if (BACKEND_URL && await backendPush(`document-file-${entry.id}`, b64)) {
         // Preview first, so teammates see it as soon as the doc is listed.
-        await docsEnsureThumb({ uploadId: entry.id });
+        await docsEnsureThumb({ uploadId: entry.id, mime: entry.mime });
         const remote = await backendPull(DOCS_UPLOADS_BACKEND_KEY);
         shared = await backendPush(DOCS_UPLOADS_BACKEND_KEY, (Array.isArray(remote) ? remote : []).concat([entry]));
     }
