@@ -3270,7 +3270,7 @@
         </div>
     </div>
     <div class="docs-grid" id="docsGrid"></div>
-    <div class="empty-note" id="docsEmptyNote" style="display:none;">No documents in this section yet.</div>
+    <div class="empty-note" id="docsEmptyNote" style="display:none;">No documents in this section yet &mdash; click &ldquo;+ Upload PDF&rdquo; to add one.</div>
     <iframe id="docsPrintFrame" title="Print" style="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;"></iframe>
 </div>
 </div>
@@ -11993,7 +11993,8 @@ document.getElementById('retailInfoImportBtn').addEventListener('click', () => {
    sit in the public repo, e.g. ones carrying promo or property
    codes) live in the shared backend: the list under
    'documents-uploads', each file's base64 under 'document-file-<id>',
-   cached per browser in IndexedDB.
+   cached per browser in IndexedDB. An upload's page-1 preview is
+   rendered with pdf.js and kept the same way ('document-thumb-<id>').
    Print makes two half-sheets per landscape page (each page twice,
    side by side, with a cut line) unless the document is marked
    print: 'full'.
@@ -12007,7 +12008,8 @@ const DOC_SECTIONS = [
         { title: 'RTD MyRide EcoPass', file: 'RTD_MyRide_EcoPass_2026.pdf', pages: 2 },
         { title: 'PetScreening How-To', file: 'PetScreening_How-To.pdf', pages: 1 },
         { title: 'Apartment Care Tips', file: 'Apartment_Care_Tips.pdf', pages: 1 }
-    ] }
+    ] },
+    { id: 'building-signs', label: 'Building Signs', docs: [] }
 ];
 const DOCS_UPLOADS_KEY = 'reve-documents-uploads';
 const DOCS_UPLOADS_BACKEND_KEY = 'documents-uploads';
@@ -12112,6 +12114,70 @@ async function docsHalfSheetUrl(url) {
     return URL.createObjectURL(new Blob([await out.save()], { type: 'application/pdf' }));
 }
 const docsHalfSheetCache = {};
+const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const PDFJS_WORKER_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let pdfJsPromise = null;
+function docsLoadPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (!pdfJsPromise) pdfJsPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = PDFJS_URL;
+        script.onload = () => {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+            resolve(window.pdfjsLib);
+        };
+        script.onerror = () => { pdfJsPromise = null; reject(new Error('pdf.js failed to load')); };
+        document.head.appendChild(script);
+    });
+    return pdfJsPromise;
+}
+// Page 1 as a 320px-wide JPEG data URL, matching the built-in thumbnails.
+async function docsRenderThumb(url) {
+    const pdfjsLib = await docsLoadPdfJs();
+    const data = new Uint8Array(await (await fetch(url)).arrayBuffer());
+    const pdf = await pdfjsLib.getDocument({ data }).promise;
+    try {
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 320 / page.getViewport({ scale: 1 }).width });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        return canvas.toDataURL('image/jpeg', 0.8);
+    } finally {
+        pdf.destroy();
+    }
+}
+const docsThumbs = {};
+const docsThumbTried = {};
+// Uploaded preview: memory, then this browser's cache, then the shared
+// backend, else rendered here (and shared so teammates skip the render).
+async function docsEnsureThumb(doc) {
+    const id = doc.uploadId;
+    if (docsThumbs[id] || docsThumbTried[id]) return docsThumbs[id] || null;
+    docsThumbTried[id] = true;
+    let thumb = await docsCacheGet(`thumb:${id}`);
+    if (!thumb) {
+        thumb = await backendPull(`document-thumb-${id}`);
+        if (typeof thumb !== 'string' || !thumb.startsWith('data:image/')) {
+            thumb = null;
+            try {
+                const url = await docsUrlFor(doc);
+                if (url) thumb = await docsRenderThumb(url);
+            } catch (e) { thumb = null; }
+            if (thumb) await backendPush(`document-thumb-${id}`, thumb);
+        }
+        if (thumb) docsCachePut(`thumb:${id}`, thumb);
+    }
+    if (!thumb) return null;
+    docsThumbs[id] = thumb;
+    const el = document.querySelector(`[data-docs-thumb="${id}"]`);
+    if (el) el.innerHTML = `<img src="${thumb}" alt="">`;
+    return thumb;
+}
 function docsFormatSize(bytes) {
     return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
@@ -12125,11 +12191,12 @@ function renderDocuments() {
             ? `Uploaded PDF${d.size ? ' · ' + docsFormatSize(d.size) : ''}${d.localOnly ? ' · this device only' : ''}`
             : `${d.pages} page${d.pages === 1 ? '' : 's'} · PDF`;
         const printNote = d.print === 'full' ? 'Prints full sheet' : 'Prints 2 per page';
-        const thumb = d.thumb
-            ? `<img src="${escapeAttr(d.thumb)}" alt="" loading="lazy">`
+        const thumbSrc = d.thumb || (d.uploadId && docsThumbs[d.uploadId]);
+        const thumb = thumbSrc
+            ? `<img src="${escapeAttr(thumbSrc)}" alt="" loading="lazy">`
             : `<span class="docs-thumb-placeholder">${pdfIcon}PDF</span>`;
         return `<div class="docs-card">
-            <a class="docs-thumb" href="#" data-docs-action="open" data-docs-i="${i}" title="Open ${escapeAttr(d.title)}">${thumb}</a>
+            <a class="docs-thumb" href="#" data-docs-action="open" data-docs-i="${i}"${d.uploadId ? ` data-docs-thumb="${escapeAttr(d.uploadId)}"` : ''} title="Open ${escapeAttr(d.title)}">${thumb}</a>
             <div class="docs-card-body">
                 <div class="docs-card-title">${escapeHtml(d.title)}</div>
                 <div class="docs-card-meta">${escapeHtml(meta)}<br>${printNote}</div>
@@ -12143,6 +12210,7 @@ function renderDocuments() {
         </div>`;
     }).join('');
     document.getElementById('docsEmptyNote').style.display = docs.length ? 'none' : 'block';
+    docs.forEach(d => { if (d.uploadId && !docsThumbs[d.uploadId]) docsEnsureThumb(d); });
 }
 function docsSetStatus(text) { document.getElementById('docsUploadStatus').textContent = text || ''; }
 
@@ -12164,10 +12232,13 @@ document.getElementById('docsGrid').addEventListener('click', async e => {
         DOC_UPLOADS = DOC_UPLOADS.filter(u => u.id !== doc.uploadId);
         docsPersistLocal();
         docsCachePut(doc.uploadId, null);
+        docsCachePut(`thumb:${doc.uploadId}`, null);
+        delete docsThumbs[doc.uploadId];
         renderDocuments();
         const remote = await backendPull(DOCS_UPLOADS_BACKEND_KEY);
         if (Array.isArray(remote)) await backendPush(DOCS_UPLOADS_BACKEND_KEY, remote.filter(u => u.id !== doc.uploadId));
         backendPush(`document-file-${doc.uploadId}`, null);
+        backendPush(`document-thumb-${doc.uploadId}`, null);
         return;
     }
     // Open a tab now (still inside the click) so it isn't popup-blocked
@@ -12239,6 +12310,8 @@ document.getElementById('docsUploadInput').addEventListener('change', async e =>
     docsSetStatus('Uploading…');
     let shared = false;
     if (BACKEND_URL && await backendPush(`document-file-${entry.id}`, b64)) {
+        // Preview first, so teammates see it as soon as the doc is listed.
+        await docsEnsureThumb({ uploadId: entry.id });
         const remote = await backendPull(DOCS_UPLOADS_BACKEND_KEY);
         shared = await backendPush(DOCS_UPLOADS_BACKEND_KEY, (Array.isArray(remote) ? remote : []).concat([entry]));
     }
