@@ -1397,11 +1397,30 @@
     .docs-grid-dragging, .docs-grid-dragging * { cursor: grabbing !important; user-select: none; }
     .docs-card.docs-dragging { opacity: 0.55; outline: 2px dashed var(--reve-orange); outline-offset: 2px; }
     .docs-card-remove:hover { color: #c0392b; }
+    .docs-view-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: #fff; }
+    .docs-view-toggle button { border: 0; background: none; padding: 7px 14px; font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--ink-soft); cursor: pointer; }
+    .docs-view-toggle button + button { border-left: 1px solid var(--line); }
+    .docs-view-toggle button.active { background: var(--ink); color: #fff; }
+    /* Details view: compact rows, two per line on wide screens. */
+    .docs-grid.docs-grid-details { grid-template-columns: repeat(auto-fill, minmax(500px, 1fr)); gap: 8px; }
+    .docs-card.docs-row { flex-direction: row; align-items: center; gap: 12px; padding: 8px 8px 8px 14px; }
+    .docs-row-info { flex: 1; min-width: 0; }
+    .docs-row .docs-card-title { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .docs-row .docs-card-meta { margin-top: 2px; line-height: 1.35; }
+    .docs-row .docs-card-actions { margin-top: 0; flex: none; }
+    .docs-row .docs-card-actions .btn { flex: none; padding: 5px 11px; }
     @media (max-width: 600px) {
         .docs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
         .docs-card-actions { flex-wrap: wrap; }
         .docs-card-actions .btn { flex: 1 1 45%; }
+        .docs-grid.docs-grid-details { grid-template-columns: minmax(0, 1fr); }
+        .docs-card.docs-row { flex-wrap: wrap; row-gap: 6px; padding: 8px 8px 10px 12px; }
+        .docs-row-info { flex: 1 1 calc(100% - 44px); }
+        .docs-row .docs-drag-handle { order: 2; }
+        .docs-row .docs-card-actions { order: 3; flex: 1 1 100%; flex-wrap: nowrap; }
+        .docs-row .docs-card-actions .btn { flex: 1 1 0; }
     }
+    body.dark-mode .docs-view-toggle { background: var(--dm-card-alt); }
     body.dark-mode .docs-card { background: var(--dm-card-alt); }
     body.dark-mode .docs-thumb { background: #2a2826; }
 
@@ -3268,9 +3287,13 @@
         </div>
     </div>
     <div class="docs-toolbar">
-        <div class="wl-subtabs" id="docsSubtabs" style="margin:0;"></div>
+        <div class="wl-subtabs res-subtab-row" id="docsSubtabs" style="margin:0;max-width:100%;"></div>
         <div class="docs-toolbar-right">
             <span class="docs-upload-status" id="docsUploadStatus"></span>
+            <div class="docs-view-toggle" id="docsViewToggle" role="group" aria-label="View">
+                <button type="button" data-docs-view="preview">Preview</button>
+                <button type="button" data-docs-view="details">Details</button>
+            </div>
             <button type="button" class="btn" id="docsUploadBtn" style="width:auto;flex:none;padding:8px 16px;">+ Upload PDF</button>
             <input type="file" id="docsUploadInput" accept="application/pdf,.pdf" style="display:none;">
         </div>
@@ -12007,16 +12030,17 @@ document.getElementById('retailInfoImportBtn').addEventListener('click', () => {
    ============================================================ */
 const DOC_SECTIONS = [
     { id: 'move-in', label: 'Move-in Docs', docs: [
-        { title: 'Emergency Contacts', file: 'Emergency_Contacts.pdf', pages: 1 },
-        { title: 'DOOR Building Access', file: 'DOOR_Building_Access.pdf', pages: 3 },
-        { title: 'Trash Policies', file: 'Trash_Policies.pdf', pages: 1, print: 'full' },
-        { title: 'Quantum Fiber Internet', file: 'Quantum_Fiber_Internet.pdf', pages: 1, print: 'full' },
-        { title: 'RTD MyRide EcoPass', file: 'RTD_MyRide_EcoPass_2026.pdf', pages: 2 },
-        { title: 'PetScreening How-To', file: 'PetScreening_How-To.pdf', pages: 1 },
-        { title: 'Apartment Care Tips', file: 'Apartment_Care_Tips.pdf', pages: 1 }
+        { title: 'Emergency Contacts', file: 'Emergency_Contacts.pdf', pages: 1, added: '2026-09-25' },
+        { title: 'DOOR Building Access', file: 'DOOR_Building_Access.pdf', pages: 3, added: '2026-09-25' },
+        { title: 'Trash Policies', file: 'Trash_Policies.pdf', pages: 1, added: '2026-09-25', print: 'full' },
+        { title: 'Quantum Fiber Internet', file: 'Quantum_Fiber_Internet.pdf', pages: 1, added: '2026-09-25', print: 'full' },
+        { title: 'RTD MyRide EcoPass', file: 'RTD_MyRide_EcoPass_2026.pdf', pages: 2, added: '2026-09-25' },
+        { title: 'PetScreening How-To', file: 'PetScreening_How-To.pdf', pages: 1, added: '2026-09-25' },
+        { title: 'Apartment Care Tips', file: 'Apartment_Care_Tips.pdf', pages: 1, added: '2026-09-25' }
     ] },
     { id: 'building-signs', label: 'Building Signs', docs: [] },
-    { id: 'forms', label: 'Forms', docs: [] }
+    { id: 'forms', label: 'Forms', docs: [] },
+    { id: 'bulletin', label: 'Bulletin', docs: [] }
 ];
 const DOCS_UPLOADS_KEY = 'reve-documents-uploads';
 const DOCS_UPLOADS_BACKEND_KEY = 'documents-uploads';
@@ -12030,6 +12054,10 @@ const DOCS_ORDER_BACKEND_KEY = 'documents-order';
 let DOC_ORDER = {};
 try { DOC_ORDER = JSON.parse(localStorage.getItem(DOCS_ORDER_KEY) || '{}') || {}; } catch (e) { DOC_ORDER = {}; }
 let docsDragging = false;
+// Preview (cards with page previews) or Details (compact rows), per section, per browser.
+const DOCS_VIEW_KEY = 'reve-documents-view';
+let DOC_VIEW = {};
+try { DOC_VIEW = JSON.parse(localStorage.getItem(DOCS_VIEW_KEY) || '{}') || {}; } catch (e) { DOC_VIEW = {}; }
 const docsBlobUrls = {};
 
 function docsPersistLocal() {
@@ -12083,12 +12111,12 @@ async function docsUrlFor(doc) {
 function docsForSection(sectionId) {
     const section = DOC_SECTIONS.find(s => s.id === sectionId);
     const builtIn = (section ? section.docs : []).map(d => ({
-        key: `file:${d.file}`, title: d.title, pages: d.pages, filename: d.file, print: d.print || 'half',
+        key: `file:${d.file}`, title: d.title, pages: d.pages, filename: d.file, print: d.print || 'half', added: d.added,
         url: `documents/${sectionId}/${d.file}`,
         thumb: `documents/${sectionId}/thumbs/${d.file.replace(/\.pdf$/i, '.jpg')}`
     }));
     const uploaded = DOC_UPLOADS.filter(u => u.section === sectionId).map(u => ({
-        key: `up:${u.id}`, title: u.title, filename: u.name, size: u.size, uploadId: u.id, localOnly: u.localOnly, print: u.print || 'half'
+        key: `up:${u.id}`, title: u.title, filename: u.name, size: u.size, uploadId: u.id, localOnly: u.localOnly, print: u.print || 'half', added: u.added
     }));
     // Saved order first; anything not in it (new uploads) keeps its default place after.
     const all = builtIn.concat(uploaded);
@@ -12198,16 +12226,43 @@ async function docsEnsureThumb(doc) {
 function docsFormatSize(bytes) {
     return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
+function docsFormatAdded(added) {
+    if (!added) return '';
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(added);
+    const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(added);
+    return isNaN(d) ? '' : 'Added ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 function renderDocuments() {
     const tabs = document.getElementById('docsSubtabs');
     tabs.innerHTML = DOC_SECTIONS.map(s => `<button type="button" class="wl-subtab${s.id === docsCurrentSection ? ' active' : ''}" data-docs-section="${escapeAttr(s.id)}">${escapeHtml(s.label)}</button>`).join('');
+    const view = DOC_VIEW[docsCurrentSection] === 'details' ? 'details' : 'preview';
+    document.querySelectorAll('#docsViewToggle [data-docs-view]').forEach(b => b.classList.toggle('active', b.getAttribute('data-docs-view') === view));
+    const grid = document.getElementById('docsGrid');
+    grid.classList.toggle('docs-grid-details', view === 'details');
     const docs = docsForSection(docsCurrentSection);
     const pdfIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
-    document.getElementById('docsGrid').innerHTML = docs.map((d, i) => {
+    const handleIcon = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    grid.innerHTML = docs.map((d, i) => {
         const meta = d.uploadId
             ? `Uploaded PDF${d.size ? ' · ' + docsFormatSize(d.size) : ''}${d.localOnly ? ' · this device only' : ''}`
             : `${d.pages} page${d.pages === 1 ? '' : 's'} · PDF`;
         const printNote = d.print === 'full' ? 'Prints full sheet' : 'Prints 2 per page';
+        const added = docsFormatAdded(d.added);
+        const buttons = `<button type="button" class="btn" data-docs-action="open" data-docs-i="${i}">Open</button>
+                    <button type="button" class="btn primary" data-docs-action="print" data-docs-i="${i}">Print</button>
+                    <button type="button" class="btn" data-docs-action="download" data-docs-i="${i}">Download</button>`;
+        const remove = d.uploadId ? `<button type="button" class="docs-card-remove" data-docs-action="remove" data-docs-i="${i}">Remove</button>` : '';
+        const handle = `<span class="docs-drag-handle" role="button" tabindex="0" title="Drag to reorder" aria-label="Drag to reorder ${escapeAttr(d.title)}">${handleIcon}</span>`;
+        if (view === 'details') {
+            return `<div class="docs-card docs-row" data-docs-key="${escapeAttr(d.key)}">
+                <div class="docs-row-info">
+                    <div class="docs-card-title" title="${escapeAttr(d.title)}">${escapeHtml(d.title)}</div>
+                    <div class="docs-card-meta">${escapeHtml([meta, printNote, added].filter(Boolean).join(' · '))}${remove ? ' · ' + remove : ''}</div>
+                </div>
+                <div class="docs-card-actions">${buttons}</div>
+                ${handle}
+            </div>`;
+        }
         const thumbSrc = d.thumb || (d.uploadId && docsThumbs[d.uploadId]);
         const thumb = thumbSrc
             ? `<img src="${escapeAttr(thumbSrc)}" alt="" loading="lazy">`
@@ -12216,22 +12271,27 @@ function renderDocuments() {
             <a class="docs-thumb" href="#" data-docs-action="open" data-docs-i="${i}"${d.uploadId ? ` data-docs-thumb="${escapeAttr(d.uploadId)}"` : ''} title="Open ${escapeAttr(d.title)}">${thumb}</a>
             <div class="docs-card-body">
                 <div class="docs-card-title">${escapeHtml(d.title)}</div>
-                <div class="docs-card-meta">${escapeHtml(meta)}<br>${printNote}</div>
+                <div class="docs-card-meta">${escapeHtml(meta)}<br>${printNote}${added ? '<br>' + escapeHtml(added) : ''}</div>
                 <div class="docs-card-actions">
-                    <button type="button" class="btn" data-docs-action="open" data-docs-i="${i}">Open</button>
-                    <button type="button" class="btn primary" data-docs-action="print" data-docs-i="${i}">Print</button>
-                    <button type="button" class="btn" data-docs-action="download" data-docs-i="${i}">Download</button>
+                    ${buttons}
                 </div>
                 <div class="docs-card-foot">
-                    ${d.uploadId ? `<button type="button" class="docs-card-remove" data-docs-action="remove" data-docs-i="${i}">Remove</button>` : '<span></span>'}
-                    <span class="docs-drag-handle" role="button" tabindex="0" title="Drag to reorder" aria-label="Drag to reorder ${escapeAttr(d.title)}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+                    ${remove || '<span></span>'}
+                    ${handle}
                 </div>
             </div>
         </div>`;
     }).join('');
     document.getElementById('docsEmptyNote').style.display = docs.length ? 'none' : 'block';
-    docs.forEach(d => { if (d.uploadId && !docsThumbs[d.uploadId]) docsEnsureThumb(d); });
+    if (view === 'preview') docs.forEach(d => { if (d.uploadId && !docsThumbs[d.uploadId]) docsEnsureThumb(d); });
 }
+document.getElementById('docsViewToggle').addEventListener('click', e => {
+    const btn = e.target.closest('[data-docs-view]');
+    if (!btn) return;
+    DOC_VIEW[docsCurrentSection] = btn.getAttribute('data-docs-view');
+    try { localStorage.setItem(DOCS_VIEW_KEY, JSON.stringify(DOC_VIEW)); } catch (e) {}
+    renderDocuments();
+});
 function docsSetStatus(text) { document.getElementById('docsUploadStatus').textContent = text || ''; }
 async function docsSaveOrder(sectionId, keys) {
     DOC_ORDER[sectionId] = keys;
