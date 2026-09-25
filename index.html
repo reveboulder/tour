@@ -12215,13 +12215,12 @@ function sitemapUnitSVG(unit, poly) {
     const available = exists ? isUnitAvailable(u) : false;
     const boxCls = !exists ? 'unavailable' : (available ? 'available' : 'unavailable clickable');
     const labelCls = available ? 'sitemap-unit-label on-available' : 'sitemap-unit-label';
-    const hasVideo = exists && u.videoLink;
     const tip = exists ? (unit + (available ? ' \u2014 Available' : '')) : (unit + ' (not in roster)');
     const box = sitemapPolyBox(poly);
     const [lx, ly] = sitemapLabelPoint(poly, box);
     // Always horizontal; shrink the number to fit narrow units.
     const fs = Math.max(6, Math.min(12, (box.w - 3) / 2.5, box.h * 0.55));
-    return `<g class="sitemap-unit-group${exists ? ' clickable' : ''}"${exists ? ` data-unit="${escapeAttr(unit)}" data-has-video="${hasVideo ? '1' : '0'}"` : ''}>
+    return `<g class="sitemap-unit-group${exists ? ' clickable' : ''}"${exists ? ` data-unit="${escapeAttr(unit)}"` : ''}>
         <polygon class="sitemap-unit-box ${boxCls}" points="${sitemapPolyPoints(poly)}"></polygon>
         <text class="${labelCls}" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" style="font-size:${fs.toFixed(1)}px">${escapeHtml(unit)}</text>
         <title>${escapeHtml(tip)}</title>
@@ -12250,14 +12249,24 @@ function sitemapHideHoverMenuSoon() {
     clearTimeout(sitemapHoverHideTimer);
     sitemapHoverHideTimer = setTimeout(() => { if (sitemapHoverMenu) sitemapHoverMenu.style.display = 'none'; }, 220);
 }
+// The unit's current video link from the Unit Info table (read at hover
+// time, so edits made there — including ones synced in from another
+// agent after the map was drawn — are always used). A link saved without
+// "https://" would otherwise open as a broken page on this site.
+function sitemapVideoUrl(unit) {
+    const link = ((byUnit[unit] && byUnit[unit].videoLink) || '').trim();
+    if (!link) return '';
+    return /^[a-z][a-z0-9+.-]*:/i.test(link) ? link : 'https://' + link.replace(/^\/+/, '');
+}
 function sitemapShowHoverMenu(groupEl, unit) {
     const menu = sitemapEnsureHoverMenu();
     const rect = groupEl.querySelector('.sitemap-unit-box').getBoundingClientRect();
-    const hasVideo = groupEl.getAttribute('data-has-video') === '1';
+    const videoUrl = sitemapVideoUrl(unit);
     menu.querySelector('[data-action="tour"]').onclick = () => { switchTab('tour'); selectUnit(unit); sitemapHideHoverMenuNow(); };
     const videoBtn = menu.querySelector('[data-action="video"]');
-    videoBtn.style.display = hasVideo ? 'block' : 'none';
-    videoBtn.onclick = () => { window.open(byUnit[unit].videoLink, '_blank'); sitemapHideHoverMenuNow(); };
+    videoBtn.style.display = videoUrl ? 'block' : 'none';
+    videoBtn.title = (byUnit[unit] && byUnit[unit].videoName) || `Apt ${unit} video`;
+    videoBtn.onclick = () => { window.open(videoUrl, '_blank', 'noopener'); sitemapHideHoverMenuNow(); };
     menu.style.display = 'block';
     menu.style.left = (rect.left + window.scrollX + rect.width / 2) + 'px';
     menu.style.top = (rect.top + window.scrollY - 6) + 'px';
