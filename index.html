@@ -1389,7 +1389,13 @@
     .docs-card-meta { font-size: 11px; color: var(--ink-soft); margin-top: -4px; }
     .docs-card-actions { display: flex; gap: 6px; margin-top: auto; }
     .docs-card-actions .btn { flex: 1; width: auto; padding: 6px 4px; font-size: 12px; }
-    .docs-card-remove { background: none; border: 0; padding: 0; font-size: 11px; color: var(--ink-soft); text-decoration: underline; cursor: pointer; align-self: flex-start; }
+    .docs-card-remove { background: none; border: 0; padding: 0; font-size: 11px; color: var(--ink-soft); text-decoration: underline; cursor: pointer; }
+    .docs-card-foot { display: flex; align-items: center; justify-content: space-between; margin-top: -2px; }
+    .docs-drag-handle { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 24px; margin-right: -4px; border-radius: 5px; color: var(--ink-soft); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .docs-drag-handle svg { width: 18px; height: 18px; }
+    .docs-drag-handle:hover, .docs-drag-handle:focus-visible { background: rgba(0,0,0,0.06); color: var(--ink); outline: none; }
+    .docs-grid-dragging, .docs-grid-dragging * { cursor: grabbing !important; user-select: none; }
+    .docs-card.docs-dragging { opacity: 0.55; outline: 2px dashed var(--reve-orange); outline-offset: 2px; }
     .docs-card-remove:hover { color: #c0392b; }
     @media (max-width: 600px) {
         .docs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -12009,7 +12015,8 @@ const DOC_SECTIONS = [
         { title: 'PetScreening How-To', file: 'PetScreening_How-To.pdf', pages: 1 },
         { title: 'Apartment Care Tips', file: 'Apartment_Care_Tips.pdf', pages: 1 }
     ] },
-    { id: 'building-signs', label: 'Building Signs', docs: [] }
+    { id: 'building-signs', label: 'Building Signs', docs: [] },
+    { id: 'forms', label: 'Forms', docs: [] }
 ];
 const DOCS_UPLOADS_KEY = 'reve-documents-uploads';
 const DOCS_UPLOADS_BACKEND_KEY = 'documents-uploads';
@@ -12017,6 +12024,12 @@ const DOCS_MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 let docsCurrentSection = DOC_SECTIONS[0].id;
 let DOC_UPLOADS = [];
 try { DOC_UPLOADS = JSON.parse(localStorage.getItem(DOCS_UPLOADS_KEY) || '[]') || []; } catch (e) { DOC_UPLOADS = []; }
+// Custom order per section (drag the ≡ handle), shared: { sectionId: [docKey, ...] }.
+const DOCS_ORDER_KEY = 'reve-documents-order';
+const DOCS_ORDER_BACKEND_KEY = 'documents-order';
+let DOC_ORDER = {};
+try { DOC_ORDER = JSON.parse(localStorage.getItem(DOCS_ORDER_KEY) || '{}') || {}; } catch (e) { DOC_ORDER = {}; }
+let docsDragging = false;
 const docsBlobUrls = {};
 
 function docsPersistLocal() {
@@ -12070,14 +12083,18 @@ async function docsUrlFor(doc) {
 function docsForSection(sectionId) {
     const section = DOC_SECTIONS.find(s => s.id === sectionId);
     const builtIn = (section ? section.docs : []).map(d => ({
-        title: d.title, pages: d.pages, filename: d.file, print: d.print || 'half',
+        key: `file:${d.file}`, title: d.title, pages: d.pages, filename: d.file, print: d.print || 'half',
         url: `documents/${sectionId}/${d.file}`,
         thumb: `documents/${sectionId}/thumbs/${d.file.replace(/\.pdf$/i, '.jpg')}`
     }));
     const uploaded = DOC_UPLOADS.filter(u => u.section === sectionId).map(u => ({
-        title: u.title, filename: u.name, size: u.size, uploadId: u.id, localOnly: u.localOnly, print: u.print || 'half'
+        key: `up:${u.id}`, title: u.title, filename: u.name, size: u.size, uploadId: u.id, localOnly: u.localOnly, print: u.print || 'half'
     }));
-    return builtIn.concat(uploaded);
+    // Saved order first; anything not in it (new uploads) keeps its default place after.
+    const all = builtIn.concat(uploaded);
+    const order = DOC_ORDER[sectionId] || [];
+    const rank = k => { const i = order.indexOf(k); return i === -1 ? order.length : i; };
+    return all.map((d, i) => [d, i]).sort((a, b) => rank(a[0].key) - rank(b[0].key) || a[1] - b[1]).map(x => x[0]);
 }
 const PDF_LIB_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
 let pdfLibPromise = null;
@@ -12195,7 +12212,7 @@ function renderDocuments() {
         const thumb = thumbSrc
             ? `<img src="${escapeAttr(thumbSrc)}" alt="" loading="lazy">`
             : `<span class="docs-thumb-placeholder">${pdfIcon}PDF</span>`;
-        return `<div class="docs-card">
+        return `<div class="docs-card" data-docs-key="${escapeAttr(d.key)}">
             <a class="docs-thumb" href="#" data-docs-action="open" data-docs-i="${i}"${d.uploadId ? ` data-docs-thumb="${escapeAttr(d.uploadId)}"` : ''} title="Open ${escapeAttr(d.title)}">${thumb}</a>
             <div class="docs-card-body">
                 <div class="docs-card-title">${escapeHtml(d.title)}</div>
@@ -12205,7 +12222,10 @@ function renderDocuments() {
                     <button type="button" class="btn primary" data-docs-action="print" data-docs-i="${i}">Print</button>
                     <button type="button" class="btn" data-docs-action="download" data-docs-i="${i}">Download</button>
                 </div>
-                ${d.uploadId ? `<button type="button" class="docs-card-remove" data-docs-action="remove" data-docs-i="${i}">Remove</button>` : ''}
+                <div class="docs-card-foot">
+                    ${d.uploadId ? `<button type="button" class="docs-card-remove" data-docs-action="remove" data-docs-i="${i}">Remove</button>` : '<span></span>'}
+                    <span class="docs-drag-handle" role="button" tabindex="0" title="Drag to reorder" aria-label="Drag to reorder ${escapeAttr(d.title)}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+                </div>
             </div>
         </div>`;
     }).join('');
@@ -12213,6 +12233,69 @@ function renderDocuments() {
     docs.forEach(d => { if (d.uploadId && !docsThumbs[d.uploadId]) docsEnsureThumb(d); });
 }
 function docsSetStatus(text) { document.getElementById('docsUploadStatus').textContent = text || ''; }
+async function docsSaveOrder(sectionId, keys) {
+    DOC_ORDER[sectionId] = keys;
+    try { localStorage.setItem(DOCS_ORDER_KEY, JSON.stringify(DOC_ORDER)); } catch (e) {}
+    if (!BACKEND_URL) return;
+    const remote = await backendPull(DOCS_ORDER_BACKEND_KEY);
+    await backendPush(DOCS_ORDER_BACKEND_KEY, Object.assign({}, remote && typeof remote === 'object' ? remote : {}, { [sectionId]: keys }));
+}
+// Press and hold the ≡ handle, then drag: the card moves into whichever
+// slot the pointer is over. Pointer events cover mouse, pen and touch.
+document.getElementById('docsGrid').addEventListener('pointerdown', e => {
+    const handle = e.target.closest('.docs-drag-handle');
+    if (!handle || e.button > 0) return;
+    e.preventDefault();
+    const grid = document.getElementById('docsGrid');
+    const card = handle.closest('.docs-card');
+    const before = [...grid.children].map(c => c.dataset.docsKey);
+    docsDragging = true;
+    card.classList.add('docs-dragging');
+    grid.classList.add('docs-grid-dragging');
+    // Listen on the document, not the handle: moving the card in the DOM
+    // would drop pointer capture held by the handle.
+    const onMove = ev => {
+        if (ev.pointerId !== e.pointerId) return;
+        if (ev.clientY < 60) window.scrollBy(0, -14);
+        else if (ev.clientY > window.innerHeight - 60) window.scrollBy(0, 14);
+        const over = document.elementFromPoint(ev.clientX, ev.clientY);
+        const target = over && over.closest('.docs-card');
+        if (!target || target === card || target.parentNode !== grid) return;
+        const cards = [...grid.children];
+        grid.insertBefore(card, cards.indexOf(target) < cards.indexOf(card) ? target : target.nextSibling);
+    };
+    const onEnd = ev => {
+        if (ev.pointerId !== e.pointerId) return;
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onEnd);
+        document.removeEventListener('pointercancel', onEnd);
+        card.classList.remove('docs-dragging');
+        grid.classList.remove('docs-grid-dragging');
+        docsDragging = false;
+        const after = [...grid.children].map(c => c.dataset.docsKey);
+        if (after.join('|') === before.join('|')) return;
+        docsSaveOrder(docsCurrentSection, after);
+        renderDocuments();
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onEnd);
+    document.addEventListener('pointercancel', onEnd);
+});
+// Keyboard: arrow keys on a focused handle move the card one slot.
+document.getElementById('docsGrid').addEventListener('keydown', e => {
+    const handle = e.target.closest('.docs-drag-handle');
+    if (!handle || !['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'].includes(e.key)) return;
+    e.preventDefault();
+    const keys = [...document.getElementById('docsGrid').children].map(c => c.dataset.docsKey);
+    const key = handle.closest('.docs-card').dataset.docsKey;
+    const i = keys.indexOf(key), j = i + (e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 1);
+    if (j < 0 || j >= keys.length) return;
+    [keys[i], keys[j]] = [keys[j], keys[i]];
+    docsSaveOrder(docsCurrentSection, keys);
+    renderDocuments();
+    const moved = document.querySelector(`.docs-card[data-docs-key="${CSS.escape(key)}"] .docs-drag-handle`);
+    if (moved) moved.focus();
+});
 
 document.getElementById('docsSubtabs').addEventListener('click', e => {
     const btn = e.target.closest('[data-docs-section]');
@@ -12322,14 +12405,19 @@ document.getElementById('docsUploadInput').addEventListener('change', async e =>
     docsSetStatus(shared ? `Uploaded “${entry.title}”.` : `Saved “${entry.title}” on this device only — the shared backend isn't reachable.`);
 });
 async function pullDocumentsFromBackend() {
-    const remote = await backendPull(DOCS_UPLOADS_BACKEND_KEY);
-    if (!Array.isArray(remote)) return;
-    const localOnly = DOC_UPLOADS.filter(u => u.localOnly && !remote.some(r => r.id === u.id));
-    const next = remote.concat(localOnly);
-    if (JSON.stringify(next) === JSON.stringify(DOC_UPLOADS)) return;
-    DOC_UPLOADS = next;
-    docsPersistLocal();
-    if (document.getElementById('tab-documents').classList.contains('active')) renderDocuments();
+    const [remote, order] = await Promise.all([backendPull(DOCS_UPLOADS_BACKEND_KEY), backendPull(DOCS_ORDER_BACKEND_KEY)]);
+    let changed = false;
+    if (Array.isArray(remote)) {
+        const localOnly = DOC_UPLOADS.filter(u => u.localOnly && !remote.some(r => r.id === u.id));
+        const next = remote.concat(localOnly);
+        if (JSON.stringify(next) !== JSON.stringify(DOC_UPLOADS)) { DOC_UPLOADS = next; docsPersistLocal(); changed = true; }
+    }
+    if (order && typeof order === 'object' && !Array.isArray(order) && JSON.stringify(order) !== JSON.stringify(DOC_ORDER)) {
+        DOC_ORDER = order;
+        try { localStorage.setItem(DOCS_ORDER_KEY, JSON.stringify(DOC_ORDER)); } catch (e) {}
+        changed = true;
+    }
+    if (changed && !docsDragging && document.getElementById('tab-documents').classList.contains('active')) renderDocuments();
 }
 
 /* ============================================================
