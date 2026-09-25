@@ -1391,13 +1391,16 @@
     .docs-card-actions { display: flex; gap: 6px; margin-top: auto; }
     .docs-card-actions .btn { flex: 1; width: auto; padding: 6px 4px; font-size: 12px; }
     .docs-card-remove { background: none; border: 0; padding: 0; font-size: 11px; color: var(--ink-soft); text-decoration: underline; cursor: pointer; }
+    .docs-card-links { display: inline-flex; align-items: center; gap: 5px; }
+    .docs-card-links-sep { font-size: 11px; color: var(--ink-soft); }
     .docs-card-foot { display: flex; align-items: center; justify-content: space-between; margin-top: -2px; }
     .docs-drag-handle { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 24px; margin-right: -4px; border-radius: 5px; color: var(--ink-soft); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
     .docs-drag-handle svg { width: 18px; height: 18px; }
     .docs-drag-handle:hover, .docs-drag-handle:focus-visible { background: rgba(0,0,0,0.06); color: var(--ink); outline: none; }
     .docs-grid-dragging, .docs-grid-dragging * { cursor: grabbing !important; user-select: none; }
     .docs-card.docs-dragging { opacity: 0.55; outline: 2px dashed var(--reve-orange); outline-offset: 2px; }
-    .docs-card-remove:hover { color: #c0392b; }
+    .docs-card-remove:hover { color: var(--ink); }
+    .docs-card-remove[data-docs-action="remove"]:hover { color: #c0392b; }
     .docs-view-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: #fff; }
     .docs-view-toggle button { border: 0; background: none; padding: 7px 14px; font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--ink-soft); cursor: pointer; }
     .docs-view-toggle button + button { border-left: 1px solid var(--line); }
@@ -3297,6 +3300,7 @@
             </div>
             <button type="button" class="btn" id="docsUploadBtn" style="width:auto;flex:none;padding:8px 16px;">+ Upload</button>
             <input type="file" id="docsUploadInput" accept="application/pdf,.pdf,image/jpeg,.jpg,.jpeg,image/png,.png" style="display:none;">
+            <input type="file" id="docsReplaceInput" accept="application/pdf,.pdf,image/jpeg,.jpg,.jpeg,image/png,.png" style="display:none;">
         </div>
     </div>
     <div class="docs-grid" id="docsGrid"></div>
@@ -12100,28 +12104,45 @@ function docsBase64ToBlob(b64, type) {
 }
 // URL for a document: a static path, or a blob: URL for an upload
 // (from the IndexedDB cache, else pulled from the backend).
+// Uploaded content lives under its fileId, a fresh one each time the
+// file is replaced (so no browser keeps showing a cached old version);
+// entries from before Replace existed use their id.
 async function docsUrlFor(doc) {
     if (!doc.uploadId) return doc.url;
-    if (docsBlobUrls[doc.uploadId]) return docsBlobUrls[doc.uploadId];
-    let b64 = await docsCacheGet(doc.uploadId);
+    const fid = doc.fileId || doc.uploadId;
+    if (docsBlobUrls[fid]) return docsBlobUrls[fid];
+    let b64 = await docsCacheGet(fid);
     if (!b64) {
-        b64 = await backendPull(`document-file-${doc.uploadId}`);
+        b64 = await backendPull(`document-file-${fid}`);
         if (typeof b64 !== 'string' || !b64) return null;
-        docsCachePut(doc.uploadId, b64);
+        docsCachePut(fid, b64);
     }
-    docsBlobUrls[doc.uploadId] = URL.createObjectURL(docsBase64ToBlob(b64, doc.mime));
-    return docsBlobUrls[doc.uploadId];
+    docsBlobUrls[fid] = URL.createObjectURL(docsBase64ToBlob(b64, doc.mime));
+    return docsBlobUrls[fid];
 }
+function docsNewId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function docsForSection(sectionId) {
     const section = DOC_SECTIONS.find(s => s.id === sectionId);
-    const builtIn = (section ? section.docs : []).map(d => ({
-        key: `file:${d.file}`, title: d.title, pages: d.pages, filename: d.file, print: d.print || 'half', added: d.added,
-        url: `documents/${sectionId}/${d.file}`,
-        thumb: `documents/${sectionId}/thumbs/${d.file.replace(/\.pdf$/i, '.jpg')}`
-    }));
-    const uploaded = DOC_UPLOADS.filter(u => u.section === sectionId).map(u => ({
-        key: `up:${u.id}`, title: u.title, filename: u.name, size: u.size, uploadId: u.id, localOnly: u.localOnly, print: u.print || 'half', added: u.added, mime: u.mime || 'application/pdf'
-    }));
+    const mine = DOC_UPLOADS.filter(u => u.section === sectionId);
+    const fromUpload = u => ({
+        filename: u.name, size: u.size, uploadId: u.id, fileId: u.fileId || u.id, localOnly: u.localOnly,
+        mime: u.mime || 'application/pdf', updated: u.updated
+    });
+    // A built-in document replaced in the app is served from its upload
+    // (an entry with replaces: '<its key>') until reverted.
+    const builtIn = (section ? section.docs : []).map(d => {
+        const key = `file:${d.file}`;
+        const base = { key, title: d.title, pages: d.pages, filename: d.file, print: d.print || 'half', added: d.added };
+        const o = mine.find(u => u.replaces === key);
+        if (o) return Object.assign(base, fromUpload(o), { replacedBuiltIn: true });
+        return Object.assign(base, {
+            url: `documents/${sectionId}/${d.file}`,
+            thumb: `documents/${sectionId}/thumbs/${d.file.replace(/\.pdf$/i, '.jpg')}`
+        });
+    });
+    const uploaded = mine.filter(u => !u.replaces).map(u => Object.assign({
+        key: `up:${u.id}`, title: u.title, print: u.print || 'half', added: u.added
+    }, fromUpload(u)));
     // Saved order first; anything not in it (new uploads) keeps its default place after.
     const all = builtIn.concat(uploaded);
     const order = DOC_ORDER[sectionId] || [];
@@ -12238,7 +12259,7 @@ const docsThumbTried = {};
 // Uploaded preview: memory, then this browser's cache, then the shared
 // backend, else rendered here (and shared so teammates skip the render).
 async function docsEnsureThumb(doc) {
-    const id = doc.uploadId;
+    const id = doc.fileId || doc.uploadId;
     if (docsThumbs[id] || docsThumbTried[id]) return docsThumbs[id] || null;
     docsThumbTried[id] = true;
     let thumb = await docsCacheGet(`thumb:${id}`);
@@ -12281,14 +12302,17 @@ function renderDocuments() {
     const handleIcon = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
     grid.innerHTML = docs.map((d, i) => {
         const meta = d.uploadId
-            ? `Uploaded ${DOCS_UPLOAD_TYPES[d.mime] || 'PDF'}${d.size ? ' · ' + docsFormatSize(d.size) : ''}${d.localOnly ? ' · this device only' : ''}`
+            ? `${d.replacedBuiltIn ? 'Replaced' : 'Uploaded'} ${DOCS_UPLOAD_TYPES[d.mime] || 'PDF'}${d.size ? ' · ' + docsFormatSize(d.size) : ''}${d.localOnly ? ' · this device only' : ''}`
             : `${d.pages} page${d.pages === 1 ? '' : 's'} · PDF`;
         const printNote = d.print === 'full' ? 'Prints full sheet' : 'Prints 2 per page';
-        const added = docsFormatAdded(d.added);
+        const added = d.updated ? docsFormatAdded(d.updated).replace(/^Added/, 'Updated') : docsFormatAdded(d.added);
         const buttons = `<button type="button" class="btn" data-docs-action="open" data-docs-i="${i}">Open</button>
                     <button type="button" class="btn primary" data-docs-action="print" data-docs-i="${i}">Print</button>
                     <button type="button" class="btn" data-docs-action="download" data-docs-i="${i}">Download</button>`;
-        const remove = d.uploadId ? `<button type="button" class="docs-card-remove" data-docs-action="remove" data-docs-i="${i}">Remove</button>` : '';
+        // Replace on every card; Remove for uploads, Revert for a replaced built-in.
+        const remove = [`<button type="button" class="docs-card-remove" data-docs-action="replace" data-docs-i="${i}">Replace</button>`]
+            .concat(d.uploadId ? [`<button type="button" class="docs-card-remove" data-docs-action="remove" data-docs-i="${i}">${d.replacedBuiltIn ? 'Revert' : 'Remove'}</button>`] : [])
+            .join(' <span class="docs-card-links-sep">·</span> ');
         const handle = `<span class="docs-drag-handle" role="button" tabindex="0" title="Drag to reorder" aria-label="Drag to reorder ${escapeAttr(d.title)}">${handleIcon}</span>`;
         if (view === 'details') {
             return `<div class="docs-card docs-row" data-docs-key="${escapeAttr(d.key)}">
@@ -12300,12 +12324,12 @@ function renderDocuments() {
                 ${handle}
             </div>`;
         }
-        const thumbSrc = d.thumb || (d.uploadId && docsThumbs[d.uploadId]);
+        const thumbSrc = d.thumb || (d.uploadId && docsThumbs[d.fileId]);
         const thumb = thumbSrc
             ? `<img src="${escapeAttr(thumbSrc)}" alt="" loading="lazy">`
             : `<span class="docs-thumb-placeholder">${pdfIcon}PDF</span>`;
         return `<div class="docs-card" data-docs-key="${escapeAttr(d.key)}">
-            <a class="docs-thumb" href="#" data-docs-action="open" data-docs-i="${i}"${d.uploadId ? ` data-docs-thumb="${escapeAttr(d.uploadId)}"` : ''}${docsIsImage(d) ? ' data-docs-kind="image"' : ''} title="Open ${escapeAttr(d.title)}">${thumb}</a>
+            <a class="docs-thumb" href="#" data-docs-action="open" data-docs-i="${i}"${d.uploadId ? ` data-docs-thumb="${escapeAttr(d.fileId)}"` : ''}${docsIsImage(d) ? ' data-docs-kind="image"' : ''} title="Open ${escapeAttr(d.title)}">${thumb}</a>
             <div class="docs-card-body">
                 <div class="docs-card-title">${escapeHtml(d.title)}</div>
                 <div class="docs-card-meta">${escapeHtml(meta)}<br>${printNote}${added ? '<br>' + escapeHtml(added) : ''}</div>
@@ -12313,14 +12337,14 @@ function renderDocuments() {
                     ${buttons}
                 </div>
                 <div class="docs-card-foot">
-                    ${remove || '<span></span>'}
+                    <span class="docs-card-links">${remove}</span>
                     ${handle}
                 </div>
             </div>
         </div>`;
     }).join('');
     document.getElementById('docsEmptyNote').style.display = docs.length ? 'none' : 'block';
-    if (view === 'preview') docs.forEach(d => { if (d.uploadId && !docsThumbs[d.uploadId]) docsEnsureThumb(d); });
+    if (view === 'preview') docs.forEach(d => { if (d.uploadId && !docsThumbs[d.fileId]) docsEnsureThumb(d); });
 }
 document.getElementById('docsViewToggle').addEventListener('click', e => {
     const btn = e.target.closest('[data-docs-view]');
@@ -12407,18 +12431,21 @@ document.getElementById('docsGrid').addEventListener('click', async e => {
     const doc = docsForSection(docsCurrentSection)[+el.getAttribute('data-docs-i')];
     if (!doc) return;
     const action = el.getAttribute('data-docs-action');
+    if (action === 'replace') {
+        docsReplaceTarget = doc;
+        document.getElementById('docsReplaceInput').click();
+        return;
+    }
     if (action === 'remove') {
-        if (!promptAdminPassword(`remove "${doc.title}" for everyone`)) return;
+        if (!promptAdminPassword(doc.replacedBuiltIn ? `revert "${doc.title}" to the original for everyone` : `remove "${doc.title}" for everyone`)) return;
         DOC_UPLOADS = DOC_UPLOADS.filter(u => u.id !== doc.uploadId);
         docsPersistLocal();
-        docsCachePut(doc.uploadId, null);
-        docsCachePut(`thumb:${doc.uploadId}`, null);
-        delete docsThumbs[doc.uploadId];
+        docsForgetFile(doc.fileId);
         renderDocuments();
         const remote = await backendPull(DOCS_UPLOADS_BACKEND_KEY);
         if (Array.isArray(remote)) await backendPush(DOCS_UPLOADS_BACKEND_KEY, remote.filter(u => u.id !== doc.uploadId));
-        backendPush(`document-file-${doc.uploadId}`, null);
-        backendPush(`document-thumb-${doc.uploadId}`, null);
+        backendPush(`document-file-${doc.fileId}`, null);
+        backendPush(`document-thumb-${doc.fileId}`, null);
         return;
     }
     // Open a tab now (still inside the click) so it isn't popup-blocked
@@ -12481,26 +12508,81 @@ document.getElementById('docsGrid').addEventListener('click', async e => {
     }
 });
 document.getElementById('docsUploadBtn').addEventListener('click', () => document.getElementById('docsUploadInput').click());
-document.getElementById('docsUploadInput').addEventListener('change', async e => {
-    const file = e.target.files && e.target.files[0];
-    e.target.value = '';
-    if (!file) return;
+// Checks type and size; returns the MIME type, or '' after telling the user why not.
+function docsCheckFile(file) {
     const ext = (/\.(pdf|jpe?g|png)$/i.exec(file.name) || [])[1];
     const mime = DOCS_UPLOAD_TYPES[file.type] ? file.type
         : ext ? { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' }[ext.toLowerCase()] : '';
-    if (!mime) { alert('Please choose a PDF, JPG or PNG file.'); return; }
-    if (file.size > DOCS_MAX_UPLOAD_BYTES) { alert('That file is over 10 MB — please use a smaller file.'); return; }
-    const section = DOC_SECTIONS.find(s => s.id === docsCurrentSection);
-    const title = prompt(`Title for this document (in ${section.label}):`, file.name.replace(/\.(pdf|jpe?g|png)$/i, '').replace(/[_-]+/g, ' ').trim());
-    if (title === null || !title.trim()) return;
-    const b64 = await new Promise((resolve, reject) => {
+    if (!mime) { alert('Please choose a PDF, JPG or PNG file.'); return ''; }
+    if (file.size > DOCS_MAX_UPLOAD_BYTES) { alert('That file is over 10 MB — please use a smaller file.'); return ''; }
+    return mime;
+}
+function docsReadBase64(file) {
+    return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result).replace(/^data:[^,]*,/, ''));
         reader.onerror = () => reject(reader.error);
         reader.readAsDataURL(file);
     });
+}
+function docsForgetFile(fileId) {
+    if (!fileId) return;
+    docsCachePut(fileId, null);
+    docsCachePut(`thumb:${fileId}`, null);
+    delete docsThumbs[fileId];
+    if (docsBlobUrls[fileId]) { URL.revokeObjectURL(docsBlobUrls[fileId]); delete docsBlobUrls[fileId]; }
+}
+let docsReplaceTarget = null;
+// Replace: new file, same card (title, slot, print setting). An upload's
+// entry gets a new fileId; a built-in gets an override entry.
+document.getElementById('docsReplaceInput').addEventListener('change', async e => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    const doc = docsReplaceTarget;
+    docsReplaceTarget = null;
+    if (!file || !doc) return;
+    const mime = docsCheckFile(file);
+    if (!mime) return;
+    const b64 = await docsReadBase64(file);
+    const fileId = docsNewId(), now = new Date().toISOString();
+    const current = doc.uploadId && DOC_UPLOADS.find(u => u.id === doc.uploadId);
+    const entry = current
+        ? Object.assign({}, current, { fileId, name: file.name, size: file.size, mime, updated: now })
+        : { id: docsNewId(), section: docsCurrentSection, title: doc.title, replaces: doc.key, fileId, name: file.name, size: file.size, mime, print: doc.print, added: now, updated: now };
+    delete entry.localOnly;
+    const oldFileId = current ? (current.fileId || current.id) : null;
+    await docsCachePut(fileId, b64);
+    docsSetStatus('Replacing\u2026');
+    let shared = false;
+    if (BACKEND_URL && await backendPush(`document-file-${fileId}`, b64)) {
+        await docsEnsureThumb({ uploadId: entry.id, fileId, mime });
+        const remote = await backendPull(DOCS_UPLOADS_BACKEND_KEY);
+        const list = Array.isArray(remote) ? remote : [];
+        shared = await backendPush(DOCS_UPLOADS_BACKEND_KEY, list.some(u => u.id === entry.id) ? list.map(u => u.id === entry.id ? entry : u) : list.concat([entry]));
+        if (shared && oldFileId) {
+            backendPush(`document-file-${oldFileId}`, null);
+            backendPush(`document-thumb-${oldFileId}`, null);
+        }
+    }
+    if (!shared) entry.localOnly = true;
+    DOC_UPLOADS = current ? DOC_UPLOADS.map(u => u.id === entry.id ? entry : u) : DOC_UPLOADS.concat([entry]);
+    docsPersistLocal();
+    docsForgetFile(oldFileId);
+    renderDocuments();
+    docsSetStatus(shared ? `Replaced \u201c${doc.title}\u201d.` : `Replaced \u201c${doc.title}\u201d on this device only \u2014 the shared backend isn't reachable.`);
+});
+document.getElementById('docsUploadInput').addEventListener('change', async e => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const mime = docsCheckFile(file);
+    if (!mime) return;
+    const section = DOC_SECTIONS.find(s => s.id === docsCurrentSection);
+    const title = prompt(`Title for this document (in ${section.label}):`, file.name.replace(/\.(pdf|jpe?g|png)$/i, '').replace(/[_-]+/g, ' ').trim());
+    if (title === null || !title.trim()) return;
+    const b64 = await docsReadBase64(file);
     const half = confirm('Print this as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
-    const entry = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), section: section.id, title: title.trim(), name: file.name, size: file.size, mime, print: half ? 'half' : 'full', added: new Date().toISOString() };
+    const entry = { id: docsNewId(), section: section.id, title: title.trim(), name: file.name, size: file.size, mime, print: half ? 'half' : 'full', added: new Date().toISOString() };
     await docsCachePut(entry.id, b64);
     docsSetStatus('Uploading…');
     let shared = false;
