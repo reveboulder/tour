@@ -1867,6 +1867,32 @@
         .mmr-autofill { font-size: 10px; }
     }
 
+    /* -- PCard -- */
+    .pcard-mode { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 4px 0 16px; font-size: 12.5px; }
+    .pcard-mode label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+    .pcard-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .pcard-actions .btn { flex: none; }
+    .pcard-table .mmr-lease-field[data-field="date"] { min-width: 118px; }
+    .pcard-table .mmr-lease-field[data-field="gl"] { min-width: 90px; }
+    .pcard-table .mmr-lease-field[data-field="to"] { min-width: 170px; }
+    .pcard-table .mmr-lease-field[data-field="amount"] { min-width: 80px; }
+    .pcard-table .mmr-lease-field[data-field="for"] { min-width: 220px; }
+    .pcard-summary { margin-top: 10px; font-size: 12.5px; }
+    .pcard-summary b { font-variant-numeric: tabular-nums; }
+    .pcard-warn { color: #c0392b; font-weight: 600; }
+    .pcard-prev { margin-top: 18px; font-size: 12.5px; }
+    .pcard-prev summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
+    .pcard-prev-table td, .pcard-prev-table th { font-size: 11px; padding: 3px 6px; }
+    .pcard-calcs { flex: 0 0 240px; display: flex; flex-direction: column; gap: 14px; }
+    .pcard-calc { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: #fff; display: flex; flex-direction: column; gap: 8px; }
+    .pcard-calc-title { font-family: 'Oswald', var(--sans); font-weight: 600; font-size: 13px; }
+    .pcard-calc label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--ink-soft); }
+    .pcard-calc input { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-family: var(--sans); font-size: 13px; color: var(--ink); background: #fff; }
+    .pcard-calc-result { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px dashed var(--line); padding-top: 8px; font-size: 12px; }
+    .pcard-calc-result b { font-size: 16px; font-variant-numeric: tabular-nums; }
+    body.dark-mode .pcard-calc, body.dark-mode .pcard-calc input { background: var(--dm-card-alt); color: inherit; }
+    @media (max-width: 900px) { .pcard-calcs { flex: 0 0 auto; width: 100%; max-width: 420px; } }
+
     /* -- Commissions -- */
     .commissions-layout { display: flex; gap: 24px; align-items: flex-start; }
     .commissions-main { flex: 1; min-width: 0; }
@@ -3233,7 +3259,57 @@
             </div>
         </div>
         <div id="adminPanel-pcard" class="admin-subpanel" style="display:none;">
-            <div class="no-unit">PCard &mdash; nothing built here yet.</div>
+            <div class="mmr-io-bar">
+                <label class="file-label" for="pcardTemplateUpload">Upload Previous PCard File (.xlsx)</label>
+                <input type="file" id="pcardTemplateUpload" accept=".xlsx">
+                <div class="empty-note" id="pcardTemplateStatus">No file uploaded &mdash; upload the last PCard Reconciliation to export. It stays in this browser tab only and is never saved.</div>
+            </div>
+            <div class="pcard-mode" role="radiogroup" aria-label="Export mode">
+                <label><input type="radio" name="pcardMode" value="append" checked> Add to the file&rsquo;s existing items (next empty row)</label>
+                <label><input type="radio" name="pcardMode" value="clear"> Clear the file&rsquo;s items (B33:H95) and start fresh</label>
+            </div>
+            <div class="commissions-layout">
+                <div class="commissions-main">
+                    <div class="mmr-section-title">PCARD ITEMS <span class="mmr-count-badge" id="pcardCount">(0)</span></div>
+                    <div class="pcard-actions">
+                        <button type="button" class="btn primary" id="pcardAddBtn" style="width:auto;padding:8px 16px;">+ Add Item</button>
+                        <button type="button" class="btn" id="pcardClearBtn" style="width:auto;padding:8px 16px;">Clear Section</button>
+                        <button type="button" class="btn primary" id="pcardExportBtn" style="width:auto;padding:8px 16px;margin-left:auto;">Export to Excel</button>
+                    </div>
+                    <div class="mmr-table-wrap" style="margin-top:10px;">
+                        <table class="mmr-table mmr-lease-table pcard-table">
+                            <thead><tr><th>Date</th><th>GL Code</th><th>To</th><th>Amount</th><th>For</th><th></th></tr></thead>
+                            <tbody id="pcardBody"></tbody>
+                        </table>
+                    </div>
+                    <datalist id="pcardGlList"></datalist>
+                    <div class="pcard-summary" id="pcardSummary"></div>
+                    <div class="empty-note" id="pcardExportStatus" style="margin-top:6px;"></div>
+                    <details class="pcard-prev" id="pcardPrevWrap" style="display:none;">
+                        <summary id="pcardPrevSummary">Items already in the uploaded file</summary>
+                        <div class="mmr-table-wrap"><table class="mmr-table pcard-prev-table">
+                            <thead><tr><th>Row</th><th>Date</th><th>GL Code</th><th>To</th><th>Amount</th><th>For</th></tr></thead>
+                            <tbody id="pcardPrevBody"></tbody>
+                        </table></div>
+                    </details>
+                </div>
+                <aside class="pcard-calcs" aria-label="Calculators">
+                    <div class="pcard-calc">
+                        <div class="pcard-calc-title">Pre-Tax &rarr; Adjusted Total</div>
+                        <label>Pre-Tax Amount<input type="text" inputmode="decimal" id="pcardCalcPreTax" placeholder="$0.00"></label>
+                        <label>Tax %<input type="text" inputmode="decimal" id="pcardCalcTax" placeholder="9.05"></label>
+                        <div class="pcard-calc-result"><span>Adjusted Total</span><b id="pcardCalcAdjusted">&mdash;</b></div>
+                        <button type="button" class="btn" id="pcardCalcAdjustedAdd" style="width:100%;padding:6px 10px;">+ Add as item</button>
+                    </div>
+                    <div class="pcard-calc">
+                        <div class="pcard-calc-title">$ per Item &times; # of Items</div>
+                        <label>$ per Item<input type="text" inputmode="decimal" id="pcardCalcEach" placeholder="$0.00"></label>
+                        <label># of Items<input type="text" inputmode="decimal" id="pcardCalcQty" placeholder="0"></label>
+                        <div class="pcard-calc-result"><span>Total</span><b id="pcardCalcTotal">&mdash;</b></div>
+                        <button type="button" class="btn" id="pcardCalcTotalAdd" style="width:100%;padding:6px 10px;">+ Add as item</button>
+                    </div>
+                </aside>
+            </div>
         </div>
         <div id="adminPanel-games" class="admin-subpanel" style="display:none;">
             <div class="wl-subtabs" style="margin-bottom:16px;">
@@ -9015,7 +9091,7 @@ function createMMRLeaseTableController(opts) {
             } else if (f.type === 'select') {
                 cells += `<td><select class="mmr-lease-field${isNext ? ' mmr-next-field' : ''}" data-field="${f.key}">${f.options.map(o => `<option value="${o}"${val === o ? ' selected' : ''}>${o || '\u2014'}</option>`).join('')}</select></td>`;
             } else {
-                cells += `<td><input type="${f.type}" class="mmr-lease-field${isNext ? ' mmr-next-field' : ''}" data-field="${f.key}" value="${escapeAttr(val)}"></td>`;
+                cells += `<td><input type="${f.type}" class="mmr-lease-field${isNext ? ' mmr-next-field' : ''}" data-field="${f.key}" value="${escapeAttr(val)}"${f.list ? ` list="${f.list}"` : ''}${f.placeholder ? ` placeholder="${escapeAttr(f.placeholder)}"` : ''}></td>`;
             }
         });
         cells += `<td class="mmr-remove-cell"><button type="button" class="wl-remove" title="Remove">&times;</button></td>`;
@@ -9451,6 +9527,285 @@ function commNumOrRaw(v) {
     const n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, ''));
     return isNaN(n) ? (v || '') : n;
 }
+
+/* ============================================================
+   PCARD — line items (Date / GL Code / To / Amount / For) entered
+   row by row like the concessions tables, then written into an
+   uploaded previous PCard Reconciliation .xlsx by editing its XML
+   directly, so everything else in the file keeps its formatting:
+   items go in B33:H95 (appended after the last used row, or after
+   clearing those rows), E98 becomes today's date, and the Split
+   Charges column (K31:K95) is removed. The uploaded file is only
+   held in memory for this tab and is never saved anywhere.
+   ============================================================ */
+const PCARD_FIRST_ROW = 33, PCARD_LAST_ROW = 95;
+const PCARD_DATA_COLS = ['B', 'C', 'D', 'E', 'F', 'G', 'H'];
+let PCARD_TEMPLATE_BYTES = null;
+let PCARD_TEMPLATE_NAME = '';
+let PCARD_PREV = [];   // items already in the uploaded file: { row, date, gl, to, amount, forText }
+const pcardController = createMMRLeaseTableController({
+    localKey: 'reve-pcard-items', backendKey: 'pcard-items',
+    fieldsConfig: [
+        { key: 'date', type: 'date' },
+        { key: 'gl', type: 'text', list: 'pcardGlList', placeholder: 'e.g. 5817' },
+        { key: 'to', type: 'text', placeholder: 'Vendor' },
+        { key: 'amount', type: 'text', placeholder: '$0.00' },
+        { key: 'for', type: 'text', placeholder: 'What it was for' }
+    ],
+    tbodyId: 'pcardBody', addBtnId: 'pcardAddBtn', clearBtnId: 'pcardClearBtn', countId: 'pcardCount',
+    emptyLabel: 'No PCard items yet — click "+ Add Item".'
+});
+function pcardItems() {
+    const rows = pcardController.getRows();
+    return Object.keys(rows).map(id => rows[id])
+        .filter(r => !r.deleted && ['date', 'gl', 'to', 'amount', 'for'].some(k => String(r[k] || '').trim()));
+}
+function pcardMode() {
+    const el = document.querySelector('input[name="pcardMode"]:checked');
+    return el ? el.value : 'append';
+}
+function pcardMoney(n) { return (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function renderPcardSummary() {
+    const items = pcardItems();
+    const newTotal = items.reduce((t, r) => t + (parseMoneyLoose(r.amount) || 0), 0);
+    let html = `New items: <b>${items.length}</b> &middot; total <b>${pcardMoney(newTotal)}</b>`;
+    if (PCARD_TEMPLATE_BYTES) {
+        const keep = pcardMode() === 'clear' ? [] : PCARD_PREV;
+        const keptTotal = keep.reduce((t, r) => t + (typeof r.amount === 'number' ? r.amount : 0), 0);
+        const lastUsed = keep.length ? Math.max(...keep.map(r => r.row)) : PCARD_FIRST_ROW - 1;
+        const room = PCARD_LAST_ROW - lastUsed;
+        html += ` &middot; file after export: <b>${keep.length + items.length}</b> items, total <b>${pcardMoney(keptTotal + newTotal)}</b>`;
+        html += items.length > room
+            ? ` &middot; <span class="pcard-warn">only ${room} empty row${room === 1 ? '' : 's'} left (rows ${lastUsed + 1}–${PCARD_LAST_ROW}) — clear the file's items or remove ${items.length - room}</span>`
+            : ` &middot; ${room - items.length} empty row${room - items.length === 1 ? '' : 's'} left after`;
+    }
+    document.getElementById('pcardSummary').innerHTML = html;
+}
+new MutationObserver(renderPcardSummary).observe(document.getElementById('pcardBody'), { childList: true });
+document.getElementById('pcardBody').addEventListener('input', renderPcardSummary);
+document.querySelectorAll('input[name="pcardMode"]').forEach(el => el.addEventListener('change', renderPcardSummary));
+
+function pcardRenderPrev() {
+    const wrap = document.getElementById('pcardPrevWrap');
+    wrap.style.display = PCARD_TEMPLATE_BYTES ? '' : 'none';
+    const total = PCARD_PREV.reduce((t, r) => t + (typeof r.amount === 'number' ? r.amount : 0), 0);
+    document.getElementById('pcardPrevSummary').textContent = `Items already in the uploaded file (${PCARD_PREV.length}, ${pcardMoney(total)})`;
+    const fmtDate = d => d instanceof Date && !isNaN(d) ? d.toLocaleDateString('en-US') : (d || '');
+    document.getElementById('pcardPrevBody').innerHTML = PCARD_PREV.length
+        ? PCARD_PREV.map(r => `<tr><td>${r.row}</td><td>${escapeHtml(fmtDate(r.date))}</td><td>${escapeHtml(String(r.gl || ''))}</td><td>${escapeHtml(String(r.to || ''))}</td><td>${typeof r.amount === 'number' ? pcardMoney(r.amount) : escapeHtml(String(r.amount || ''))}</td><td>${escapeHtml(String(r.forText || ''))}</td></tr>`).join('')
+        : '<tr><td colspan="6" class="no-unit" style="border:none;">No items in rows 33–95.</td></tr>';
+}
+// GL code suggestions: every code in the uploaded file (items + Auto Pays list).
+function pcardFillGlList(codes) {
+    document.getElementById('pcardGlList').innerHTML = [...new Set(codes.map(c => String(c).trim()).filter(Boolean))].sort()
+        .map(c => `<option value="${escapeAttr(c)}"></option>`).join('');
+}
+document.getElementById('pcardTemplateUpload').addEventListener('change', e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+        const bytes = new Uint8Array(evt.target.result);
+        let prev = [], glCodes = [];
+        try {
+            const wb = XLSX.read(bytes, { type: 'array', cellDates: true });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const val = ref => (ws[ref] ? ws[ref].v : '');
+            for (let r = PCARD_FIRST_ROW; r <= PCARD_LAST_ROW; r++) {
+                const item = { row: r, date: val('B' + r), gl: val('C' + r), to: val('E' + r), amount: val('G' + r), forText: val('H' + r) };
+                if ([item.date, item.gl, item.to, item.amount, item.forText].some(v => v !== '' && v !== null && v !== undefined)) prev.push(item);
+            }
+            glCodes = prev.map(r => r.gl);
+            for (let r = 96; r <= 130; r++) if (/^\d{4}/.test(String(val('L' + r)))) glCodes.push(val('L' + r));
+        } catch (err) {
+            alert("Could not read that file. Make sure it's the PCard Reconciliation .xlsx.");
+            return;
+        }
+        PCARD_TEMPLATE_BYTES = bytes;
+        PCARD_TEMPLATE_NAME = file.name;
+        PCARD_PREV = prev;
+        pcardFillGlList(glCodes);
+        document.getElementById('pcardTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; ${prev.length} existing item${prev.length === 1 ? '' : 's'} in rows 33–95. Held in this tab only.`;
+        pcardRenderPrev();
+        renderPcardSummary();
+    };
+    reader.onerror = () => alert("Could not read that file. Make sure it's the PCard Reconciliation .xlsx.");
+    reader.readAsArrayBuffer(file);
+});
+
+// Number formats for written cells: the template's empty rows can be
+// "General", which would show dates as serial numbers. Each cell keeps
+// its own style (borders, fill) but gets the right number format via a
+// cloned cellXfs entry in styles.xml.
+function pcardStyleEditor(stylesXml) {
+    const block = /<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/.exec(stylesXml);
+    const xfs = block ? block[1].match(/<xf\b[^>]*?(?:\/>|>[\s\S]*?<\/xf>)/g) || [] : [];
+    const cache = {};
+    const numFmtOf = idx => { const m = /numFmtId="(\d+)"/.exec(xfs[idx] || ''); return m ? m[1] : '0'; };
+    return {
+        numFmtOf,
+        withNumFmt(idx, fmtId) {
+            idx = idx || 0;
+            if (!xfs[idx] || numFmtOf(idx) === fmtId) return idx;
+            const key = idx + ':' + fmtId;
+            if (cache[key] !== undefined) return cache[key];
+            let xf = /numFmtId="/.test(xfs[idx]) ? xfs[idx].replace(/numFmtId="\d+"/, `numFmtId="${fmtId}"`) : xfs[idx].replace('<xf', `<xf numFmtId="${fmtId}"`);
+            xf = /applyNumberFormat="/.test(xf) ? xf.replace(/applyNumberFormat="[^"]*"/, 'applyNumberFormat="1"') : xf.replace('<xf', '<xf applyNumberFormat="1"');
+            xfs.push(xf);
+            return (cache[key] = xfs.length - 1);
+        },
+        toXml() {
+            if (!block) return stylesXml;
+            return stylesXml.replace(/<cellXfs\b[^>]*>[\s\S]*?<\/cellXfs>/, `<cellXfs count="${xfs.length}">${xfs.join('')}</cellXfs>`);
+        }
+    };
+}
+function pcardCellStyle(xml, ref) {
+    const m = new RegExp(`<c r="${ref}"([^>]*?)(?:/>|>)`).exec(xml);
+    const s = m && /\bs="(\d+)"/.exec(m[1]);
+    return s ? parseInt(s[1], 10) : 0;
+}
+function pcardSetCellStyle(xml, ref, idx) {
+    return xml.replace(new RegExp(`<c r="${ref}"([^>]*?)(/?>)`), (m, attrs, end) =>
+        `<c r="${ref}"${/\bs="\d+"/.test(attrs) ? attrs.replace(/\bs="\d+"/, `s="${idx}"`) : attrs + ` s="${idx}"`}${end}`);
+}
+function pcardCellHasValue(xml, ref) {
+    const m = xml.match(new RegExp(`<c r="${ref}"[^>]*?(?:/>|>([\\s\\S]*?)<\\/c>)`));
+    return !!(m && m[1] && /<(v|is|f)\b/.test(m[1]) && !/^<v><\/v>$/.test(m[1]));
+}
+async function exportPcardViaXmlSurgery() {
+    const zip = await JSZip.loadAsync(PCARD_TEMPLATE_BYTES);
+    const wbXml = await zip.file('xl/workbook.xml').async('string');
+    const relsXml = await zip.file('xl/_rels/workbook.xml.rels').async('string');
+    const firstSheet = (/<sheet\b[^>]*name="([^"]+)"/.exec(wbXml) || [])[1];
+    const sheetPath = firstSheet && xmlResolveSheetPath(wbXml, relsXml, firstSheet);
+    if (!sheetPath || !zip.file(sheetPath)) throw new Error('Could not find the first sheet in that file.');
+    let xml = await zip.file(sheetPath).async('string');
+    const items = pcardItems();
+    const stylesFile = zip.file('xl/styles.xml');
+    const styles = stylesFile ? pcardStyleEditor(await stylesFile.async('string')) : null;
+    // Date format from an existing item's date cell (else built-in m/d/yyyy);
+    // currency format from the G96 total.
+    let dateFmt = '14';
+    for (let r = PCARD_FIRST_ROW; r <= PCARD_LAST_ROW && styles; r++) {
+        if (pcardCellHasValue(xml, 'B' + r)) { const f = styles.numFmtOf(pcardCellStyle(xml, 'B' + r)); if (f !== '0') { dateFmt = f; break; } }
+    }
+    const moneyFmt = styles ? styles.numFmtOf(pcardCellStyle(xml, 'G96')) : '0';
+
+    let start;
+    if (pcardMode() === 'clear') {
+        for (let r = PCARD_FIRST_ROW; r <= PCARD_LAST_ROW; r++) {
+            PCARD_DATA_COLS.forEach(c => { if (pcardCellHasValue(xml, c + r)) xml = xmlSetCellValue(xml, c + r, ''); });
+        }
+        start = PCARD_FIRST_ROW;
+    } else {
+        let last = PCARD_FIRST_ROW - 1;
+        for (let r = PCARD_FIRST_ROW; r <= PCARD_LAST_ROW; r++) {
+            if (PCARD_DATA_COLS.some(c => pcardCellHasValue(xml, c + r))) last = r;
+        }
+        start = last + 1;
+    }
+    const room = PCARD_LAST_ROW - start + 1;
+    if (items.length > room) {
+        throw new Error(`Only ${room} empty row${room === 1 ? '' : 's'} left in B${PCARD_FIRST_ROW}:H${PCARD_LAST_ROW} for ${items.length} items. Choose "Clear the file's items", or export fewer items.`);
+    }
+    items.forEach((it, i) => {
+        const r = start + i;
+        const gl = String(it.gl || '').trim();
+        const amount = parseMoneyLoose(it.amount);
+        xml = xmlSetCells(xml, {
+            ['B' + r]: it.date ? mmrExcelDateFromInput(it.date) : '',
+            ['C' + r]: /^\d+(\.\d+)?$/.test(gl) ? Number(gl) : gl,
+            ['E' + r]: String(it.to || '').trim(),
+            ['G' + r]: amount !== null ? amount : String(it.amount || '').trim(),
+            ['H' + r]: String(it.for || '').trim()
+        });
+        if (styles) {
+            xml = pcardSetCellStyle(xml, 'B' + r, styles.withNumFmt(pcardCellStyle(xml, 'B' + r), dateFmt));
+            if (moneyFmt !== '0') xml = pcardSetCellStyle(xml, 'G' + r, styles.withNumFmt(pcardCellStyle(xml, 'G' + r), moneyFmt));
+        }
+    });
+    if (styles) zip.file('xl/styles.xml', styles.toXml());
+    // Manager approval date.
+    xml = xmlSetCellValue(xml, 'E98', new Date());
+    // Split Charges removed completely: K31:K95 and its merged header.
+    xml = xml.replace(/<c r="K(\d+)"(?:[^>]*?\/>|[^>]*?>[\s\S]*?<\/c>)/g, (m, n) => (+n >= 31 && +n <= PCARD_LAST_ROW ? '' : m));
+    xml = xml.replace(/<mergeCell ref="K31:K32"\/>/, '');
+    const mergeCount = (xml.match(/<mergeCell /g) || []).length;
+    xml = xml.replace(/<mergeCells count="\d+"/, `<mergeCells count="${mergeCount}"`);
+    zip.file(sheetPath, xml);
+    // Recalculate totals (G96, etc.) when the file is opened.
+    let wbOut = wbXml;
+    if (/<calcPr\b/.test(wbOut)) { if (!/fullCalcOnLoad=/.test(wbOut)) wbOut = wbOut.replace(/<calcPr\b/, '<calcPr fullCalcOnLoad="1"'); }
+    else wbOut = wbOut.replace('</workbook>', '<calcPr fullCalcOnLoad="1"/></workbook>');
+    zip.file('xl/workbook.xml', wbOut);
+    const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PCard Reconciliation ${new Date().toISOString().slice(0, 10)}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    return { count: items.length, start };
+}
+document.getElementById('pcardExportBtn').addEventListener('click', async () => {
+    const status = document.getElementById('pcardExportStatus');
+    if (!PCARD_TEMPLATE_BYTES) { alert('Upload the previous PCard Reconciliation file first — the export adds your items to it.'); return; }
+    const items = pcardItems();
+    if (!items.length && pcardMode() !== 'clear') { alert('Add at least one PCard item to export.'); return; }
+    if (pcardMode() === 'clear' && PCARD_PREV.length && !confirm(`Clear the ${PCARD_PREV.length} item(s) already in the file (B33:H95) and start fresh with ${items.length} new item(s)?`)) return;
+    try {
+        const r = await exportPcardViaXmlSurgery();
+        status.innerHTML = `<b style="color:var(--good);">Exported.</b> ${r.count} item${r.count === 1 ? '' : 's'} written starting at row ${r.start}; E98 set to today.`;
+        if (items.length && confirm(`Exported. Clear these ${items.length} item(s) from the app now that they're in the file? (Recommended, so they aren't added twice next time.)`)) {
+            const rows = pcardController.getRows();
+            Object.keys(rows).forEach(id => { if (!rows[id].deleted) rows[id].deleted = true; });
+            try { localStorage.setItem('reve-pcard-items', JSON.stringify(rows)); } catch (e) {}
+            if (BACKEND_URL && APP_MODE !== 'test') backendPush('pcard-items', rows);
+            pcardController.render();
+        }
+    } catch (err) {
+        console.error(err);
+        status.innerHTML = `<span class="pcard-warn">${escapeHtml(err.message)}</span>`;
+    }
+});
+
+// Calculators (scratch tools; inputs remembered in this browser only).
+const PCARD_CALC_KEY = 'reve-pcard-calc';
+const PCARD_CALC_IDS = ['pcardCalcPreTax', 'pcardCalcTax', 'pcardCalcEach', 'pcardCalcQty'];
+try {
+    const saved = JSON.parse(localStorage.getItem(PCARD_CALC_KEY) || '{}');
+    PCARD_CALC_IDS.forEach(id => { if (saved[id] !== undefined) document.getElementById(id).value = saved[id]; });
+} catch (e) {}
+if (!document.getElementById('pcardCalcTax').value) document.getElementById('pcardCalcTax').value = '9.05';
+function pcardCalcValues() {
+    const n = id => parseMoneyLoose(String(document.getElementById(id).value).replace('%', ''));
+    const pre = n('pcardCalcPreTax'), tax = n('pcardCalcTax'), each = n('pcardCalcEach'), qty = n('pcardCalcQty');
+    return {
+        adjusted: pre !== null ? Math.round(pre * (1 + (tax || 0) / 100) * 100) / 100 : null,
+        total: each !== null && qty !== null ? Math.round(each * qty * 100) / 100 : null
+    };
+}
+function renderPcardCalcs() {
+    const v = pcardCalcValues();
+    document.getElementById('pcardCalcAdjusted').textContent = v.adjusted !== null ? pcardMoney(v.adjusted) : '—';
+    document.getElementById('pcardCalcTotal').textContent = v.total !== null ? pcardMoney(v.total) : '—';
+    const saved = {};
+    PCARD_CALC_IDS.forEach(id => { saved[id] = document.getElementById(id).value; });
+    try { localStorage.setItem(PCARD_CALC_KEY, JSON.stringify(saved)); } catch (e) {}
+}
+PCARD_CALC_IDS.forEach(id => document.getElementById(id).addEventListener('input', renderPcardCalcs));
+renderPcardCalcs();
+[['pcardCalcAdjustedAdd', 'adjusted'], ['pcardCalcTotalAdd', 'total']].forEach(([btn, key]) => {
+    document.getElementById(btn).addEventListener('click', () => {
+        const v = pcardCalcValues()[key];
+        if (v === null) return;
+        pcardController.addRowWithData({ date: new Date().toISOString().slice(0, 10), amount: v.toFixed(2) });
+    });
+});
 
 document.getElementById('commExportBtn').addEventListener('click', async () => {
     if (COMM_TEMPLATE_BYTES) {
@@ -12819,6 +13174,7 @@ setInterval(() => {
     mmrNewLeaseController.pullFromBackend();
     mmrRenewalController.pullFromBackend();
     commMoveInController.pullFromBackend();
+    pcardController.pullFromBackend();
     commRenewalController.pullFromBackend();
     pullPayPeriodFromBackend();
     pullUnitOverridesFromBackend();
@@ -12849,6 +13205,8 @@ mmrNewLeaseController.init();
 mmrRenewalController.init();
 commMoveInController.init();
 commRenewalController.init();
+pcardController.init();
+renderPcardSummary();
 restorePayPeriodLocal();
 initResidents();
 restoreWlLocal();
@@ -13202,6 +13560,8 @@ function sitemapTopAt(poly, x, fallback) {
     });
     return Math.max(fallback, isFinite(top) ? top : fallback);
 }
+// Non-retail areas that link out, like the retail suites do to their websites.
+const SITEMAP_AMENITY_LINKS = { 'Leasing Office': 'https://reveboulder.com/' };
 function renderSitemap() {
     const wrap = document.getElementById('sitemapSvgWrap');
     const note = document.getElementById('sitemapCoverageNote');
@@ -13228,7 +13588,7 @@ function renderSitemap() {
         const title = a.suite ? `Suite ${a.suite} \u2014 ${a.label}` : a.label;
         // Retail suites link to their Website from Settings > Retail Info.
         const retail = a.suite ? retailRowForSuite(a.suite) : null;
-        const site = retail ? normalizeWebUrl(retail.website) : '';
+        const site = retail ? normalizeWebUrl(retail.website) : (SITEMAP_AMENITY_LINKS[a.label] || '');
         if (site) svg += `<a class="sitemap-suite-link" href="${escapeAttr(site)}" target="_blank" rel="noopener">`;
         svg += `<polygon class="sitemap-amenity sitemap-amenity-${a.kind}" points="${sitemapPolyPoints(a.poly)}"><title>${escapeHtml(title + (site ? ' \u2014 open website' : ''))}</title></polygon>`;
         const [lx, ly] = sitemapLabelPoint(a.poly, box);
@@ -13240,6 +13600,7 @@ function renderSitemap() {
             if (site) svg += '</a>';
         } else {
             svg += sitemapLabelSVG('sitemap-amenity-label', a.label, lx, ly, box, { maxFs: 11, minFs: 6 });
+            if (site) svg += '</a>';
         }
     });
     // Upper level of the two-story townhomes below: outline and number, grayed.
@@ -13278,6 +13639,7 @@ if (BACKEND_URL) {
     pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); pullMMRFromBackend(); pullMmrTrafficFromBackend();
     mmrNewLeaseController.pullFromBackend(); mmrRenewalController.pullFromBackend();
     commMoveInController.pullFromBackend(); commRenewalController.pullFromBackend();
+    pcardController.pullFromBackend();
     pullPayPeriodFromBackend();
     pullUnitOverridesFromBackend();
     pullRetailInfoFromBackend();
