@@ -11994,13 +11994,16 @@ document.getElementById('retailInfoImportBtn').addEventListener('click', () => {
    codes) live in the shared backend: the list under
    'documents-uploads', each file's base64 under 'document-file-<id>',
    cached per browser in IndexedDB.
+   Print makes two half-sheets per landscape page (each page twice,
+   side by side, with a cut line) unless the document is marked
+   print: 'full'.
    ============================================================ */
 const DOC_SECTIONS = [
     { id: 'move-in', label: 'Move-in Docs', docs: [
         { title: 'Emergency Contacts', file: 'Emergency_Contacts.pdf', pages: 1 },
         { title: 'DOOR Building Access', file: 'DOOR_Building_Access.pdf', pages: 3 },
-        { title: 'Trash Policies', file: 'Trash_Policies.pdf', pages: 1 },
-        { title: 'Quantum Fiber Internet', file: 'Quantum_Fiber_Internet.pdf', pages: 1 },
+        { title: 'Trash Policies', file: 'Trash_Policies.pdf', pages: 1, print: 'full' },
+        { title: 'Quantum Fiber Internet', file: 'Quantum_Fiber_Internet.pdf', pages: 1, print: 'full' },
         { title: 'RTD MyRide EcoPass', file: 'RTD_MyRide_EcoPass_2026.pdf', pages: 2 },
         { title: 'PetScreening How-To', file: 'PetScreening_How-To.pdf', pages: 1 },
         { title: 'Apartment Care Tips', file: 'Apartment_Care_Tips.pdf', pages: 1 }
@@ -12065,15 +12068,50 @@ async function docsUrlFor(doc) {
 function docsForSection(sectionId) {
     const section = DOC_SECTIONS.find(s => s.id === sectionId);
     const builtIn = (section ? section.docs : []).map(d => ({
-        title: d.title, pages: d.pages, filename: d.file,
+        title: d.title, pages: d.pages, filename: d.file, print: d.print || 'half',
         url: `documents/${sectionId}/${d.file}`,
         thumb: `documents/${sectionId}/thumbs/${d.file.replace(/\.pdf$/i, '.jpg')}`
     }));
     const uploaded = DOC_UPLOADS.filter(u => u.section === sectionId).map(u => ({
-        title: u.title, filename: u.name, size: u.size, uploadId: u.id, localOnly: u.localOnly
+        title: u.title, filename: u.name, size: u.size, uploadId: u.id, localOnly: u.localOnly, print: u.print || 'half'
     }));
     return builtIn.concat(uploaded);
 }
+const PDF_LIB_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+let pdfLibPromise = null;
+function docsLoadPdfLib() {
+    if (window.PDFLib) return Promise.resolve(window.PDFLib);
+    if (!pdfLibPromise) pdfLibPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = PDF_LIB_URL;
+        script.onload = () => resolve(window.PDFLib);
+        script.onerror = () => { pdfLibPromise = null; reject(new Error('pdf-lib failed to load')); };
+        document.head.appendChild(script);
+    });
+    return pdfLibPromise;
+}
+// Letter landscape; each source page (its crop box) scaled into one
+// half with a small margin, drawn twice, and a gray cut line between.
+async function docsHalfSheetUrl(url) {
+    const PDFLib = await docsLoadPdfLib();
+    const src = await PDFLib.PDFDocument.load(await (await fetch(url)).arrayBuffer(), { ignoreEncryption: true });
+    const out = await PDFLib.PDFDocument.create();
+    const pages = src.getPages();
+    const embedded = await out.embedPages(pages, pages.map(pg => {
+        const b = pg.getCropBox();
+        return { left: b.x, bottom: b.y, right: b.x + b.width, top: b.y + b.height };
+    }));
+    const W = 792, H = 612, half = W / 2, margin = 18;
+    embedded.forEach(ep => {
+        const page = out.addPage([W, H]);
+        const scale = Math.min((half - 2 * margin) / ep.width, (H - 2 * margin) / ep.height);
+        const w = ep.width * scale, h = ep.height * scale;
+        [0, half].forEach(x0 => page.drawPage(ep, { x: x0 + (half - w) / 2, y: (H - h) / 2, width: w, height: h }));
+        page.drawLine({ start: { x: half, y: margin / 2 }, end: { x: half, y: H - margin / 2 }, thickness: 0.75, color: PDFLib.rgb(0.62, 0.62, 0.62) });
+    });
+    return URL.createObjectURL(new Blob([await out.save()], { type: 'application/pdf' }));
+}
+const docsHalfSheetCache = {};
 function docsFormatSize(bytes) {
     return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
@@ -12086,6 +12124,7 @@ function renderDocuments() {
         const meta = d.uploadId
             ? `Uploaded PDF${d.size ? ' · ' + docsFormatSize(d.size) : ''}${d.localOnly ? ' · this device only' : ''}`
             : `${d.pages} page${d.pages === 1 ? '' : 's'} · PDF`;
+        const printNote = d.print === 'full' ? 'Prints full sheet' : 'Prints 2 per page';
         const thumb = d.thumb
             ? `<img src="${escapeAttr(d.thumb)}" alt="" loading="lazy">`
             : `<span class="docs-thumb-placeholder">${pdfIcon}PDF</span>`;
@@ -12093,7 +12132,7 @@ function renderDocuments() {
             <a class="docs-thumb" href="#" data-docs-action="open" data-docs-i="${i}" title="Open ${escapeAttr(d.title)}">${thumb}</a>
             <div class="docs-card-body">
                 <div class="docs-card-title">${escapeHtml(d.title)}</div>
-                <div class="docs-card-meta">${escapeHtml(meta)}</div>
+                <div class="docs-card-meta">${escapeHtml(meta)}<br>${printNote}</div>
                 <div class="docs-card-actions">
                     <button type="button" class="btn" data-docs-action="open" data-docs-i="${i}">Open</button>
                     <button type="button" class="btn primary" data-docs-action="print" data-docs-i="${i}">Print</button>
@@ -12152,14 +12191,30 @@ document.getElementById('docsGrid').addEventListener('click', async e => {
         a.click();
         a.remove();
     } else if (action === 'print') {
+        let printUrl = url;
+        if (doc.print !== 'full') {
+            try {
+                if (!docsHalfSheetCache[url]) {
+                    docsSetStatus('Preparing half-sheets…');
+                    docsHalfSheetCache[url] = await docsHalfSheetUrl(url);
+                }
+                printUrl = docsHalfSheetCache[url];
+                docsSetStatus('');
+            } catch (err) {
+                docsSetStatus('Could not build half-sheets — printing the full-size file instead.');
+            }
+        }
         const frame = document.getElementById('docsPrintFrame');
-        frame.onload = () => {
-            try { frame.contentWindow.focus(); frame.contentWindow.print(); }
-            catch (err) { window.open(url, '_blank', 'noopener'); }
-        };
-        // Force a reload even when printing the same file twice.
+        // Blank first to force a reload even when printing the same file twice.
+        frame.onload = null;
         frame.src = 'about:blank';
-        setTimeout(() => { frame.src = url; }, 0);
+        setTimeout(() => {
+            frame.onload = () => {
+                try { frame.contentWindow.focus(); frame.contentWindow.print(); }
+                catch (err) { window.open(printUrl, '_blank', 'noopener'); }
+            };
+            frame.src = printUrl;
+        }, 0);
     }
 });
 document.getElementById('docsUploadBtn').addEventListener('click', () => document.getElementById('docsUploadInput').click());
@@ -12178,7 +12233,8 @@ document.getElementById('docsUploadInput').addEventListener('change', async e =>
         reader.onerror = () => reject(reader.error);
         reader.readAsDataURL(file);
     });
-    const entry = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), section: section.id, title: title.trim(), name: file.name, size: file.size, added: new Date().toISOString() };
+    const half = confirm('Print this as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
+    const entry = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7), section: section.id, title: title.trim(), name: file.name, size: file.size, print: half ? 'half' : 'full', added: new Date().toISOString() };
     await docsCachePut(entry.id, b64);
     docsSetStatus('Uploading…');
     let shared = false;
