@@ -10553,8 +10553,61 @@ function renderResidentSyncStatus() {
         : `${n} unsaved change${n === 1 ? '' : 's'} \u2014 saving shortly.`;
     el.style.color = residentSyncState === 'failed' ? '#c0392b' : '';
 }
-// Pull, merge our dirty rows on top, push, then pull AGAIN and only
-// clear a row's dirty flag once the backend demonstrably holds it. An
+// Every edit stamps the field's time in row._ts[field]. Merging two
+// copies of a row keeps, field by field, whichever was edited LAST, so
+// a browser holding an older copy (another agent's open tab, a device
+// that was offline) can never overwrite a newer edit — it just picks
+// the newer value up instead. Fields with no stamp (older data) defer
+// to the shared backend.
+function residentTouch(row, field) {
+    if (!row._ts || typeof row._ts !== 'object') row._ts = {};
+    row._ts[field] = Math.max(Date.now(), (row._ts[field] || 0) + 1);
+}
+function residentFieldTs(row, k) { return (row && row._ts && row._ts[k]) || 0; }
+// base = the backend's copy, mine = this browser's. Returns the merged
+// row plus whether this browser has something newer than the backend.
+function residentMergeRow(base, mine) {
+    const out = {}, ts = {};
+    let mineNewer = false;
+    const keys = new Set(Object.keys(base).concat(Object.keys(mine)));
+    keys.delete('_ts');
+    keys.forEach(k => {
+        const tb = residentFieldTs(base, k), tm = residentFieldTs(mine, k);
+        if (tm > tb) { out[k] = mine[k]; mineNewer = true; }
+        else out[k] = (k in base) ? base[k] : mine[k];
+        const t = Math.max(tb, tm);
+        if (t) ts[k] = t;
+    });
+    if (Object.keys(ts).length) out._ts = ts;
+    return { row: out, mineNewer };
+}
+// True once the backend's copy holds every field edit this row has.
+function residentRowCovered(remoteRow, localRow) {
+    if (!remoteRow) return false;
+    const lt = (localRow && localRow._ts) || {};
+    return Object.keys(lt).every(k => residentFieldTs(remoteRow, k) >= lt[k]);
+}
+// Merges the backend's rows into RESIDENT_ROWS. Rows only this browser
+// has are kept locally but are only uploaded when they're our own
+// unsaved edits (dirty), so leftovers can't be resurrected. Any row
+// where this browser holds a newer edit than the backend is marked
+// dirty so it gets (re)uploaded — this also repairs an edit that
+// another browser's save overwrote.
+function residentMergeRemote(remote) {
+    const changed = new Set();
+    Object.keys(remote).forEach(id => {
+        const r = remote[id];
+        if (!r || typeof r !== 'object') return;
+        const mine = RESIDENT_ROWS[id];
+        if (!mine) { RESIDENT_ROWS[id] = r; changed.add(id); return; }
+        const m = residentMergeRow(r, mine);
+        if (m.mineNewer) RESIDENT_DIRTY.add(id);
+        if (residentStableJson(m.row) !== residentStableJson(mine)) { RESIDENT_ROWS[id] = m.row; changed.add(id); }
+    });
+    return changed;
+}
+// Pull, merge field by field, push, then pull AGAIN and only clear a
+// row's dirty flag once the backend demonstrably holds its edits. An
 // Apps Script can answer "OK" even when its own write failed, so the
 // HTTP status alone isn't proof. Only one sync runs at a time; edits
 // made meanwhile trigger one follow-up run.
@@ -10580,25 +10633,26 @@ async function residentSyncOnce() {
     if (!BACKEND_URL || APP_MODE === 'test' || !RESIDENT_DIRTY.size) return;
     residentSyncState = 'saving';
     renderResidentSyncStatus();
-    const dirtyIds = [...RESIDENT_DIRTY];
     const remote = await backendPull('residents');
-    if (remote) {
-        // Layer our dirty rows over the backend's copy so another
-        // agent's edits to OTHER residents aren't clobbered. If the
-        // pull failed, don't touch RESIDENT_ROWS — just push our
-        // best-known local state.
-        const merged = Object.assign({}, remote);
-        Object.keys(RESIDENT_ROWS).forEach(id => { if (RESIDENT_DIRTY.has(id) || !(id in merged)) merged[id] = RESIDENT_ROWS[id]; });
-        RESIDENT_ROWS = merged;
+    // Never push without a fresh copy of the backend to merge into —
+    // pushing this browser's whole table blind could overwrite other
+    // agents' newer edits. Retry later instead (edits stay safe here).
+    if (!remote || typeof remote !== 'object') {
+        residentSyncState = 'failed';
         residentPersistLocal();
+        return;
     }
-    const ok = await backendPush('residents', RESIDENT_ROWS);
+    residentMergeRemote(remote);
+    const payload = Object.assign({}, remote);
+    Object.keys(payload).forEach(id => { if (RESIDENT_ROWS[id]) payload[id] = RESIDENT_ROWS[id]; });
+    RESIDENT_DIRTY.forEach(id => { if (RESIDENT_ROWS[id]) payload[id] = RESIDENT_ROWS[id]; });
+    residentPersistLocal();
+    const ok = await backendPush('residents', payload);
     const check = ok ? await backendPull('residents') : null;
     let allConfirmed = !!check;
     if (check) {
-        dirtyIds.forEach(id => {
-            // Only confirm rows unchanged since this push started.
-            if (check[id] && residentStableJson(check[id]) === residentStableJson(RESIDENT_ROWS[id])) RESIDENT_DIRTY.delete(id);
+        [...RESIDENT_DIRTY].forEach(id => {
+            if (residentRowCovered(check[id], RESIDENT_ROWS[id])) RESIDENT_DIRTY.delete(id);
             else allConfirmed = false;
         });
     }
@@ -10612,25 +10666,44 @@ const residentPushDebounced = debounce(() => { residentSyncNow(); }, 900);
 async function pullResidentsFromBackend() {
     if (!BACKEND_URL || APP_MODE === 'test') return;
     const remote = await backendPull('residents');
-    if (remote) {
-        const focusedRow = document.activeElement ? document.activeElement.closest('tr[data-row]') : null;
-        const focusedId = focusedRow ? focusedRow.getAttribute('data-row') : null;
-        Object.keys(remote).forEach(id => {
-            if (id === focusedId || RESIDENT_DIRTY.has(id)) return;
-            RESIDENT_ROWS[id] = remote[id];
-        });
+    if (remote && typeof remote === 'object') {
+        const changed = residentMergeRemote(remote);
         residentPersistLocal();
-        if (!document.getElementById('residentsBody').contains(document.activeElement)) renderResidentsBody();
+        if (changed.size) residentRedrawChanged(changed);
         // Any row still marked dirty here means an earlier push never
         // actually landed on the backend — retry it now rather than
         // leaving that edit stranded client-side indefinitely.
         if (RESIDENT_DIRTY.size) residentPushDebounced();
     }
-    // A failed (or empty) pull changes nothing here. Rows the backend
-    // doesn't have yet are included by the next sync's merge, so a
-    // transient network error can't push stale data over other agents'.
+    // A failed (or empty) pull changes nothing here.
     renderResidentSyncStatus();
 }
+// Shows other agents' changes. While someone is typing in the table,
+// only the changed rows are redrawn — never the row being edited.
+function residentRedrawChanged(ids) {
+    const body = document.getElementById('residentsBody');
+    if (!body.contains(document.activeElement)) { renderResidentsBody(); return; }
+    const editing = document.activeElement.closest('tr[data-row]');
+    const editingId = editing ? editing.getAttribute('data-row') : null;
+    ids.forEach(id => { if (id !== editingId && !(RESIDENT_ROWS[id] || {}).deleted) refreshResidentRow(id); });
+}
+// Another tab of the app in this same browser saved: merge its rows
+// and pending edits in, so the two tabs don't overwrite each other's
+// local copy (they share localStorage).
+window.addEventListener('storage', (e) => {
+    if (e.key === 'reve-residents' && e.newValue) {
+        try {
+            const other = JSON.parse(e.newValue);
+            Object.keys(other).forEach(id => {
+                const mine = RESIDENT_ROWS[id];
+                RESIDENT_ROWS[id] = mine ? residentMergeRow(mine, other[id]).row : other[id];
+            });
+            if (!document.getElementById('residentsBody').contains(document.activeElement)) renderResidentsBody();
+        } catch (err) {}
+    } else if (e.key === RESIDENT_DIRTY_KEY && e.newValue) {
+        try { JSON.parse(e.newValue).forEach(id => RESIDENT_DIRTY.add(id)); } catch (err) {}
+    }
+});
 function initResidents() {
     try {
         const raw = localStorage.getItem('reve-residents');
@@ -10639,12 +10712,9 @@ function initResidents() {
     if (!Object.keys(RESIDENT_ROWS).length) {
         if (BACKEND_URL) {
             backendPull('residents').then(remote => {
-                if (remote && Object.keys(remote).length) {
-                    RESIDENT_ROWS = remote;
-                } else {
-                    RESIDENT_ROWS = seedResidentRows();
-                    backendPush('residents', RESIDENT_ROWS);
-                }
+                // A failed pull must never push an empty table over the
+                // shared data — the regular poll will fill this in.
+                if (remote && typeof remote === 'object') RESIDENT_ROWS = remote;
                 residentPersistLocal();
                 residentFixBrokenDeposits();
                 renderResidents();
@@ -10676,6 +10746,7 @@ function residentFixBrokenDeposits() {
         const row = RESIDENT_ROWS[id];
         if (row.deposit === '\u2714') {
             row.deposit = row.movedIn ? '\u2713' : '\u2192';
+            residentTouch(row, 'deposit');
             RESIDENT_DIRTY.add(id);
             fixedCount++;
         }
@@ -10922,6 +10993,7 @@ function wireResidentRow(id) {
         function commit(e) {
             const field = e.target.getAttribute('data-field');
             RESIDENT_ROWS[id][field] = isCheckbox ? e.target.checked : e.target.value;
+            residentTouch(RESIDENT_ROWS[id], field);
             RESIDENT_DIRTY.add(id);
             residentPersistLocal();
             residentPushDebounced();
@@ -10960,6 +11032,7 @@ function wireResidentRow(id) {
     tr.querySelector('.wl-remove').addEventListener('click', () => {
         if (!confirm('Remove this resident?')) return;
         RESIDENT_ROWS[id].deleted = true;
+        residentTouch(RESIDENT_ROWS[id], 'deleted');
         RESIDENT_DIRTY.add(id);
         residentPersistLocal();
         residentPushDebounced();
@@ -11140,6 +11213,7 @@ document.getElementById('residentAddBtn').addEventListener('click', () => {
         if (f.type === 'computed-date' || f.type === 'computed-bool') return;
         blank[f.key] = f.type === 'checkbox' ? false : '';
     });
+    Object.keys(blank).forEach(k => residentTouch(blank, k));
     RESIDENT_ROWS[id] = blank;
     RESIDENT_PINNED.add(id);
     RESIDENT_DIRTY.add(id);
@@ -11181,6 +11255,35 @@ document.getElementById('residentsExportBtn').addEventListener('click', () => {
     URL.revokeObjectURL(url);
 });
 
+// Upload / Clear: the new table replaces everything, for every agent.
+// Each row's fields get a fresh edit time (so they win every merge) and
+// every row NOT in the new table — here or on the backend — is marked
+// deleted, then the whole thing is uploaded right away.
+async function residentReplaceAll(rows) {
+    const remote = (BACKEND_URL && APP_MODE !== 'test') ? await backendPull('residents') : null;
+    const next = {};
+    Object.keys(rows).forEach(id => {
+        const r = Object.assign({}, rows[id]);
+        delete r._ts;
+        Object.keys(r).forEach(k => residentTouch(r, k));
+        next[id] = r;
+    });
+    const oldIds = new Set(Object.keys(RESIDENT_ROWS).concat(remote && typeof remote === 'object' ? Object.keys(remote) : []));
+    oldIds.forEach(id => {
+        if (next[id]) return;
+        const r = Object.assign({}, RESIDENT_ROWS[id] || (remote && remote[id]) || {});
+        r.deleted = true;
+        residentTouch(r, 'deleted');
+        next[id] = r;
+    });
+    RESIDENT_ROWS = next;
+    Object.keys(next).forEach(id => RESIDENT_DIRTY.add(id));
+    residentFixBrokenDeposits();
+    residentPersistLocal();
+    renderResidentsBody();
+    await residentSyncNow();
+}
+
 function promptAdminPassword(actionLabel) {
     const pw = prompt(`Enter the Admin password to ${actionLabel}:`);
     if (pw === null) return false;
@@ -11211,12 +11314,7 @@ document.getElementById('residentsUploadInput').addEventListener('change', (e) =
             return;
         }
         if (!confirm(`This will replace ALL current Residents data with ${Object.keys(residents).length} record(s) from this file. Continue?`)) return;
-        RESIDENT_ROWS = residents;
-        residentFixBrokenDeposits();
-        residentPersistLocal();
-        residentPushDebounced();
-        renderResidentsBody();
-        alert('Residents data replaced from upload.');
+        residentReplaceAll(residents).then(() => alert('Residents data replaced from upload.'));
     };
     reader.readAsText(file);
 });
@@ -11225,11 +11323,7 @@ document.getElementById('residentsClearBtn').addEventListener('click', () => {
     if (!promptAdminPassword('permanently clear ALL Residents data')) return;
     if (!confirm('This will permanently delete every resident record for every agent. This cannot be undone. Are you sure?')) return;
     if (!confirm('Really clear all Residents data? This is your last chance to cancel.')) return;
-    RESIDENT_ROWS = {};
-    residentPersistLocal();
-    residentPushDebounced();
-    renderResidentsBody();
-    alert('All Residents data has been cleared.');
+    residentReplaceAll({}).then(() => alert('All Residents data has been cleared.'));
 });
 
 
