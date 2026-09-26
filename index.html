@@ -1922,6 +1922,29 @@
     body.dark-mode .pcard-calc, body.dark-mode .pcard-calc input { background: var(--dm-card-alt); color: inherit; }
     @media (max-width: 900px) { .pcard-calcs { flex: 0 0 auto; width: 100%; max-width: 420px; } }
 
+    /* -- Video Tours Needed (Availability sidebar) -- */
+    .vtn { margin-top: 16px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .vtn summary { cursor: pointer; padding: 9px 12px; font-family: 'Oswald', var(--sans); font-weight: 600; font-size: 13px; letter-spacing: 0.03em; list-style: none; display: flex; align-items: center; justify-content: space-between; }
+    .vtn summary::-webkit-details-marker { display: none; }
+    .vtn summary::after { content: '\203A'; font-size: 18px; line-height: 1; color: var(--ink-soft); transition: transform 0.15s; }
+    .vtn[open] summary::after { transform: rotate(90deg); }
+    .vtn summary span:first-child { flex: 1; }
+    .vtn-count { font-family: var(--sans); font-size: 11px; font-weight: 700; color: var(--reve-orange); margin-right: 8px; }
+    .vtn-legend { font-size: 10.5px; color: var(--ink-soft); padding: 0 12px 6px; }
+    .vtn-now { font-weight: 800; text-decoration: underline; color: var(--ink); }
+    .vtn-other { color: #b0aa9c; }
+    #vtnList { padding: 0 8px 10px; }
+    .vtn-group { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); margin: 6px 4px 3px; }
+    .vtn-units { display: flex; flex-wrap: wrap; gap: 3px 4px; }
+    .vtn-unit { border: 0; background: none; padding: 2px 5px; border-radius: 4px; font-family: var(--sans); font-size: 12px; color: var(--ink); cursor: pointer; font-variant-numeric: tabular-nums; }
+    .vtn-unit:hover { background: #f4f2ee; }
+    .vtn-unit.now { font-weight: 800; text-decoration: underline; }
+    .vtn-unit.other { color: #b0aa9c; }
+    .vtn-unit small { color: var(--ink-soft); font-weight: 400; font-size: 10px; margin-left: 2px; }
+    body.dark-mode .vtn { background: var(--dm-card-alt); }
+    body.dark-mode .vtn-unit:hover { background: var(--dm-card); }
+    body.dark-mode .vtn-unit.other, body.dark-mode .vtn-other { color: #6f6a60; }
+
     /* -- Unit Info statistics -- */
     .unit-stats { margin-bottom: 8px; }
     .us-total { font-size: 12px; color: var(--ink-soft); margin-bottom: 6px; }
@@ -2616,6 +2639,12 @@
             </div>
 
             <button type="button" class="add-term-btn" id="availClearBtn" style="margin-top:14px;">Clear filters</button>
+
+            <details class="vtn" id="videoToursNeeded">
+                <summary><span>Video Tours Needed</span> <span class="vtn-count" id="vtnCount"></span></summary>
+                <div class="vtn-legend"><span class="vtn-now">Available now</span> &middot; <span>Upcoming</span> &middot; <span class="vtn-other">Not available</span></div>
+                <div id="vtnList"></div>
+            </details>
         </div>
     </div>
 
@@ -5707,7 +5736,56 @@ function sameDay(a, b) {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+/* Video Tours Needed: units whose video tour is of a different apartment
+   (the video name doesn't mention the unit's own number) or have none.
+   Bold + underlined = available now in today's pricing sheet (vacant; take
+   the video now), plain = upcoming availability, gray = not available. */
+function unitNeedsVideoTour(u) {
+    const name = String(u.videoName || '').trim();
+    if (!name) return true;
+    return !(name.match(/(?<!\d)\d{4}(?!\d)/g) || []).includes(String(u.unit));
+}
+function renderVideoToursNeeded() {
+    const list = document.getElementById('vtnList');
+    if (!list) return;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const now = [], soon = [], other = [];
+    UNITS.filter(unitNeedsVideoTour).forEach(u => {
+        const p = PRICING_SUMMARY[u.unit];
+        const key = p && p.availableSortKey !== undefined && isFinite(p.availableSortKey) ? p.availableSortKey : null;
+        if (p && (key === null || key <= today.getTime())) now.push({ u, key });
+        else if (p) soon.push({ u, key });
+        else other.push({ u, key });
+    });
+    now.sort((a, b) => a.u.unit.localeCompare(b.u.unit));
+    soon.sort((a, b) => a.key - b.key || a.u.unit.localeCompare(b.u.unit));
+    other.sort((a, b) => a.u.unit.localeCompare(b.u.unit));
+    const btn = (x, cls) => {
+        const d = x.key !== null && cls === '' ? new Date(x.key) : null;
+        const tip = `Apt ${x.u.unit} \u2014 current video: ${x.u.videoName || 'none'}${cls === 'now' ? ' \u2014 vacant now' : d ? ' \u2014 available ' + d.toLocaleDateString('en-US') : ''}. Click to open in Tour.`;
+        return `<button type="button" class="vtn-unit ${cls}" data-vtn-unit="${escapeAttr(x.u.unit)}" title="${escapeAttr(tip)}">${escapeHtml(x.u.unit)}${d ? `<small>${d.getMonth() + 1}/${d.getDate()}</small>` : ''}</button>`;
+    };
+    const group = (title, arr, cls) => arr.length ? `<div class="vtn-group">${title} (${arr.length})</div><div class="vtn-units">${arr.map(x => btn(x, cls)).join('')}</div>` : '';
+    const total = now.length + soon.length + other.length;
+    document.getElementById('vtnCount').textContent = total ? `${now.length} now \u00b7 ${total} total` : '';
+    list.innerHTML = total
+        ? group('Available now', now, 'now') + group('Upcoming', soon, '') + group('Not available', other, 'other')
+          + (Object.keys(PRICING_SUMMARY).length ? '' : '<div class="vtn-legend" style="padding:6px 4px 0;">Upload today\u2019s pricing sheet (Tour tab) to see which of these are available.</div>')
+        : '<div class="vtn-legend" style="padding:4px;">Every unit has its own video tour.</div>';
+}
+document.getElementById('vtnList').addEventListener('click', e => {
+    const b = e.target.closest('[data-vtn-unit]');
+    if (!b) return;
+    switchTab('tour');
+    selectUnit(b.getAttribute('data-vtn-unit'));
+});
+(function () {
+    const d = document.getElementById('videoToursNeeded');
+    try { if (localStorage.getItem('reve-vtn-open') === '1') d.open = true; } catch (e) {}
+    d.addEventListener('toggle', () => { try { localStorage.setItem('reve-vtn-open', d.open ? '1' : '0'); } catch (e) {} });
+})();
 function renderCalendar() {
+    renderVideoToursNeeded();
     const grid = document.getElementById('calGrid');
     const label = document.getElementById('calMonthLabel');
     const summaryEl = document.getElementById('calMonthSummary');
