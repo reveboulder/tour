@@ -1117,6 +1117,29 @@
 
     .wl-subtabs { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
     .wl-subtab-right { margin-left: auto; }
+    .wl-subtab-stack { margin-left: auto; display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+    .wl-subtabs:has(.wl-subtab-stack) { align-items: flex-start; }
+    @media (max-width: 700px) {
+        .wl-subtabs { flex-wrap: wrap; }
+        .wl-subtab-stack { margin-left: 0; flex-direction: row; }
+    }
+    .lockers-summary { font-size: 13px; margin-bottom: 8px; }
+    .lockers-summary b { font-variant-numeric: tabular-nums; }
+    .lockers-table { width: 100%; min-width: 760px; border-collapse: collapse; background: #fff; font-size: 12.5px; }
+    .lockers-table th, .lockers-table td { border: 1px solid var(--line); padding: 5px 7px; text-align: left; vertical-align: middle; }
+    .lockers-table th { background: #f4f2ee; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+    .lockers-table tr.building-start td { border-top: 2px solid var(--ink-soft); }
+    .lockers-table input.wl-field, .lockers-table select.wl-field { border: none; background: transparent; padding: 3px; width: 100%; font: inherit; color: inherit; }
+    .lockers-table input.wl-field:focus, .lockers-table select.wl-field:focus { outline: 1px solid var(--reve-orange); background: #fff; border-radius: 3px; }
+    .lockers-table td.lk-narrow { width: 64px; }
+    .lockers-table td.lk-status-cell { width: 104px; }
+    .lockers-table td.lk-resident { min-width: 220px; }
+    .lockers-table select.lk-status { font-weight: 700; border-radius: 999px; padding: 3px 8px; }
+    .lk-status-FULL { background: #e2f1e5 !important; color: #2e7d4a; }
+    .lk-status-EMPTY { background: #eef2f7 !important; color: #3d5a80; }
+    .lk-status-unknown { background: #fbf1d8 !important; color: #8a6414; }
+    body.dark-mode .lockers-table { background: var(--dm-card-alt); }
+    body.dark-mode .lockers-table th { background: var(--dm-card); }
     .wl-subtab {
         font-size: 12.5px;
         font-weight: 700;
@@ -2936,6 +2959,7 @@
         </div>
         <button type="button" class="btn primary" id="waitlistAddBtn" style="margin-left:auto;flex:none;">+ Add Prospect</button>
         <button type="button" class="btn primary" id="storageAddBtn" style="margin-left:auto;flex:none;display:none;">+ Add Entry</button>
+        <button type="button" class="btn primary" id="lockersAddBtn" style="margin-left:auto;flex:none;display:none;">+ Add Locker</button>
     </div>
 
     <div class="wl-subtabs">
@@ -2944,7 +2968,10 @@
         <button type="button" class="wl-subtab" data-subtab="cancelled">Cancelled <span class="wl-subtab-count" id="wlCountCancelled"></span></button>
         <button type="button" class="wl-subtab" data-subtab="leased">Leased <span class="wl-subtab-count" id="wlCountLeased"></span></button>
         <button type="button" class="wl-subtab" data-subtab="all">All <span class="wl-subtab-count" id="wlCountAll"></span></button>
-        <button type="button" class="wl-subtab wl-subtab-right" data-subtab="storage">Storage <span class="wl-subtab-count" id="wlCountStorage"></span></button>
+        <div class="wl-subtab-stack">
+            <button type="button" class="wl-subtab" data-subtab="storage">Storage <span class="wl-subtab-count" id="wlCountStorage"></span></button>
+            <button type="button" class="wl-subtab" data-subtab="lockers">Rented Lockers <span class="wl-subtab-count" id="wlCountLockers"></span></button>
+        </div>
     </div>
 
     <div id="waitlistProspectView">
@@ -2962,6 +2989,12 @@
     <div id="waitlistStorageView" style="display:none;">
         <div class="empty-note" style="margin-bottom:14px;">Storage locker interest list &mdash; check "Contacted" once you've reached out, or remove an entry permanently with the &times; button.</div>
         <div id="storageList"></div>
+    </div>
+
+    <div id="waitlistLockersView" style="display:none;">
+        <div class="lockers-summary" id="lockersSummary"></div>
+        <div class="empty-note" style="margin-bottom:14px;">Which storage locker is rented to whom &mdash; edit any cell; changes are shared with all agents. &times; removes a locker from the list.</div>
+        <div class="mmr-table-wrap"><div id="lockersList"></div></div>
     </div>
 </div>
 </div>
@@ -4635,6 +4668,172 @@ function applyBadgeRow(u) {
     }
     return `<div class="rc-row"><span>Apply link</span><b>Not available <span class="badge warn">waitlist link</span></b></div>`;
 }
+
+/* ============================================================
+   RENTED STORAGE LOCKERS — which locker is rented to whom. Starts from
+   the property's locker list (building, location, room, locker #, key
+   cylinder code, keys in HandyTrac, status) with resident names/units
+   left blank to fill in. Starter rows have fixed ids and are only used
+   when the shared list is empty, so they can never duplicate. Same safe
+   shared save routine as the Waitlist and Storage lists.
+   ============================================================ */
+const LOCKERS_KEY = 'reve-storage-lockers';
+const LOCKERS_BACKEND_KEY = 'storage-lockers';
+let LOCKER_ROWS = {};   // { [id]: {building, location, room, locker, keyCode, resident, keys, status, order, deleted} }
+const LOCKER_DIRTY = new Set();
+const LOCKER_FIELDS = ['building', 'location', 'room', 'locker', 'keyCode', 'resident', 'keys', 'status'];
+const LOCKER_STATUSES = ['', 'FULL', 'EMPTY', '?'];
+function seedLockerRows() {
+    // [building, location, room, locker #, key cylinder code, resident placeholder, keys in HandyTrac, status]
+    const seed = [
+        ['1', '--', '--', '9', 'M1509', '', '1', 'FULL'],
+        ['1', '--', '--', '23', 'M1523', 'RENTED - Unknown', '1', 'FULL'],
+        ['1', '--', '--', '27', 'M1527', 'VACANT', '1', 'EMPTY'],
+        ['1', '--', '--', '31', 'M1531', 'RENTED - Unknown', '1', 'FULL'],
+        ['1', '--', '--', '40', 'M1540', '', '1', 'FULL'],
+        ['1', '--', '--', '46', 'M1546', '?', '0', '?'],
+        ['1', '--', '--', '50', 'M1550', '', '1', 'FULL'],
+        ['1', '--', '--', '53', 'M1553', '', '1', 'FULL'],
+        ['1', '--', '--', '54', 'M1554', '', '1', 'FULL'],
+        ['1', '--', '--', '55', 'M1555', '', '1', 'EMPTY'],
+        ['1', '--', '--', '56', 'M1556', '', '3', 'FULL'],
+        ['1', '--', '--', '57', 'M1557', '', '1', 'FULL'],
+        ['2', 'P2', 'P225B', '--', 'M1552', '?', '0', '?'],
+        ['2', 'P2', 'P225B', '4', 'M1528', 'RENTED - Unknown', '1', 'FULL'],
+        ['2', 'P2', 'P225B', '11', 'M1536', '', '1', 'FULL'],
+        ['2', 'P2', 'P225B', '10', 'M1521', '', '1', 'EMPTY'],
+        ['2', 'P2', 'P225B', '9', 'M1543', 'RENTED - Unknown', '1', 'FULL'],
+        ['2', 'P2', 'P225B', '8', 'M1537', '', '1', 'FULL'],
+        ['2', 'P2', 'P225B', '7', 'M1546', '', '1', 'FULL'],
+        ['2', 'P2', 'P225B', '6', 'M1518', '', '1', 'EMPTY'],
+        ['2', 'P2', 'P225B', '5', 'LJZ82458', 'VACANT', '0', 'EMPTY'],
+        ['2', 'P2', 'P225B', '3', 'M1538', '', '1', 'FULL'],
+        ['2', 'P2', 'P225B', '2', 'M1526', '', '1', 'FULL'],
+        ['2', 'P2', 'P225B', '1', 'M1541', '', '1', 'FULL']
+    ];
+    const rows = {};
+    seed.forEach((r, i) => {
+        rows['lk_seed_' + i] = { building: r[0], location: r[1], room: r[2], locker: r[3], keyCode: r[4], resident: r[5], keys: r[6], status: r[7], order: i };
+    });
+    return rows;
+}
+function persistLockersLocal() { try { localStorage.setItem(LOCKERS_KEY, JSON.stringify(LOCKER_ROWS)); } catch (e) {} }
+function renderLockersIfIdle() { if (waitlistSubTab === 'lockers' && !rowBeingEdited('lockersList')) renderLockers(); }
+const pushLockersDirty = makeRowPusher({
+    backendKey: LOCKERS_BACKEND_KEY, dirty: LOCKER_DIRTY, rows: () => LOCKER_ROWS,
+    persist: () => persistLockersLocal(), render: renderLockersIfIdle,
+    editingId: () => rowBeingEdited('lockersList')
+});
+const pushLockersDirtyDebounced = debounce(pushLockersDirty, 900);
+async function pullLockersFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(LOCKERS_BACKEND_KEY);
+    if (remote && typeof remote === 'object' && Object.keys(remote).length) {
+        const editing = rowBeingEdited('lockersList');
+        Object.keys(remote).forEach(id => {
+            if (id === editing || LOCKER_DIRTY.has(id)) return;
+            LOCKER_ROWS[id] = remote[id];
+        });
+        persistLockersLocal();
+        renderLockersIfIdle();
+    } else {
+        // Shared list is empty: start it from the starter rows (fixed ids,
+        // so two browsers doing this at once produce the same rows).
+        if (!Object.keys(LOCKER_ROWS).length) LOCKER_ROWS = seedLockerRows();
+        Object.keys(LOCKER_ROWS).forEach(id => LOCKER_DIRTY.add(id));
+        persistLockersLocal();
+        pushLockersDirty();
+        renderLockersIfIdle();
+    }
+}
+function initLockers() {
+    try { LOCKER_ROWS = JSON.parse(localStorage.getItem(LOCKERS_KEY) || '{}') || {}; } catch (e) { LOCKER_ROWS = {}; }
+    if (!Object.keys(LOCKER_ROWS).length && (!BACKEND_URL || APP_MODE === 'test')) { LOCKER_ROWS = seedLockerRows(); persistLockersLocal(); }
+    updateLockersCount();
+    pullLockersFromBackend();
+}
+function lockerIds() {
+    return Object.keys(LOCKER_ROWS).filter(id => !LOCKER_ROWS[id].deleted)
+        .sort((a, b) => (LOCKER_ROWS[a].order ?? 1e9) - (LOCKER_ROWS[b].order ?? 1e9) || a.localeCompare(b));
+}
+function updateLockersCount() {
+    const el = document.getElementById('wlCountLockers');
+    if (el) el.textContent = lockerIds().length;
+}
+function lockerStatusClass(v) { return v === 'FULL' ? 'lk-status-FULL' : v === 'EMPTY' ? 'lk-status-EMPTY' : v === '?' ? 'lk-status-unknown' : ''; }
+function renderLockers() {
+    const mount = document.getElementById('lockersList');
+    if (!mount) return;
+    const ids = lockerIds();
+    updateLockersCount();
+    const count = st => ids.filter(id => (LOCKER_ROWS[id].status || '') === st).length;
+    const keys = ids.reduce((t, id) => t + (parseInt(LOCKER_ROWS[id].keys, 10) || 0), 0);
+    document.getElementById('lockersSummary').innerHTML = ids.length
+        ? `<b>${ids.length}</b> lockers &middot; <b>${count('FULL')}</b> full &middot; <b>${count('EMPTY')}</b> empty &middot; <b>${count('?')}</b> unknown &middot; <b>${keys}</b> keys in HandyTrac`
+        : '';
+    if (!ids.length) {
+        mount.innerHTML = '<div class="no-unit">No lockers listed. Click "+ Add Locker" to add one.</div>';
+        return;
+    }
+    let prevBuilding = null;
+    const body = ids.map(id => {
+        const r = LOCKER_ROWS[id];
+        const startCls = prevBuilding !== null && r.building !== prevBuilding ? ' class="building-start"' : '';
+        prevBuilding = r.building;
+        const inp = (f, cls, ph) => `<td class="${cls || ''}"><input class="wl-field" data-field="${f}" value="${escapeAttr(r[f] || '')}"${ph ? ` placeholder="${escapeAttr(ph)}"` : ''}></td>`;
+        return `<tr data-row="${escapeAttr(id)}"${startCls}>
+            ${inp('building', 'lk-narrow')}${inp('location', 'lk-narrow')}${inp('room', 'lk-narrow')}${inp('locker', 'lk-narrow')}${inp('keyCode')}
+            ${inp('resident', 'lk-resident', 'Unit - Resident name')}${inp('keys', 'lk-narrow')}
+            <td class="lk-status-cell"><select class="wl-field lk-status ${lockerStatusClass(r.status)}" data-field="status">${LOCKER_STATUSES.map(v => `<option value="${v}"${(r.status || '') === v ? ' selected' : ''}>${v || '—'}</option>`).join('')}</select></td>
+            <td class="storage-remove-cell"><button type="button" class="wl-remove" title="Remove this locker">&times;</button></td>
+        </tr>`;
+    }).join('');
+    mount.innerHTML = `<table class="lockers-table">
+        <thead><tr><th>Building</th><th>Location</th><th>Room</th><th>Locker #</th><th>Key Cylinder Code</th><th>Resident Name / Unit Number</th><th># of Keys in HandyTrac</th><th>Status</th><th></th></tr></thead>
+        <tbody>${body}</tbody>
+    </table>`;
+    [...mount.querySelectorAll('tr[data-row]')].forEach(tr => {
+        const id = tr.getAttribute('data-row');
+        [...tr.querySelectorAll('.wl-field')].forEach(field => {
+            const isSelect = field.tagName === 'SELECT';
+            field.addEventListener(isSelect ? 'change' : 'input', e => {
+                LOCKER_ROWS[id][e.target.getAttribute('data-field')] = e.target.value;
+                LOCKER_DIRTY.add(id);
+                persistLockersLocal();
+                pushLockersDirtyDebounced();
+                if (isSelect) { e.target.className = `wl-field lk-status ${lockerStatusClass(e.target.value)}`; renderLockersSummaryOnly(); }
+            });
+        });
+        tr.querySelector('.wl-remove').addEventListener('click', () => {
+            const r = LOCKER_ROWS[id];
+            if (!confirm(`Remove locker ${r.locker && r.locker !== '--' ? '#' + r.locker : r.keyCode || ''} from the list?`)) return;
+            LOCKER_ROWS[id].deleted = true;   // tombstone so other browsers learn it was removed
+            LOCKER_DIRTY.add(id);
+            persistLockersLocal();
+            pushLockersDirtyDebounced();
+            renderLockers();
+        });
+    });
+}
+function renderLockersSummaryOnly() {
+    const ids = lockerIds();
+    const count = st => ids.filter(id => (LOCKER_ROWS[id].status || '') === st).length;
+    const keys = ids.reduce((t, id) => t + (parseInt(LOCKER_ROWS[id].keys, 10) || 0), 0);
+    document.getElementById('lockersSummary').innerHTML = `<b>${ids.length}</b> lockers &middot; <b>${count('FULL')}</b> full &middot; <b>${count('EMPTY')}</b> empty &middot; <b>${count('?')}</b> unknown &middot; <b>${keys}</b> keys in HandyTrac`;
+}
+document.getElementById('lockersAddBtn').addEventListener('click', () => {
+    const id = 'lk_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+    const ids = lockerIds();
+    const last = ids.length ? LOCKER_ROWS[ids[ids.length - 1]] : null;
+    const maxOrder = Object.values(LOCKER_ROWS).reduce((m, r) => Math.max(m, typeof r.order === 'number' ? r.order : 0), 0);
+    LOCKER_ROWS[id] = { building: last ? last.building : '', location: last ? last.location : '', room: last ? last.room : '', locker: '', keyCode: '', resident: '', keys: '', status: '', order: maxOrder + 1 };
+    LOCKER_DIRTY.add(id);
+    persistLockersLocal();
+    pushLockersDirtyDebounced();
+    renderLockers();
+    const field = document.querySelector(`#lockersList tr[data-row="${id}"] input[data-field="locker"]`);
+    if (field) field.focus();
+});
 
 /* ============================================================
    CONCESSION CALCULATOR
@@ -7169,20 +7368,26 @@ function renderWaitlist() {
 
 function updateWaitlistViewVisibility() {
     const isStorage = waitlistSubTab === 'storage';
-    document.getElementById('waitlistProspectView').style.display = isStorage ? 'none' : 'block';
+    const isLockers = waitlistSubTab === 'lockers';
+    document.getElementById('waitlistProspectView').style.display = isStorage || isLockers ? 'none' : 'block';
     document.getElementById('waitlistStorageView').style.display = isStorage ? 'block' : 'none';
-    document.getElementById('waitlistAddBtn').style.display = isStorage ? 'none' : 'inline-block';
+    document.getElementById('waitlistLockersView').style.display = isLockers ? 'block' : 'none';
+    document.getElementById('lockersAddBtn').style.display = isLockers ? 'inline-block' : 'none';
+    document.getElementById('waitlistAddBtn').style.display = isStorage || isLockers ? 'none' : 'inline-block';
     document.getElementById('waitlistAddBtn').textContent = waitlistSubTab === 'transfers' ? '+ Add Transfer' : '+ Add Prospect';
     document.getElementById('storageAddBtn').style.display = isStorage ? 'inline-block' : 'none';
-    document.getElementById('waitlistHeading').textContent = isStorage ? 'Storage Locker Waitlist' : 'Waitlist';
-    document.getElementById('waitlistTagline').textContent = isStorage ? 'Storage locker interest \u2014 shared across agents' : 'Prospect tracking \u2014 shared across agents';
+    document.getElementById('waitlistHeading').textContent = isLockers ? 'Rented Storage Lockers' : isStorage ? 'Storage Locker Waitlist' : 'Waitlist';
+    document.getElementById('waitlistTagline').textContent = isLockers ? 'Current locker rentals \u2014 shared across agents' : isStorage ? 'Storage locker interest \u2014 shared across agents' : 'Prospect tracking \u2014 shared across agents';
 }
 
 [...document.querySelectorAll('.wl-subtab[data-subtab]')].forEach(btn => {
     btn.addEventListener('click', () => {
         waitlistSubTab = btn.getAttribute('data-subtab');
+        [...document.querySelectorAll('.wl-subtab[data-subtab]')].forEach(b => b.classList.toggle('active', b === btn));
         updateWaitlistViewVisibility();
-        if (waitlistSubTab === 'storage') renderStorageList(); else renderWaitlist();
+        if (waitlistSubTab === 'storage') renderStorageList();
+        else if (waitlistSubTab === 'lockers') renderLockers();
+        else renderWaitlist();
     });
 });
 document.getElementById('wlFilterAgent').addEventListener('change', (e) => { wlFilterAgent = e.target.value; renderWaitlist(); });
@@ -13253,6 +13458,7 @@ setInterval(() => {
     pullWaitlistFromBackend();
     pullConcessionFromBackend();
     pullStorageFromBackend();
+    pullLockersFromBackend();
     pullMMRFromBackend();
     pullMmrTrafficFromBackend();
     mmrNewLeaseController.pullFromBackend();
@@ -13281,6 +13487,7 @@ renderExpiringList();
 restoreRenewals();
 initWaitlist();
 initStorage();
+initLockers();
 renderStorageList();
 restoreConcessionLocal();
 renderConcessionSummary();
@@ -13782,7 +13989,7 @@ try {
     if (localStorage.getItem(APP_MODE_KEY) === 'test') applyAppMode('test');
 } catch (e) { /* ignore */ }
 if (BACKEND_URL) {
-    pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); pullMMRFromBackend(); pullMmrTrafficFromBackend();
+    pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); pullLockersFromBackend(); pullMMRFromBackend(); pullMmrTrafficFromBackend();
     mmrNewLeaseController.pullFromBackend(); mmrRenewalController.pullFromBackend();
     commMoveInController.pullFromBackend(); commRenewalController.pullFromBackend();
     pcardController.pullFromBackend();
