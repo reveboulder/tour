@@ -1229,7 +1229,7 @@
     .storage-table td.storage-remove-cell { width: 36px; text-align: center; }
     .storage-table tr.contacted { background: #f4f2ee; }
     .storage-table tr.contacted td { color: var(--ink-soft); }
-    .storage-table tr.contacted input.storage-name-field { text-decoration: line-through; }
+    .storage-table tr.contacted input.wl-field { text-decoration: line-through; }
 
     /* -- MMR / Weekly Stats -- */
     .mmr-subtabs { display: flex; gap: 6px; margin-bottom: 14px; }
@@ -6735,21 +6735,61 @@ function dedupeWaitlistRows() {
 // does not fully eliminate the race (two edits to the exact same row
 // in the same instant still last-write-wins), but that's a much
 // narrower and rarer case than "two people adding different rows".
-async function pushWaitlistDirty() {
-    persistWaitlistLocal();
-    if (!BACKEND_URL || APP_MODE === 'test') return;
-    const remote = await backendPull(WAITLIST_BACKEND_KEY);
-    const merged = Object.assign({}, remote || {});
-    WAITLIST_DIRTY.forEach(id => {
-        if (WAITLIST_ROWS[id]) merged[id] = WAITLIST_ROWS[id];
-        else delete merged[id]; // locally deleted row
-    });
-    WAITLIST_ROWS = merged;
-    WAITLIST_DIRTY.clear();
-    persistWaitlistLocal();
-    backendPush(WAITLIST_BACKEND_KEY, WAITLIST_ROWS);
-    renderWaitlist();
+// Shared push for row lists edited in place (Waitlist, Storage). Safe
+// against typing while a sync is in flight: only locally edited rows are
+// sent, a row stays "unsaved" if it changed again after being sent, pushes
+// never overlap, other agents' rows are merged in without touching rows
+// being edited, and the list isn't redrawn while someone is typing in it.
+function makeRowPusher(o) {
+    let busy = false, again = false;
+    async function push() {
+        o.persist();
+        if (!BACKEND_URL || APP_MODE === 'test') return;
+        if (o.before && !(await o.before())) return;
+        if (busy) { again = true; return; }
+        busy = true;
+        try {
+            if (!o.dirty.size) return;
+            const remote = await backendPull(o.backendKey);
+            const rows = o.rows();
+            const merged = Object.assign({}, remote && typeof remote === 'object' ? remote : {});
+            const sent = {};
+            o.dirty.forEach(id => {
+                if (rows[id]) { merged[id] = rows[id]; sent[id] = JSON.stringify(rows[id]); }
+                else { delete merged[id]; sent[id] = null; }
+            });
+            if (await backendPush(o.backendKey, merged)) {
+                Object.keys(sent).forEach(id => {
+                    const now = o.rows()[id] ? JSON.stringify(o.rows()[id]) : null;
+                    if (now === sent[id]) o.dirty.delete(id);
+                });
+            }
+            const live = o.rows();
+            const editing = o.editingId();
+            Object.keys(merged).forEach(id => { if (!o.dirty.has(id) && id !== editing) live[id] = merged[id]; });
+            o.persist();
+            o.render();
+        } finally {
+            busy = false;
+            if (again || o.dirty.size) { again = false; setTimeout(push, 400); }
+        }
+    }
+    return push;
 }
+// The row (data-row) holding the focused text field inside a container, if any.
+function rowBeingEdited(containerId) {
+    const el = document.activeElement;
+    const box = document.getElementById(containerId);
+    if (!el || !box || !box.contains(el) || !/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.type === 'checkbox') return null;
+    const row = el.closest('[data-row]');
+    return row ? row.getAttribute('data-row') : null;
+}
+function renderWaitlistIfIdle() { if (!rowBeingEdited('waitlistCards')) renderWaitlist(); }
+const pushWaitlistDirty = makeRowPusher({
+    backendKey: WAITLIST_BACKEND_KEY, dirty: WAITLIST_DIRTY, rows: () => WAITLIST_ROWS,
+    persist: () => persistWaitlistLocal(), render: renderWaitlistIfIdle,
+    editingId: () => rowBeingEdited('waitlistCards')
+});
 const pushWaitlistDirtyDebounced = debounce(pushWaitlistDirty, 900);
 
 async function pullWaitlistFromBackend() {
@@ -6768,7 +6808,7 @@ async function pullWaitlistFromBackend() {
             WAITLIST_ROWS[id] = remote[id];
         });
         persistWaitlistLocal();
-        renderWaitlist();
+        renderWaitlistIfIdle();
     } else if (Object.keys(WAITLIST_ROWS).length) {
         backendPush(WAITLIST_BACKEND_KEY, WAITLIST_ROWS); // seed the backend from local
     }
@@ -7229,22 +7269,14 @@ function persistStorageLocal() {
 
 // Same pull-merge-push safety as the prospect waitlist — see
 // pushWaitlistDirty for the full reasoning.
-async function pushStorageDirty() {
-    persistStorageLocal();
-    if (!BACKEND_URL || APP_MODE === 'test') return;
-    if (storageResetPending) { await storageResetIfNeeded(); if (storageResetPending || !STORAGE_DIRTY.size) return; }
-    const remote = await backendPull(STORAGE_BACKEND_KEY);
-    const merged = Object.assign({}, remote || {});
-    STORAGE_DIRTY.forEach(id => {
-        if (STORAGE_ROWS[id]) merged[id] = STORAGE_ROWS[id];
-        else delete merged[id];
-    });
-    STORAGE_ROWS = merged;
-    STORAGE_DIRTY.clear();
-    persistStorageLocal();
-    backendPush(STORAGE_BACKEND_KEY, STORAGE_ROWS);
-    if (waitlistSubTab === 'storage') renderStorageList();
-}
+function renderStorageIfIdle() { if (waitlistSubTab === 'storage' && !rowBeingEdited('storageList')) renderStorageList(); }
+const pushStorageDirty = makeRowPusher({
+    backendKey: STORAGE_BACKEND_KEY, dirty: STORAGE_DIRTY, rows: () => STORAGE_ROWS,
+    persist: () => persistStorageLocal(), render: renderStorageIfIdle,
+    editingId: () => rowBeingEdited('storageList'),
+    // Hold pushes until the one-time reset check has run (it may send these rows itself).
+    before: async () => { if (storageResetPending) await storageResetIfNeeded(); return !storageResetPending && STORAGE_DIRTY.size > 0; }
+});
 const pushStorageDirtyDebounced = debounce(pushStorageDirty, 900);
 
 async function pullStorageFromBackend() {
@@ -7259,7 +7291,7 @@ async function pullStorageFromBackend() {
             STORAGE_ROWS[id] = remote[id];
         });
         persistStorageLocal();
-        if (waitlistSubTab === 'storage') renderStorageList();
+        renderStorageIfIdle();
     } else if (Object.keys(STORAGE_ROWS).length) {
         backendPush(STORAGE_BACKEND_KEY, STORAGE_ROWS);
     }
@@ -7341,6 +7373,7 @@ document.getElementById('storageAddBtn').addEventListener('click', () => {
     STORAGE_ROWS[id] = { timestamp: stamp, name: '', unit: '', contact: '', contacted: false };
     STORAGE_DIRTY.add(id);
     persistStorageLocal();
+    pushStorageDirtyDebounced();
     renderStorageList();
     const field = document.querySelector(`tr[data-row="${id}"] input[data-field="name"]`);
     if (field) field.focus();
