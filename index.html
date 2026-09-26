@@ -1922,6 +1922,39 @@
     body.dark-mode .pcard-calc, body.dark-mode .pcard-calc input { background: var(--dm-card-alt); color: inherit; }
     @media (max-width: 900px) { .pcard-calcs { flex: 0 0 auto; width: 100%; max-width: 420px; } }
 
+    /* -- Deposit Accounting -- */
+    .dep-layout { display: flex; flex-direction: column; gap: 18px; }
+    .dep-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+    .dep-grid { display: grid; grid-template-columns: minmax(260px, 380px) minmax(0, 1fr); gap: 24px; align-items: start; }
+    @media (max-width: 800px) { .dep-grid { grid-template-columns: minmax(0, 1fr); } }
+    .dep-inputs { display: flex; flex-direction: column; gap: 9px; }
+    .dep-inputs label { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); }
+    .dep-inputs input { border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font-family: var(--sans); font-size: 13px; color: var(--ink); background: #fff; }
+    .dep-opt { font-weight: 400; }
+    .dep-fees-title { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); margin-top: 4px; }
+    .dep-fees { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .dep-fees label { font-weight: 500; }
+    .dep-results { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+    .dep-results td { padding: 5px 8px; border-bottom: 1px solid var(--line); }
+    .dep-results td:last-child { text-align: right; font-weight: 600; }
+    .dep-results tr.dep-sep td { border-bottom: 2px solid var(--ink-soft); }
+    .dep-results tr.dep-muted td { color: var(--ink-soft); font-weight: 400; }
+    .dep-results tr.dep-total td { font-weight: 800; font-size: 14.5px; border-bottom: none; }
+    .dep-results tr.dep-total td:last-child { background: #fff3b0; }
+    .dep-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .dep-preview-actions { display: flex; gap: 6px; }
+    .dep-icon-btn { width: 36px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); cursor: pointer; }
+    .dep-icon-btn:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+    .dep-icon-btn.copied { background: var(--good); border-color: var(--good); color: #fff; }
+    .dep-icon-btn svg { width: 17px; height: 17px; }
+    .dep-subject { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 8px; }
+    .dep-subject b { color: var(--ink); }
+    .dep-preview { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; background: #fcfbf8; }
+    .dep-preview mark { background: #fff3b0; font-weight: 700; padding: 0 2px; }
+    body.dark-mode .dep-card, body.dark-mode .dep-inputs input, body.dark-mode .dep-icon-btn { background: var(--dm-card-alt); color: inherit; }
+    body.dark-mode .dep-preview { background: var(--dm-card); }
+    body.dark-mode .dep-preview mark, body.dark-mode .dep-results tr.dep-total td:last-child { background: #6b5a12; color: #fff; }
+
     /* -- Commissions -- */
     .commissions-layout { display: flex; gap: 24px; align-items: flex-start; }
     .commissions-main { flex: 1; min-width: 0; }
@@ -3055,6 +3088,7 @@
             <button type="button" class="wl-subtab active" data-admin-subtab="mmr">MMR</button>
             <button type="button" class="wl-subtab" data-admin-subtab="commissions">Commissions</button>
             <button type="button" class="wl-subtab" data-admin-subtab="pcard">PCard</button>
+            <button type="button" class="wl-subtab" data-admin-subtab="deposit">Deposit Accounting</button>
         </div>
         <div id="adminPanel-mmr" class="admin-subpanel">
             <div class="mmr-io-bar">
@@ -3349,6 +3383,36 @@
                         <button type="button" class="btn" id="pcardCalcTotalAdd" style="width:100%;padding:6px 10px;">+ Add as item</button>
                     </div>
                 </aside>
+            </div>
+        </div>
+        <div id="adminPanel-deposit" class="admin-subpanel" style="display:none;">
+            <div class="dep-layout">
+                <div class="dep-card">
+                    <div class="mmr-section-title">MOVE-OUT CALCULATOR</div>
+                    <div class="dep-grid">
+                        <div class="dep-inputs">
+                            <label>Unit<input type="text" id="depUnit" placeholder="e.g. 4334" autocomplete="off"></label>
+                            <label>Resident<input type="text" id="depResident" placeholder="Resident name" autocomplete="off"></label>
+                            <label><span>Email <span class="dep-opt">(optional)</span></span><input type="email" id="depEmail" placeholder="name@example.com" autocomplete="off"></label>
+                            <label>Move-Out Date<input type="date" id="depDate"></label>
+                            <label>Rent (monthly)<input type="text" id="depRent" inputmode="decimal" placeholder="$0.00"></label>
+                            <div class="dep-fees-title">Monthly charges <span class="dep-opt">(0 or blank = not charged)</span></div>
+                            <div class="dep-fees" id="depFees"></div>
+                        </div>
+                        <table class="dep-results" id="depResults"></table>
+                    </div>
+                </div>
+                <div class="dep-card">
+                    <div class="dep-preview-head">
+                        <div class="mmr-section-title" style="margin:0;">EMAIL &mdash; LIVE PREVIEW</div>
+                        <div class="dep-preview-actions">
+                            <button type="button" class="dep-icon-btn" id="depCopyBtn" title="Copy email text" aria-label="Copy email text"></button>
+                            <button type="button" class="dep-icon-btn" id="depDraftBtn" title="Draft email in your mail app" aria-label="Draft email in your mail app"></button>
+                        </div>
+                    </div>
+                    <div class="dep-subject" id="depSubject"></div>
+                    <div class="dep-preview" id="depPreview"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -4834,6 +4898,7 @@ document.getElementById('lockersAddBtn').addEventListener('click', () => {
     const field = document.querySelector(`#lockersList tr[data-row="${id}"] input[data-field="locker"]`);
     if (field) field.focus();
 });
+
 
 /* ============================================================
    CONCESSION CALCULATOR
@@ -7753,7 +7818,7 @@ let adminSubTab = 'mmr';
     btn.addEventListener('click', () => {
         adminSubTab = btn.getAttribute('data-admin-subtab');
         [...document.querySelectorAll('#adminTopSubtabs .wl-subtab')].forEach(b => b.classList.toggle('active', b === btn));
-        ['mmr', 'commissions', 'pcard'].forEach(name => {
+        ['mmr', 'commissions', 'pcard', 'deposit'].forEach(name => {
             document.getElementById('adminPanel-' + name).style.display = (name === adminSubTab) ? 'block' : 'none';
         });
         if (adminSubTab === 'commissions' && typeof renderCommSuggested === 'function') renderCommSuggested();
@@ -13502,6 +13567,152 @@ restorePayPeriodLocal();
 initResidents();
 restoreWlLocal();
 restoreLeaseLocal();
+
+/* ============================================================
+   DEPOSIT ACCOUNTING — move-out proration: rent and each monthly
+   charge prorated from the 1st of the month through the move-out date
+   (amount x days / days in month, each rounded to the cent; the total
+   is the sum of the rounded lines), plus the prorated-charges email to
+   the resident with copy and draft-in-mail-app buttons. Monthly fee
+   amounts are remembered per browser; nothing here is shared.
+   ============================================================ */
+const DEP_FEES = [
+    { key: 'garage', label: 'Garage', email: 'Garage fee', def: 150 },
+    { key: 'bundle', label: 'Bundle', email: 'Guest Services (Bundle Package Services) fee', def: 14 },
+    { key: 'trash', label: 'Trash', email: 'Trash fee', def: 15 },
+    { key: 'valet', label: 'Valet', email: 'Valet Trash fee', def: 24 },
+    { key: 'admin', label: 'Admin', email: 'Admin fee', def: 3 },
+    { key: 'utilities', label: 'Utilities', email: 'Utilities', def: '' }
+];
+const DEP_FEES_KEY = 'reve-deposit-fees';
+const DEP_ENVELOPE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/></svg>';
+(function initDepositFees() {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(DEP_FEES_KEY) || '{}') || {}; } catch (e) {}
+    document.getElementById('depFees').innerHTML = DEP_FEES.map(f => `<label>${escapeHtml(f.label)}<input type="text" inputmode="decimal" data-dep-fee="${f.key}" value="${escapeAttr(String(saved[f.key] !== undefined ? saved[f.key] : f.def))}" placeholder="0"></label>`).join('');
+    document.getElementById('depCopyBtn').innerHTML = LEASE_COPY_ICON.replace(/width="13" height="13"/, '');
+    document.getElementById('depDraftBtn').innerHTML = DEP_ENVELOPE_ICON;
+})();
+function depOrdinal(n) {
+    const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+function depMoney(n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function depCalc() {
+    const val = id => document.getElementById(id).value.trim();
+    const dateStr = val('depDate');
+    const date = dateStr ? new Date(dateStr + 'T00:00:00') : null;
+    const rent = parseMoneyLoose(val('depRent'));
+    const out = { unit: val('depUnit'), resident: val('depResident'), email: val('depEmail'), date, rent, lines: [], total: 0 };
+    if (!date || isNaN(date)) return out;
+    out.start = new Date(date.getFullYear(), date.getMonth(), 1);
+    out.daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    out.days = date.getDate();
+    out.month = date.toLocaleDateString('en-US', { month: 'long' });
+    const prorate = amt => Math.round(amt * out.days / out.daysInMonth * 100) / 100;
+    if (rent !== null) out.lines.push({ key: 'rent', label: 'RENT', email: 'Rent', amount: prorate(rent) });
+    DEP_FEES.forEach(f => {
+        const inp = document.querySelector(`[data-dep-fee="${f.key}"]`);
+        const monthly = parseMoneyLoose(inp ? inp.value : '');
+        // Utilities is entered as the amount owed (not prorated).
+        const amount = monthly ? (f.key === 'utilities' ? Math.round(monthly * 100) / 100 : prorate(monthly)) : 0;
+        out.lines.push({ key: f.key, label: f.label, email: f.email, amount, blank: !monthly });
+    });
+    out.total = Math.round(out.lines.reduce((t, l) => t + l.amount, 0) * 100) / 100;
+    return out;
+}
+function depEmail(c) {
+    if (!c.start) return { subject: '', text: '', html: '' };
+    const M = c.month;
+    const period = c.days === 1 ? `${M} 1st` : `${M} 1st – ${depOrdinal(c.days)}`;
+    const utilFrom = new Date(c.date.getFullYear(), c.date.getMonth() - 2, 1).toLocaleDateString('en-US', { month: 'long' });
+    const charged = c.lines.filter(l => l.amount > 0);
+    const chargeLines = charged.map(l => l.key === 'utilities' ? `${l.email} = ${depMoney(l.amount)}` : `${l.email} for ${period} = ${depMoney(l.amount)}`);
+    const totalLine = `Total Amount Due on ${M} 1st = ${depMoney(c.total)}`;
+    const para1 = `I am reaching out to provide you with the amount owed for ${M} charges. Our system does not charge the prorated amounts when the bills post on ${M} 1st, and it will automatically charge the full amount for rent and additional lease charges (if applicable), such as pet rent, garage fee, guest services fee, etc. At your earliest convenience, please log into Bilt and turn off autopay if it is currently activated. Otherwise, on ${M} 1st, Bilt will withdraw funds from your account to pay for the full month's charges. Once autopay is turned off and the charges post, you will need to submit a manual payment for the total highlighted below.`;
+    const para2 = `Please keep in mind that this total does not reflect moveout charges (potential cleaning fees/damages, final utility bills from ${utilFrom} 1st – ${M} ${depOrdinal(c.days)}). All moveout charges/utility charges will be added to the account after the post-moveout inspection has been completed, and the amount from those charges will be deducted from the security deposit.`;
+    const text = ['Good morning,', '', para1, ...chargeLines, totalLine, '', para2, '', 'If you have any questions, please let me know.', '', 'Thank you,'].join('\n');
+    const e = escapeHtml;
+    const html = [`<p>Good morning,</p>`, `<p>${e(para1)}<br>${chargeLines.map(e).join('<br>')}${chargeLines.length ? '<br>' : ''}<mark style="background:#fff3b0;font-weight:700;">${e(totalLine)}</mark></p>`,
+        `<p>${e(para2)}</p>`, `<p>If you have any questions, please let me know.</p>`, `<p>Thank you,</p>`].join('');
+    const subject = `${M} Prorated Charges${c.unit ? ' – Unit ' + c.unit : ''}${c.resident ? ' – ' + c.resident : ''}`;
+    return { subject, text, html, totalLine };
+}
+function renderDeposit() {
+    const c = depCalc();
+    const fmtD = d => d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+    const short = d => d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+    const row = (label, value, cls) => `<tr${cls ? ` class="${cls}"` : ''}><td>${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`;
+    const res = document.getElementById('depResults');
+    if (!c.start) {
+        res.innerHTML = row('Enter the move-out date and rent to calculate.', '', 'dep-muted');
+    } else {
+        res.innerHTML = [
+            row('Start of Month', fmtD(c.start)), row('Move-Out Date', fmtD(c.date)),
+            row('Date Range', `${short(c.start)} - ${short(c.date)}`), row('Days in Month', String(c.daysInMonth)),
+            row('Prorated Days', String(c.days)), row('Rent', c.rent !== null ? depMoney(c.rent) : '—', 'dep-sep'),
+            ...c.lines.map(l => row(l.label, l.blank && l.key !== 'rent' ? '' : depMoney(l.amount), l.blank && l.key !== 'rent' ? 'dep-muted' : '')),
+            row('TOTAL', depMoney(c.total), 'dep-total')
+        ].join('');
+    }
+    const mail = depEmail(c);
+    document.getElementById('depSubject').innerHTML = mail.subject ? `Subject: <b>${escapeHtml(mail.subject)}</b>${c.email ? ` &middot; To: <b>${escapeHtml(c.email)}</b>` : ''}` : '';
+    const prev = document.getElementById('depPreview');
+    if (!mail.text) { prev.textContent = 'The email appears here once a move-out date is entered.'; return; }
+    prev.innerHTML = escapeHtml(mail.text).replace(escapeHtml(mail.totalLine), `<mark>${escapeHtml(mail.totalLine)}</mark>`);
+}
+['depUnit', 'depResident', 'depEmail', 'depDate', 'depRent'].forEach(id => document.getElementById(id).addEventListener('input', renderDeposit));
+document.getElementById('depFees').addEventListener('input', () => {
+    const saved = {};
+    document.querySelectorAll('[data-dep-fee]').forEach(i => { saved[i.getAttribute('data-dep-fee')] = i.value; });
+    try { localStorage.setItem(DEP_FEES_KEY, JSON.stringify(saved)); } catch (e) {}
+    renderDeposit();
+});
+// Unit lookup: fill in the resident's name (and rent) from Residents when those fields are blank.
+document.getElementById('depUnit').addEventListener('change', () => {
+    const unit = document.getElementById('depUnit').value.trim();
+    if (!unit || typeof RESIDENT_ROWS === 'undefined') return;
+    const rows = Object.values(RESIDENT_ROWS).filter(r => r && !r.deleted && String(r.unit || '').trim() === unit)
+        .sort((a, b) => String(b.moveInDate || '').localeCompare(String(a.moveInDate || '')));
+    const r = rows[0];
+    if (!r) return;
+    const nameEl = document.getElementById('depResident'), rentEl = document.getElementById('depRent');
+    if (!nameEl.value.trim()) nameEl.value = [r.first, r.last].filter(Boolean).join(' ');
+    if (!rentEl.value.trim() && r.rate) rentEl.value = r.rate;
+    renderDeposit();
+});
+document.getElementById('depCopyBtn').addEventListener('click', async () => {
+    const mail = depEmail(depCalc());
+    if (!mail.text) { alert('Enter a move-out date first.'); return; }
+    const btn = document.getElementById('depCopyBtn');
+    try {
+        if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write && window.isSecureContext) {
+            await navigator.clipboard.write([new ClipboardItem({
+                'text/html': new Blob([mail.html], { type: 'text/html' }),
+                'text/plain': new Blob([mail.text], { type: 'text/plain' })
+            })]);
+        } else {
+            await leaseCopyText(mail.text);
+        }
+    } catch (e) {
+        await leaseCopyText(mail.text);
+    }
+    btn.classList.add('copied');
+    btn.innerHTML = LEASE_COPIED_ICON.replace(/width="13" height="13"/, '');
+    setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = LEASE_COPY_ICON.replace(/width="13" height="13"/, ''); }, 1500);
+});
+document.getElementById('depDraftBtn').addEventListener('click', () => {
+    const c = depCalc();
+    const mail = depEmail(c);
+    if (!mail.text) { alert('Enter a move-out date first.'); return; }
+    const to = c.email ? encodeURIComponent(c.email).replace(/%40/g, '@') : '';
+    const a = document.createElement('a');
+    a.href = `mailto:${to}?subject=${encodeURIComponent(mail.subject)}&body=${encodeURIComponent(mail.text.replace(/\n/g, '\r\n'))}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+});
+renderDeposit();
 
 /* ============================================================
    How-To — a tileable library of step-by-step guides, editable
