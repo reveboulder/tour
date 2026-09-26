@@ -1922,6 +1922,17 @@
     body.dark-mode .pcard-calc, body.dark-mode .pcard-calc input { background: var(--dm-card-alt); color: inherit; }
     @media (max-width: 900px) { .pcard-calcs { flex: 0 0 auto; width: 100%; max-width: 420px; } }
 
+    /* -- Default Charges (Settings) -- */
+    .default-charges-table td { padding: 3px 5px; }
+    .default-charges-table tr.dc-section td { background: #f4f2ee; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft); padding: 6px 8px; }
+    .default-charges-table input { width: 100%; box-sizing: border-box; border: 1px solid transparent; background: transparent; padding: 4px 5px; font: inherit; font-size: 12.5px; color: inherit; border-radius: 4px; }
+    .default-charges-table input:hover { border-color: var(--line); }
+    .default-charges-table input:focus { outline: none; border-color: var(--reve-orange); background: #fff; }
+    .default-charges-table td.dc-amt { width: 90px; }
+    .default-charges-table td.dc-amt input { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .default-charges-table td.dc-freq { width: 150px; }
+    body.dark-mode .default-charges-table tr.dc-section td { background: var(--dm-card); }
+
     /* -- Deposit Accounting -- */
     .dep-layout { display: flex; flex-direction: column; gap: 18px; }
     .dep-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
@@ -3667,6 +3678,26 @@
                     <button type="button" class="btn primary" id="retailInfoImportBtn" style="width:auto;flex:none;padding:7px 14px;">Import</button>
                     <span class="empty-note" id="retailInfoImportStatus" style="margin:0;"></span>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-card" style="margin-top:18px;">
+        <button type="button" class="unit-info-toggle" id="defaultChargesToggle">
+            <span><span class="dot"></span>DEFAULT CHARGES <span class="hint">Click to View</span></span>
+            <span class="fc-chevron">&rsaquo;</span>
+        </button>
+        <div id="defaultChargesBody" style="display:none;margin-top:12px;">
+            <p class="empty-note" style="font-size:12.5px;">The property's standard fees (from the REVE fee sheet). Changes here are shared with all agents and update everywhere these fees are used &mdash; Welcome Letter, Lease, Commissions deposits and Deposit Accounting.</p>
+            <div class="mmr-table-wrap" style="max-height:560px;overflow-y:auto;">
+                <table class="mmr-table default-charges-table">
+                    <thead><tr><th>Charge</th><th>Amount</th><th>Frequency</th><th>Notes</th><th></th></tr></thead>
+                    <tbody id="defaultChargesTbody"></tbody>
+                </table>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                <button type="button" class="btn" id="defaultChargesAddBtn" style="width:auto;padding:7px 14px;">+ Add Charge</button>
+                <button type="button" class="btn" id="defaultChargesResetBtn" style="width:auto;padding:7px 14px;">Reset to Fee Sheet</button>
             </div>
         </div>
     </div>
@@ -9767,7 +9798,7 @@ const commMoveInController = createMMRLeaseTableController({
     fieldsConfig: COMM_MOVEIN_FIELDS, tbodyId: 'commMoveInBody', addBtnId: 'commMoveInAddBtn',
     emptyLabel: 'No move-ins logged yet. Click "+ Add Move-In" to add one.',
     countId: 'commMoveInCount', seedRows: seedCommMoveIns,
-    defaults: { property: '01382', deposit: '500' },
+    defaults: { property: '01382', get deposit() { return String(defaultCharge('security')); } },
     clearBtnId: 'commMoveInClearBtn',
     computedFields: [
         { key: 'leaseExpiration', calc: calcCommLeaseExpiration },
@@ -9779,7 +9810,7 @@ const commRenewalController = createMMRLeaseTableController({
     fieldsConfig: COMM_RENEWAL_FIELDS, tbodyId: 'commRenewalBody', addBtnId: 'commRenewalAddBtn',
     emptyLabel: 'No renewals logged yet. Click "+ Add Renewal" to add one.',
     countId: 'commRenewalCount', seedRows: seedCommRenewals,
-    defaults: { property: '01382', deposit: '500' },
+    defaults: { property: '01382', get deposit() { return String(defaultCharge('security')); } },
     clearBtnId: 'commRenewalClearBtn',
     computedFields: [
         { key: 'leaseStart', calc: calcCommRenewalLeaseStart },
@@ -11037,18 +11068,68 @@ let wlSelectedUnit = null;
 const WL_KEY = 'reve-welcome-letters';
 const WL_BACKEND_KEY = 'welcome-letters';
 
-// Standard, non-editable rates — these are set property policy, not
-// something that varies per lease, so they're constants rather than
-// per-record fields (nothing to accidentally overwrite or desync).
-const WL_RATE_PACKAGE = 14;
-const WL_RATE_VALET = 24;
-const WL_RATE_CITY_TRASH = 15;
-const WL_RATE_UTILITY_ADMIN = 3;
-const WL_RATE_ADMIN_FEE = 150;
-const WL_RATE_APP_FEE_PER_APPLICANT = 41;
-const WL_RATE_PARKING_PER_SPACE = 150;
-const WL_RATE_PET_RENT_PER_PET = 35;
-const WL_RATE_PET_DEPOSIT = 150;
+/* ============================================================
+   DEFAULT CHARGES — the property's standard fees, edited in Settings
+   and shared through the backend. Everything that uses a standard fee
+   (Welcome Letter, Lease, Commissions deposits, Deposit Accounting)
+   reads it from here via defaultCharge(key). Starts from the REVE fee
+   sheet; starter rows have fixed ids so they can't duplicate.
+   ============================================================ */
+const DEFAULT_CHARGES_KEY = 'reve-default-charges';
+const DEFAULT_CHARGES_BACKEND_KEY = 'default-charges';
+const DEFAULT_CHARGE_SEED = [
+    ['application', 'Application & Move-In Costs', 'Application Fee', 41, 'per applicant', 'Charged after approval'],
+    ['holding', 'Application & Move-In Costs', 'Holding Fee', 200, 'one-time', 'Due 48 hours after approval; applied to the security deposit'],
+    ['security', 'Application & Move-In Costs', 'Security Deposit', 500, 'one-time', 'Standard approval (amount may vary)'],
+    ['adminFee', 'Application & Move-In Costs', 'Admin Fee', 150, 'one-time', 'Due at move-in'],
+    ['valet', 'Flat-Rate Service Fees', 'Valet Trash', 24, 'per month', ''],
+    ['bundle', 'Flat-Rate Service Fees', 'Bundle Package Delivery', 14, 'per month', ''],
+    ['trash', 'Flat-Rate Service Fees', 'Western Disposal Trash', 15, 'per month', ''],
+    ['utilAdmin', 'Flat-Rate Service Fees', 'Admin Fee (utilities)', 3, 'per month', 'Plus metered water, electric & sewer'],
+    ['petDeposit', 'Optional Add-Ons', 'Pet Deposit', 150, 'one-time', 'Refundable. No deposit or fees for verified service animals / ESA'],
+    ['petRent', 'Optional Add-Ons', 'Monthly Pet Rent', 35, 'per month, per animal', ''],
+    ['garage', 'Optional Add-Ons', 'Garage Space', 150, 'per month, per vehicle', ''],
+    ['storage', 'Optional Add-Ons', 'Storage Unit', 25, 'per month', ''],
+    ['suiteTH', 'Guest Suite Rentals', 'Guest Suite — 2-Bed Townhome', 269, 'per night', 'Fully furnished, 2,153 sq ft, 2 bed / 2.5 bath'],
+    ['suite1BR', 'Guest Suite Rentals', 'Guest Suite — 1-Bed', 129, 'per night', 'Fully furnished, 548 sq ft, 1 bed / 1 bath']
+];
+function defaultChargeSeedRows() {
+    const rows = {};
+    DEFAULT_CHARGE_SEED.forEach((c, i) => {
+        rows['dc_' + c[0]] = { key: c[0], section: c[1], name: c[2], amount: String(c[3]), freq: c[4], note: c[5], order: i };
+    });
+    return rows;
+}
+let DEFAULT_CHARGES = {};
+const DEFAULT_CHARGES_DIRTY = new Set();
+try { DEFAULT_CHARGES = JSON.parse(localStorage.getItem(DEFAULT_CHARGES_KEY) || '{}') || {}; } catch (e) { DEFAULT_CHARGES = {}; }
+if (!Object.keys(DEFAULT_CHARGES).length) DEFAULT_CHARGES = defaultChargeSeedRows();
+function persistDefaultChargesLocal() { try { localStorage.setItem(DEFAULT_CHARGES_KEY, JSON.stringify(DEFAULT_CHARGES)); } catch (e) {} }
+// A standard fee by key, as a number (falls back to the fee sheet if missing).
+function defaultCharge(key) {
+    const row = Object.values(DEFAULT_CHARGES).find(r => r && !r.deleted && r.key === key);
+    const seed = DEFAULT_CHARGE_SEED.find(c => c[0] === key);
+    const n = row ? parseFloat(String(row.amount).replace(/[$,]/g, '')) : NaN;
+    return isNaN(n) ? (seed ? seed[3] : 0) : n;
+}
+function fmtFee(n) { return '$' + (Number.isInteger(n) ? n.toLocaleString('en-US') : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })); }
+
+// Standard rates used by the Welcome Letter and Lease — property policy,
+// set in Settings > Default Charges (see applyDefaultCharges).
+let WL_RATE_PACKAGE, WL_RATE_VALET, WL_RATE_CITY_TRASH, WL_RATE_UTILITY_ADMIN, WL_RATE_ADMIN_FEE,
+    WL_RATE_APP_FEE_PER_APPLICANT, WL_RATE_PARKING_PER_SPACE, WL_RATE_PET_RENT_PER_PET, WL_RATE_PET_DEPOSIT;
+function applyDefaultChargeRates() {
+    WL_RATE_PACKAGE = defaultCharge('bundle');
+    WL_RATE_VALET = defaultCharge('valet');
+    WL_RATE_CITY_TRASH = defaultCharge('trash');
+    WL_RATE_UTILITY_ADMIN = defaultCharge('utilAdmin');
+    WL_RATE_ADMIN_FEE = defaultCharge('adminFee');
+    WL_RATE_APP_FEE_PER_APPLICANT = defaultCharge('application');
+    WL_RATE_PARKING_PER_SPACE = defaultCharge('garage');
+    WL_RATE_PET_RENT_PER_PET = defaultCharge('petRent');
+    WL_RATE_PET_DEPOSIT = defaultCharge('petDeposit');
+}
+applyDefaultChargeRates();
 
 function wlPetCount(resident) {
     if (!resident) return 0;
@@ -11062,7 +11143,7 @@ function wlDefaultRecord() {
         fullName2: '', fullName3: '', fullName4: '',
         parkingSpaces: '',
         rentManual: '', storageManual: '',
-        deposit1Type: 'Security', deposit1Manual: '500',
+        deposit1Type: 'Security', deposit1Manual: String(defaultCharge('security')),
         deposit2Type: 'Pet', deposit2Manual: '',
         deposit3Type: '', deposit3Manual: '',
         deposit4Type: '', deposit4Manual: '',
@@ -11346,8 +11427,8 @@ function renderWlForm() {
 
     document.getElementById('wlChargesSection').innerHTML = `
         <tr><td class="wl-sub-label">Rent</td><td class="wl-manual"><input type="text" data-wl-field="rentManual" value="${escapeAttr(r.rentManual)}" placeholder="${rentAuto || '$'}"></td><td class="wl-auto">${rentAuto || '\u2014'} <span class="wl-hint">(Rate)</span></td></tr>
-        <tr><td class="wl-sub-label">Parking <span class="wl-hint">(${r.parkingSpaces || 0} \u00d7 $150)</span></td><td class="wl-auto" colspan="2">${formatResidentCurrency(parkingCharge)}</td></tr>
-        <tr><td class="wl-sub-label">Pet Rent <span class="wl-hint">(${petCount} pet \u00d7 $35)</span></td><td class="wl-auto" colspan="2">${formatResidentCurrency(petRent)}</td></tr>
+        <tr><td class="wl-sub-label">Parking <span class="wl-hint">(${r.parkingSpaces || 0} \u00d7 ${fmtFee(WL_RATE_PARKING_PER_SPACE)})</span></td><td class="wl-auto" colspan="2">${formatResidentCurrency(parkingCharge)}</td></tr>
+        <tr><td class="wl-sub-label">Pet Rent <span class="wl-hint">(${petCount} pet \u00d7 ${fmtFee(WL_RATE_PET_RENT_PER_PET)})</span></td><td class="wl-auto" colspan="2">${formatResidentCurrency(petRent)}</td></tr>
         <tr><td class="wl-sub-label">Storage</td><td class="wl-manual" colspan="2"><input type="text" data-wl-field="storageManual" value="${escapeAttr(r.storageManual)}" placeholder="$"></td></tr>
         <tr><td class="wl-sub-label">Package Service <span class="wl-hint">(standard)</span></td><td class="wl-auto" colspan="2">${formatResidentCurrency(WL_RATE_PACKAGE)}</td></tr>
         <tr><td class="wl-sub-label">Valet Trash <span class="wl-hint">(standard)</span></td><td class="wl-auto" colspan="2">${formatResidentCurrency(WL_RATE_VALET)}</td></tr>
@@ -11357,7 +11438,7 @@ function renderWlForm() {
     `;
 
     document.getElementById('wlDepositsSection').innerHTML = `
-        <tr><td class="wl-sub-label">Deposit 1</td><td class="wl-manual"><input type="text" value="Security" readonly></td><td class="wl-manual"><input type="text" data-wl-field="deposit1Manual" value="${escapeAttr(r.deposit1Manual)}" placeholder="$500"></td></tr>
+        <tr><td class="wl-sub-label">Deposit 1</td><td class="wl-manual"><input type="text" value="Security" readonly></td><td class="wl-manual"><input type="text" data-wl-field="deposit1Manual" value="${escapeAttr(r.deposit1Manual)}" placeholder="${fmtFee(defaultCharge('security'))}"></td></tr>
         <tr><td class="wl-sub-label">Deposit 2</td><td class="wl-manual"><input type="text" value="Pet" readonly></td><td class="wl-auto">${petCount > 0 ? formatResidentCurrency(petDeposit) : 'N/A'} <span class="wl-hint">(auto)</span></td></tr>
         ${[3, 4, 5, 6].map(n => `
         <tr><td class="wl-sub-label">Deposit ${n}</td><td class="wl-manual"><input type="text" data-wl-field="deposit${n}Type" value="${escapeAttr(r['deposit' + n + 'Type'])}" placeholder="Type"></td><td class="wl-manual"><input type="text" data-wl-field="deposit${n}Manual" value="${escapeAttr(r['deposit' + n + 'Manual'])}" placeholder="$"></td></tr>
@@ -11367,7 +11448,7 @@ function renderWlForm() {
 
     document.getElementById('wlFeesSection').innerHTML = `
         <tr><td class="wl-sub-label">Administration (Prep.) <span class="wl-hint">(standard)</span></td><td class="wl-auto" colspan="2">${formatResidentCurrency(WL_RATE_ADMIN_FEE)}</td></tr>
-        <tr><td class="wl-sub-label">Application <span class="wl-hint">(${applicantCount} applicant${applicantCount === 1 ? '' : 's'} \u00d7 $41)</span></td><td class="wl-auto" colspan="2">${formatResidentCurrency(appFeeAmt)}</td></tr>
+        <tr><td class="wl-sub-label">Application <span class="wl-hint">(${applicantCount} applicant${applicantCount === 1 ? '' : 's'} \u00d7 ${fmtFee(WL_RATE_APP_FEE_PER_APPLICANT)})</span></td><td class="wl-auto" colspan="2">${formatResidentCurrency(appFeeAmt)}</td></tr>
         ${[1, 2, 3, 4].map(n => `
         <tr><td class="wl-manual"><input type="text" data-wl-field="other${n}Label" value="${escapeAttr(r['other' + n + 'Label'])}" placeholder="Label"></td><td class="wl-manual"><select data-wl-field="other${n}YesNo"><option${r['other' + n + 'YesNo'] === 'Yes' ? ' selected' : ''}>Yes</option><option${r['other' + n + 'YesNo'] === 'No' ? ' selected' : ''}>No</option></select></td><td class="wl-manual"><input type="text" data-wl-field="other${n}Manual" value="${escapeAttr(r['other' + n + 'Manual'])}" placeholder="$"></td></tr>
         `).join('')}
@@ -12050,7 +12131,7 @@ function renderLeaseForm() {
         <tr><td class="wl-row-label">Spaces <span class="wl-hint">(from Residents)</span></td><td class="wl-auto" colspan="2">${escapeHtml(parkingType || 'N/A')}</td></tr>
         <tr><td class="wl-row-label">Begins</td><td class="wl-auto" data-copy colspan="2">${escapeHtml(fmtResidentDate(moveIn))}</td></tr>
         <tr><td class="wl-row-label">Ends</td><td class="wl-auto" data-copy colspan="2">${escapeHtml(fmtResidentDate(leaseEndDate))}</td></tr>
-        <tr><td class="wl-row-label">Fee <span class="wl-hint">($150 per vehicle)</span></td><td class="wl-auto" data-copy colspan="2">${fmt(t.parkingCharge)}</td></tr>
+        <tr><td class="wl-row-label">Fee <span class="wl-hint">(${fmtFee(WL_RATE_PARKING_PER_SPACE)} per vehicle)</span></td><td class="wl-auto" data-copy colspan="2">${fmt(t.parkingCharge)}</td></tr>
         <tr><td class="wl-sub-label">Make</td><td class="wl-manual" data-copy colspan="2"><input type="text" data-lease-field="vehicleMake" value="${escapeAttr(lr.vehicleMake)}"></td></tr>
         <tr><td class="wl-sub-label">Model / Year</td><td class="wl-manual" data-copy colspan="2"><input type="text" data-lease-field="vehicleModel" value="${escapeAttr(lr.vehicleModel)}"></td></tr>
         <tr><td class="wl-sub-label">State</td><td class="wl-manual" data-copy colspan="2"><input type="text" data-lease-field="vehicleState" value="${escapeAttr(lr.vehicleState)}"></td></tr>
@@ -12261,12 +12342,12 @@ function renderCommSuggested() {
             if (isTransfer) {
                 commRenewalController.addRowWithData({
                     property: '01382', unit: r.unit, resident: `${r.first} ${r.last}`,
-                    status: 'TRANSFER', rent, deposit: '500', moveIn: r.moveInDate, leaseTerm: String(r.leaseTerm || '')
+                    status: 'TRANSFER', rent, deposit: String(defaultCharge('security')), moveIn: r.moveInDate, leaseTerm: String(r.leaseTerm || '')
                 });
             } else {
                 commMoveInController.addRowWithData({
                     property: '01382', unit: r.unit, resident: `${r.first} ${r.last}`,
-                    status: 'Move-In', rent, deposit: '500', moveIn: r.moveInDate, leaseTerm: String(r.leaseTerm || ''), agent: r.agent || ''
+                    status: 'Move-In', rent, deposit: String(defaultCharge('security')), moveIn: r.moveInDate, leaseTerm: String(r.leaseTerm || ''), agent: r.agent || ''
                 });
             }
             renderCommSuggested();
@@ -12704,6 +12785,111 @@ function importRetailPaste(text) {
     renderRetailInfoTable();
     return { updated, added };
 }
+/* ---------- Settings > Default Charges table ---------- */
+function defaultChargeIds() {
+    return Object.keys(DEFAULT_CHARGES).filter(id => DEFAULT_CHARGES[id] && !DEFAULT_CHARGES[id].deleted)
+        .sort((a, b) => (DEFAULT_CHARGES[a].order ?? 1e9) - (DEFAULT_CHARGES[b].order ?? 1e9) || a.localeCompare(b));
+}
+function renderDefaultCharges() {
+    const tbody = document.getElementById('defaultChargesTbody');
+    if (!tbody) return;
+    let section = null;
+    tbody.innerHTML = defaultChargeIds().map(id => {
+        const r = DEFAULT_CHARGES[id];
+        const head = r.section !== section ? `<tr class="dc-section"><td colspan="5">${escapeHtml(r.section || 'Other')}</td></tr>` : '';
+        section = r.section;
+        const inp = (f, ph) => `<input type="text" data-dc-field="${f}" value="${escapeAttr(r[f] || '')}"${ph ? ` placeholder="${escapeAttr(ph)}"` : ''}>`;
+        return head + `<tr data-row="${escapeAttr(id)}">
+            <td>${inp('name', 'Charge name')}</td>
+            <td class="dc-amt">${inp('amount', '0')}</td>
+            <td class="dc-freq">${inp('freq', 'per month')}</td>
+            <td>${inp('note', '')}</td>
+            <td class="storage-remove-cell">${r.key ? '' : '<button type="button" class="wl-remove" title="Remove this charge">&times;</button>'}</td>
+        </tr>`;
+    }).join('');
+}
+function renderDefaultChargesIfIdle() { if (!rowBeingEdited('defaultChargesTbody')) renderDefaultCharges(); }
+// After a fee changes: new rates everywhere, and redraw what's open (not mid-typing).
+function defaultChargesChanged() {
+    applyDefaultChargeRates();
+    const busy = id => { const t = document.getElementById(id); return t && t.contains(document.activeElement) && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName); };
+    if (typeof wlSelectedUnit !== 'undefined' && wlSelectedUnit && !busy('tab-wl')) renderWlForm();
+    if (typeof leaseSelectedUnit !== 'undefined' && leaseSelectedUnit && !busy('tab-lease')) renderLeaseForm();
+    if (typeof depApplyDefaultFees === 'function') depApplyDefaultFees();
+}
+const pushDefaultChargesDirty = makeRowPusher({
+    backendKey: DEFAULT_CHARGES_BACKEND_KEY, dirty: DEFAULT_CHARGES_DIRTY, rows: () => DEFAULT_CHARGES,
+    persist: () => persistDefaultChargesLocal(), render: () => { renderDefaultChargesIfIdle(); defaultChargesChanged(); },
+    editingId: () => rowBeingEdited('defaultChargesTbody')
+});
+const pushDefaultChargesDebounced = debounce(pushDefaultChargesDirty, 900);
+async function pullDefaultChargesFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(DEFAULT_CHARGES_BACKEND_KEY);
+    if (remote && typeof remote === 'object' && Object.keys(remote).length) {
+        const editing = rowBeingEdited('defaultChargesTbody');
+        let changed = false;
+        Object.keys(remote).forEach(id => {
+            if (id === editing || DEFAULT_CHARGES_DIRTY.has(id)) return;
+            if (JSON.stringify(DEFAULT_CHARGES[id]) !== JSON.stringify(remote[id])) { DEFAULT_CHARGES[id] = remote[id]; changed = true; }
+        });
+        if (changed) { persistDefaultChargesLocal(); renderDefaultChargesIfIdle(); defaultChargesChanged(); }
+    } else {
+        // Shared copy empty: start it from the fee sheet (fixed ids, no duplicates).
+        Object.keys(DEFAULT_CHARGES).forEach(id => DEFAULT_CHARGES_DIRTY.add(id));
+        pushDefaultChargesDirty();
+    }
+}
+document.getElementById('defaultChargesToggle').addEventListener('click', () => {
+    const body = document.getElementById('defaultChargesBody');
+    const isHidden = body.style.display === 'none';
+    body.style.display = isHidden ? 'block' : 'none';
+    document.getElementById('defaultChargesToggle').classList.toggle('open', isHidden);
+    if (isHidden) renderDefaultCharges();
+});
+document.getElementById('defaultChargesTbody').addEventListener('input', e => {
+    const field = e.target.getAttribute('data-dc-field');
+    const tr = e.target.closest('tr[data-row]');
+    if (!field || !tr) return;
+    const id = tr.getAttribute('data-row');
+    DEFAULT_CHARGES[id][field] = e.target.value;
+    DEFAULT_CHARGES_DIRTY.add(id);
+    persistDefaultChargesLocal();
+    pushDefaultChargesDebounced();
+    if (field === 'amount') defaultChargesChanged();
+});
+document.getElementById('defaultChargesTbody').addEventListener('click', e => {
+    const btn = e.target.closest('.wl-remove');
+    if (!btn) return;
+    const id = btn.closest('tr[data-row]').getAttribute('data-row');
+    if (!confirm(`Remove "${DEFAULT_CHARGES[id].name || 'this charge'}"?`)) return;
+    DEFAULT_CHARGES[id].deleted = true;
+    DEFAULT_CHARGES_DIRTY.add(id);
+    persistDefaultChargesLocal();
+    pushDefaultChargesDebounced();
+    renderDefaultCharges();
+});
+document.getElementById('defaultChargesAddBtn').addEventListener('click', () => {
+    const id = 'dc_custom_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const maxOrder = Object.values(DEFAULT_CHARGES).reduce((m, r) => Math.max(m, typeof r.order === 'number' ? r.order : 0), 0);
+    DEFAULT_CHARGES[id] = { key: '', section: 'Other', name: '', amount: '', freq: '', note: '', order: maxOrder + 1 };
+    DEFAULT_CHARGES_DIRTY.add(id);
+    persistDefaultChargesLocal();
+    pushDefaultChargesDebounced();
+    renderDefaultCharges();
+    const f = document.querySelector(`#defaultChargesTbody tr[data-row="${id}"] input[data-dc-field="name"]`);
+    if (f) f.focus();
+});
+document.getElementById('defaultChargesResetBtn').addEventListener('click', () => {
+    if (!confirm('Reset the standard fees to the REVE fee sheet amounts for everyone? Added custom charges are kept.')) return;
+    const seed = defaultChargeSeedRows();
+    Object.keys(seed).forEach(id => { DEFAULT_CHARGES[id] = seed[id]; DEFAULT_CHARGES_DIRTY.add(id); });
+    persistDefaultChargesLocal();
+    pushDefaultChargesDebounced();
+    renderDefaultCharges();
+    defaultChargesChanged();
+});
+
 document.getElementById('retailInfoToggle').addEventListener('click', () => {
     const body = document.getElementById('retailInfoBody');
     const isHidden = body.style.display === 'none';
@@ -13524,6 +13710,7 @@ setInterval(() => {
     pullConcessionFromBackend();
     pullStorageFromBackend();
     pullLockersFromBackend();
+    pullDefaultChargesFromBackend();
     pullMMRFromBackend();
     pullMmrTrafficFromBackend();
     mmrNewLeaseController.pullFromBackend();
@@ -13553,6 +13740,7 @@ restoreRenewals();
 initWaitlist();
 initStorage();
 initLockers();
+pullDefaultChargesFromBackend();
 renderStorageList();
 restoreConcessionLocal();
 renderConcessionSummary();
@@ -13576,20 +13764,22 @@ restoreLeaseLocal();
    the resident with copy and draft-in-mail-app buttons. Monthly fee
    amounts are remembered per browser; nothing here is shared.
    ============================================================ */
+// def: a fixed default, or charge: the Settings > Default Charges key it defaults to.
 const DEP_FEES = [
-    { key: 'garage', label: 'Garage', email: 'Garage fee', def: 150 },
-    { key: 'bundle', label: 'Bundle', email: 'Guest Services (Bundle Package Services) fee', def: 14 },
-    { key: 'trash', label: 'Trash', email: 'Trash fee', def: 15 },
-    { key: 'valet', label: 'Valet', email: 'Valet Trash fee', def: 24 },
-    { key: 'admin', label: 'Admin', email: 'Admin fee', def: 3 },
+    { key: 'garage', label: 'Garage', email: 'Garage fee', def: 0 },
+    { key: 'pet', label: 'Pet Fee', email: 'Pet rent', def: 0 },
+    { key: 'storage', label: 'Storage', email: 'Storage fee', def: 0 },
+    { key: 'bundle', label: 'Bundle', email: 'Guest Services (Bundle Package Services) fee', charge: 'bundle' },
+    { key: 'trash', label: 'Trash', email: 'Trash fee', charge: 'trash' },
+    { key: 'valet', label: 'Valet', email: 'Valet Trash fee', charge: 'valet' },
+    { key: 'admin', label: 'Admin', email: 'Admin fee', charge: 'utilAdmin' },
+    { key: 'other', label: 'Other', email: 'Other charges', def: 0 },
     { key: 'utilities', label: 'Utilities', email: 'Utilities', def: '' }
 ];
-const DEP_FEES_KEY = 'reve-deposit-fees';
+function depFeeDefault(f) { return f.charge ? defaultCharge(f.charge) : f.def; }
 const DEP_ENVELOPE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/></svg>';
 (function initDepositFees() {
-    let saved = {};
-    try { saved = JSON.parse(localStorage.getItem(DEP_FEES_KEY) || '{}') || {}; } catch (e) {}
-    document.getElementById('depFees').innerHTML = DEP_FEES.map(f => `<label>${escapeHtml(f.label)}<input type="text" inputmode="decimal" data-dep-fee="${f.key}" value="${escapeAttr(String(saved[f.key] !== undefined ? saved[f.key] : f.def))}" placeholder="0"></label>`).join('');
+    document.getElementById('depFees').innerHTML = DEP_FEES.map(f => `<label>${escapeHtml(f.label)}<input type="text" inputmode="decimal" data-dep-fee="${f.key}" value="${escapeAttr(String(depFeeDefault(f)))}" placeholder="0"></label>`).join('');
     document.getElementById('depCopyBtn').innerHTML = LEASE_COPY_ICON.replace(/width="13" height="13"/, '');
     document.getElementById('depDraftBtn').innerHTML = DEP_ENVELOPE_ICON;
 })();
@@ -13662,12 +13852,18 @@ function renderDeposit() {
     prev.innerHTML = escapeHtml(mail.text).replace(escapeHtml(mail.totalLine), `<mark>${escapeHtml(mail.totalLine)}</mark>`);
 }
 ['depUnit', 'depResident', 'depEmail', 'depDate', 'depRent'].forEach(id => document.getElementById(id).addEventListener('input', renderDeposit));
-document.getElementById('depFees').addEventListener('input', () => {
-    const saved = {};
-    document.querySelectorAll('[data-dep-fee]').forEach(i => { saved[i.getAttribute('data-dep-fee')] = i.value; });
-    try { localStorage.setItem(DEP_FEES_KEY, JSON.stringify(saved)); } catch (e) {}
+document.getElementById('depFees').addEventListener('input', e => {
+    if (e.target.matches('[data-dep-fee]')) e.target.dataset.edited = '1';   // typed-in amounts aren't replaced by Settings changes
     renderDeposit();
 });
+// Settings > Default Charges changed: update the fee boxes nobody has typed in.
+function depApplyDefaultFees() {
+    DEP_FEES.forEach(f => {
+        const inp = document.querySelector(`[data-dep-fee="${f.key}"]`);
+        if (inp && !inp.dataset.edited && document.activeElement !== inp) inp.value = String(depFeeDefault(f));
+    });
+    renderDeposit();
+}
 // Unit lookup: fill in the resident's name (and rent) from Residents when those fields are blank.
 document.getElementById('depUnit').addEventListener('change', () => {
     const unit = document.getElementById('depUnit').value.trim();
@@ -14200,7 +14396,7 @@ try {
     if (localStorage.getItem(APP_MODE_KEY) === 'test') applyAppMode('test');
 } catch (e) { /* ignore */ }
 if (BACKEND_URL) {
-    pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); pullLockersFromBackend(); pullMMRFromBackend(); pullMmrTrafficFromBackend();
+    pullAllFromBackend(); pullWaitlistFromBackend(); pullConcessionFromBackend(); pullStorageFromBackend(); pullLockersFromBackend(); pullDefaultChargesFromBackend(); pullMMRFromBackend(); pullMmrTrafficFromBackend();
     mmrNewLeaseController.pullFromBackend(); mmrRenewalController.pullFromBackend();
     commMoveInController.pullFromBackend(); commRenewalController.pullFromBackend();
     pcardController.pullFromBackend();
