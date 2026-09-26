@@ -1922,6 +1922,33 @@
     body.dark-mode .pcard-calc, body.dark-mode .pcard-calc input { background: var(--dm-card-alt); color: inherit; }
     @media (max-width: 900px) { .pcard-calcs { flex: 0 0 auto; width: 100%; max-width: 420px; } }
 
+    /* -- Unit Info statistics -- */
+    .unit-stats { margin-bottom: 8px; }
+    .us-total { font-size: 12px; color: var(--ink-soft); margin-bottom: 6px; }
+    .us-total b { color: var(--ink); }
+    .us-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .us-group { border: 1px solid var(--line); border-radius: 8px; padding: 6px 6px 4px; background: #fff; min-width: 0; }
+    .us-title { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); margin: 0 2px 4px; }
+    .us-note { font-size: 10.5px; color: var(--ink-soft); margin: -2px 2px 4px; line-height: 1.3; }
+    .us-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 2px 6px; max-height: 190px; overflow-y: auto; }
+    .us-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; border: 0; background: none; padding: 2px 5px; border-radius: 4px; font-family: var(--sans); font-size: 11.5px; color: var(--ink); text-align: left; cursor: pointer; font-variant-numeric: tabular-nums; min-width: 0; }
+    .us-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .us-row:hover { background: #f4f2ee; }
+    .us-row.active { background: var(--reve-orange); color: #fff; }
+    .us-row.us-strong { font-weight: 700; }
+    .us-row.us-zero { color: var(--ink-soft); }
+    .us-row.us-static { cursor: default; color: var(--ink-soft); }
+    .us-row.us-static:hover { background: none; }
+    .us-group.us-wide { grid-column: 1 / -1; }
+    .us-group.us-wide .us-rows { grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); max-height: 170px; }
+    .us-sep { grid-column: 1 / -1; border-top: 1px dashed var(--line); margin: 2px 0; }
+    .unit-stats-filter { font-size: 12px; margin: 6px 0 8px; line-height: 1.5; }
+    .unit-stats-filter .us-units { color: var(--ink-soft); }
+    .us-clear { border: 0; background: none; color: var(--reve-orange); text-decoration: underline; cursor: pointer; font-size: 12px; padding: 0 2px; }
+    @media (max-width: 600px) { .us-grid { grid-template-columns: minmax(0, 1fr); } }
+    body.dark-mode .us-group { background: var(--dm-card-alt); }
+    body.dark-mode .us-row:hover { background: var(--dm-card); }
+
     /* -- Default Charges (Settings) -- */
     .default-charges-table td { padding: 3px 5px; }
     .default-charges-table tr.dc-section td { background: #f4f2ee; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft); padding: 6px 8px; }
@@ -3641,12 +3668,24 @@
         </button>
         <div id="unitInfoBody" style="display:none;margin-top:12px;">
             <p class="empty-note" style="font-size:12.5px;">Editable roster of all 242 units &mdash; changes here update everywhere else in the app that reads unit data (Tour, Waitlist matching, etc.) and sync across agents.</p>
-            <input type="text" id="unitInfoSearch" class="wl-field" placeholder="Search by unit #&hellip;" style="margin-bottom:10px;max-width:240px;">
+            <div class="unit-stats" id="unitStats"></div>
+            <div class="unit-stats-filter" id="unitStatsFilter"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+                <input type="text" id="unitInfoSearch" class="wl-field" placeholder="Search unit #, floorplan, Yardi type or bed/bath&hellip;" style="max-width:320px;flex:1 1 220px;">
+                <button type="button" class="btn" id="unitRentPasteToggle" style="width:auto;padding:7px 12px;">Paste Market Rents</button>
+            </div>
+            <div id="unitRentPasteBox" style="display:none;margin-bottom:10px;">
+                <textarea id="unitRentPasteText" rows="4" style="width:100%;box-sizing:border-box;font-family:var(--sans);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:6px 8px;" placeholder="One unit per line: unit number, then market rent (e.g. 4334  2895) &mdash; paste two columns from a spreadsheet"></textarea>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+                    <button type="button" class="btn primary" id="unitRentPasteImport" style="width:auto;padding:7px 14px;">Import</button>
+                    <span class="empty-note" id="unitRentPasteStatus" style="margin:0;"></span>
+                </div>
+            </div>
             <div class="mmr-table-wrap" style="max-height:520px;overflow-y:auto;">
                 <table class="mmr-table" id="unitInfoTable">
                     <thead><tr>
                         <th>Unit</th><th>Floorplan</th><th>Sq Ft</th><th>Bldg</th><th>Floor</th>
-                        <th>Yardi</th><th>Bed/Bath</th><th>Address</th><th>View</th><th>Mailbox</th><th>Amenity</th><th>Commission</th><th>Video Name</th><th>Video Link</th>
+                        <th>Yardi</th><th>Bed/Bath</th><th>Address</th><th>View</th><th>Mailbox</th><th>Amenity</th><th>Commission</th><th>Market Rent</th><th>Video Name</th><th>Video Link</th>
                     </tr></thead>
                     <tbody id="unitInfoTbody"></tbody>
                 </table>
@@ -7427,9 +7466,26 @@ function renderWaitlist() {
                 WAITLIST_DIRTY.add(id);
                 persistWaitlistLocal();
                 pushWaitlistDirtyDebounced();
-                if (fieldName === 'beds' || fieldName === 'moveIn') renderWaitlist();
+                if (fieldName === 'beds') renderWaitlist();
             });
         });
+        // Move-In Date re-sorts the list once you leave the field (not per
+        // keystroke), then puts the cursor back where you clicked/tabbed.
+        const moveInField = card.querySelector('input[data-field="moveIn"]');
+        if (moveInField) {
+            moveInField.addEventListener('focus', () => { moveInField.dataset.startValue = moveInField.value; });
+            moveInField.addEventListener('blur', () => {
+                if (moveInField.value === moveInField.dataset.startValue) return;
+                setTimeout(() => {
+                    const a = document.activeElement;
+                    const aCard = a && a.closest ? a.closest('.waitlist-card') : null;
+                    const refocus = aCard && a.getAttribute('data-field') ? { id: aCard.getAttribute('data-row'), field: a.getAttribute('data-field'), pos: a.selectionStart } : null;
+                    renderWaitlist();
+                    const el = refocus && document.querySelector(`.waitlist-card[data-row="${refocus.id}"] [data-field="${refocus.field}"]`);
+                    if (el) { el.focus(); try { if (refocus.pos != null) el.setSelectionRange(refocus.pos, refocus.pos); } catch (e) {} }
+                }, 0);
+            });
+        }
         [...card.querySelectorAll('input[type=checkbox]')].forEach(cb => {
             cb.addEventListener('change', (e) => {
                 const field = e.target.getAttribute('data-field');
@@ -10313,6 +10369,9 @@ const RESIDENT_FIELDS = [
     { key: 'moveOutDate', label: 'Move-Out', type: 'computed-date' },
     { key: 'movedOut', label: 'Moved Out', type: 'computed-bool' },
     { key: 'specialStatus', label: 'Status', type: 'select', options: ['', 'Notice', 'Renewed', 'TRANSFER', 'Early Term', 'Eviction'], w: 108 },
+    // Free text read by Status: Renewed = # of months (extends Move-Out),
+    // Early Term = the date (becomes Move-Out), TRANSFER = unit moving to.
+    { key: 'statusDetail', label: 'Status Details', type: 'status-detail', w: 150 },
     { key: 'noticeNeeded', label: 'Notice Needed', type: 'computed-date' }
 ];
 const RESIDENT_CHECKLIST_KEYS = ['idCheck', 'welcomeLetter', 'insurance', 'miPayment', 'miFolder', 'walkThrough', 'movedIn', 'latch'];
@@ -10549,9 +10608,30 @@ function residentFixBrokenDeposits() {
     }
 }
 
+// Renewed: months from Status Details (first number, e.g. "12" or "12 months").
+function residentRenewalMonths(row) {
+    if (row.specialStatus !== 'Renewed') return 0;
+    const m = String(row.statusDetail || '').match(/\d+(?:\.\d+)?/);
+    return m ? parseFloat(m[0]) : (parseFloat(row.renewalMonths) || 0);
+}
+// Early Term: the date in Status Details (M/D/YYYY, M/D/YY, YYYY-MM-DD, or e.g. "Oct 31 2026").
+function residentEarlyTermDate(row) {
+    if (row.specialStatus !== 'Early Term') return null;
+    const t = String(row.statusDetail || '').trim();
+    if (!t) return null;
+    let m = t.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if (m) { let y = parseInt(m[3], 10); if (y < 100) y += 2000; const d = new Date(y, parseInt(m[1], 10) - 1, parseInt(m[2], 10)); return isNaN(d) ? null : d; }
+    m = t.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) { const d = new Date(+m[1], +m[2] - 1, +m[3]); return isNaN(d) ? null : d; }
+    const d = new Date(t);
+    if (isNaN(d) || !/[a-z]/i.test(t)) return null;
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
 function residentMoveOutDate(row) {
+    const early = residentEarlyTermDate(row);
+    if (early) return early;
     if (!row.moveInDate || !row.leaseTerm) return null;
-    const extra = row.specialStatus === 'Renewed' ? (parseFloat(row.renewalMonths) || 0) : 0;
+    const extra = residentRenewalMonths(row);
     const term = parseFloat(row.leaseTerm) + extra;
     if (isNaN(term)) return null;
     const parts = row.moveInDate.split('-').map(Number);
@@ -10565,6 +10645,8 @@ function residentMovedOut(row, moveOutDate) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (moveOutDate && moveOutDate < today) return true;
+    // An Early Term with a date on or after today hasn't moved out yet.
+    if (row.specialStatus === 'Early Term' && residentEarlyTermDate(row)) return false;
     if (['TRANSFER', 'Early Term', 'Eviction'].indexOf(row.specialStatus) !== -1) return true;
     return false;
 }
@@ -10692,6 +10774,9 @@ function renderResidentRow(id, row, derived) {
         } else if (f.type === 'select') {
             const val = row[f.key] || '';
             cells += `<td${residentStepIncomplete(row, f.key) ? ' class="res-cell-incomplete"' : ''}><select class="mmr-lease-field${residentStatusClass(f.key, val)}" data-field="${f.key}">${f.options.map(o => `<option value="${escapeAttr(o)}"${val === o ? ' selected' : ''}>${(f.optionLabels && f.optionLabels[o]) || o || '\u2014'}</option>`).join('')}</select></td>`;
+        } else if (f.type === 'status-detail') {
+            const ph = { Renewed: '# months (e.g. 12)', 'Early Term': 'Date (e.g. 10/31/2026)', TRANSFER: 'Unit transferring to' }[row.specialStatus] || '';
+            cells += `<td><input type="text" class="mmr-lease-field res-status-detail" data-field="${f.key}" value="${escapeAttr(String(row[f.key] || ''))}" placeholder="${escapeAttr(ph)}"${ph ? '' : ' title="Used for Renewed (months), Early Term (date) or Transfer (unit)"'}></td>`;
         } else if (f.type === 'date') {
             cells += `<td><input type="date" class="mmr-lease-field" data-field="${f.key}" value="${escapeAttr(String(row[f.key] || ''))}"></td>`;
         } else if (f.type === 'number') {
@@ -10706,6 +10791,21 @@ function renderResidentRow(id, row, derived) {
     return `<tr class="${rowClass}" data-row="${id}">${cells}</tr>`;
 }
 
+// Updates just the Move-Out / Moved Out / Notice Needed cells in place
+// (keeps focus in the field being typed in).
+function updateResidentComputedCells(id) {
+    const tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
+    const row = RESIDENT_ROWS[id];
+    if (!tr || !row) return;
+    const d = computeResidentDerived(row);
+    const cells = [...tr.children];
+    RESIDENT_FIELDS.forEach((f, i) => {
+        if (!cells[i]) return;
+        if (f.key === 'moveOutDate') cells[i].textContent = fmtResidentDate(d.moveOut);
+        else if (f.key === 'noticeNeeded') cells[i].textContent = fmtResidentDate(d.noticeNeeded);
+        else if (f.type === 'computed-bool') cells[i].textContent = d.movedOut ? 'Yes' : 'No';
+    });
+}
 function refreshResidentRow(id) {
     const tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
     const row = RESIDENT_ROWS[id];
@@ -10752,6 +10852,7 @@ function wireResidentRow(id) {
             el.addEventListener('change', (e) => { commit(e); refreshResidentRow(id); });
         } else {
             el.addEventListener('input', commit);
+            if (el.getAttribute('data-field') === 'statusDetail') el.addEventListener('input', () => updateResidentComputedCells(id));
             // A full renderResidentsBody() here used to destroy every
             // row's DOM the instant you left ANY field — including
             // whatever you were about to click/tab into next, which
@@ -12575,7 +12676,7 @@ const UNIT_OVERRIDES_BACKEND_KEY = 'unit-overrides';
 let UNIT_OVERRIDES = {};
 const UNIT_OVERRIDES_DIRTY = new Set();
 const UNIT_INFO_FIELDS = ['floorplan', 'sqft', 'bldg', 'floor', 'yardi', 'bedBath', 'address', 'view', 'mailbox'];
-const UNIT_INFO_FIELDS_2 = ['commission', 'videoName', 'videoLink'];
+const UNIT_INFO_FIELDS_2 = ['commission', 'marketRent', 'videoName', 'videoLink'];
 function unitAmenityTag(u) {
     const tags = [];
     if (MOUNTAIN_VIEW_UNITS.has(u.unit)) tags.push('MV');
@@ -12619,7 +12720,7 @@ async function pullUnitOverridesFromBackend() {
         UNIT_OVERRIDES = merged;
         applyUnitOverrides();
         persistUnitOverrides();
-        if (document.getElementById('unitInfoBody').style.display !== 'none') renderUnitInfoTable();
+        if (document.getElementById('unitInfoBody').style.display !== 'none') { renderUnitStats(); renderUnitInfoTable(); }
         if (UNIT_OVERRIDES_DIRTY.size) pushUnitOverridesDebounced();
     } else if (Object.keys(UNIT_OVERRIDES).length) {
         backendPush(UNIT_OVERRIDES_BACKEND_KEY, UNIT_OVERRIDES);
@@ -12629,7 +12730,8 @@ async function pullUnitOverridesFromBackend() {
 function renderUnitInfoTable() {
     const q = document.getElementById('unitInfoSearch').value.trim().toLowerCase();
     const tbody = document.getElementById('unitInfoTbody');
-    const list = q ? UNITS.filter(u => u.unit.toLowerCase().indexOf(q) !== -1) : UNITS;
+    let list = unitStatsFilter ? UNITS.filter(u => unitStatsFilter.units.has(u.unit)) : UNITS;
+    if (q) list = list.filter(u => [u.unit, u.floorplan, u.yardi, u.bedBath].some(v => String(v || '').toLowerCase().indexOf(q) !== -1));
     tbody.innerHTML = list.map(u => `<tr data-unit="${escapeAttr(u.unit)}">
         <td class="mmr-autofill">${escapeHtml(u.unit)}</td>
         ${UNIT_INFO_FIELDS.map(f => `<td><input type="text" class="mmr-lease-field" data-field="${f}" value="${escapeAttr(String(u[f] === undefined ? '' : u[f]))}"></td>`).join('')}
@@ -12646,6 +12748,7 @@ function renderUnitInfoTable() {
             UNIT_OVERRIDES_DIRTY.add(unit);
             persistUnitOverrides();
             pushUnitOverridesDebounced();
+            renderUnitStatsDebounced();
         });
     });
 }
@@ -12655,9 +12758,113 @@ document.getElementById('unitInfoToggle').addEventListener('click', () => {
     const isHidden = body.style.display === 'none';
     body.style.display = isHidden ? 'block' : 'none';
     toggleBtn.classList.toggle('open', isHidden);
-    if (isHidden) renderUnitInfoTable();
+    if (isHidden) { renderUnitStats(); renderUnitInfoTable(); }
 });
 document.getElementById('unitInfoSearch').addEventListener('input', renderUnitInfoTable);
+
+/* ---------- Unit Info statistics: live counts from the roster above;
+   click a count to list and filter to those units. ---------- */
+let unitStatsFilter = null;   // { id, label, units: Set }
+// Market Rent reference counts (from the rent sheet) shown until units have Market Rent filled in.
+const UNIT_RENT_REFERENCE = [[2250, 13], [2500, 110], [2750, 31], [3000, 14], [3250, 8], [3500, 8], [3750, 26], [4000, 1], [4250, 6], [4500, 5], [4750, 2], [5000, 10], [5250, 0], [5500, 4], [5750, 3]];
+function unitBeds(u) { const n = parseFloat(String(u.bedBath || '').split('/')[0]); return isNaN(n) ? null : n; }
+function unitBedGroup(u) { const b = unitBeds(u); return b === null ? null : b < 1 ? 'Studio' : b < 2 ? '1 Bed' : b < 3 ? '2 Bed' : '3 Bed'; }
+function unitStatsBins(values, start, step) {
+    // [{ lo, hi, units[] }] covering start..max in equal steps (empty bins included)
+    const nums = values.filter(v => v.n !== null && !isNaN(v.n));
+    if (!nums.length) return [];
+    // Ranges stay anchored to start (e.g. 500-649, 650-799, ...), extending lower only if needed.
+    const min = Math.min(...nums.map(v => v.n));
+    const lo0 = min >= start ? start : start - Math.ceil((start - min) / step) * step;
+    const hiMax = Math.max(...nums.map(v => v.n));
+    const bins = [];
+    for (let lo = lo0; lo <= hiMax; lo += step) bins.push({ lo, hi: lo + step - 1, units: nums.filter(v => v.n >= lo && v.n < lo + step).map(v => v.unit) });
+    return bins;
+}
+function renderUnitStats() {
+    const box = document.getElementById('unitStats');
+    if (!box) return;
+    const groups = [];
+    // Bed/Bath
+    const bb = {};
+    UNITS.forEach(u => { const k = String(u.bedBath || '').trim() || '—'; (bb[k] = bb[k] || []).push(u.unit); });
+    const bbRows = Object.keys(bb).sort((a, b) => { const pa = a.split('/').map(parseFloat), pb = b.split('/').map(parseFloat); return (pa[0] - pb[0]) || (pa[1] - pb[1]); })
+        .map(k => ({ id: 'bb:' + k, label: k, units: bb[k] }));
+    const bedRows = ['Studio', '1 Bed', '2 Bed', '3 Bed'].map(g => ({ id: 'beds:' + g, label: g, units: UNITS.filter(u => unitBedGroup(u) === g).map(u => u.unit), strong: true }));
+    groups.push({ title: 'Bed / Bath', rows: bedRows.concat([{ sep: true }], bbRows) });
+    // Sq Ft
+    const sq = unitStatsBins(UNITS.map(u => ({ unit: u.unit, n: parseFloat(u.sqft) })), 500, 150);
+    groups.push({ title: 'Sq. Ft.', rows: sq.map(b => ({ id: 'sq:' + b.lo, label: `${b.lo.toLocaleString()} – ${b.hi.toLocaleString()}`, units: b.units })) });
+    // Market Rent (from the Market Rent column; reference counts until it's filled in)
+    const rentVals = UNITS.map(u => ({ unit: u.unit, n: parseMoneyLoose(u.marketRent) }));
+    const withRent = rentVals.filter(v => v.n !== null);
+    const rent = unitStatsBins(rentVals, 2250, 250);
+    groups.push(withRent.length
+        ? { title: 'Market Rent', note: withRent.length < UNITS.length ? `${withRent.length} of ${UNITS.length} units have a market rent` : '', rows: rent.map(b => ({ id: 'rent:' + b.lo, label: `$${b.lo.toLocaleString()} – $${b.hi.toLocaleString()}`, units: b.units })) }
+        : { title: 'Market Rent', note: 'Reference counts — add Market Rent to units (column or Paste Market Rents) to make these live', rows: UNIT_RENT_REFERENCE.map(([lo, n]) => ({ label: `$${lo.toLocaleString()} – $${(lo + 249).toLocaleString()}`, count: n })) });
+    // Yardi Type
+    const yt = {};
+    UNITS.forEach(u => { const k = `${u.yardi || '—'}|${u.floorplan || ''} (${u.sqft || ''})`; (yt[k] = yt[k] || []).push(u.unit); });
+    groups.push({ title: 'Yardi Type · Web Type (Sq Ft)', wide: true, rows: Object.keys(yt).sort((a, b) => yt[b].length - yt[a].length || a.localeCompare(b))
+        .map(k => { const [y, w] = k.split('|'); return { id: 'yt:' + k, label: `${y} · ${w}`, units: yt[k] }; }) });
+
+    box.innerHTML = `<div class="us-total"><b>${UNITS.length}</b> units &middot; click any count to list those units</div><div class="us-grid">` + groups.map(g => `<div class="us-group${g.wide ? ' us-wide' : ''}">
+        <div class="us-title">${escapeHtml(g.title)}</div>
+        ${g.note ? `<div class="us-note">${escapeHtml(g.note)}</div>` : ''}
+        <div class="us-rows">${g.rows.map(r => r.sep ? '<div class="us-sep"></div>' : r.id
+            ? `<button type="button" class="us-row${r.strong ? ' us-strong' : ''}${unitStatsFilter && unitStatsFilter.id === r.id ? ' active' : ''}${r.units.length ? '' : ' us-zero'}" data-us-id="${escapeAttr(r.id)}"><span>${escapeHtml(r.label)}</span><b>${r.units.length}</b></button>`
+            : `<div class="us-row us-static"><span>${escapeHtml(r.label)}</span><b>${r.count}</b></div>`).join('')}</div>
+    </div>`).join('') + '</div>';
+    box._rows = {};
+    groups.forEach(g => g.rows.forEach(r => { if (r.id) box._rows[r.id] = r; }));
+    // Keep an active filter in sync with edits.
+    if (unitStatsFilter) {
+        const r = box._rows[unitStatsFilter.id];
+        unitStatsFilter = r ? { id: r.id, label: r.label, units: new Set(r.units) } : null;
+    }
+    renderUnitStatsFilterNote();
+}
+const renderUnitStatsDebounced = debounce(() => { renderUnitStats(); if (unitStatsFilter) renderUnitInfoTable(); }, 400);
+function renderUnitStatsFilterNote() {
+    const el = document.getElementById('unitStatsFilter');
+    if (!unitStatsFilter) { el.innerHTML = ''; return; }
+    const units = UNITS.filter(u => unitStatsFilter.units.has(u.unit)).map(u => u.unit);
+    el.innerHTML = `<b>${escapeHtml(unitStatsFilter.label)}</b> &mdash; ${units.length} unit${units.length === 1 ? '' : 's'}: <span class="us-units">${units.map(escapeHtml).join(', ') || '—'}</span> <button type="button" class="us-clear" id="unitStatsClear">Clear</button>`;
+    document.getElementById('unitStatsClear').addEventListener('click', () => { unitStatsFilter = null; renderUnitStats(); renderUnitInfoTable(); });
+}
+document.getElementById('unitStats').addEventListener('click', e => {
+    const btn = e.target.closest('[data-us-id]');
+    if (!btn) return;
+    const r = document.getElementById('unitStats')._rows[btn.getAttribute('data-us-id')];
+    unitStatsFilter = unitStatsFilter && unitStatsFilter.id === r.id ? null : { id: r.id, label: r.label, units: new Set(r.units) };
+    renderUnitStats();
+    renderUnitInfoTable();
+});
+document.getElementById('unitRentPasteToggle').addEventListener('click', () => {
+    const b = document.getElementById('unitRentPasteBox');
+    b.style.display = b.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('unitRentPasteImport').addEventListener('click', () => {
+    const lines = document.getElementById('unitRentPasteText').value.split(/\r?\n/);
+    let n = 0; const unknown = [];
+    lines.forEach(line => {
+        const m = line.trim().match(/^(\S+)[\s,]+\$?([\d,]+(?:\.\d+)?)/);
+        if (!m) return;
+        const unit = m[1], rent = m[2].replace(/,/g, '');
+        if (!byUnit[unit]) { unknown.push(unit); return; }
+        byUnit[unit].marketRent = rent;
+        UNIT_OVERRIDES[unit] = UNIT_OVERRIDES[unit] || {};
+        UNIT_OVERRIDES[unit].marketRent = rent;
+        UNIT_OVERRIDES_DIRTY.add(unit);
+        n++;
+    });
+    persistUnitOverrides();
+    pushUnitOverridesDebounced();
+    renderUnitStats();
+    renderUnitInfoTable();
+    document.getElementById('unitRentPasteStatus').textContent = `Updated ${n} unit${n === 1 ? '' : 's'}${unknown.length ? ` · not found: ${unknown.slice(0, 8).join(', ')}${unknown.length > 8 ? '…' : ''}` : ''}.`;
+    if (n) document.getElementById('unitRentPasteText').value = '';
+});
 
 /* ============================================================
    RETAIL INFO (Settings) — the Level 1 retail suites' businesses and
