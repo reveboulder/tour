@@ -1250,6 +1250,8 @@
     .storage-table input.wl-field:focus { outline: 1px solid var(--reve-orange); background: #fff; border-radius: 3px; }
     .storage-table td.storage-check-cell { text-align: center; width: 70px; }
     .storage-table td.storage-remove-cell { width: 36px; text-align: center; }
+    .storage-table td.storage-handle-cell { width: 34px; padding: 4px; text-align: center; }
+    .storage-table tr.storage-dragging { opacity: 0.55; outline: 2px dashed var(--reve-orange); outline-offset: -2px; }
     .storage-table tr.contacted { background: #f4f2ee; }
     .storage-table tr.contacted td { color: var(--ink-soft); }
     .storage-table tr.contacted input.wl-field { text-decoration: line-through; }
@@ -1502,6 +1504,42 @@
     .howto-detail-steps { margin: 0; padding-left: 22px; }
     .howto-detail-steps li { margin-bottom: 10px; line-height: 1.5; font-size: 13.5px; }
     body.dark-mode .howto-tile { background: var(--dm-card-alt); }
+    /* -- Help > Questions (chat) -- */
+    .qa-shell { border: 1px solid var(--line); border-radius: 12px; background: #fff; display: flex; flex-direction: column; overflow: hidden; }
+    .qa-log { height: min(62vh, 620px); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: #faf8f4; }
+    .qa-msg { display: flex; }
+    .qa-msg.qa-me { justify-content: flex-end; }
+    .qa-bubble { max-width: min(760px, 92%); padding: 10px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
+    .qa-me .qa-bubble { background: var(--reve-orange); color: #fff; border-bottom-right-radius: 4px; }
+    .qa-bot .qa-bubble { background: #fff; border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+    .qa-bubble p { margin: 0 0 6px; }
+    .qa-bubble p:last-child { margin-bottom: 0; }
+    .qa-answer + .qa-answer { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 10px; }
+    .qa-answer-title { font-family: 'Oswald', var(--sans); font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .qa-subq { font-weight: 700; color: var(--ink-soft); font-size: 12px; margin: 10px 0 4px; }
+    .qa-subq:first-child { margin-top: 0; }
+    .qa-list, .qa-steps { margin: 4px 0 6px; padding-left: 20px; }
+    .qa-list li, .qa-steps li { margin-bottom: 4px; }
+    .qa-muted { color: var(--ink-soft); font-size: 12px; }
+    .qa-answer-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+    .qa-act { font: inherit; font-size: 12px; font-weight: 700; border: 1px solid var(--reve-orange); color: var(--reve-orange); background: transparent; border-radius: 999px; padding: 3px 10px; cursor: pointer; text-decoration: none; }
+    .qa-act:hover { background: var(--reve-orange); color: #fff; }
+    .qa-source { margin-left: auto; font-size: 11px; color: var(--ink-soft); }
+    .qa-unit-chip { font: inherit; font-size: 12px; border: 1px solid var(--line); background: #f4f2ee; color: inherit; border-radius: 6px; padding: 2px 7px; margin: 2px 0; cursor: pointer; font-variant-numeric: tabular-nums; }
+    .qa-unit-chip:hover { border-color: var(--reve-orange); }
+    .qa-suggest { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .qa-suggest-chip { font-size: 12px; }
+    .qa-inputbar { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line); background: #fff; }
+    .qa-inputbar input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 999px; padding: 10px 16px; font-family: var(--sans); font-size: 14px; }
+    .qa-inputbar input:focus { outline: 2px solid var(--reve-orange); outline-offset: -1px; }
+    .qa-inputbar .btn { width: auto; flex: none; padding: 8px 20px; border-radius: 999px; }
+    .qa-footnote { font-size: 11.5px; color: var(--ink-soft); padding: 0 14px 10px; background: #fff; }
+    .qa-clear { font: inherit; border: none; background: none; color: var(--reve-orange); cursor: pointer; padding: 0; text-decoration: underline; }
+    body.dark-mode .qa-shell, body.dark-mode .qa-inputbar, body.dark-mode .qa-footnote { background: var(--dm-card); }
+    body.dark-mode .qa-log { background: var(--paper); }
+    body.dark-mode .qa-bot .qa-bubble { background: var(--dm-card-alt); }
+    body.dark-mode .qa-unit-chip { background: var(--dm-card); }
+    body.dark-mode .qa-inputbar input { background: var(--dm-card-alt); color: var(--ink); }
 
     /* -- Media: Live Sitemap (schematic, hardcoded shapes) -- */
     .sitemap-wrap { max-width: 1150px; margin: 0 auto; }
@@ -2308,7 +2346,7 @@
         <button type="button" class="top-tab" data-tab="documents">Documents</button>
         <div class="top-tabs-right">
             <span class="test-mode-badge" id="testModeBadge">Test Mode</span>
-            <button type="button" class="top-tab" data-tab="howto">How-To</button>
+            <button type="button" class="top-tab" data-tab="howto">Help</button>
             <button type="button" class="top-tab settings-tab" data-tab="settings">Settings</button>
         </div>
     </div>
@@ -3087,7 +3125,7 @@
     </div>
 
     <div id="waitlistStorageView" style="display:none;">
-        <div class="empty-note" style="margin-bottom:14px;">Storage locker interest list &mdash; check "Contacted" once you've reached out, or remove an entry permanently with the &times; button.</div>
+        <div class="empty-note" style="margin-bottom:14px;">Storage locker interest list &mdash; check "Contacted" once you've reached out, drag the &#8801; handle to reorder, or remove an entry permanently with the &times; button.</div>
         <div id="storageList"></div>
     </div>
 
@@ -3570,16 +3608,22 @@
 </div>
 </div>
 
-<!-- ============ HOW-TO TAB ============ -->
+<!-- ============ HELP TAB (How-To guides + Questions) ============ -->
 <div class="tab-panel" id="tab-howto">
 <div class="settings-wrap">
-    <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 24px;">
+    <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 18px;">
         <img class="mark mark-logo-img" alt="RÊVE">
         <div>
-            <h2>How-To</h2>
-            <div class="subtle">Step-by-step guides &mdash; shared across agents</div>
+            <h2>Help</h2>
+            <div class="subtle">Step-by-step guides and answers from the app&rsquo;s own data</div>
         </div>
     </div>
+    <div class="wl-subtabs" id="helpSubtabs">
+        <button type="button" class="wl-subtab active" data-help-sub="howto">How-To</button>
+        <button type="button" class="wl-subtab" data-help-sub="questions">Questions</button>
+    </div>
+
+    <div id="helpHowtoPane">
 
     <div style="margin-bottom:14px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
         <button type="button" class="btn primary" id="howtoAddBtn" style="width:auto;flex:none;padding:8px 16px;">+ Add Guide</button>
@@ -3589,6 +3633,18 @@
 
     <div id="howtoTileGrid" class="howto-tile-grid"></div>
     <div class="empty-note" id="howtoEmptyNote" style="display:none;">No guides yet &mdash; click "+ Add Guide" to create the first one.</div>
+    </div>
+
+    <div id="helpQuestionsPane" style="display:none;">
+        <div class="qa-shell">
+            <div class="qa-log" id="qaLog" aria-live="polite"></div>
+            <form class="qa-inputbar" id="qaForm" autocomplete="off">
+                <input type="text" id="qaInput" placeholder="Ask about a unit, fees, move-ins, how to&hellip;" aria-label="Ask a question">
+                <button type="submit" class="btn primary" id="qaAskBtn">Ask</button>
+            </form>
+            <div class="qa-footnote">Answers come only from data already in this app (guides, Unit Info, today&rsquo;s reports, Residents, Waitlist, fees, documents) &mdash; nothing leaves your browser. <button type="button" class="qa-clear" id="qaClearBtn">Clear chat</button></div>
+        </div>
+    </div>
 </div>
 
 <!-- Tile detail overlay -->
@@ -7704,7 +7760,8 @@ function persistStorageLocal() {
 
 // Same pull-merge-push safety as the prospect waitlist — see
 // pushWaitlistDirty for the full reasoning.
-function renderStorageIfIdle() { if (waitlistSubTab === 'storage' && !rowBeingEdited('storageList')) renderStorageList(); }
+let storageDragging = false;
+function renderStorageIfIdle() { if (waitlistSubTab === 'storage' && !storageDragging && !rowBeingEdited('storageList')) renderStorageList(); }
 const pushStorageDirty = makeRowPusher({
     backendKey: STORAGE_BACKEND_KEY, dirty: STORAGE_DIRTY, rows: () => STORAGE_ROWS,
     persist: () => persistStorageLocal(), render: renderStorageIfIdle,
@@ -7740,16 +7797,80 @@ function initStorage() {
     storageResetIfNeeded().then(() => pullStorageFromBackend());
 }
 
+// Display order: the saved position from drag & drop ("order"), with
+// entries that were never reordered falling back to timestamp order.
+function storageOrderedIds() {
+    const ts = id => { const d = parseStorageTimestamp(STORAGE_ROWS[id].timestamp); return d ? d.getTime() : Infinity; };
+    const byTime = Object.keys(STORAGE_ROWS).filter(id => !STORAGE_ROWS[id].deleted).sort((a, b) => ts(a) - ts(b));
+    const rank = {};
+    byTime.forEach((id, i) => { const o = STORAGE_ROWS[id].order; rank[id] = typeof o === 'number' ? o : 1e9 + i; });
+    return byTime.sort((a, b) => rank[a] - rank[b]);
+}
+function storageSaveOrder(ids) {
+    ids.forEach((id, i) => {
+        if (STORAGE_ROWS[id] && STORAGE_ROWS[id].order !== i) { STORAGE_ROWS[id].order = i; STORAGE_DIRTY.add(id); }
+    });
+    persistStorageLocal();
+    pushStorageDirtyDebounced();
+}
+const STORAGE_HANDLE_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+// Press and hold the \u2261 handle, then drag the row up or down (mouse,
+// pen or touch) — same behavior as reordering Documents.
+document.getElementById('storageList').addEventListener('pointerdown', e => {
+    const handle = e.target.closest('.docs-drag-handle');
+    if (!handle || e.button > 0) return;
+    e.preventDefault();
+    const tr = handle.closest('tr[data-row]');
+    const body = tr.parentNode;
+    const before = [...body.children].map(r => r.dataset.row);
+    storageDragging = true;
+    tr.classList.add('storage-dragging');
+    const onMove = ev => {
+        if (ev.pointerId !== e.pointerId) return;
+        if (ev.clientY < 60) window.scrollBy(0, -14);
+        else if (ev.clientY > window.innerHeight - 60) window.scrollBy(0, 14);
+        const over = document.elementFromPoint(ev.clientX, ev.clientY);
+        const target = over && over.closest('tr[data-row]');
+        if (!target || target === tr || target.parentNode !== body) return;
+        const rows = [...body.children];
+        body.insertBefore(tr, rows.indexOf(target) < rows.indexOf(tr) ? target : target.nextSibling);
+    };
+    const onEnd = ev => {
+        if (ev.pointerId !== e.pointerId) return;
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onEnd);
+        document.removeEventListener('pointercancel', onEnd);
+        tr.classList.remove('storage-dragging');
+        storageDragging = false;
+        const after = [...body.children].map(r => r.dataset.row);
+        if (after.join('|') === before.join('|')) return;
+        storageSaveOrder(after);
+        renderStorageList();
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onEnd);
+    document.addEventListener('pointercancel', onEnd);
+});
+// Keyboard: arrow up/down on a focused handle moves the row one slot.
+document.getElementById('storageList').addEventListener('keydown', e => {
+    const handle = e.target.closest('.docs-drag-handle');
+    if (!handle || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+    e.preventDefault();
+    const ids = storageOrderedIds();
+    const id = handle.closest('tr[data-row]').dataset.row;
+    const i = ids.indexOf(id), j = i + (e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 1);
+    if (j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    storageSaveOrder(ids);
+    renderStorageList();
+    const moved = document.querySelector(`#storageList tr[data-row="${id}"] .docs-drag-handle`);
+    if (moved) moved.focus();
+});
+
 function renderStorageList() {
     const mount = document.getElementById('storageList');
     if (!mount) return;
-    const ids = Object.keys(STORAGE_ROWS)
-        .filter(id => !STORAGE_ROWS[id].deleted)
-        .sort((a, b) => {
-            const ka = parseStorageTimestamp(STORAGE_ROWS[a].timestamp);
-            const kb = parseStorageTimestamp(STORAGE_ROWS[b].timestamp);
-            return (ka ? ka.getTime() : Infinity) - (kb ? kb.getTime() : Infinity);
-        });
+    const ids = storageOrderedIds();
     document.getElementById('wlCountStorage').textContent = ids.length;
 
     if (!ids.length) {
@@ -7760,6 +7881,7 @@ function renderStorageList() {
     const rows = ids.map(id => {
         const r = STORAGE_ROWS[id];
         return `<tr class="${r.contacted ? 'contacted' : ''}" data-row="${id}">
+            <td class="storage-handle-cell"><span class="docs-drag-handle" role="button" tabindex="0" title="Drag to reorder" aria-label="Drag to reorder ${escapeAttr(r.name || 'entry')}">${STORAGE_HANDLE_ICON}</span></td>
             <td><input class="wl-field" data-field="timestamp" value="${escapeAttr(r.timestamp)}" placeholder="M/D/YYYY H:MM:SS"></td>
             <td><input class="wl-field storage-name-field" data-field="name" value="${escapeAttr(r.name)}" placeholder="Name"></td>
             <td><input class="wl-field" data-field="unit" value="${escapeAttr(r.unit)}" placeholder="Unit"></td>
@@ -7770,7 +7892,7 @@ function renderStorageList() {
     }).join('');
 
     mount.innerHTML = `<table class="storage-table">
-        <thead><tr><th>Timestamp</th><th>Name</th><th>Unit</th><th>Contact</th><th>Contacted?</th><th></th></tr></thead>
+        <thead><tr><th></th><th>Timestamp</th><th>Name</th><th>Unit</th><th>Contact</th><th>Contacted?</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
     </table>`;
 
@@ -7805,7 +7927,9 @@ document.getElementById('storageAddBtn').addEventListener('click', () => {
     const id = newStorageRowId();
     const now = new Date();
     const stamp = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    const orders = Object.values(STORAGE_ROWS).filter(r => !r.deleted && typeof r.order === 'number').map(r => r.order);
     STORAGE_ROWS[id] = { timestamp: stamp, name: '', unit: '', contact: '', contacted: false };
+    if (orders.length) STORAGE_ROWS[id].order = Math.max(...orders) + 1;
     STORAGE_DIRTY.add(id);
     persistStorageLocal();
     pushStorageDirtyDebounced();
@@ -14331,7 +14455,7 @@ function seedHowToGuides() {
 // guides still gets them, and nothing existing is overwritten. Deleting a
 // built-in leaves a { deleted: true } marker so it isn't re-added.
 const HOWTO_BUILTIN_GUIDES = {
-    "builtin-app-tour": {"title": "Getting Around the App", "icon": "🧭", "category": "General", "steps": ["Top row: Tour (flyers), Availability (calendar), Expiring (upcoming lease ends), Waitlist (prospects), Media (site map & videos), Documents (printables).", "Top right: How-To (these guides) and Settings (preferences, backend, Unit & Retail Info).", "Second row: Residents (move-in tracking), WL (Welcome Letter), Lease (new lease data), Renewals (renewal decisions & offers), and Admin (password-protected: MMR, Commissions, PCard).", "Anything marked \"shared across agents\" syncs for the whole team when the backend is connected in Settings — changes show up for everyone within about 25 seconds.", "Uploaded reports (pricing sheet, lease expirations, renewals) feed several tabs at once — upload them once and Tour, Availability, Expiring, Waitlist and Renewals all update.", "Not seeing a recent change? Go to Settings and click \"Refresh Site to Update\"."]},
+    "builtin-app-tour": {"title": "Getting Around the App", "icon": "🧭", "category": "General", "steps": ["Top row: Tour (flyers), Availability (calendar), Expiring (upcoming lease ends), Waitlist (prospects), Media (site map & videos), Documents (printables).", "Top right: Help (How-To guides and Questions) and Settings (preferences, backend, Unit & Retail Info).", "Second row: Residents (move-in tracking), WL (Welcome Letter), Lease (new lease data), Renewals (renewal decisions & offers), and Admin (password-protected: MMR, Commissions, PCard).", "Anything marked \"shared across agents\" syncs for the whole team when the backend is connected in Settings — changes show up for everyone within about 25 seconds.", "Uploaded reports (pricing sheet, lease expirations, renewals) feed several tabs at once — upload them once and Tour, Availability, Expiring, Waitlist and Renewals all update.", "Not seeing a recent change? Go to Settings and click \"Refresh Site to Update\"."]},
     "builtin-search-filters": {"title": "Use the Search Filters (Tour, Availability, Expiring)", "icon": "🔎", "category": "Tour", "steps": ["The round filter icons sit above the unit list on Tour, above the calendar on Availability, and above the list on Expiring.", "Click an icon to open its options, then click as many options as you like — the list updates as you pick. Click outside (or the icon again) to close it.", "Move-In Date: shows units available on or before that date. On Expiring it shows leases ending on or before that date (leave blank for all).", "Beds: Studio, 1-Bed, 2-Bed, 3-Bed, Townhome or Live/Work. Floorplan: specific plans (e.g. B5). Floor and Building narrow by location.", "Price and Sq Ft (Tour and Availability): enter a Min, a Max, or both.", "Amenity: Mountain View or Corner Unit.", "An active filter shows your choice under its icon. Filters combine — a unit has to match all of them.", "Click \"Clear filters\" to reset everything.", "Tip: on Tour, typing an exact unit number always puts that unit at the top of the results, even if it is filtered out or not in today's pricing sheet."]},
     "builtin-pricing-concession": {"title": "Set the Current Concession", "icon": "🏷️", "category": "Tour", "steps": ["On the Tour tab, find \"Current Concession\" at the top of the left panel and click Edit.", "Describe the special (e.g. \"6 weeks free for LW units, 4 weeks free for 2-Beds\") and add any internal notes for agents.", "Click \"Save Concession Settings\" — it applies automatically across the Tour tab.", "On each flyer, use \"Show concession calculator on flyer\" and \"Concession length (weeks free)\" to control what that flyer shows.", "The calculator uses the unit's 3 cheapest 12–15 month rates from the pricing sheet and hides itself if none qualify."]},
     "builtin-compare-units": {"title": "Put Several Units on One Flyer", "icon": "🗂️", "category": "Tour", "steps": ["Open the first unit on the Tour tab as usual.", "Click \"+ Add unit\", then search for and pick the next unit.", "The units appear under \"Units in this pamphlet\" — click one to edit its price, terms and links.", "Repeat for more units, or click \"Cancel add\" to stop adding.", "Download PDF or Download Printable PDF includes every unit you added."]},
@@ -14341,7 +14465,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-expiring": {"title": "Find Upcoming Units on the Expiring Tab", "icon": "📆", "category": "Expiring", "steps": ["Export the lease expiration report and upload it on the Expiring tab (\"Upload file\").", "Every unit with an upcoming lease end is listed with a status: Notice, Current, or Renewed.", "Renewed comes from the Renewals tab — checking \"Renewed?\" there updates it here.", "Use the Move-In Date filter to show only leases ending on or before a date, plus Beds, Floorplan, Floor, Building or Amenity.", "Click a unit to open it in the Tour tab and make an \"available soon\" flyer.", "The Waitlist tab uses this same report to suggest \"Possible upcoming units\" for each prospect."]},
     "builtin-review-renewals": {"title": "Review Monthly Renewals", "icon": "🔁", "category": "Renewals", "steps": ["Export the Renewal Offer Analysis report and upload it on the Renewals tab (\"Upload file\").", "The cards at the top show each month's Pending, Renewed and Notice counts.", "The list defaults to Status: Pending. Use the Month dropdown to focus on one month.", "For each unit, check \"Renewed?\" when the resident renews or \"Notice?\" when they give notice — only one can be checked.", "Add notes in the Notes column. Tip: start typing \"leas\" and press Tab to fill in \"lease is out for signature\".", "A 🚩 flag means the lease ends within 30 days (or has already ended) with no decision recorded — follow up on those first.", "To look up any unit regardless of status or month, type it in \"Search any unit (any status)…\".", "Re-uploading a newer report keeps all your checkboxes and notes; only dates and rates refresh.", "Renewed units also show as Renewed on the Expiring tab and stop being suggested on the Waitlist."]},
     "builtin-waitlist": {"title": "Add and Follow Up with Waitlist Prospects", "icon": "📝", "category": "Waitlist", "steps": ["Open the Waitlist tab and click \"+ Add Prospect\".", "Fill in Agent, Prospect name, Beds, Move-In Date, Phone and Email (Rent is optional).", "Use \"Prospect Details & Notes\" for preferences, and \"Agent Follow-Up Notes\" for each contact — include the date (e.g. \"Notified of 4420 on 7/2\").", "\"Possible upcoming units\" lists units from the Expiring tab that match the prospect's Beds and end before their Move-In Date.", "Check Cancel or Leased when they drop off or sign — they move to the Cancelled or Leased tab.", "Filter by Agent, Beds or Move-In Month; \"Clear filters\" resets them. The × button removes a prospect."]},
-    "builtin-storage": {"title": "Track Storage Locker Interest", "icon": "📦", "category": "Waitlist", "steps": ["On the Waitlist tab, click the Storage tab on the right.", "Click \"+ Add Entry\" and fill in Name, Unit, and Email or phone.", "Check \"Contacted\" once you've reached out.", "Use the × button to remove an entry permanently."]},
+    "builtin-storage": {"title": "Track Storage Locker Interest", "icon": "📦", "category": "Waitlist", "steps": ["On the Waitlist tab, click the Storage tab on the right.", "Click \"+ Add Entry\" and fill in Name, Unit, and Email or phone.", "Check \"Contacted\" once you've reached out.", "Drag the ≡ handle at the left of a row to move it up or down (or focus it and use the arrow keys) — the order is shared with the team.", "Use the × button to remove an entry permanently."]},
     "builtin-site-map": {"title": "Use the Interactive Site Map", "icon": "🗺️", "category": "Media", "steps": ["Open the Media tab and pick a floor: 1st, 2nd, 3rd or 4th.", "Orange units are available now (from today's pricing sheet); gray units aren't currently available.", "Hover (or tap) a unit for options: \"Load in Tour\" opens it in the Tour tab, and \"Watch Video\" plays its video tour when one is on file.", "Retail suites and the Leasing Office are clickable when they have a website — they open it in a new tab.", "\"E\" boxes mark elevators; light corridors show the interior hallways.", "On the 2nd floor, gray outlined numbers mark the upper floor of the two-story townhomes below."]},
     "builtin-print-docs": {"title": "Print Move-in Documents and Signs", "icon": "🖨️", "category": "Documents", "steps": ["Open the Documents tab and pick a section: Move-in Docs, Building Signs, Forms or Bulletin.", "Click Print on a document. Most print two half-sheets per page, ready to cut; each card says \"Prints 2 per page\" or \"Prints full sheet\".", "Open shows the document in a new tab; Download saves the original file.", "Use Details (top right) for a compact list that fits everything on one screen, or Preview for page thumbnails."]},
     "builtin-manage-docs": {"title": "Upload, Replace or Reorder Documents", "icon": "📤", "category": "Documents", "steps": ["Open the section the document belongs in, then click \"+ Upload\" and pick a PDF, JPG or PNG (up to 10 MB).", "Give it a title, then choose OK for two half-sheets per page or Cancel for a full sheet.", "To update a document, click Replace under it and pick the new file — it keeps its title, spot and print setting.", "Drag the ≡ handle at the bottom right of any card to move it to a new spot (or focus it and use the arrow keys).", "Remove deletes an uploaded document, and Revert restores a built-in one — both need the Admin password.", "Uploads, order and replacements are shared with the whole team."]},
@@ -14358,7 +14482,8 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-unit-info": {"title": "Update Unit Info (Videos, Mailbox, Commission)", "icon": "🏢", "category": "Settings", "steps": ["Go to Settings and click \"UNIT INFO — Click to View\".", "Search for a unit by number.", "Edit any field — e.g. Video Name and Video Link, Mailbox, View, Amenity or Commission. Changes save automatically and are shared with the team.", "Video links here power the Tour flyers and \"Watch Video\" on the Media site map."]},
     "builtin-retail-info": {"title": "Keep Retail Tenant Contacts and Websites Up to Date", "icon": "🏬", "category": "Settings", "steps": ["Go to Settings and click \"RETAIL INFO — Click to View\".", "Edit any cell directly, or click \"+ Add Suite\" for a new tenant.", "To load many at once, click \"Paste from Spreadsheet\", paste the rows (with the header row), and click Import.", "Add a Website for a suite and that suite becomes a clickable link on the Media site map.", "Contacts are stored in the shared backend, not in the public site code."]},
     "builtin-backend": {"title": "Connect the Shared Backend", "icon": "🔗", "category": "Settings", "steps": ["This is a one-time setup, usually already done for the team.", "Go to Settings and paste the Google Apps Script \"Web App URL\".", "Click Save, then \"Test Connection\" — it should say Connected.", "Once connected, Residents, Waitlist, Renewals notes, How-To guides, Documents and more are shared across agents.", "Without it, data stays in your browser only."]},
-    "builtin-howto": {"title": "Add or Edit a How-To Guide", "icon": "➕", "category": "How-To", "steps": ["Open the How-To tab and click \"+ Add Guide\".", "Enter a Title, an Icon (any emoji), a Category (e.g. the tab it's about), and the Steps, one per line.", "Click \"Save Guide\" — it's shared with the whole team.", "To change a guide, open it and click Edit; \"Delete Guide\" removes it.", "Use the search box or the category chips to find guides quickly."]}
+    "builtin-questions": {"title": "Ask the Questions Assistant", "icon": "💬", "category": "Help", "steps": ["Open Help and click the Questions sub-tab.", "Type a question and press Enter (or click Ask). Ask several at once by separating them with a question mark.", "It answers from the app's own data: a unit number (e.g. \"Tell me about 4334\"), a floorplan (\"B5\"), availability (\"2-beds available under $3000\"), fees (\"pet deposit\"), move-ins/move-outs (\"who is moving in this week\"), expiring leases, residents or prospects by name, retail suites, documents, and how to do things.", "Use the buttons under an answer to open the unit in Tour, jump to the right tab, or open the full guide.", "Answers are only as current as the uploaded reports — upload today's pricing sheet and lease expiration report for the best results.", "\"Clear chat\" empties the conversation. Nothing you ask leaves your browser."]},
+    "builtin-howto": {"title": "Add or Edit a How-To Guide", "icon": "➕", "category": "How-To", "steps": ["Open Help > How-To and click \"+ Add Guide\".", "Enter a Title, an Icon (any emoji), a Category (e.g. the tab it's about), and the Steps, one per line.", "Click \"Save Guide\" — it's shared with the whole team.", "To change a guide, open it and click Edit; \"Delete Guide\" removes it.", "Use the search box or the category chips to find guides quickly."]}
 };
 // share: after a backend merge, push the ones added so the whole team
 // has them. Before the first pull they're only filled in locally (not
@@ -14533,6 +14658,648 @@ document.getElementById('howtoEditDeleteBtn').addEventListener('click', () => {
 });
 document.getElementById('howtoSearchBar').addEventListener('input', renderHowTo);
 restoreHowToLocal();
+
+/* ============================================================
+   HELP > QUESTIONS — a chat-style assistant that answers from what the
+   app already knows: the How-To guides, a glossary of the app's terms,
+   Default Charges, Retail Info, Documents, the concession, and live
+   data (unit roster, today's pricing sheet, lease expirations,
+   renewals, residents, waitlists). Everything runs in this browser —
+   nothing is sent anywhere. Questions are matched with word stems,
+   synonyms, typo tolerance and phrase bonuses (BM25-style ranking),
+   plus direct lookups for unit numbers, floorplans, names, dates and
+   "how many / what's available" style questions.
+   ============================================================ */
+const QA_GLOSSARY = [
+    ['Tour tab', 'Tour builds a tour pamphlet (flyer) for any unit: search a unit number or floorplan, check the auto-filled specs, price and availability, then Download PDF (clickable links) or Download Printable PDF.', 'tour', 'flyer pamphlet brochure build'],
+    ['Availability tab', 'Availability shows every unit from today’s pricing sheet on a Month or Week calendar on the date it becomes available. Click a unit to open it in Tour. "Video Tours Needed" lists units whose video isn’t of that exact unit.', 'availability', 'calendar vacant open date'],
+    ['Video Tours Needed', 'On the Availability tab, "Video Tours Needed" lists units whose Video Name doesn’t contain their own unit number. Bold + underlined = available now, plain with a date = available soon, gray = not available. Click one to open it in Tour.', 'availability', 'video film record shoot missing'],
+    ['Expiring tab', 'Expiring lists upcoming lease ends (from the uploaded lease expiration report) with status Notice, Current or Renewed — future potential availability. Click a unit to make an "available soon" flyer.', 'expiring', 'lease end expiration upcoming notice'],
+    ['Renewals tab', 'Renewals tracks pending renewal decisions from the Renewal Offer Analysis report. Check "Renewed?" or "Notice?" per unit, add notes, and use Generate Renewal Offer PDF. A 🚩 flag means the lease ends within 30 days with no decision.', 'renewals', 'renew offer flag decision'],
+    ['Residents tab', 'Residents is the shared move-in tracker: one row per resident with Agent, Unit, names, dates, Term, Rate, Promo, Screen status and the move-in checklist. Sub-tabs: Active, Pending, Notice Req. and Move-Outs.', 'residents', 'move-in tracker tenant checklist'],
+    ['Screen column (Residents)', 'Screen shows where the application is: Applied → Screening → Approved → ↑ Uploaded. Once Approved or Uploaded, unfinished checklist steps are shaded pink.', 'residents', 'application screening approved uploaded status'],
+    ['Arrow and check symbols (Residents)', 'In the Residents checklist: → means sent/invited (e.g. lease sent or deposit invite sent), ↑ means uploaded/signed and filed, and ✓ means complete (e.g. deposit paid, inventory & condition done). "-" means not started.', 'residents', 'symbol icon arrow uparrow rightarrow checkmark up right check mark meaning mean deposit lease inv cond inventory condition'],
+    ['Deposit column', 'Deposit: "-" not started, → invite sent, ✓ paid/complete. Pending residents without ✓ count toward "Missing holding deposit" at the top of the Residents tab.', 'residents', 'deposit holding paid'],
+    ['Inv/Cond column', 'Inv/Cond is the Inventory & Condition form: ✓ complete, ↑ uploaded.', 'residents', 'inventory condition form'],
+    ['Move-Out and Notice Needed dates', 'Move-Out is calculated from Move-In + Term (minus a day). Renewed adds the months in Status Details; Early Term uses the date in Status Details. Notice Needed is 2 months before Move-Out.', 'residents', 'moveout calculate notice needed date term'],
+    ['Status and Status Details (Residents)', 'Status can be Notice, Renewed, TRANSFER, Early Term or Eviction. Status Details: for Renewed type the months (extends Move-Out), for Early Term type the date (becomes Move-Out), for TRANSFER type the unit they’re moving to.', 'residents', 'renewed early term transfer eviction detail'],
+    ['Row colors (Residents)', 'A row turns green when all 8 checklist boxes (ID, WL, Ins., M/I Pmt, M/I Folder, Walk-Thru, Moved In, Latch) are checked. Ins. and M/I Pmt show red until checked; pink cells are unfinished steps after approval.', 'residents', 'green red pink color highlight'],
+    ['Saving on the Residents tab', 'Residents edits save to the shared backend automatically; the note under the table shows the save status. Each field keeps its most recent edit, so other agents’ open tabs can’t revert it. If something looks stale, click "Refresh to Update".', 'residents', 'save saving revert sync not saving lost'],
+    ['WL (Welcome Letter) tab', 'WL is the Welcome Letter: pick a resident, fill charges, deposits, fees, concessions and utilities, then Download WL PDF, Create Email Draft or Download M/I Sticker. It also feeds the Lease tab.', 'wl', 'welcome letter email sticker'],
+    ['Lease tab', 'Lease shows the values to enter into the lease (Lease Terms, Cover Sheet, Animal, Buyout, Inventory, Parking, Rent Concession, Special Provisions), auto-filled from the Welcome Letter, with copy buttons.', 'lease', 'lease contract copy renewal'],
+    ['Waitlist tab', 'Waitlist tracks prospects (Prospects, Transfers, Cancelled, Leased, All). "Possible Upcoming Units" matches each prospect’s Beds and Move-In Date against the Expiring report. The Storage button holds the storage locker waitlist and Rented Lockers.', 'waitlist', 'prospect lead transfer cancelled leased'],
+    ['Storage locker waitlist', 'Waitlist > Storage: "+ Add Entry" for each request, check Contacted once reached (the row is struck through), drag the ≡ handle to reorder, and × to delete. Rented Lockers is listed below it.', 'waitlist', 'storage locker reorder drag contacted'],
+    ['Media tab / site map', 'Media has the interactive site map by floor: orange = available now, gray = not available. Hover or tap a unit for "Load in Tour" and "Watch Video". Retail suites and the Leasing Office link to their websites; "E" marks elevators.', 'media', 'map sitemap floor plan video elevator'],
+    ['Documents tab', 'Documents holds printables in Move-in Docs, Building Signs, Forms and Bulletin. Print makes 2 half-sheets per page (some print full sheet). + Upload adds a PDF/JPG/PNG; drag ≡ to reorder; Replace/Remove/Revert under each card.', 'documents', 'print printable upload sign form bulletin'],
+    ['Admin tab', 'Admin is password-protected and holds MMR (weekly report), Commissions (pay-period export), PCard (reconciliation) and Deposit Accounting (move-out proration + email).', 'admin', 'mmr commission pcard password deposit accounting'],
+    ['MMR', 'MMR is the weekly Management/Marketing Report in Admin: enter Weekly Stats, New Leases, Unit Renewals and Weekly Traffic, upload last week’s file and click Download New MMR.', 'admin', 'weekly report traffic stats'],
+    ['Deposit Accounting', 'Admin > Deposit Accounting prorates move-out charges (rent, garage, pet, storage, bundle, trash, valet, admin, utilities, other) and builds an email you can copy or open as a draft.', 'admin', 'move out prorate proration refund deposit email'],
+    ['Settings tab', 'Settings has Light/Dark mode, Refresh Site to Update, Live/Test mode, the shared backend URL, Unit Info (roster, stats, videos), Retail Info and Default Charges.', 'settings', 'preferences dark light test backend'],
+    ['Unit Info', 'Settings > Unit Info is the unit roster (floorplan, sq ft, building, floor, Yardi code, bed/bath, address, view, mailbox, amenity, commission, market rent, video) with statistics you can click to filter.', 'settings', 'roster unit data statistics stats'],
+    ['Default Charges', 'Settings > Default Charges is the property fee sheet. Every fee used in the Welcome Letter, Lease, Commissions and Deposit Accounting comes from this table.', 'settings', 'fee sheet charges cost price'],
+    ['Test mode', 'Settings > Test switches every tab to sample data; nothing you do touches real data. Click Live to return.', 'settings', 'practice sample demo sandbox'],
+    ['Refresh Site to Update', 'Settings > "Refresh Site to Update" (or a hard refresh, Cmd/Ctrl+Shift+R) loads the newest version of the app. Do this after a new feature is deployed.', 'settings', 'update reload new version cache hard refresh'],
+    ['Admin password', 'The Admin password isn\u2019t shown anywhere in the app \u2014 ask your manager. It unlocks the Admin tab and confirms Residents Upload/Clear, removing documents, and Games.', 'admin', 'password passcode unlock login locked'],
+    ['Games', 'Games (Snake and Chess) are hidden: click the RÊVE logo on the Settings tab and enter the Admin password.', 'settings', 'snake chess fun hidden logo'],
+    ['Concession', 'The current concession is set from Tour > Current Concession > Edit and applies automatically to matching units’ flyers.', 'tour', 'special promo discount weeks free deal']
+];
+const QA_STOP = new Set('a an the is are was were be been am do does did to of in on at for from by with and or but if then than so as it its this that these those there here what whats which who whom whose how when where why can could should would will shall may might must i me my we our you your they them their he she his her us about into over under up out any some all please tell show give find know need want get got let lets im ive youre dont doesnt isnt one ones also just like much many'.split(' '));
+// Words that mean the same thing here, mapped to one canonical word.
+const QA_SYNONYMS = (() => {
+    const groups = [
+        ['fee', 'fees', 'charge', 'cost', 'costs', 'price', 'pricing', 'priced', 'amount', 'rent', 'rate', 'rates', 'expensive', 'cheap', 'cheapest'],
+        ['pet', 'dog', 'dogs', 'cat', 'cats', 'animal', 'animals', 'petscreening'],
+        ['trash', 'garbage', 'waste', 'recycling', 'recycle', 'compost', 'disposal'],
+        ['internet', 'wifi', 'fiber', 'quantum', 'broadband'],
+        ['parking', 'garage', 'car', 'vehicle', 'spot'],
+        ['storage', 'locker', 'lockers'],
+        ['bed', 'beds', 'bedroom', 'bedrooms', 'br', 'bd'],
+        ['available', 'availability', 'vacant', 'vacancy', 'vacancies', 'open'],
+        ['renew', 'renewal', 'renewals', 'renewed', 'renewing'],
+        ['flyer', 'pamphlet', 'brochure', 'flier'],
+        ['unit', 'units', 'apt', 'apartment', 'apartments', 'home', 'homes'],
+        ['resident', 'residents', 'tenant', 'tenants'],
+        ['prospect', 'prospects', 'lead', 'leads'],
+        ['concession', 'special', 'specials', 'promo', 'discount', 'deal'],
+        ['application', 'apply', 'applicant', 'applicants', 'app'],
+        ['mailbox', 'mail'],
+        ['townhome', 'townhomes', 'townhouse', 'th'],
+        ['livework', 'lw'],
+        ['sqft', 'square', 'footage', 'size', 'big', 'large'],
+        ['transit', 'rtd', 'ecopass', 'bus', 'myride'],
+        ['access', 'door', 'fob', 'key', 'keys', 'latch'],
+        ['retail', 'business', 'businesses', 'store', 'shop', 'commercial'],
+        ['website', 'site', 'url', 'link'],
+        ['print', 'printing', 'printer', 'printable'],
+        ['video', 'videos', 'film', 'recording'],
+        ['suite', 'guest'],
+        ['wl', 'welcome'],
+        ['movein', 'moving'],
+        ['moveout'],
+        ['expire', 'expiring', 'expiration', 'expires', 'ending', 'end', 'ends']
+    ];
+    const m = {};
+    groups.forEach(g => g.forEach(w => { m[w] = g[0]; }));
+    return m;
+})();
+function qaStem(w) {
+    if (w.length <= 3 || /\d/.test(w)) return w;
+    if (/ies$/.test(w) && w.length > 4) return w.slice(0, -3) + 'y';
+    if (/(ss|x|ch|sh)es$/.test(w)) return w.slice(0, -2);
+    if (/ing$/.test(w) && w.length > 5) return w.slice(0, -3);
+    if (/ed$/.test(w) && w.length > 4) return w.slice(0, -2);
+    if (/s$/.test(w) && !/ss$/.test(w)) return w.slice(0, -1);
+    return w;
+}
+function qaNormalize(text) {
+    return String(text || '').toLowerCase()
+        .replace(/[‘’]/g, "'")
+        .replace(/\u2191/g, ' uparrow arrow ').replace(/\u2192/g, ' rightarrow arrow ').replace(/[\u2713\u2714]/g, ' checkmark ')
+        .replace(/\bmoving\s+in\b/g, ' movein ').replace(/\bmoving\s+out\b/g, ' moveout ')
+        .replace(/\bmove[\s-]?ins?\b/g, ' movein ').replace(/\bmove[\s-]?outs?\b/g, ' moveout ')
+        .replace(/\blive\s*\/?\s*work\b/g, ' livework ').replace(/\bwi-?fi\b/g, ' wifi ')
+        .replace(/\bsq\.?\s*f(ee)?t\.?\b|\bsquare\s+f(ee|oo)t(age)?\b/g, ' sqft ')
+        .replace(/\bone[\s-]bed/g, '1 bed').replace(/\btwo[\s-]bed/g, '2 bed').replace(/\bthree[\s-]bed/g, '3 bed')
+        .replace(/(\d)\s*-?\s*(bed|br|bd)s?\b/g, '$1 bed');
+}
+function qaTokens(text, keepStop) {
+    return qaNormalize(text).split(/[^a-z0-9$]+/).filter(Boolean)
+        .map(w => w.replace(/^\$/, '')).filter(w => w && (keepStop || !QA_STOP.has(w)))
+        .map(w => QA_SYNONYMS[w] || QA_SYNONYMS[qaStem(w)] || qaStem(w));
+}
+function qaEditDistance(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return max + 1;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+        const cur = [i];
+        let rowMin = i;
+        for (let j = 1; j <= b.length; j++) {
+            cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+            rowMin = Math.min(rowMin, cur[j]);
+        }
+        if (rowMin > max) return max + 1;
+        prev = cur;
+    }
+    return prev[b.length];
+}
+function qaFmtDate(d) { return d ? `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}` : ''; }
+function qaParseYmd(s) {
+    const m = String(s || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+}
+function qaToday() { const t = new Date(); t.setHours(0, 0, 0, 0); return t; }
+
+/* ---------- Knowledge base: every searchable passage ---------- */
+function qaBuildPassages() {
+    const P = [];
+    const add = (kind, title, text, extra) => P.push(Object.assign({ kind, title, text }, extra || {}));
+    Object.keys(HOWTO_GUIDES).forEach(id => {
+        const g = HOWTO_GUIDES[id];
+        if (!howtoVisible(g) || !g.title) return;
+        add('guide', g.title, (g.steps || []).join(' '), { id, category: g.category || '', steps: g.steps || [], boost: g.category || '' });
+    });
+    QA_GLOSSARY.forEach(([title, text, tab, keys]) => add('faq', title, text, { tab, boost: keys }));
+    Object.values(DEFAULT_CHARGES).filter(r => r && !r.deleted && r.name).forEach(r => {
+        const amt = parseFloat(String(r.amount).replace(/[$,]/g, ''));
+        add('charge', r.name, `${r.name}: ${isNaN(amt) ? r.amount : fmtFee(amt)} ${r.freq || ''}. ${r.note || ''}`, { row: r, boost: 'fee ' + (r.section || '') });
+    });
+    (RETAIL_INFO.rows || []).filter(r => r && (r.business || r.suite)).forEach(r => {
+        add('retail', `Suite ${r.suite} — ${r.business || 'vacant'}`, [r.business, r.owner, r.contact2, r.website].filter(Boolean).join(' '), { row: r, boost: 'retail suite ' + r.suite });
+    });
+    DOC_SECTIONS.forEach(sec => {
+        docsForSection(sec.id).forEach(d => add('doc', d.title, `${d.title} in Documents › ${sec.label}. ${d.print === 'full' ? 'Prints full sheet' : 'Prints 2 per page'}.`, { section: sec, doc: d, boost: 'document print ' + sec.label }));
+    });
+    if (CONCESSION_SETTINGS && (CONCESSION_SETTINGS.terms || CONCESSION_SETTINGS.notes)) {
+        add('faq', 'Current concession', [CONCESSION_SETTINGS.terms, CONCESSION_SETTINGS.notes].filter(Boolean).join(' — '), { tab: 'tour', boost: 'concession current now weeks free' });
+    }
+    P.forEach(p => {
+        const titleToks = qaTokens(p.title);
+        p.toks = titleToks.concat(titleToks, qaTokens(p.text), qaTokens(p.boost || ''), qaTokens(p.category || ''));
+        p.tf = {};
+        p.toks.forEach(t => { p.tf[t] = (p.tf[t] || 0) + 1; });
+        p.norm = ' ' + qaTokens(p.title + ' ' + p.text, true).join(' ') + ' ';
+    });
+    return P;
+}
+function qaRank(passages, qToks) {
+    const N = passages.length || 1;
+    const avg = passages.reduce((s, p) => s + p.toks.length, 0) / N || 1;
+    const df = {};
+    passages.forEach(p => Object.keys(p.tf).forEach(t => { df[t] = (df[t] || 0) + 1; }));
+    // Typo tolerance: an unknown word maps to the closest known one.
+    const vocab = Object.keys(df);
+    const terms = qToks.map(t => {
+        if (df[t] || t.length < 4 || /\d/.test(t)) return t;
+        const max = t.length >= 7 ? 2 : 1;
+        let best = null, bestD = max + 1;
+        vocab.forEach(v => { const d = qaEditDistance(t, v, max); if (d < bestD) { bestD = d; best = v; } });
+        return best || t;
+    });
+    const uniq = [...new Set(terms)];
+    const bigrams = [];
+    for (let i = 0; i + 1 < terms.length; i++) bigrams.push(' ' + terms[i] + ' ' + terms[i + 1] + ' ');
+    return passages.map(p => {
+        let score = 0, hits = 0;
+        uniq.forEach(t => {
+            const tf = p.tf[t];
+            if (!tf) return;
+            hits++;
+            const idf = Math.log(1 + (N - df[t] + 0.5) / (df[t] + 0.5));
+            score += idf * (tf * 2.2) / (tf + 1.2 * (0.25 + 0.75 * p.toks.length / avg));
+        });
+        bigrams.forEach(b => { if (p.norm.includes(b)) score += 1.5; });
+        if (uniq.length > 1) score *= 0.6 + 0.4 * hits / uniq.length;   // favor passages covering more of the question
+        return { p, score, hits };
+    }).filter(x => x.score > 0).sort((a, b) => b.score - a.score);
+}
+
+/* ---------- Live-data lookups ---------- */
+function qaUnitAvailability(unit) {
+    const s = PRICING_SUMMARY[unit];
+    if (!s) return null;
+    const now = qaToday().getTime();
+    return { now: s.availableSortKey <= now, date: s.available, price: s.bestPrice, term: s.bestTerm, key: s.availableSortKey };
+}
+function qaBedGroup(u) { return typeof unitBedGroup === 'function' ? unitBedGroup(u) : null; }
+function qaUnitKind(u) {
+    const fp = String(u.floorplan || '').toUpperCase();
+    if (/^TH/.test(fp)) return 'Townhome';
+    if (/^LW/.test(fp)) return 'Live/Work';
+    if (/^PH/.test(fp)) return 'Penthouse';
+    return qaBedGroup(u);
+}
+function qaResidentsForUnit(unit) {
+    return Object.keys(RESIDENT_ROWS).map(id => RESIDENT_ROWS[id]).filter(r => r && !r.deleted && String(r.unit || '').trim() === unit);
+}
+function qaResidentName(r) { return [r.first, r.last].filter(Boolean).join(' ') || '(no name)'; }
+function qaResidentMissing(r) {
+    const labels = { idCheck: 'ID', welcomeLetter: 'WL', insurance: 'Insurance', miPayment: 'M/I Payment', miFolder: 'M/I Folder', walkThrough: 'Walk-Thru', movedIn: 'Moved In', latch: 'Latch' };
+    const out = RESIDENT_CHECKLIST_KEYS.filter(k => !r[k]).map(k => labels[k] || k);
+    if (r.deposit !== '✓') out.push('Deposit');
+    if (!r.inventoryConditions) out.push('Inv/Cond');
+    if (r.lease !== '↑') out.push('Lease');
+    return out;
+}
+function qaResidentSummary(r) {
+    const d = computeResidentDerived(r);
+    const bits = [`<b>${escapeHtml(qaResidentName(r))}</b> — unit ${escapeHtml(r.unit || '?')}`];
+    const mi = qaParseYmd(r.moveInDate);
+    if (mi) bits.push(`move-in ${qaFmtDate(mi)}`);
+    if (r.leaseTerm) bits.push(`${escapeHtml(String(r.leaseTerm))}-month term`);
+    if (d.moveOut) bits.push(`move-out ${qaFmtDate(d.moveOut)}`);
+    if (r.specialStatus) bits.push(`status ${escapeHtml(r.specialStatus)}${r.statusDetail ? ' (' + escapeHtml(r.statusDetail) + ')' : ''}`);
+    if (r.agent) bits.push(`agent ${escapeHtml(r.agent)}`);
+    let html = bits.join(', ') + '.';
+    if (!r.movedIn) {
+        const miss = qaResidentMissing(r);
+        html += miss.length ? ` Still open: ${escapeHtml(miss.join(', '))}.` : ' Checklist complete.';
+    } else if (d.movedOut) html += ' Moved out.';
+    else html += ' Moved in.';
+    return html;
+}
+function qaUnitAnswer(unit, qToks) {
+    const u = byUnit[unit];
+    const lines = [];
+    const kind = qaUnitKind(u);
+    lines.push(`<b>Unit ${escapeHtml(unit)}</b> is a ${escapeHtml(u.floorplan || '?')} floorplan${kind ? ' (' + escapeHtml(kind) + ')' : ''}: ${escapeHtml(u.bedBath || '?')} bed/bath, ${escapeHtml(u.sqft || '?')} sq ft, ${escapeHtml(u.bldg || '')}, floor ${escapeHtml(u.floor || '?')}.`);
+    const extras = [];
+    if (u.view) extras.push(`${escapeHtml(u.view)} view`);
+    const tags = typeof unitAmenityTag === 'function' ? unitAmenityTag(u) : '-';
+    if (tags && tags !== '-') extras.push(escapeHtml(tags.replace('MV', 'Mountain View')));
+    if (u.address) extras.push(escapeHtml(u.address));
+    if (u.mailbox) extras.push(`mailbox ${escapeHtml(u.mailbox)}`);
+    if (u.yardi) extras.push(`Yardi ${escapeHtml(u.yardi)}`);
+    if (extras.length) lines.push(extras.join(' · ') + '.');
+    const a = qaUnitAvailability(unit);
+    if (a) lines.push(a.now ? `Available <b>now</b> — best price ${escapeHtml(a.price)} (${escapeHtml(a.term)}).` : `Available <b>${escapeHtml(a.date)}</b> — best price ${escapeHtml(a.price)} (${escapeHtml(a.term)}).`);
+    else if (Object.keys(PRICING_SUMMARY).length) lines.push('Not in today’s pricing sheet (not currently available).');
+    const exp = EXPIRING_UNITS.find(e => e.unit === unit);
+    if (exp) lines.push(`Lease ends ${qaFmtDate(exp.leaseTo)} (${escapeHtml(exp.status || 'Current')}).`);
+    const ren = RENEWAL_STATE[unit];
+    if (ren && (ren.renewed || ren.notice)) lines.push(ren.renewed ? 'Marked Renewed on the Renewals tab.' : 'Marked Notice on the Renewals tab.');
+    if (u.marketRent) lines.push(`Market rent ${escapeHtml(u.marketRent)}.`);
+    if (u.commission && qToks.includes('commission')) lines.push(`Commission ${escapeHtml(u.commission)}.`);
+    const res = qaResidentsForUnit(unit);
+    if (res.length) lines.push('Residents: ' + res.map(qaResidentSummary).join(' '));
+    const needsVideo = typeof unitNeedsVideoTour === 'function' && unitNeedsVideoTour(u);
+    if (u.videoLink) lines.push(needsVideo ? `Video on file is <i>${escapeHtml(u.videoName || '')}</i> — not of this exact unit (listed under Video Tours Needed).` : `Video tour: <i>${escapeHtml(u.videoName || 'on file')}</i>.`);
+    const actions = [{ label: 'Open in Tour', act: 'tour:' + unit }];
+    if (u.videoLink) actions.push({ label: 'Watch video', href: u.videoLink });
+    return { html: lines.map(l => `<p>${l}</p>`).join(''), actions, source: 'Unit Info · pricing sheet · Expiring · Residents' };
+}
+function qaFloorplanAnswer(fp) {
+    const units = UNITS.filter(u => String(u.floorplan).toUpperCase() === fp);
+    const sq = units.map(u => parseFloat(u.sqft)).filter(n => !isNaN(n));
+    const bb = [...new Set(units.map(u => u.bedBath).filter(Boolean))];
+    const avail = units.map(u => ({ u, a: qaUnitAvailability(u.unit) })).filter(x => x.a).sort((x, y) => x.a.key - y.a.key);
+    let html = `<p><b>${escapeHtml(fp)}</b>: ${units.length} unit${units.length === 1 ? '' : 's'}, ${escapeHtml(bb.join(' or '))} bed/bath, ${sq.length ? (Math.min(...sq) === Math.max(...sq) ? Math.min(...sq) : Math.min(...sq) + '–' + Math.max(...sq)) : '?'} sq ft.</p>`;
+    html += avail.length ? `<p>Available: ${avail.map(x => qaUnitChip(x.u.unit, x.a)).join(' ')}</p>` : '<p>None in today’s pricing sheet.</p>';
+    html += `<p class="qa-muted">All ${escapeHtml(fp)} units: ${units.map(u => qaUnitChip(u.unit)).join(' ')}</p>`;
+    return { html, source: 'Unit Info · pricing sheet' };
+}
+function qaUnitChip(unit, a) {
+    const label = a ? `${unit} · ${a.now ? 'now' : a.date} · ${a.price}` : unit;
+    return `<button type="button" class="qa-unit-chip" data-qa-act="tour:${escapeAttr(unit)}">${escapeHtml(label)}</button>`;
+}
+// Filters spelled out in the question: beds/type, floor, building, price, view.
+function qaUnitFilters(q) {
+    const f = {};
+    const n = qaNormalize(q);
+    if (/\bstudios?\b/.test(n)) f.kind = 'Studio';
+    else if (/\b1 bed/.test(n)) f.kind = '1 Bed';
+    else if (/\b2 bed/.test(n)) f.kind = '2 Bed';
+    else if (/\b3 bed/.test(n)) f.kind = '3 Bed';
+    if (/\btown ?(home|house)s?\b|\bth\b/.test(n)) f.kind = 'Townhome';
+    if (/\blivework\b|\blw\b/.test(n)) f.kind = 'Live/Work';
+    if (/\bpent ?house|\bph\b/.test(n)) f.kind = 'Penthouse';
+    let m = n.match(/\b(1st|2nd|3rd|4th|first|second|third|fourth)\s+floor\b|\bfloor\s+([1-4])\b/);
+    if (m) f.floor = { '1st': '1', first: '1', '2nd': '2', second: '2', '3rd': '3', third: '3', '4th': '4', fourth: '4' }[m[1]] || m[2];
+    m = n.match(/\b(?:building|bldg)\s*([1-4])\b/);
+    if (m) f.bldg = m[1];
+    m = n.match(/\b(?:under|below|less than|max|up to|<)\s*\$?\s*([\d,]+)/);
+    if (m) f.maxPrice = parseFloat(m[1].replace(/,/g, ''));
+    m = n.match(/\b(?:over|above|more than|min|at least|>)\s*\$?\s*([\d,]+)/);
+    if (m) f.minPrice = parseFloat(m[1].replace(/,/g, ''));
+    if (/mountain/.test(n)) f.mv = true;
+    if (/corner/.test(n)) f.corner = true;
+    return f;
+}
+function qaUnitMatches(u, f) {
+    if (f.kind) {
+        const k = qaUnitKind(u);
+        if (f.kind === 'Townhome' || f.kind === 'Live/Work' || f.kind === 'Penthouse' ? k !== f.kind : qaBedGroup(u) !== f.kind) return false;
+    }
+    if (f.floor && String(u.floor) !== f.floor) return false;
+    if (f.bldg && !String(u.bldg).includes(f.bldg)) return false;
+    if (f.mv && !MOUNTAIN_VIEW_UNITS.has(u.unit)) return false;
+    if (f.corner && !CORNER_UNITS.has(u.unit)) return false;
+    return true;
+}
+function qaFilterLabel(f) {
+    const bits = [];
+    if (f.kind) bits.push(f.kind);
+    if (f.floor) bits.push('floor ' + f.floor);
+    if (f.bldg) bits.push('building ' + f.bldg);
+    if (f.mv) bits.push('mountain view');
+    if (f.corner) bits.push('corner');
+    if (f.maxPrice) bits.push('under $' + f.maxPrice.toLocaleString());
+    if (f.minPrice) bits.push('over $' + f.minPrice.toLocaleString());
+    return bits.join(', ');
+}
+function qaAvailabilityAnswer(q, countOnly) {
+    if (!Object.keys(PRICING_SUMMARY).length) return { html: '<p>No pricing sheet is loaded yet — upload today’s pricing CSV on the Tour tab and ask again.</p>', actions: [{ label: 'Go to Tour', act: 'tab:tour' }] };
+    const f = qaUnitFilters(q);
+    const n = qaNormalize(q);
+    const nowOnly = /\b(now|today|immediate(ly)?|right now)\b/.test(n);
+    const window = qaDateWindow(q);
+    let list = UNITS.filter(u => qaUnitMatches(u, f)).map(u => ({ u, a: qaUnitAvailability(u.unit) })).filter(x => x.a);
+    list = list.filter(x => {
+        const p = parseFloat(String(x.a.price).replace(/[$,]/g, ''));
+        if (f.maxPrice && !(p <= f.maxPrice)) return false;
+        if (f.minPrice && !(p >= f.minPrice)) return false;
+        if (nowOnly && !x.a.now) return false;
+        if (window && !nowOnly && !(x.a.key >= window.from.getTime() && x.a.key <= window.to.getTime()) && !(x.a.now && window.from <= qaToday())) return false;
+        return true;
+    }).sort((x, y) => x.a.key - y.a.key);
+    if (!list.length && nowOnly) {
+        const soon = qaAvailabilityAnswer(q.replace(/\b(now|today|immediate(ly)?|right now)\b/gi, ' '), countOnly);
+        return Object.assign({}, soon, { html: `<p>Nothing${qaFilterLabel(f) ? ' (' + escapeHtml(qaFilterLabel(f)) + ')' : ''} is available right now \u2014 here\u2019s what\u2019s coming up:</p>` + soon.html });
+    }
+    const label = [qaFilterLabel(f), nowOnly ? 'available now' : window ? 'available ' + window.label : ''].filter(Boolean).join(', ');
+    if (!list.length) return { html: `<p>No units match${label ? ' (' + escapeHtml(label) + ')' : ''} in today’s pricing sheet.</p>`, source: 'pricing sheet' };
+    const nowCount = list.filter(x => x.a.now).length;
+    let html = `<p><b>${list.length}</b> unit${list.length === 1 ? '' : 's'} ${label ? '(' + escapeHtml(label) + ') ' : ''}in today’s pricing sheet — ${nowCount} available now.</p>`;
+    if (!countOnly || list.length <= 12) {
+        html += `<p>${list.slice(0, 30).map(x => qaUnitChip(x.u.unit, x.a)).join(' ')}</p>`;
+        if (list.length > 30) html += `<p class="qa-muted">…and ${list.length - 30} more — see the Availability tab.</p>`;
+    }
+    const byKind = {};
+    list.forEach(x => { const k = qaUnitKind(x.u) || '?'; byKind[k] = (byKind[k] || 0) + 1; });
+    if (!f.kind && Object.keys(byKind).length > 1) html += `<p class="qa-muted">By type: ${Object.keys(byKind).sort().map(k => `${escapeHtml(k)} ${byKind[k]}`).join(' · ')}</p>`;
+    return { html, actions: [{ label: 'Open Availability', act: 'tab:availability' }], source: 'pricing sheet (' + (PRICING_META && PRICING_META.filename ? escapeHtml(PRICING_META.filename) : 'uploaded') + ')' };
+}
+const QA_MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+// "today", "this/next week", "this/next month", a month name, "next 30 days".
+function qaDateWindow(q) {
+    const n = qaNormalize(q);
+    const t = qaToday();
+    const day = 86400000;
+    if (/\btoday\b/.test(n)) return { from: t, to: t, label: 'today' };
+    if (/\btomorrow\b/.test(n)) { const d = new Date(t.getTime() + day); return { from: d, to: d, label: 'tomorrow' }; }
+    if (/\bthis week\b/.test(n)) { const s = new Date(t); s.setDate(t.getDate() - t.getDay()); const e = new Date(s); e.setDate(s.getDate() + 6); return { from: s, to: e, label: 'this week' }; }
+    if (/\bnext week\b/.test(n)) { const s = new Date(t); s.setDate(t.getDate() - t.getDay() + 7); const e = new Date(s); e.setDate(s.getDate() + 6); return { from: s, to: e, label: 'next week' }; }
+    let m = n.match(/\b(?:next|within|in the next)\s+(\d+)\s+days?\b/);
+    if (m) return { from: t, to: new Date(t.getTime() + (+m[1]) * day), label: `in the next ${m[1]} days` };
+    if (/\bthis month\b/.test(n)) return { from: new Date(t.getFullYear(), t.getMonth(), 1), to: new Date(t.getFullYear(), t.getMonth() + 1, 0), label: 'this month' };
+    if (/\bnext month\b/.test(n)) return { from: new Date(t.getFullYear(), t.getMonth() + 1, 1), to: new Date(t.getFullYear(), t.getMonth() + 2, 0), label: 'next month' };
+    for (let i = 0; i < 12; i++) {
+        const re = new RegExp('\\b(' + QA_MONTHS[i] + '|' + QA_MONTHS[i].slice(0, 3) + ')\\b');
+        if (re.test(n) && !(i === 4 && !/\bmay\b.*\b(20\d\d|\d{1,2}(st|nd|rd|th)?)\b|\bin may\b|\bmay (movein|moveout|lease)/.test(n))) {
+            const y = i < t.getMonth() - 1 ? t.getFullYear() + 1 : t.getFullYear();
+            return { from: new Date(y, i, 1), to: new Date(y, i + 1, 0), label: 'in ' + QA_MONTHS[i][0].toUpperCase() + QA_MONTHS[i].slice(1) };
+        }
+    }
+    return null;
+}
+function qaResidentList(rows, empty) {
+    if (!rows.length) return `<p>${escapeHtml(empty)}</p>`;
+    return '<ul class="qa-list">' + rows.map(r => `<li>${qaResidentSummary(r)}</li>`).join('') + '</ul>';
+}
+function qaMoveInAnswer(q, moveOut) {
+    const w = qaDateWindow(q) || (() => { const t = qaToday(); return { from: t, to: new Date(t.getTime() + 30 * 86400000), label: 'in the next 30 days' }; })();
+    const rows = Object.values(RESIDENT_ROWS).filter(r => r && !r.deleted).filter(r => {
+        const d = moveOut ? computeResidentDerived(r).moveOut : qaParseYmd(r.moveInDate);
+        return d && d >= w.from && d <= w.to;
+    }).sort((a, b) => (moveOut ? computeResidentDerived(a).moveOut - computeResidentDerived(b).moveOut : qaParseYmd(a.moveInDate) - qaParseYmd(b.moveInDate)));
+    const what = moveOut ? 'move-out' : 'move-in';
+    return { html: `<p><b>${rows.length}</b> ${what}${rows.length === 1 ? '' : 's'} ${escapeHtml(w.label)} (${qaFmtDate(w.from)}–${qaFmtDate(w.to)}).</p>` + qaResidentList(rows, `No ${what}s found.`), actions: [{ label: 'Open Residents', act: 'tab:residents' }], source: 'Residents' };
+}
+function qaExpiringAnswer(q) {
+    if (!EXPIRING_UNITS.length) return { html: '<p>No lease expiration report is loaded — upload it on the Expiring tab.</p>', actions: [{ label: 'Go to Expiring', act: 'tab:expiring' }] };
+    const w = qaDateWindow(q) || (() => { const t = qaToday(); return { from: t, to: new Date(t.getTime() + 60 * 86400000), label: 'in the next 60 days' }; })();
+    const f = qaUnitFilters(q);
+    const list = EXPIRING_UNITS.filter(e => e.leaseTo >= w.from && e.leaseTo <= w.to && (!byUnit[e.unit] || qaUnitMatches(byUnit[e.unit], f))).sort((a, b) => a.leaseTo - b.leaseTo);
+    const label = [qaFilterLabel(f), w.label].filter(Boolean).join(', ');
+    return { html: `<p><b>${list.length}</b> lease${list.length === 1 ? '' : 's'} ending ${escapeHtml(label)}.</p>` + (list.length ? '<ul class="qa-list">' + list.slice(0, 40).map(e => `<li>${qaUnitChip(e.unit)} ${escapeHtml(e.floorplan || '')} — ends ${qaFmtDate(e.leaseTo)} (${escapeHtml(e.status || '')})</li>`).join('') + '</ul>' : ''), actions: [{ label: 'Open Expiring', act: 'tab:expiring' }], source: 'lease expiration report' };
+}
+function qaCountsAnswer(q) {
+    const n = qaNormalize(q);
+    if (/\bprospect|\blead|\bwaitlist|\bwait list/.test(n) && !/storage|locker/.test(n)) {
+        const rows = Object.values(WAITLIST_ROWS).filter(r => r && !r.deleted);
+        const open = rows.filter(r => !r.cancel && !r.leased);
+        return { html: `<p>Waitlist: <b>${open.filter(r => !r.transfer).length}</b> prospects, ${open.filter(r => r.transfer).length} transfers, ${rows.filter(r => r.cancel).length} cancelled, ${rows.filter(r => r.leased).length} leased.</p>`, actions: [{ label: 'Open Waitlist', act: 'tab:waitlist' }], source: 'Waitlist' };
+    }
+    if (/storage|locker/.test(n)) {
+        const rows = Object.values(STORAGE_ROWS).filter(r => r && !r.deleted && (r.name || r.unit || r.contact));
+        const lockers = Object.values(LOCKER_ROWS).filter(r => r && !r.deleted);
+        return { html: `<p>Storage locker waitlist: <b>${rows.length}</b> entr${rows.length === 1 ? 'y' : 'ies'} (${rows.filter(r => r.contacted).length} contacted). Rented Lockers: ${lockers.filter(r => r.status === 'FULL').length} full, ${lockers.filter(r => r.status === 'EMPTY').length} empty of ${lockers.length}.</p>`, actions: [{ label: 'Open Waitlist', act: 'tab:waitlist' }], source: 'Waitlist › Storage' };
+    }
+    if (/\bresident/.test(n) || /\bpending\b/.test(n)) {
+        const rows = Object.values(RESIDENT_ROWS).filter(r => r && !r.deleted);
+        const active = rows.filter(r => !computeResidentDerived(r).movedOut);
+        return { html: `<p>Residents: <b>${active.length}</b> active, ${active.filter(r => !r.movedIn).length} pending move-in, ${rows.length - active.length} moved out.</p>`, actions: [{ label: 'Open Residents', act: 'tab:residents' }], source: 'Residents' };
+    }
+    const f = qaUnitFilters(q);
+    const units = UNITS.filter(u => qaUnitMatches(u, f));
+    const byKind = {};
+    units.forEach(u => { const k = qaUnitKind(u) || '?'; byKind[k] = (byKind[k] || 0) + 1; });
+    const label = qaFilterLabel(f);
+    return { html: `<p><b>${units.length}</b> unit${units.length === 1 ? '' : 's'}${label ? ' (' + escapeHtml(label) + ')' : ''} in the roster.</p>` + (Object.keys(byKind).length > 1 ? `<p class="qa-muted">${Object.keys(byKind).sort().map(k => `${escapeHtml(k)} ${byKind[k]}`).join(' · ')}</p>` : ''), source: 'Unit Info' };
+}
+function qaResidentsByName(q) {
+    const toks = qaNormalize(q).split(/[^a-z']+/).filter(w => w.length >= 3 && !QA_STOP.has(w));
+    if (!toks.length) return [];
+    const found = [];
+    Object.values(RESIDENT_ROWS).forEach(r => {
+        if (!r || r.deleted) return;
+        const names = [r.first, r.last].map(x => String(x || '').toLowerCase().trim()).filter(x => x.length >= 3);
+        if (!names.length) return;
+        const hit = names.filter(nm => toks.some(t => t === nm || (nm.length >= 5 && qaEditDistance(t, nm, 1) <= 1))).length;
+        if (hit) found.push({ r, hit });
+    });
+    const top = Math.max(0, ...found.map(x => x.hit));
+    return found.filter(x => x.hit === top).map(x => x.r);
+}
+function qaProspectsByName(q) {
+    const toks = qaNormalize(q).split(/[^a-z']+/).filter(w => w.length >= 3 && !QA_STOP.has(w));
+    return Object.values(WAITLIST_ROWS).filter(r => r && !r.deleted && r.prospect && String(r.prospect).toLowerCase().split(/\s+/).some(nm => nm.length >= 3 && toks.includes(nm)));
+}
+
+/* ---------- Answering ---------- */
+function qaAnswerOne(q) {
+    const n = qaNormalize(q);
+    const qToks = qaTokens(q);
+    const answers = [];
+    const has = re => re.test(n);
+    // 1) Specific unit numbers (or retail suites).
+    const nums = [...new Set((n.match(/\b\d{4}\b/g) || []))];
+    const unitNums = nums.filter(x => byUnit[x]);
+    unitNums.slice(0, 4).forEach(x => answers.push(qaUnitAnswer(x, qToks)));
+    nums.filter(x => !byUnit[x]).forEach(x => {
+        const r = (RETAIL_INFO.rows || []).find(r => String(r.suite).split('/').includes(x));
+        if (r) answers.push(qaRetailAnswer([r]));
+    });
+    if (answers.length) return answers;
+    // 2) Floorplan codes (e.g. "B5", "TH2").
+    const fps = new Set(UNITS.map(u => String(u.floorplan).toUpperCase()));
+    const fpHits = [...new Set((q.toUpperCase().match(/\b[A-Z]{1,2}\d{1,2}\b/g) || []).filter(x => fps.has(x)))];
+    if (fpHits.length && !has(/\bhow (do|to)\b/)) return fpHits.slice(0, 3).map(qaFloorplanAnswer);
+    // 3) Questions about live data.
+    const asksCount = has(/\bhow many\b|\bcount\b|\bnumber of\b|\btotal\b/);
+    if (has(/\bmovein\b/) && has(/\bwho\b|\bwhich\b|\blist\b|\bschedule|\bupcoming|\bhow many\b|\btoday\b|\btomorrow\b|\bweek\b|\bmonth\b|\bnext \d+ days\b/) && !has(/\bhow (do|to|can)\b/)) return [qaMoveInAnswer(q, false)];
+    if (has(/\bmoveout\b/) && has(/\bwho\b|\bwhich\b|\blist\b|\bupcoming|\bhow many\b|\btoday\b|\bweek\b|\bmonth\b|\bnext \d+ days\b/) && !has(/\bhow (do|to|can)\b|prorat|deposit/)) return [qaMoveInAnswer(q, true)];
+    if (has(/\b(expir\w*|leases? end\w*|ending|notice)\b/) && has(/\bwhich\b|\bwhat\b|\blist\b|\bhow many\b|\bupcoming\b|\bthis\b|\bnext\b|\bin (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/) && !has(/\bhow (do|to|can)\b|\bwhat (is|does) (the )?expiring\b/)) return [qaExpiringAnswer(q)];
+    if (has(/\b(available|availability|vacant|vacancy|vacancies|open units?)\b/) && !has(/\bhow (do|to|can)\b|\bcalendar\b|\btab\b/)) return [qaAvailabilityAnswer(q, asksCount)];
+    const uf = qaUnitFilters(q);
+    if (!asksCount && !has(/\bhow (do|to|can)\b|\bwhat (is|does|are)\b.*\bmean/) && (uf.maxPrice || uf.minPrice || (uf.kind && qToks.length <= 5 && !has(/\bfee|\bdeposit|\bguest|\bsuite\b/)))) return [qaAvailabilityAnswer(q, false)];
+    if (asksCount && has(/\bunits?\b|\bapartments?\b|\bstudios?\b|\bbed|\btownhomes?\b|\blivework\b|\bprospects?\b|\bwaitlist|\bstorage|\blocker|\bresidents?\b|\bpending\b|\bfloorplans?\b/)) return [qaCountsAnswer(q)];
+    // 4) People by name (residents, prospects).
+    if (!has(/\bhow (do|to|can)\b/)) {
+        const residents = qaResidentsByName(q);
+        const prospects = qaProspectsByName(q);
+        if (residents.length && residents.length <= 6) answers.push({ html: qaResidentList(residents, ''), actions: [{ label: 'Open Residents', act: 'tab:residents' }], source: 'Residents' });
+        if (prospects.length && prospects.length <= 6) answers.push({ html: '<ul class="qa-list">' + prospects.map(p => `<li><b>${escapeHtml(p.prospect)}</b> — ${escapeHtml([p.beds && p.beds + ' bed', p.moveIn && 'move-in ' + p.moveIn, p.agent && 'agent ' + p.agent, p.cancel ? 'cancelled' : p.leased ? 'leased' : p.transfer ? 'transfer' : 'on the waitlist'].filter(Boolean).join(', '))}</li>`).join('') + '</ul>', actions: [{ label: 'Open Waitlist', act: 'tab:waitlist' }], source: 'Waitlist' });
+        if (answers.length) return answers;
+    }
+    // 5) Everything written down in the app: guides, glossary, fees, retail, documents.
+    const howTo = has(/\bhow (do|to|can|would|should)\b|\bsteps?\b|\bwhere (do|can|is|are)\b/);
+    const ranked = qaRank(qaBuildPassages(), qToks).map(x => {
+        if (howTo && x.p.kind === 'guide') x.score *= 1.4;
+        else if (howTo && x.p.kind === 'faq') x.score *= 1.15;
+        return x;
+    }).sort((a, b) => b.score - a.score);
+    if (!ranked.length) return [];
+    const best = ranked[0].score;
+    let keep = ranked.filter(x => x.score >= best * 0.6).slice(0, 4);
+    // A fee, suite or document matching every word of the question is the answer on its own.
+    const qCount = new Set(qToks).size;
+    if (['charge', 'retail', 'doc'].includes(ranked[0].p.kind) && ranked[0].hits >= qCount) keep = keep.filter(x => x.p.kind === ranked[0].p.kind && x.hits >= qCount);
+    // A fee question gets every matching fee in one list.
+    const charges = keep.filter(x => x.p.kind === 'charge');
+    const asksFees = qToks.includes('fee') && has(/\b(all|list|what are|every|standard)\b/) && !charges.some(x => x.hits > 1);
+    if (asksFees) return [qaChargesAnswer(Object.values(DEFAULT_CHARGES).filter(r => r && !r.deleted && r.name).sort((a, b) => (a.order || 0) - (b.order || 0)))];
+    // Most relevant first; fees and retail suites are grouped into one list each.
+    let guides = 0;
+    const done = new Set();
+    keep.forEach(x => {
+        const k = x.p.kind;
+        if (k === 'charge' || k === 'retail') {
+            if (done.has(k)) return;
+            done.add(k);
+            const rows = keep.filter(y => y.p.kind === k).map(y => y.p.row);
+            answers.push(k === 'charge' ? qaChargesAnswer(rows) : qaRetailAnswer(rows));
+        } else if (k === 'doc') {
+            answers.push({
+                html: `<p><b>${escapeHtml(x.p.doc.title)}</b> is in Documents \u203a ${escapeHtml(x.p.section.label)} (${x.p.doc.print === 'full' ? 'prints full sheet' : 'prints 2 per page'}).</p>`,
+                actions: [{ label: 'Open Documents', act: 'docs:' + x.p.section.id }], source: 'Documents'
+            });
+        } else if (k === 'faq') {
+            answers.push({ title: x.p.title, html: `<p>${escapeHtml(x.p.text)}</p>`, actions: x.p.tab ? [{ label: 'Go to ' + qaTabLabel(x.p.tab), act: 'tab:' + x.p.tab }] : [], source: 'App glossary' });
+        } else if (k === 'guide' && guides++ < 2) {
+            answers.push(qaGuideAnswer(x.p, qToks, howTo));
+        }
+    });
+    return answers;
+}
+function qaTabLabel(tab) {
+    const b = document.querySelector(`.top-tab[data-tab="${tab}"]`);
+    return b ? b.textContent.trim() : tab;
+}
+function qaChargesAnswer(rows) {
+    return {
+        html: '<ul class="qa-list">' + rows.map(r => {
+            const amt = parseFloat(String(r.amount).replace(/[$,]/g, ''));
+            return `<li><b>${escapeHtml(r.name)}</b>: ${escapeHtml(isNaN(amt) ? String(r.amount) : fmtFee(amt))}${r.freq ? ' ' + escapeHtml(r.freq) : ''}${r.note ? ` <span class="qa-muted">— ${escapeHtml(r.note)}</span>` : ''}</li>`;
+        }).join('') + '</ul>',
+        actions: [{ label: 'Default Charges', act: 'tab:settings' }], source: 'Settings › Default Charges'
+    };
+}
+function qaRetailAnswer(rows) {
+    return {
+        html: '<ul class="qa-list">' + rows.map(r => {
+            const contact = [r.owner, r.contact2, r.email, r.phone, r.alt].filter(Boolean).join(' · ');
+            const site = r.website ? ` — <a href="${escapeAttr(/^https?:/i.test(r.website) ? r.website : 'https://' + r.website)}" target="_blank" rel="noopener">${escapeHtml(r.website)}</a>` : '';
+            return `<li><b>Suite ${escapeHtml(r.suite)}</b>: ${escapeHtml(r.business || 'vacant')}${site}${contact ? `<br><span class="qa-muted">${escapeHtml(contact)}</span>` : ''}</li>`;
+        }).join('') + '</ul>',
+        actions: [{ label: 'Retail Info', act: 'tab:settings' }], source: 'Settings › Retail Info'
+    };
+}
+function qaGuideAnswer(p, qToks, wantsSteps) {
+    let steps = p.steps.map((s, i) => ({ s, i, hits: qaTokens(s).filter(t => qToks.includes(t)).length }));
+    if (!wantsSteps && steps.length > 4) {
+        const top = steps.filter(x => x.hits).sort((a, b) => b.hits - a.hits).slice(0, 3).sort((a, b) => a.i - b.i);
+        if (top.length) steps = top;
+    }
+    return {
+        title: p.title,
+        html: `<ol class="qa-steps">${steps.map(x => `<li value="${x.i + 1}">${escapeHtml(x.s)}</li>`).join('')}</ol>`,
+        actions: [{ label: 'Open guide', act: 'guide:' + p.id }], source: 'How-To › ' + escapeHtml(p.category || 'Guide')
+    };
+}
+// Splits a message into separate questions ("...? and ...?", new lines, ";").
+function qaSplitQuestions(text) {
+    const parts = String(text).split(/\?+|\n+|;\s*|\.\s+(?=[A-Z])/).map(s => s.trim()).filter(s => s.replace(/[^a-z0-9]/gi, '').length > 1);
+    return parts.length ? parts.slice(0, 5) : [String(text).trim()];
+}
+function qaRespond(text) {
+    const qs = qaSplitQuestions(text);
+    const blocks = qs.map(q => {
+        let ans = [];
+        try { ans = qaAnswerOne(q); } catch (e) { console.error(e); ans = []; }
+        return { q, ans };
+    });
+    return blocks.map(({ q, ans }) => {
+        const head = qs.length > 1 ? `<div class="qa-subq">“${escapeHtml(q)}”</div>` : '';
+        if (!ans.length) {
+            return head + `<p>I couldn’t find anything in the app about that. Try different words (e.g. a unit number, a floorplan like B5, a fee name, or a tab name), or check the How-To guides.</p>`;
+        }
+        return head + ans.map(a => `<div class="qa-answer">${a.title ? `<div class="qa-answer-title">${escapeHtml(a.title)}</div>` : ''}${a.html}${(a.actions || []).length || a.source ? `<div class="qa-answer-foot">${(a.actions || []).map(x => x.href ? `<a class="qa-act" href="${escapeAttr(x.href)}" target="_blank" rel="noopener">${escapeHtml(x.label)} ↗</a>` : `<button type="button" class="qa-act" data-qa-act="${escapeAttr(x.act)}">${escapeHtml(x.label)}</button>`).join('')}${a.source ? `<span class="qa-source">Source: ${a.source}</span>` : ''}</div>` : ''}</div>`).join('');
+    }).join('');
+}
+
+/* ---------- Chat UI ---------- */
+const QA_LOG_KEY = 'reve-qa-log';
+let QA_LOG = [];
+try { QA_LOG = JSON.parse(sessionStorage.getItem(QA_LOG_KEY) || '[]') || []; } catch (e) { QA_LOG = []; }
+function qaSaveLog() { try { sessionStorage.setItem(QA_LOG_KEY, JSON.stringify(QA_LOG.slice(-40))); } catch (e) {} }
+function qaSuggestions() {
+    const avail = Object.keys(PRICING_SUMMARY).sort((a, b) => PRICING_SUMMARY[a].availableSortKey - PRICING_SUMMARY[b].availableSortKey)[0];
+    const unit = avail || (UNITS[0] && UNITS[0].unit) || '4334';
+    return ['What 2-beds are available now?', `Tell me about ${unit}`, 'How much is the pet deposit?', 'Who is moving in this week?', 'Which leases expire next month?', 'What does ↑ mean on Residents?', 'How do I print move-in docs?', 'How many units have a mountain view?'];
+}
+function renderQaLog() {
+    const log = document.getElementById('qaLog');
+    if (!log) return;
+    const welcome = `<div class="qa-msg qa-bot"><div class="qa-bubble"><p>Hi! Ask me anything about the app or the property — units, availability, fees, residents, move-ins, leases, documents, or how to do something. Ask several questions at once by separating them with a question mark.</p><div class="qa-suggest">${qaSuggestions().map(s => `<button type="button" class="chip qa-suggest-chip" data-qa-ask="${escapeAttr(s)}">${escapeHtml(s)}</button>`).join('')}</div></div></div>`;
+    log.innerHTML = welcome + QA_LOG.map(m => `<div class="qa-msg ${m.who === 'me' ? 'qa-me' : 'qa-bot'}"><div class="qa-bubble">${m.who === 'me' ? escapeHtml(m.text) : m.html}</div></div>`).join('');
+    log.scrollTop = log.scrollHeight;
+}
+function qaAsk(text) {
+    text = String(text || '').trim();
+    if (!text) return;
+    QA_LOG.push({ who: 'me', text });
+    QA_LOG.push({ who: 'bot', html: qaRespond(text) });
+    qaSaveLog();
+    renderQaLog();
+    const last = document.querySelector('#qaLog .qa-msg:last-child');
+    if (last) last.scrollIntoView({ block: 'start', behavior: 'smooth' });
+}
+document.getElementById('qaForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const input = document.getElementById('qaInput');
+    qaAsk(input.value);
+    input.value = '';
+    input.focus();
+});
+document.getElementById('qaClearBtn').addEventListener('click', () => { QA_LOG = []; qaSaveLog(); renderQaLog(); document.getElementById('qaInput').focus(); });
+document.getElementById('qaLog').addEventListener('click', e => {
+    const ask = e.target.closest('[data-qa-ask]');
+    if (ask) { qaAsk(ask.getAttribute('data-qa-ask')); return; }
+    const b = e.target.closest('[data-qa-act]');
+    if (!b) return;
+    const [kind, arg] = b.getAttribute('data-qa-act').split(/:(.*)/s);
+    if (kind === 'tour') { switchTab('tour'); selectUnit(arg); }
+    else if (kind === 'tab') switchTab(arg);
+    else if (kind === 'guide') showHowToDetail(arg);
+    else if (kind === 'docs') { docsCurrentSection = arg; switchTab('documents'); if (typeof renderDocuments === 'function') renderDocuments(); }
+});
+let helpSubTab = 'howto';
+try { if (localStorage.getItem('reve-help-subtab') === 'questions') helpSubTab = 'questions'; } catch (e) {}
+function renderHelpSubTab() {
+    document.querySelectorAll('#helpSubtabs [data-help-sub]').forEach(b => b.classList.toggle('active', b.getAttribute('data-help-sub') === helpSubTab));
+    document.getElementById('helpHowtoPane').style.display = helpSubTab === 'howto' ? '' : 'none';
+    document.getElementById('helpQuestionsPane').style.display = helpSubTab === 'questions' ? '' : 'none';
+    if (helpSubTab === 'questions') renderQaLog();
+}
+document.getElementById('helpSubtabs').addEventListener('click', e => {
+    const b = e.target.closest('[data-help-sub]');
+    if (!b) return;
+    helpSubTab = b.getAttribute('data-help-sub');
+    try { localStorage.setItem('reve-help-subtab', helpSubTab); } catch (e) {}
+    renderHelpSubTab();
+    if (helpSubTab === 'questions') document.getElementById('qaInput').focus();
+});
+renderHelpSubTab();
 
 /* ============================================================
    Media > Property — Live Sitemap, v3: every unit drawn at its real
