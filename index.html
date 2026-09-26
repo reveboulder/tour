@@ -7427,9 +7427,26 @@ function renderWaitlist() {
                 WAITLIST_DIRTY.add(id);
                 persistWaitlistLocal();
                 pushWaitlistDirtyDebounced();
-                if (fieldName === 'beds' || fieldName === 'moveIn') renderWaitlist();
+                if (fieldName === 'beds') renderWaitlist();
             });
         });
+        // Move-In Date re-sorts the list once you leave the field (not per
+        // keystroke), then puts the cursor back where you clicked/tabbed.
+        const moveInField = card.querySelector('input[data-field="moveIn"]');
+        if (moveInField) {
+            moveInField.addEventListener('focus', () => { moveInField.dataset.startValue = moveInField.value; });
+            moveInField.addEventListener('blur', () => {
+                if (moveInField.value === moveInField.dataset.startValue) return;
+                setTimeout(() => {
+                    const a = document.activeElement;
+                    const aCard = a && a.closest ? a.closest('.waitlist-card') : null;
+                    const refocus = aCard && a.getAttribute('data-field') ? { id: aCard.getAttribute('data-row'), field: a.getAttribute('data-field'), pos: a.selectionStart } : null;
+                    renderWaitlist();
+                    const el = refocus && document.querySelector(`.waitlist-card[data-row="${refocus.id}"] [data-field="${refocus.field}"]`);
+                    if (el) { el.focus(); try { if (refocus.pos != null) el.setSelectionRange(refocus.pos, refocus.pos); } catch (e) {} }
+                }, 0);
+            });
+        }
         [...card.querySelectorAll('input[type=checkbox]')].forEach(cb => {
             cb.addEventListener('change', (e) => {
                 const field = e.target.getAttribute('data-field');
@@ -10313,6 +10330,9 @@ const RESIDENT_FIELDS = [
     { key: 'moveOutDate', label: 'Move-Out', type: 'computed-date' },
     { key: 'movedOut', label: 'Moved Out', type: 'computed-bool' },
     { key: 'specialStatus', label: 'Status', type: 'select', options: ['', 'Notice', 'Renewed', 'TRANSFER', 'Early Term', 'Eviction'], w: 108 },
+    // Free text read by Status: Renewed = # of months (extends Move-Out),
+    // Early Term = the date (becomes Move-Out), TRANSFER = unit moving to.
+    { key: 'statusDetail', label: 'Status Details', type: 'status-detail', w: 150 },
     { key: 'noticeNeeded', label: 'Notice Needed', type: 'computed-date' }
 ];
 const RESIDENT_CHECKLIST_KEYS = ['idCheck', 'welcomeLetter', 'insurance', 'miPayment', 'miFolder', 'walkThrough', 'movedIn', 'latch'];
@@ -10549,9 +10569,30 @@ function residentFixBrokenDeposits() {
     }
 }
 
+// Renewed: months from Status Details (first number, e.g. "12" or "12 months").
+function residentRenewalMonths(row) {
+    if (row.specialStatus !== 'Renewed') return 0;
+    const m = String(row.statusDetail || '').match(/\d+(?:\.\d+)?/);
+    return m ? parseFloat(m[0]) : (parseFloat(row.renewalMonths) || 0);
+}
+// Early Term: the date in Status Details (M/D/YYYY, M/D/YY, YYYY-MM-DD, or e.g. "Oct 31 2026").
+function residentEarlyTermDate(row) {
+    if (row.specialStatus !== 'Early Term') return null;
+    const t = String(row.statusDetail || '').trim();
+    if (!t) return null;
+    let m = t.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if (m) { let y = parseInt(m[3], 10); if (y < 100) y += 2000; const d = new Date(y, parseInt(m[1], 10) - 1, parseInt(m[2], 10)); return isNaN(d) ? null : d; }
+    m = t.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) { const d = new Date(+m[1], +m[2] - 1, +m[3]); return isNaN(d) ? null : d; }
+    const d = new Date(t);
+    if (isNaN(d) || !/[a-z]/i.test(t)) return null;
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
 function residentMoveOutDate(row) {
+    const early = residentEarlyTermDate(row);
+    if (early) return early;
     if (!row.moveInDate || !row.leaseTerm) return null;
-    const extra = row.specialStatus === 'Renewed' ? (parseFloat(row.renewalMonths) || 0) : 0;
+    const extra = residentRenewalMonths(row);
     const term = parseFloat(row.leaseTerm) + extra;
     if (isNaN(term)) return null;
     const parts = row.moveInDate.split('-').map(Number);
@@ -10565,6 +10606,8 @@ function residentMovedOut(row, moveOutDate) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (moveOutDate && moveOutDate < today) return true;
+    // An Early Term with a date on or after today hasn't moved out yet.
+    if (row.specialStatus === 'Early Term' && residentEarlyTermDate(row)) return false;
     if (['TRANSFER', 'Early Term', 'Eviction'].indexOf(row.specialStatus) !== -1) return true;
     return false;
 }
@@ -10692,6 +10735,9 @@ function renderResidentRow(id, row, derived) {
         } else if (f.type === 'select') {
             const val = row[f.key] || '';
             cells += `<td${residentStepIncomplete(row, f.key) ? ' class="res-cell-incomplete"' : ''}><select class="mmr-lease-field${residentStatusClass(f.key, val)}" data-field="${f.key}">${f.options.map(o => `<option value="${escapeAttr(o)}"${val === o ? ' selected' : ''}>${(f.optionLabels && f.optionLabels[o]) || o || '\u2014'}</option>`).join('')}</select></td>`;
+        } else if (f.type === 'status-detail') {
+            const ph = { Renewed: '# months (e.g. 12)', 'Early Term': 'Date (e.g. 10/31/2026)', TRANSFER: 'Unit transferring to' }[row.specialStatus] || '';
+            cells += `<td><input type="text" class="mmr-lease-field res-status-detail" data-field="${f.key}" value="${escapeAttr(String(row[f.key] || ''))}" placeholder="${escapeAttr(ph)}"${ph ? '' : ' title="Used for Renewed (months), Early Term (date) or Transfer (unit)"'}></td>`;
         } else if (f.type === 'date') {
             cells += `<td><input type="date" class="mmr-lease-field" data-field="${f.key}" value="${escapeAttr(String(row[f.key] || ''))}"></td>`;
         } else if (f.type === 'number') {
@@ -10706,6 +10752,21 @@ function renderResidentRow(id, row, derived) {
     return `<tr class="${rowClass}" data-row="${id}">${cells}</tr>`;
 }
 
+// Updates just the Move-Out / Moved Out / Notice Needed cells in place
+// (keeps focus in the field being typed in).
+function updateResidentComputedCells(id) {
+    const tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
+    const row = RESIDENT_ROWS[id];
+    if (!tr || !row) return;
+    const d = computeResidentDerived(row);
+    const cells = [...tr.children];
+    RESIDENT_FIELDS.forEach((f, i) => {
+        if (!cells[i]) return;
+        if (f.key === 'moveOutDate') cells[i].textContent = fmtResidentDate(d.moveOut);
+        else if (f.key === 'noticeNeeded') cells[i].textContent = fmtResidentDate(d.noticeNeeded);
+        else if (f.type === 'computed-bool') cells[i].textContent = d.movedOut ? 'Yes' : 'No';
+    });
+}
 function refreshResidentRow(id) {
     const tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
     const row = RESIDENT_ROWS[id];
@@ -10752,6 +10813,7 @@ function wireResidentRow(id) {
             el.addEventListener('change', (e) => { commit(e); refreshResidentRow(id); });
         } else {
             el.addEventListener('input', commit);
+            if (el.getAttribute('data-field') === 'statusDetail') el.addEventListener('input', () => updateResidentComputedCells(id));
             // A full renderResidentsBody() here used to destroy every
             // row's DOM the instant you left ANY field — including
             // whatever you were about to click/tab into next, which
