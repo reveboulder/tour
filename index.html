@@ -2072,6 +2072,8 @@
     .dep-fees-title { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); margin-top: 4px; }
     .dep-fees { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
     .dep-fees label { font-weight: 500; }
+    .dep-flat { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; }
+    .dep-flat label { font-weight: 500; }
     .dep-results { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
     .dep-results td { padding: 5px 8px; border-bottom: 1px solid var(--line); }
     .dep-results td:last-child { text-align: right; font-weight: 600; }
@@ -3542,6 +3544,11 @@
                             <label>Rent (monthly)<input type="text" id="depRent" inputmode="decimal" placeholder="$0.00"></label>
                             <div class="dep-fees-title">Monthly charges <span class="dep-opt">(0 or blank = not charged)</span></div>
                             <div class="dep-fees" id="depFees"></div>
+                            <div class="dep-fees-title">Flat-rate charges <span class="dep-opt">(not prorated &mdash; added as entered)</span></div>
+                            <div class="dep-flat">
+                                <label>Flat-rate Fee<input type="text" id="depFlat" inputmode="decimal" placeholder="$0.00" autocomplete="off"></label>
+                                <label><span>Description <span class="dep-opt">(optional)</span></span><input type="text" id="depFlatDesc" placeholder="e.g. Key replacement" autocomplete="off"></label>
+                            </div>
                         </div>
                         <table class="dep-results" id="depResults"></table>
                     </div>
@@ -13824,7 +13831,9 @@ const FP_CACHE_MS = 15 * 60 * 1000;
 const FP_EXT = /\.(jpe?g|png|webp|gif|pdf)$/i;
 let FP_FILES = null;          // [{ name, size }]
 let fpLoadState = '';         // '', 'loading', 'error'
-let fpFilters = { type: [], level: [], bldg: [], plan: [], style: [], level2: [], option: [] };
+let fpFilters = { type: [], level: [], bldg: [], prefix: [], plan: [], style: [], level2: [], option: [] };
+const FP_PREFIXES = ['S', 'A', 'B', 'C', 'TH', 'LW', 'PH'];
+function fpPrefix(code) { const m = String(code || '').match(/^[A-Z]+/); return m ? m[0] : ''; }
 try { const c = JSON.parse(localStorage.getItem(FP_CACHE_KEY) || 'null'); if (c && Array.isArray(c.files)) FP_FILES = c.files; } catch (e) {}
 async function fpLoadList(force) {
     let cachedAt = 0;
@@ -13917,14 +13926,17 @@ function renderFloorplanDocs() {
         type: FP_TYPE_ORDER.filter(t => all.some(d => d.types.includes(t))),
         level: [...new Set(all.flatMap(d => d.levels))].sort(),
         bldg: [...new Set(all.flatMap(d => d.bldgs))].sort(),
-        plan: [...new Set(all.map(d => d.code).filter(Boolean))].sort(fpNaturalCode),
+        // Floorplan filters by letter group first (S, A, B, C, TH, LW, PH);
+        // picking a group reveals its individual plans for sub-filtering.
+        prefix: FP_PREFIXES.filter(x => all.some(d => fpPrefix(d.code) === x)),
+        plan: [...new Set(all.map(d => d.code).filter(c => c && fpFilters.prefix.includes(fpPrefix(c))))].sort(fpNaturalCode),
         style: FP_TAGS.filter(t => t[1] === 'style' && all.some(d => d.tags.includes(t[0]))).map(t => t[0]),
         level2: FP_TAGS.filter(t => t[1] === 'level2' && all.some(d => d.tags.includes(t[0]))).map(t => t[0]),
         option: FP_TAGS.filter(t => t[1] === 'option' && all.some(d => d.tags.includes(t[0]))).map(t => t[0])
     };
-    const tagRows = ['style', 'level2', 'option'];
+    const tagRows = ['style', 'level2', 'option', 'prefix', 'plan'];
     Object.keys(fpFilters).forEach(k => { fpFilters[k] = fpFilters[k].filter(v => opts[k].includes(v)); });
-    const labels = { type: 'Beds', level: 'Level', bldg: 'Building', plan: 'Floorplan', style: 'Style', level2: 'Floors', option: 'Tags' };
+    const labels = { type: 'Beds', level: 'Level', bldg: 'Building', prefix: 'Floorplan', plan: '↳', style: 'Style', level2: 'Floors', option: 'Tags' };
     const chipText = (k, v) => k === 'level' ? 'Level ' + v : k === 'bldg' ? 'Bldg ' + v : v;
     document.getElementById('fpFilters').innerHTML = Object.keys(opts).filter(k => opts[k].length > (tagRows.includes(k) ? 0 : 1)).map(k =>
         `<div class="fp-frow"><span class="fp-flabel">${labels[k]}</span>${opts[k].map(v => `<button type="button" class="chip${fpFilters[k].includes(v) ? ' active' : ''}" data-fp-k="${k}" data-fp-v="${escapeAttr(v)}">${escapeHtml(chipText(k, v))}</button>`).join('')}</div>`).join('');
@@ -13933,7 +13945,11 @@ function renderFloorplanDocs() {
         (!fpFilters.type.length || d.types.some(t => fpFilters.type.includes(t))) &&
         (!fpFilters.level.length || d.levels.some(t => fpFilters.level.includes(t))) &&
         (!fpFilters.bldg.length || d.bldgs.some(t => fpFilters.bldg.includes(t))) &&
-        (!fpFilters.plan.length || fpFilters.plan.includes(d.code)) &&
+        (!fpFilters.prefix.length || (fpFilters.prefix.includes(fpPrefix(d.code)) && (() => {
+            // Within a picked group, picked plans narrow just that group.
+            const picked = fpFilters.plan.filter(c => fpPrefix(c) === fpPrefix(d.code));
+            return !picked.length || picked.includes(d.code);
+        })())) &&
         (!fpFilters.style.length || d.tags.some(t => fpFilters.style.includes(t))) &&
         (!fpFilters.level2.length || d.tags.some(t => fpFilters.level2.includes(t))) &&
         fpFilters.option.every(t => d.tags.includes(t)) &&
@@ -14542,6 +14558,11 @@ function depCalc() {
         const amount = monthly ? (f.key === 'utilities' ? Math.round(monthly * 100) / 100 : prorate(monthly)) : 0;
         out.lines.push({ key: f.key, label: f.label, email: f.email, amount, blank: !monthly });
     });
+    // Flat-rate fee: one manual amount, not prorated.
+    const flat = parseMoneyLoose(val('depFlat'));
+    const flatDesc = val('depFlatDesc');
+    out.lines.push({ key: 'flat', label: flatDesc ? `Flat-rate: ${flatDesc}` : 'Flat-rate Fee', email: flatDesc || 'Flat-rate fee',
+        amount: flat ? Math.round(flat * 100) / 100 : 0, blank: !flat, flat: true });
     out.total = Math.round(out.lines.reduce((t, l) => t + l.amount, 0) * 100) / 100;
     return out;
 }
@@ -14551,7 +14572,7 @@ function depEmail(c) {
     const period = c.days === 1 ? `${M} 1st` : `${M} 1st – ${depOrdinal(c.days)}`;
     const utilFrom = new Date(c.date.getFullYear(), c.date.getMonth() - 2, 1).toLocaleDateString('en-US', { month: 'long' });
     const charged = c.lines.filter(l => l.amount > 0);
-    const chargeLines = charged.map(l => l.key === 'utilities' ? `${l.email} = ${depMoney(l.amount)}` : `${l.email} for ${period} = ${depMoney(l.amount)}`);
+    const chargeLines = charged.map(l => l.key === 'utilities' || l.flat ? `${l.email} = ${depMoney(l.amount)}` : `${l.email} for ${period} = ${depMoney(l.amount)}`);
     const totalLine = `Total Amount Due on ${M} 1st = ${depMoney(c.total)}`;
     const para1 = `I am reaching out to provide you with the amount owed for ${M} charges. Our system does not charge the prorated amounts when the bills post on ${M} 1st, and it will automatically charge the full amount for rent and additional lease charges (if applicable), such as pet rent, garage fee, guest services fee, etc. At your earliest convenience, please log into Bilt and turn off autopay if it is currently activated. Otherwise, on ${M} 1st, Bilt will withdraw funds from your account to pay for the full month's charges. Once autopay is turned off and the charges post, you will need to submit a manual payment for the total highlighted below.`;
     const para2 = `Please keep in mind that this total does not reflect moveout charges (potential cleaning fees/damages, final utility bills from ${utilFrom} 1st – ${M} ${depOrdinal(c.days)}). All moveout charges/utility charges will be added to the account after the post-moveout inspection has been completed, and the amount from those charges will be deducted from the security deposit.`;
@@ -14585,7 +14606,7 @@ function renderDeposit() {
     if (!mail.text) { prev.textContent = 'The email appears here once a move-out date is entered.'; return; }
     prev.innerHTML = escapeHtml(mail.text).replace(escapeHtml(mail.totalLine), `<mark>${escapeHtml(mail.totalLine)}</mark>`);
 }
-['depUnit', 'depResident', 'depEmail', 'depDate', 'depRent'].forEach(id => document.getElementById(id).addEventListener('input', renderDeposit));
+['depUnit', 'depResident', 'depEmail', 'depDate', 'depRent', 'depFlat', 'depFlatDesc'].forEach(id => document.getElementById(id).addEventListener('input', renderDeposit));
 document.getElementById('depFees').addEventListener('input', e => {
     if (e.target.matches('[data-dep-fee]')) e.target.dataset.edited = '1';   // typed-in amounts aren't replaced by Settings changes
     renderDeposit();
