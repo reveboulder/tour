@@ -1514,8 +1514,40 @@
     .fp-frow { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
     .fp-flabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); width: 74px; flex: none; }
     .fp-filters .chip { padding: 2px 9px; font-size: 11.5px; min-height: 0; line-height: 1.5; }
-    .fp-list { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
-    .fp-row { display: grid; grid-template-columns: minmax(150px, 1fr) 84px 70px 78px 70px 60px 50px 150px; align-items: center; gap: 8px; padding: 3px 8px; font-size: 12.5px; border-top: 1px solid var(--line); min-height: 30px; font-variant-numeric: tabular-nums; }
+    .fp-body { display: flex; align-items: flex-start; gap: 16px; }
+    .fp-list { flex: none; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
+    .fp-row { display: grid; grid-template-columns: 270px 70px 62px 66px 58px 54px 40px 68px; align-items: center; gap: 8px; padding: 3px 8px; font-size: 12.5px; border-top: 1px solid var(--line); min-height: 30px; font-variant-numeric: tabular-nums; cursor: pointer; }
+    .fp-head { cursor: default; }
+    .fp-row.ot-row { grid-template-columns: 300px 44px 64px 64px 68px; }
+    .fp-row.fp-selected, .fp-row.fp-selected:hover { background: #fbe0d4 !important; box-shadow: inset 3px 0 0 var(--reve-orange); }
+    .fp-row.fp-dup { background: #fde2e2 !important; box-shadow: inset 3px 0 0 #c0392b; }
+    .fp-row.fp-dup .fp-file { color: #c0392b; font-weight: 600; }
+    .fp-dl { display: inline-flex !important; align-items: center; justify-content: center; padding: 1px 6px !important; }
+    .fp-dl svg { width: 14px; height: 14px; }
+    .fp-preview { flex: 1; min-width: 260px; position: sticky; top: 76px; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 10px 12px 12px; }
+    .fp-pv-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+    .fp-pv-head b { font-family: 'Oswald', var(--sans); font-size: 18px; }
+    .fp-pv-name { font-size: 12px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+    .fp-pv-close { border: none; background: none; font-size: 20px; line-height: 1; cursor: pointer; color: var(--ink-soft); padding: 0 2px; }
+    .fp-pv-close:hover { color: var(--ink); }
+    .fp-pv-img { display: block; width: 100%; max-height: 62vh; object-fit: contain; border-radius: 6px; background: #faf8f4; }
+    .fp-pv-pdf { display: block; width: 100%; height: 62vh; border: 1px solid var(--line); border-radius: 6px; }
+    .fp-pv-meta { font-size: 12px; color: var(--ink-soft); margin-top: 8px; line-height: 1.5; }
+    .fp-pv-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .fp-pv-actions a { font-size: 12px; font-weight: 700; border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+    .fp-pv-actions a:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+    .fp-pv-actions svg { width: 14px; height: 14px; }
+    .fp-pv-dupnote { font-size: 12px; color: #c0392b; font-weight: 600; margin-top: 6px; }
+    @media (max-width: 1150px) {
+        .fp-body { flex-direction: column; }
+        .fp-preview { order: -1; position: static; width: 100%; box-sizing: border-box; }
+        .fp-pv-img { max-height: 48vh; }
+        .fp-pv-pdf { height: 48vh; }
+    }
+    body.dark-mode .fp-preview { background: var(--dm-card); }
+    body.dark-mode .fp-pv-img { background: var(--dm-card-alt); }
+    body.dark-mode .fp-row.fp-selected, body.dark-mode .fp-row.fp-selected:hover { background: #4a2e22 !important; }
+    body.dark-mode .fp-row.fp-dup { background: #4a1f1f !important; }
     .fp-row:first-child { border-top: none; }
     .fp-row:nth-child(even):not(.fp-head) { background: #faf8f4; }
     .fp-row:hover:not(.fp-head) { background: #fdf1eb; }
@@ -1722,6 +1754,23 @@
     .snake-wrap { display: flex; flex-direction: column; align-items: center; max-width: 380px; }
     .snake-hud { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; font-size: 13px; width: 100%; justify-content: space-between; }
     .snake-hud b { color: var(--reve-orange-dark); }
+    .maze-wrap { display: flex; flex-direction: column; align-items: center; max-width: 480px; margin: 0 auto; }
+    .maze-hud { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 8px; font-size: 13px; }
+    .maze-timer { font-family: 'Oswald', var(--sans); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+    .maze-power { font-weight: 700; color: #b8860b; font-size: 15px; }
+    .maze-best b { color: var(--reve-orange-dark); }
+    .maze-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; margin-bottom: 10px; flex-wrap: wrap; }
+    .maze-sizes { display: flex; gap: 6px; }
+    #mazeCanvas { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); touch-action: none; outline: none; }
+    .maze-pad { display: none; grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(2, 44px); gap: 6px; margin-top: 10px; }
+    .maze-pad button { font-size: 18px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); cursor: pointer; touch-action: manipulation; }
+    .maze-pad button:active { background: var(--reve-orange); color: #fff; }
+    .maze-pad [data-maze-move="0,-1"] { grid-column: 2; grid-row: 1; }
+    .maze-pad [data-maze-move="-1,0"] { grid-column: 1; grid-row: 2; }
+    .maze-pad [data-maze-move="0,1"] { grid-column: 2; grid-row: 2; }
+    .maze-pad [data-maze-move="1,0"] { grid-column: 3; grid-row: 2; }
+    @media (hover: none), (max-width: 700px) { .maze-pad { display: grid; } }
+    body.dark-mode .maze-pad button { background: var(--dm-card-alt); }
     #snakeCanvas { background: var(--ink); border-radius: 8px; border: 1px solid var(--line); touch-action: none; }
 
     /* -- Chess game -- */
@@ -3586,6 +3635,33 @@
             <div class="wl-subtabs" style="margin-bottom:16px;">
                 <button type="button" class="wl-subtab active" data-game-select="snake">Snake</button>
                 <button type="button" class="wl-subtab" data-game-select="chess">Chess</button>
+                <button type="button" class="wl-subtab" data-game-select="maze">Maze</button>
+            </div>
+
+            <div id="gamePanel-maze" class="game-subpanel" style="display:none;">
+                <div class="maze-wrap">
+                    <div class="maze-hud">
+                        <span class="maze-timer" id="mazeTimer">0:00.0</span>
+                        <span class="maze-power" id="mazePower" title="Power balls held: each lets you pass through one wall">&#9679; 0</span>
+                        <span class="maze-best">Best: <b id="mazeBest">&mdash;</b></span>
+                    </div>
+                    <div class="maze-controls">
+                        <div class="maze-sizes" id="mazeSizes">
+                            <button type="button" class="chip" data-maze-size="small">Small</button>
+                            <button type="button" class="chip active" data-maze-size="medium">Medium</button>
+                            <button type="button" class="chip" data-maze-size="large">Large</button>
+                        </div>
+                        <button type="button" class="btn" id="mazeNewBtn" style="width:auto;flex:none;padding:6px 14px;">New Maze</button>
+                    </div>
+                    <canvas id="mazeCanvas" width="460" height="460" tabindex="0" aria-label="Maze"></canvas>
+                    <div class="maze-pad" aria-hidden="true">
+                        <button type="button" data-maze-move="0,-1">&#9650;</button>
+                        <button type="button" data-maze-move="-1,0">&#9664;</button>
+                        <button type="button" data-maze-move="0,1">&#9660;</button>
+                        <button type="button" data-maze-move="1,0">&#9654;</button>
+                    </div>
+                    <div class="empty-note" style="margin-top:8px;">Get the red square from <b>A</b> to <b>B</b>. Arrow keys or WASD (swipe or the arrows on mobile). Grab a gold power ball, then walk into a wall to pass through it &mdash; one wall per ball. The timer starts on your first move.</div>
+                </div>
             </div>
 
             <div id="gamePanel-snake" class="game-subpanel">
@@ -3649,6 +3725,13 @@
         </div>
     </div>
     <div class="docs-grid" id="docsGrid"></div>
+    <div id="otherPanel" style="display:none;">
+        <div class="fp-body">
+            <div class="fp-list" id="otherList"></div>
+            <aside class="fp-preview" id="otherPreview" style="display:none;" aria-live="polite"></aside>
+        </div>
+        <div class="empty-note" id="otherNote" style="margin-top:8px;"></div>
+    </div>
     <div id="fpPanel" style="display:none;">
         <div class="fp-bar">
             <input type="text" id="fpSearch" placeholder="Search floorplan or unit #&hellip;" autocomplete="off" aria-label="Search floorplans">
@@ -3657,7 +3740,10 @@
             <button type="button" class="fp-link" id="fpRefresh" title="Check the MEDIA_Floorplans folder for new files">&#8635; Refresh list</button>
         </div>
         <div class="fp-filters" id="fpFilters"></div>
-        <div class="fp-list" id="fpList"></div>
+        <div class="fp-body">
+            <div class="fp-list" id="fpList"></div>
+            <aside class="fp-preview" id="fpPreview" style="display:none;" aria-live="polite"></aside>
+        </div>
         <div class="empty-note" id="fpNote" style="margin-top:8px;"></div>
     </div>
     <div class="empty-note" id="docsEmptyNote" style="display:none;">No documents in this section yet &mdash; click &ldquo;+ Upload&rdquo; to add one.</div>
@@ -5003,24 +5089,57 @@ const pushLockersDirty = makeRowPusher({
 const pushLockersDirtyDebounced = debounce(pushLockersDirty, 900);
 async function pullLockersFromBackend() {
     if (!BACKEND_URL || APP_MODE === 'test') return;
-    const remote = await backendPull(LOCKERS_BACKEND_KEY);
+    const remote = await backendPullChecked(LOCKERS_BACKEND_KEY);
+    // A failed pull changes nothing. (It used to be mistaken for an empty
+    // list and re-send the starter rows, bringing back deleted ones and
+    // overwriting edits.)
+    if (remote === undefined) return;
     if (remote && typeof remote === 'object' && Object.keys(remote).length) {
         const editing = rowBeingEdited('lockersList');
         Object.keys(remote).forEach(id => {
             if (id === editing || LOCKER_DIRTY.has(id)) return;
             LOCKER_ROWS[id] = remote[id];
         });
+        if (lockerDedupe()) pushLockersDirty();
         persistLockersLocal();
         renderLockersIfIdle();
-    } else {
-        // Shared list is empty: start it from the starter rows (fixed ids,
-        // so two browsers doing this at once produce the same rows).
+    } else if (remote === null) {
+        // Nothing has ever been stored: start the shared list from the
+        // starter rows (fixed ids, so two browsers doing this at once
+        // produce the same rows).
         if (!Object.keys(LOCKER_ROWS).length) LOCKER_ROWS = seedLockerRows();
         Object.keys(LOCKER_ROWS).forEach(id => LOCKER_DIRTY.add(id));
         persistLockersLocal();
         pushLockersDirty();
         renderLockersIfIdle();
     }
+}
+// Removes duplicate lockers: rows for the same physical locker (same
+// building, location, room and locker # \u2014 or key cylinder code when
+// there's no locker #). Keeps the row with the most filled-in details,
+// preferring one added in the app over a starter row; the others are
+// marked deleted so every browser drops them.
+function lockerDedupe() {
+    const norm = v => String(v == null ? '' : v).trim().toLowerCase().replace(/^-+$/, '');
+    const groups = {};
+    Object.keys(LOCKER_ROWS).forEach(id => {
+        const r = LOCKER_ROWS[id];
+        if (!r || r.deleted) return;
+        const locker = norm(r.locker);
+        const ident = locker || norm(r.keyCode);
+        if (!ident) return;
+        const key = [norm(r.building), norm(r.location), norm(r.room), locker ? '#' + locker : 'k' + ident].join('|');
+        (groups[key] = groups[key] || []).push(id);
+    });
+    const filled = r => LOCKER_FIELDS.filter(f => norm(r[f]) && !['?', 'rented - unknown'].includes(norm(r[f]))).length;
+    let removed = 0;
+    Object.values(groups).filter(ids => ids.length > 1).forEach(ids => {
+        ids.sort((a, b) => filled(LOCKER_ROWS[b]) - filled(LOCKER_ROWS[a])
+            || (a.startsWith('lk_seed_') ? 1 : 0) - (b.startsWith('lk_seed_') ? 1 : 0)
+            || (LOCKER_ROWS[a].order ?? 1e9) - (LOCKER_ROWS[b].order ?? 1e9));
+        ids.slice(1).forEach(id => { LOCKER_ROWS[id].deleted = true; LOCKER_DIRTY.add(id); removed++; });
+    });
+    return removed;
 }
 function initLockers() {
     try { LOCKER_ROWS = JSON.parse(localStorage.getItem(LOCKERS_KEY) || '{}') || {}; } catch (e) { LOCKER_ROWS = {}; }
@@ -7266,16 +7385,22 @@ function dedupeWaitlistRows() {
 // never overlap, other agents' rows are merged in without touching rows
 // being edited, and the list isn't redrawn while someone is typing in it.
 function makeRowPusher(o) {
-    let busy = false, again = false;
+    let busy = false, again = false, retryTimer = null;
     async function push() {
+        clearTimeout(retryTimer);
         o.persist();
         if (!BACKEND_URL || APP_MODE === 'test') return;
         if (o.before && !(await o.before())) return;
         if (busy) { again = true; return; }
         busy = true;
+        let failed = false;
         try {
             if (!o.dirty.size) return;
-            const remote = await backendPull(o.backendKey);
+            const remote = await backendPullChecked(o.backendKey);
+            // Couldn't read the shared copy: DON'T push. Pushing only this
+            // browser's edited rows would erase every other row on the
+            // backend. Edits stay safe here and are retried shortly.
+            if (remote === undefined) { failed = true; return; }
             const rows = o.rows();
             const merged = Object.assign({}, remote && typeof remote === 'object' ? remote : {});
             const sent = {};
@@ -7296,7 +7421,8 @@ function makeRowPusher(o) {
             o.render();
         } finally {
             busy = false;
-            if (again || o.dirty.size) { again = false; setTimeout(push, 400); }
+            if (failed) { again = false; retryTimer = setTimeout(push, 15000); }
+            else if (again || o.dirty.size) { again = false; retryTimer = setTimeout(push, 400); }
         }
     }
     return push;
@@ -7319,7 +7445,8 @@ const pushWaitlistDirtyDebounced = debounce(pushWaitlistDirty, 900);
 
 async function pullWaitlistFromBackend() {
     if (!BACKEND_URL || APP_MODE === 'test') return;
-    const remote = await backendPull(WAITLIST_BACKEND_KEY);
+    const remote = await backendPullChecked(WAITLIST_BACKEND_KEY);
+    if (remote === undefined) return;   // failed pull: change nothing, push nothing
     if (remote) {
         // Don't clobber a row someone's mid-edit on this screen right now,
         // or one that hasn't been pushed up yet — a row absent from the
@@ -7335,7 +7462,8 @@ async function pullWaitlistFromBackend() {
         persistWaitlistLocal();
         renderWaitlistIfIdle();
     } else if (Object.keys(WAITLIST_ROWS).length) {
-        backendPush(WAITLIST_BACKEND_KEY, WAITLIST_ROWS); // seed the backend from local
+        // Nothing stored yet anywhere: seed the backend from local.
+        backendPush(WAITLIST_BACKEND_KEY, WAITLIST_ROWS);
     }
 }
 
@@ -7350,10 +7478,13 @@ function initWaitlist() {
             // Ask the backend first — only seed the starter list if
             // NOTHING exists anywhere yet (fresh setup, not just a
             // fresh browser).
-            backendPull(WAITLIST_BACKEND_KEY).then(remote => {
+            backendPullChecked(WAITLIST_BACKEND_KEY).then(remote => {
                 if (remote && Object.keys(remote).length) {
                     WAITLIST_ROWS = remote;
                     persistWaitlistLocal();
+                } else if (remote === undefined) {
+                    // Couldn't reach the backend: show nothing yet; the
+                    // regular poll fills this in (never seed over real data).
                 } else {
                     WAITLIST_ROWS = seedWaitlistRows();
                     persistWaitlistLocal();
@@ -7796,7 +7927,8 @@ async function storageResetIfNeeded() {
         try { localStorage.setItem(STORAGE_RESET_LOCAL_KEY, String(STORAGE_RESET_VERSION)); } catch (e) {}
     }
     if (!BACKEND_URL || APP_MODE === 'test') { storageResetPending = false; return; }
-    const remote = await backendPull(STORAGE_BACKEND_KEY);
+    const remote = await backendPullChecked(STORAGE_BACKEND_KEY);
+    if (remote === undefined) return;   // couldn't read the shared list: never reset it blind
     if (remote && remote[STORAGE_RESET_ROW]) { storageResetPending = false; return; }   // already reset by someone
     // Not reset yet: replace the shared list with the marker plus only
     // what was added in this browser since its local reset.
@@ -7831,19 +7963,41 @@ const pushStorageDirtyDebounced = debounce(pushStorageDirty, 900);
 async function pullStorageFromBackend() {
     if (!BACKEND_URL || APP_MODE === 'test') return;
     if (storageResetPending) { await storageResetIfNeeded(); if (storageResetPending) return; }
-    const remote = await backendPull(STORAGE_BACKEND_KEY);
-    if (remote) {
+    const remote = await backendPullChecked(STORAGE_BACKEND_KEY);
+    // A failed or empty pull changes nothing (this browser's whole list is
+    // never pushed over the shared one; its own edits sync via pushStorageDirty).
+    if (remote && typeof remote === 'object') {
         const focusedRow = document.activeElement ? document.activeElement.closest('tr[data-row]') : null;
         const focusedId = focusedRow ? focusedRow.getAttribute('data-row') : null;
         Object.keys(remote).forEach(id => {
             if (id === focusedId || STORAGE_DIRTY.has(id)) return;
             STORAGE_ROWS[id] = remote[id];
         });
+        if (storageDedupe()) pushStorageDirtyDebounced();
         persistStorageLocal();
         renderStorageIfIdle();
-    } else if (Object.keys(STORAGE_ROWS).length) {
-        backendPush(STORAGE_BACKEND_KEY, STORAGE_ROWS);
     }
+}
+// Removes duplicate storage requests (same name, unit and contact).
+// Keeps a contacted one if any (else the earliest request, then the one
+// placed higher in the list); the rest are marked deleted everywhere.
+function storageDedupe() {
+    const norm = v => String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g, ' ');
+    const groups = {};
+    Object.keys(STORAGE_ROWS).forEach(id => {
+        const r = STORAGE_ROWS[id];
+        if (!r || r.deleted || !norm(r.name)) return;
+        const key = [norm(r.name), norm(r.unit), norm(r.contact)].join('|');
+        (groups[key] = groups[key] || []).push(id);
+    });
+    const ts = id => { const d = parseStorageTimestamp(STORAGE_ROWS[id].timestamp); return d ? d.getTime() : Infinity; };
+    let removed = 0;
+    Object.values(groups).filter(ids => ids.length > 1).forEach(ids => {
+        ids.sort((a, b) => (STORAGE_ROWS[b].contacted ? 1 : 0) - (STORAGE_ROWS[a].contacted ? 1 : 0) || ts(a) - ts(b)
+            || (STORAGE_ROWS[a].order ?? 1e9) - (STORAGE_ROWS[b].order ?? 1e9));
+        ids.slice(1).forEach(id => { STORAGE_ROWS[id].deleted = true; STORAGE_DIRTY.add(id); removed++; });
+    });
+    return removed;
 }
 
 function initStorage() {
@@ -8153,7 +8307,7 @@ document.getElementById('adminPasswordInput').addEventListener('keydown', (e) =>
 
 // Hidden Games page: click the RÊVE logo on Settings, enter the Admin password.
 document.querySelector('#tab-settings .brand-strip .mark').addEventListener('click', () => {
-    if (!promptAdminPassword('open Games')) return;
+    if (!promptAdminPassword('', 'Enter Admin Password')) return;
     switchTab('games');
     window.scrollTo(0, 0);
 });
@@ -8349,12 +8503,175 @@ let adminSubTab = 'mmr';
     btn.addEventListener('click', () => {
         const which = btn.getAttribute('data-game-select');
         [...document.querySelectorAll('[data-game-select]')].forEach(b => b.classList.toggle('active', b === btn));
-        ['snake', 'chess'].forEach(g => {
+        ['snake', 'chess', 'maze'].forEach(g => {
             document.getElementById('gamePanel-' + g).style.display = g === which ? 'block' : 'none';
         });
         if (which !== 'snake') snakeStop();
+        if (which === 'maze') mazeShow();
     });
 });
+
+/* ============================================================
+   Maze — a new random maze each time (depth-first "recursive
+   backtracker", so there's exactly one path from A to B). Small /
+   Medium / Large with 1 / 2 / 4 gold power balls scattered on the path;
+   each ball lets the red square pass through one interior wall once.
+   Timer starts on the first move; best time kept per size.
+   ============================================================ */
+const MAZE_SIZES = { small: { n: 10, balls: 1 }, medium: { n: 16, balls: 2 }, large: { n: 24, balls: 4 } };
+let mazeSize = 'medium';
+let maze = null;   // { g: grid rows (1 = wall), W, H, px, py, ex, ey, balls: Set, power, start, done, broken: Set }
+let mazeTick = null;
+function mazeBuild(n) {
+    const W = 2 * n + 1, H = 2 * n + 1;
+    const g = Array.from({ length: H }, () => new Array(W).fill(1));
+    const stack = [[0, 0]];
+    const seen = new Set(['0,0']);
+    g[1][1] = 0;
+    while (stack.length) {
+        const [cx, cy] = stack[stack.length - 1];
+        const next = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [cx + dx, cy + dy, dx, dy])
+            .filter(([x, y]) => x >= 0 && y >= 0 && x < n && y < n && !seen.has(x + ',' + y));
+        if (!next.length) { stack.pop(); continue; }
+        const [x, y, dx, dy] = next[Math.floor(Math.random() * next.length)];
+        g[2 * cy + 1 + dy][2 * cx + 1 + dx] = 0;
+        g[2 * y + 1][2 * x + 1] = 0;
+        seen.add(x + ',' + y);
+        stack.push([x, y]);
+    }
+    // A: left edge, random row; B: right edge, random row.
+    const ay = 2 * Math.floor(Math.random() * n) + 1, by = 2 * Math.floor(Math.random() * n) + 1;
+    g[ay][0] = 0; g[by][W - 1] = 0;
+    // Power balls on random open cells, kept away from A and each other.
+    const open = [];
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) if (!g[y][x] && x % 2 && y % 2 && Math.abs(x - 1) + Math.abs(y - ay) > n / 2) open.push([x, y]);
+    const balls = new Set();
+    const count = MAZE_SIZES[mazeSize].balls;
+    for (let tries = 0; balls.size < count && tries < 500; tries++) {
+        const [x, y] = open[Math.floor(Math.random() * open.length)];
+        const far = [...balls].every(k => { const [bx, bky] = k.split(',').map(Number); return Math.abs(bx - x) + Math.abs(bky - y) > n / 2 || tries > 300; });
+        if (far) balls.add(x + ',' + y);
+    }
+    return { g, W, H, px: 0, py: ay, ex: W - 1, ey: by, balls, power: 0, start: 0, elapsed: 0, done: false, broken: new Set() };
+}
+function mazeBestKey() { return 'reve-maze-best-' + mazeSize; }
+function mazeFmt(ms) { const t = Math.floor(ms / 100); return `${Math.floor(t / 600)}:${String(Math.floor(t / 10) % 60).padStart(2, '0')}.${t % 10}`; }
+function mazeHud() {
+    const now = maze.start && !maze.done ? performance.now() - maze.start : maze.elapsed;
+    document.getElementById('mazeTimer').textContent = mazeFmt(now);
+    document.getElementById('mazePower').innerHTML = '&#9679; ' + maze.power;
+    let best = null;
+    try { best = parseInt(localStorage.getItem(mazeBestKey()) || '', 10); } catch (e) {}
+    document.getElementById('mazeBest').textContent = best > 0 ? mazeFmt(best) : '\u2014';
+}
+function mazeDraw() {
+    const canvas = document.getElementById('mazeCanvas');
+    const cell = Math.floor(460 / maze.W);
+    canvas.width = canvas.height = cell * maze.W;
+    const ctx = canvas.getContext('2d');
+    const dark = document.body.classList.contains('dark-mode');
+    ctx.fillStyle = dark ? '#ece6d9' : '#fbfaf7';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = dark ? '#171512' : '#2f2d2f';
+    for (let y = 0; y < maze.H; y++) for (let x = 0; x < maze.W; x++) if (maze.g[y][x]) ctx.fillRect(x * cell, y * cell, cell, cell);
+    ctx.fillStyle = 'rgba(255, 215, 0, 0.35)';
+    maze.broken.forEach(k => { const [x, y] = k.split(',').map(Number); ctx.fillRect(x * cell, y * cell, cell, cell); });
+    const label = (x, y, bg, t) => {
+        ctx.fillStyle = bg; ctx.fillRect(x * cell, y * cell, cell, cell);
+        ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.max(9, cell * 0.8)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(t, x * cell + cell / 2, y * cell + cell / 2 + 1);
+    };
+    label(0, maze.startY, '#3f7d54', 'A');
+    label(maze.ex, maze.ey, '#de5426', 'B');
+    maze.balls.forEach(k => {
+        const [x, y] = k.split(',').map(Number);
+        ctx.beginPath(); ctx.arc(x * cell + cell / 2, y * cell + cell / 2, cell * 0.36, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffd700'; ctx.fill(); ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 1; ctx.stroke();
+    });
+    const pad = Math.max(1, Math.round(cell * 0.15));
+    ctx.fillStyle = '#d62828';
+    ctx.fillRect(maze.px * cell + pad, maze.py * cell + pad, cell - 2 * pad, cell - 2 * pad);
+    if (maze.power) { ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2; ctx.strokeRect(maze.px * cell + pad, maze.py * cell + pad, cell - 2 * pad, cell - 2 * pad); }
+    if (maze.done) {
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, canvas.height / 2 - 40, canvas.width, 80);
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = 'bold 24px sans-serif'; ctx.fillText(`Escaped in ${mazeFmt(maze.elapsed)}!`, canvas.width / 2, canvas.height / 2 - 10);
+        ctx.font = '14px sans-serif'; ctx.fillText(maze.newBest ? 'New best time \u2014 press New Maze to play again' : 'Press New Maze to play again', canvas.width / 2, canvas.height / 2 + 18);
+    }
+}
+function mazeNew() {
+    maze = mazeBuild(MAZE_SIZES[mazeSize].n);
+    maze.startY = maze.py;
+    clearInterval(mazeTick); mazeTick = null;
+    document.querySelectorAll('#mazeSizes [data-maze-size]').forEach(b => b.classList.toggle('active', b.getAttribute('data-maze-size') === mazeSize));
+    mazeHud(); mazeDraw();
+}
+function mazeShow() { if (!maze) mazeNew(); else { mazeHud(); mazeDraw(); } }
+function mazeMove(dx, dy) {
+    if (!maze || maze.done) return;
+    const nx = maze.px + dx, ny = maze.py + dy;
+    if (nx < 0 || ny < 0 || nx >= maze.W || ny >= maze.H) return;
+    if (maze.g[ny][nx]) {
+        // Wall: with a power ball, go through it (interior walls only).
+        const inside = nx > 0 && ny > 0 && nx < maze.W - 1 && ny < maze.H - 1;
+        if (!maze.power || !inside) return;
+        maze.power--;
+        maze.g[ny][nx] = 0;
+        maze.broken.add(nx + ',' + ny);
+    }
+    if (!maze.start) {
+        maze.start = performance.now();
+        mazeTick = setInterval(() => { if (maze && !maze.done) mazeHud(); }, 100);
+    }
+    maze.px = nx; maze.py = ny;
+    const k = nx + ',' + ny;
+    if (maze.balls.has(k)) { maze.balls.delete(k); maze.power++; }
+    if (nx === maze.ex && ny === maze.ey) {
+        maze.done = true;
+        maze.elapsed = performance.now() - maze.start;
+        clearInterval(mazeTick); mazeTick = null;
+        try {
+            const best = parseInt(localStorage.getItem(mazeBestKey()) || '', 10);
+            if (!(best > 0) || maze.elapsed < best) { localStorage.setItem(mazeBestKey(), String(Math.round(maze.elapsed))); maze.newBest = true; }
+        } catch (e) {}
+    }
+    mazeHud(); mazeDraw();
+}
+document.getElementById('mazeNewBtn').addEventListener('click', mazeNew);
+document.getElementById('mazeSizes').addEventListener('click', e => {
+    const b = e.target.closest('[data-maze-size]');
+    if (!b) return;
+    mazeSize = b.getAttribute('data-maze-size');
+    mazeNew();
+});
+document.querySelector('.maze-pad').addEventListener('click', e => {
+    const b = e.target.closest('[data-maze-move]');
+    if (!b) return;
+    const [dx, dy] = b.getAttribute('data-maze-move').split(',').map(Number);
+    mazeMove(dx, dy);
+});
+document.addEventListener('keydown', e => {
+    const tab = document.getElementById('tab-games');
+    if (!tab || !tab.classList.contains('active') || document.getElementById('gamePanel-maze').style.display === 'none') return;
+    const a = document.activeElement;
+    if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT' || a.isContentEditable)) return;
+    const k = e.key.toLowerCase();
+    const d = { arrowup: [0, -1], w: [0, -1], arrowdown: [0, 1], s: [0, 1], arrowleft: [-1, 0], a: [-1, 0], arrowright: [1, 0], d: [1, 0] }[k];
+    if (d) { mazeMove(d[0], d[1]); e.preventDefault(); }
+    else if (k === 'enter' || k === 'n') { mazeNew(); e.preventDefault(); }
+});
+(() => {
+    const canvas = document.getElementById('mazeCanvas');
+    let t0 = null;
+    canvas.addEventListener('touchstart', e => { t0 = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }, { passive: true });
+    canvas.addEventListener('touchend', e => {
+        if (!t0) return;
+        const dx = e.changedTouches[0].clientX - t0.x, dy = e.changedTouches[0].clientY - t0.y;
+        t0 = null;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 12) return;
+        if (Math.abs(dx) > Math.abs(dy)) mazeMove(dx > 0 ? 1 : -1, 0); else mazeMove(0, dy > 0 ? 1 : -1);
+    }, { passive: true });
+})();
 
 /* ============================================================
    Chess — text-entry moves ("Black King to D2"). Basic legal piece
@@ -11465,8 +11782,8 @@ async function residentReplaceAll(rows) {
     await residentSyncNow();
 }
 
-function promptAdminPassword(actionLabel) {
-    const pw = prompt(`Enter the Admin password to ${actionLabel}:`);
+function promptAdminPassword(actionLabel, message) {
+    const pw = prompt(message || `Enter the Admin password to ${actionLabel}:`);
     if (pw === null) return false;
     if (pw !== ADMIN_PASSWORD) { alert('Incorrect password.'); return false; }
     return true;
@@ -13500,7 +13817,9 @@ const DOC_SECTIONS = [
     ] },
     { id: 'building-signs', label: 'Building Signs', docs: [] },
     { id: 'forms', label: 'Forms', docs: [] },
-    { id: 'bulletin', label: 'Bulletin', docs: [] }
+    { id: 'bulletin', label: 'Bulletin', docs: [] },
+    // List + preview layout (like Floorplans), uploads only, no printing.
+    { id: 'other', label: 'Other', docs: [], list: true }
 ];
 const DOCS_UPLOADS_KEY = 'reve-documents-uploads';
 const DOCS_UPLOADS_BACKEND_KEY = 'documents-uploads';
@@ -13747,12 +14066,25 @@ function docsFormatAdded(added) {
 }
 function renderDocuments() {
     const tabs = document.getElementById('docsSubtabs');
-    tabs.innerHTML = DOC_SECTIONS.map(s => `<button type="button" class="wl-subtab${s.id === docsCurrentSection ? ' active' : ''}" data-docs-section="${escapeAttr(s.id)}">${escapeHtml(s.label)}</button>`).join('')
-        + `<button type="button" class="wl-subtab${docsCurrentSection === 'floorplans' ? ' active' : ''}" data-docs-section="floorplans">Floorplans</button>`;
-    // Floorplans is its own compact, filterable list (open/download only).
+    const tabBtn = (id, label) => `<button type="button" class="wl-subtab${id === docsCurrentSection ? ' active' : ''}" data-docs-section="${escapeAttr(id)}">${escapeHtml(label)}</button>`;
+    tabs.innerHTML = DOC_SECTIONS.filter(s => !s.list).map(s => tabBtn(s.id, s.label)).join('')
+        + tabBtn('floorplans', 'Floorplans')
+        + DOC_SECTIONS.filter(s => s.list).map(s => tabBtn(s.id, s.label)).join('');
+    // Floorplans is its own compact, filterable list (open/download only);
+    // list sections (Other) use the same list + preview layout, with uploads.
     const isFp = docsCurrentSection === 'floorplans';
-    ['docsViewToggle', 'docsUploadBtn', 'docsGrid'].forEach(id => { document.getElementById(id).style.display = isFp ? 'none' : ''; });
+    const cur = DOC_SECTIONS.find(s => s.id === docsCurrentSection);
+    const isList = !!(cur && cur.list);
+    document.getElementById('docsViewToggle').style.display = isFp || isList ? 'none' : '';
+    document.getElementById('docsUploadBtn').style.display = isFp ? 'none' : '';
+    document.getElementById('docsGrid').style.display = isFp || isList ? 'none' : '';
     document.getElementById('fpPanel').style.display = isFp ? '' : 'none';
+    document.getElementById('otherPanel').style.display = isList ? '' : 'none';
+    if (isList) {
+        document.getElementById('docsEmptyNote').style.display = 'none';
+        renderOtherDocs();
+        return;
+    }
     if (isFp) {
         document.getElementById('docsEmptyNote').style.display = 'none';
         renderFloorplanDocs();
@@ -13955,25 +14287,35 @@ function renderFloorplanDocs() {
         fpFilters.option.every(t => d.tags.includes(t)) &&
         (!q || d.file.name.toUpperCase().includes(q) || d.code === q || d.units.includes(q) || d.tags.some(t => t.toUpperCase() === q)));
     document.getElementById('fpCount').textContent = FP_FILES ? `${shown.length} of ${all.length} file${all.length === 1 ? '' : 's'}` : '';
+    // Same name = same floorplan/sq ft part and the same tags in any order
+    // (S1-3D-mirror-combined == S1-combined-3D-mirror), any file type.
+    const dupKey = d => d.base.toUpperCase().replace(/[\s_]+/g, '-') + '|' + d.tags.slice().sort().join('+');
+    const byKey = {};
+    all.forEach(d => { (byKey[dupKey(d)] = byKey[dupKey(d)] || []).push(d.file.name); });
+    all.forEach(d => { d.dupOf = byKey[dupKey(d)].filter(n => n !== d.file.name); });
+    FP_SHOWN = all;
     const head = `<div class="fp-row fp-head"><span>Floorplan</span><span>Beds</span><span>Bed/Bath</span><span>Sq Ft</span><span>Building</span><span>Level</span><span>Units</span><span></span></div>`;
     list.innerHTML = shown.length ? head + shown.map(d => {
         const url = fpUrl(d.file.name);
         const bldg = d.bldgs.map(b => 'Bldg ' + b).join(', ');
         const lvl = d.levels.join(', ');
         const sub = [d.tags.join(', '), d.types.join('/'), d.bedBath.join(' or '), d.sqft && d.sqft + ' sf', bldg, lvl && 'Lvl ' + lvl, d.units.length && d.units.length + ' units'].filter(Boolean).join(' \u00b7 ');
-        return `<div class="fp-row">
-            <span class="fp-name"><a href="${escapeAttr(url)}" target="_blank" rel="noopener" title="Open ${escapeAttr(d.file.name)}"><b>${escapeHtml(d.code || d.base)}</b></a><span class="fp-file" title="${escapeAttr(d.file.name)}">${escapeHtml(d.file.name)}</span>${d.tags.map(t => `<span class="fp-tag">${escapeHtml(t)}</span>`).join('')}</span>
+        const cls = (d.dupOf.length ? ' fp-dup' : '') + (d.file.name === fpSelected ? ' fp-selected' : '');
+        const dupTitle = d.dupOf.length ? ` title="Duplicate name \u2014 same as ${escapeAttr(d.dupOf.join(', '))}"` : '';
+        return `<div class="fp-row${cls}" data-fp-file="${escapeAttr(d.file.name)}"${dupTitle}>
+            <span class="fp-name"><b>${escapeHtml(d.code || d.base)}</b><span class="fp-file" title="${escapeAttr(d.file.name)}">${escapeHtml(d.file.name)}</span>${d.tags.map(t => `<span class="fp-tag">${escapeHtml(t)}</span>`).join('')}</span>
             <span class="fp-c">${escapeHtml(d.types.join('/') || '\u2014')}</span>
             <span class="fp-c">${escapeHtml(d.bedBath.join(', ') || '\u2014')}</span>
             <span class="fp-c">${escapeHtml(d.sqft || '\u2014')}</span>
             <span class="fp-c">${escapeHtml(d.bldgs.join(', ') || '\u2014')}</span>
             <span class="fp-c">${escapeHtml(lvl || '\u2014')}</span>
             <span class="fp-c">${d.units.length ? `<span class="fp-units" title="${escapeAttr(d.units.join(', '))}">${d.units.length}</span>` : '\u2014'}</span>
-            <span class="fp-actions"><a href="${escapeAttr(url)}" target="_blank" rel="noopener">Open</a><a href="${escapeAttr(url)}" download="${escapeAttr(d.file.name)}">Download</a></span>
+            <span class="fp-actions"><a href="${escapeAttr(url)}" target="_blank" rel="noopener">Open</a><a class="fp-dl" href="${escapeAttr(url)}" download="${escapeAttr(d.file.name)}" title="Download ${escapeAttr(d.file.name)}" aria-label="Download ${escapeAttr(d.file.name)}">${FP_DL_ICON}</a></span>
             <span class="fp-sub">${escapeHtml(sub)}</span>
         </div>`;
     }).join('') : '';
     list.style.display = shown.length ? '' : 'none';
+    renderFpPreview();
     let msg = '';
     if (fpLoadState === 'loading' && !FP_FILES) msg = 'Loading the floorplan list\u2026';
     else if (fpLoadState === 'error' && !FP_FILES) msg = 'Couldn\u2019t reach GitHub to list the MEDIA_Floorplans folder \u2014 check your connection and click Refresh list.';
@@ -13983,6 +14325,44 @@ function renderFloorplanDocs() {
     note.textContent = msg;
     note.style.display = msg ? '' : 'none';
 }
+// Click a row to preview that floorplan on the right (links still work).
+let fpSelected = null;
+let FP_SHOWN = [];
+const FP_DL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg>';
+function renderFpPreview() {
+    const box = document.getElementById('fpPreview');
+    const d = fpSelected && FP_SHOWN.find(x => x.file.name === fpSelected);
+    if (!d) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    const url = fpUrl(d.file.name);
+    if (box.dataset.file === d.file.name && box.style.display !== 'none') return;   // already showing
+    box.dataset.file = d.file.name;
+    const isPdf = /\.pdf$/i.test(d.file.name);
+    const meta = [d.types.join('/'), d.bedBath.join(' or ') && d.bedBath.join(' or ') + ' bed/bath', d.sqft && d.sqft + ' sq ft',
+        d.bldgs.length && 'Bldg ' + d.bldgs.join(', '), d.levels.length && 'Level ' + d.levels.join(', ')].filter(Boolean).join(' \u00b7 ');
+    box.innerHTML = `<div class="fp-pv-head"><b>${escapeHtml(d.code || d.base)}</b><span class="fp-pv-name" title="${escapeAttr(d.file.name)}">${escapeHtml(d.file.name)}</span><button type="button" class="fp-pv-close" id="fpPvClose" title="Close preview" aria-label="Close preview">&times;</button></div>
+        ${isPdf ? `<iframe class="fp-pv-pdf" src="${escapeAttr(url)}" title="${escapeAttr(d.file.name)}"></iframe>` : `<img class="fp-pv-img" src="${escapeAttr(url)}" alt="${escapeAttr(d.code + ' floorplan')}">`}
+        <div class="fp-pv-meta">${d.tags.map(t => `<span class="fp-tag">${escapeHtml(t)}</span>`).join(' ')} ${escapeHtml(meta)}${d.units.length ? `<br>Units: ${escapeHtml(d.units.join(', '))}` : ''}</div>
+        ${d.dupOf.length ? `<div class="fp-pv-dupnote">Duplicate name \u2014 same as ${escapeHtml(d.dupOf.join(', '))}</div>` : ''}
+        <div class="fp-pv-actions"><a href="${escapeAttr(url)}" target="_blank" rel="noopener">Open full size \u2197</a><a href="${escapeAttr(url)}" download="${escapeAttr(d.file.name)}">${FP_DL_ICON} Download</a></div>`;
+    box.style.display = '';
+}
+document.getElementById('fpList').addEventListener('click', e => {
+    if (e.target.closest('a, button')) return;
+    const row = e.target.closest('[data-fp-file]');
+    if (!row) return;
+    const name = row.getAttribute('data-fp-file');
+    fpSelected = fpSelected === name ? null : name;
+    document.querySelectorAll('#fpList .fp-row').forEach(r => r.classList.toggle('fp-selected', r.getAttribute('data-fp-file') === fpSelected));
+    renderFpPreview();
+    const box = document.getElementById('fpPreview');
+    if (fpSelected && getComputedStyle(document.querySelector('.fp-body')).flexDirection === 'column') box.scrollIntoView({ block: 'start', behavior: 'smooth' });
+});
+document.getElementById('fpPreview').addEventListener('click', e => {
+    if (!e.target.closest('#fpPvClose')) return;
+    fpSelected = null;
+    document.querySelectorAll('#fpList .fp-selected').forEach(r => r.classList.remove('fp-selected'));
+    renderFpPreview();
+});
 document.getElementById('fpFilters').addEventListener('click', e => {
     const b = e.target.closest('[data-fp-k]');
     if (!b) return;
@@ -14069,7 +14449,77 @@ document.getElementById('docsSubtabs').addEventListener('click', e => {
     docsCurrentSection = btn.getAttribute('data-docs-section');
     renderDocuments();
 });
-document.getElementById('docsGrid').addEventListener('click', async e => {
+document.getElementById('docsGrid').addEventListener('click', e => docsHandleAction(e));
+document.getElementById('otherList').addEventListener('click', e => {
+    if (e.target.closest('[data-docs-action]')) { docsHandleAction(e); return; }
+    const row = e.target.closest('[data-other-key]');
+    if (!row) return;
+    const key = row.getAttribute('data-other-key');
+    otherSelected = otherSelected === key ? null : key;
+    document.querySelectorAll('#otherList .fp-row').forEach(r => r.classList.toggle('fp-selected', r.getAttribute('data-other-key') === otherSelected));
+    renderOtherPreview();
+    if (otherSelected && getComputedStyle(document.querySelector('#otherPanel .fp-body')).flexDirection === 'column') document.getElementById('otherPreview').scrollIntoView({ block: 'start', behavior: 'smooth' });
+});
+document.getElementById('otherPreview').addEventListener('click', e => {
+    if (e.target.closest('[data-docs-action]')) { docsHandleAction(e); return; }
+    if (!e.target.closest('.fp-pv-close')) return;
+    otherSelected = null;
+    document.querySelectorAll('#otherList .fp-selected').forEach(r => r.classList.remove('fp-selected'));
+    renderOtherPreview();
+});
+// Documents > Other: uploaded files in the Floorplans-style list, with a
+// preview on the right when a row is clicked.
+let otherSelected = null;
+let otherPreviewToken = 0;
+function renderOtherDocs() {
+    const docs = docsForSection(docsCurrentSection);
+    const list = document.getElementById('otherList');
+    const note = document.getElementById('otherNote');
+    if (otherSelected && !docs.some(d => d.key === otherSelected)) otherSelected = null;
+    const head = `<div class="fp-row ot-row fp-head"><span>Document</span><span>Type</span><span>Size</span><span>Added</span><span></span></div>`;
+    list.innerHTML = docs.length ? head + docs.map((d, i) => {
+        const type = DOCS_UPLOAD_TYPES[d.mime] || 'PDF';
+        const when = d.updated || d.added;
+        const date = when ? new Date(when).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '';
+        return `<div class="fp-row ot-row${d.key === otherSelected ? ' fp-selected' : ''}" data-other-key="${escapeAttr(d.key)}">
+            <span class="fp-name"><b>${escapeHtml(d.title)}</b><span class="fp-file" title="${escapeAttr(d.filename || '')}">${escapeHtml(d.filename || '')}${d.localOnly ? ' \u00b7 this device only' : ''}</span></span>
+            <span class="fp-c">${escapeHtml(type)}</span>
+            <span class="fp-c">${escapeHtml(d.size ? docsFormatSize(d.size) : '')}</span>
+            <span class="fp-c">${escapeHtml(date)}</span>
+            <span class="fp-actions">
+                <a href="#" data-docs-action="open" data-docs-i="${i}">Open</a>
+                <a href="#" class="fp-dl" data-docs-action="download" data-docs-i="${i}" title="Download" aria-label="Download ${escapeAttr(d.title)}">${FP_DL_ICON}</a>
+            </span>
+            <span class="fp-sub">${escapeHtml([type, d.size ? docsFormatSize(d.size) : '', date].filter(Boolean).join(' \u00b7 '))}</span>
+        </div>`;
+    }).join('') : '';
+    list.style.display = docs.length ? '' : 'none';
+    note.textContent = docs.length ? '' : 'No documents here yet \u2014 click \u201c+ Upload\u201d to add a PDF, JPG or PNG.';
+    note.style.display = docs.length ? 'none' : '';
+    renderOtherPreview();
+}
+async function renderOtherPreview() {
+    const box = document.getElementById('otherPreview');
+    const docs = docsForSection(docsCurrentSection);
+    const i = docs.findIndex(d => d.key === otherSelected);
+    const d = docs[i];
+    if (!d) { box.style.display = 'none'; box.innerHTML = ''; box.dataset.key = ''; return; }
+    if (box.dataset.key === d.key + '|' + (d.fileId || '') && box.style.display !== 'none') return;
+    box.dataset.key = d.key + '|' + (d.fileId || '');
+    const token = ++otherPreviewToken;
+    const actions = `<div class="fp-pv-actions"><a href="#" data-docs-action="open" data-docs-i="${i}">Open full size \u2197</a><a href="#" data-docs-action="download" data-docs-i="${i}">${FP_DL_ICON} Download</a>`
+        + (d.uploadId ? `<a href="#" data-docs-action="replace" data-docs-i="${i}">Replace</a><a href="#" data-docs-action="remove" data-docs-i="${i}">Remove</a>` : '') + '</div>';
+    const headHtml = `<div class="fp-pv-head"><b>${escapeHtml(d.title)}</b><span class="fp-pv-name" title="${escapeAttr(d.filename || '')}">${escapeHtml(d.filename || '')}</span><button type="button" class="fp-pv-close" title="Close preview" aria-label="Close preview">&times;</button></div>`;
+    box.innerHTML = headHtml + '<div class="fp-pv-meta">Loading preview\u2026</div>' + actions;
+    box.style.display = '';
+    const url = await docsUrlFor(d);
+    if (token !== otherPreviewToken) return;
+    const body = !url ? '<div class="fp-pv-meta">Couldn\u2019t load this file \u2014 check the backend connection in Settings.</div>'
+        : docsIsImage(d) ? `<img class="fp-pv-img" src="${escapeAttr(url)}" alt="${escapeAttr(d.title)}">`
+        : `<iframe class="fp-pv-pdf" src="${escapeAttr(url)}" title="${escapeAttr(d.title)}"></iframe>`;
+    box.innerHTML = headHtml + body + actions;
+}
+async function docsHandleAction(e) {
     const el = e.target.closest('[data-docs-action]');
     if (!el) return;
     e.preventDefault();
@@ -14151,7 +14601,7 @@ document.getElementById('docsGrid').addEventListener('click', async e => {
             frame.src = printUrl;
         }, 0);
     }
-});
+}
 document.getElementById('docsUploadBtn').addEventListener('click', () => document.getElementById('docsUploadInput').click());
 // Checks type and size; returns the MIME type, or '' after telling the user why not.
 function docsCheckFile(file) {
@@ -14226,7 +14676,7 @@ document.getElementById('docsUploadInput').addEventListener('change', async e =>
     const title = prompt(`Title for this document (in ${section.label}):`, file.name.replace(/\.(pdf|jpe?g|png)$/i, '').replace(/[_-]+/g, ' ').trim());
     if (title === null || !title.trim()) return;
     const b64 = await docsReadBase64(file);
-    const half = confirm('Print this as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
+    const half = section.list ? false : confirm('Print this as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
     const entry = { id: docsNewId(), section: section.id, title: title.trim(), name: file.name, size: file.size, mime, print: half ? 'half' : 'full', added: new Date().toISOString() };
     await docsCachePut(entry.id, b64);
     docsSetStatus('Uploading…');
@@ -14290,15 +14740,34 @@ function debounce(fn, wait) {
 const BACKEND_CHUNK_CHARS = 40000;
 
 async function backendPullRaw(key) {
-    if (!BACKEND_URL) return null;
+    const r = await backendPullRawChecked(key);
+    return r.ok ? r.value : null;
+}
+// Like backendPullRaw, but tells a failed request ({ ok: false }) apart
+// from a key that simply has nothing stored yet ({ ok: true, value: null }).
+async function backendPullRawChecked(key) {
+    if (!BACKEND_URL) return { ok: false, value: null };
     try {
         const res = await fetch(`${BACKEND_URL}?key=${encodeURIComponent(key)}`);
-        if (!res.ok) return null;
+        if (!res.ok) return { ok: false, value: null };
         const data = await res.json();
-        return (data && data.value !== undefined && data.value !== null) ? data.value : null;
+        return { ok: true, value: (data && data.value !== undefined && data.value !== null) ? data.value : null };
     } catch (e) {
-        return null;
+        return { ok: false, value: null };
     }
+}
+// undefined = the pull FAILED (never treat that as "empty"); null = nothing
+// stored yet; otherwise the stored value.
+async function backendPullChecked(key) {
+    const r = await backendPullRawChecked(key);
+    if (!r.ok) return undefined;
+    const value = r.value;
+    if (!value || typeof value !== 'object' || !value.__chunks) return value;
+    const parts = await Promise.all(Array.from({ length: value.__chunks }, (_, i) => backendPullRawChecked(`${key}__part${i}`)));
+    if (parts.some(p => !p.ok || typeof p.value !== 'string')) return undefined;
+    const json = parts.map(p => p.value).join('');
+    if (json.length !== value.length) return undefined;
+    try { return JSON.parse(json); } catch (e) { return undefined; }
 }
 async function backendPull(key) {
     const value = await backendPullRaw(key);
@@ -14953,7 +15422,7 @@ const QA_GLOSSARY = [
     ['Test mode', 'Settings > Test switches every tab to sample data; nothing you do touches real data. Click Live to return.', 'settings', 'practice sample demo sandbox'],
     ['Refresh Site to Update', 'Settings > "Refresh Site to Update" (or a hard refresh, Cmd/Ctrl+Shift+R) loads the newest version of the app. Do this after a new feature is deployed.', 'settings', 'update reload new version cache hard refresh'],
     ['Admin password', 'The Admin password isn\u2019t shown anywhere in the app \u2014 ask your manager. It unlocks the Admin tab and confirms Residents Upload/Clear, removing documents, and Games.', 'admin', 'password passcode unlock login locked'],
-    ['Games', 'Games (Snake and Chess) are hidden: click the RÊVE logo on the Settings tab and enter the Admin password.', 'settings', 'snake chess fun hidden logo'],
+    ['Games', 'Games (Snake, Chess and Maze) are hidden: click the RÊVE logo on the Settings tab and enter the Admin password.', 'settings', 'snake chess fun hidden logo'],
     ['Concession', 'The current concession is set from Tour > Current Concession > Edit and applies automatically to matching units’ flyers.', 'tour', 'special promo discount weeks free deal']
 ];
 const QA_STOP = new Set('a an the is are was were be been am do does did to of in on at for from by with and or but if then than so as it its this that these those there here what whats which who whom whose how when where why can could should would will shall may might must i me my we our you your they them their he she his her us about into over under up out any some all please tell show give find know need want get got let lets im ive youre dont doesnt isnt one ones also just like much many'.split(' '));
