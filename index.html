@@ -1525,6 +1525,8 @@
     .fp-name a { color: inherit; text-decoration: none; }
     .fp-name a:hover b { color: var(--reve-orange); text-decoration: underline; }
     .fp-file { color: var(--ink-soft); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fp-tag { flex: none; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 0 6px; background: #f4e3da; color: #a8401c; letter-spacing: 0.02em; }
+    body.dark-mode .fp-tag { background: #4a2e22; color: #f2b394; }
     .fp-actions { display: flex; gap: 4px; justify-content: flex-end; }
     .fp-actions a { font-size: 11.5px; font-weight: 700; border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; color: inherit; text-decoration: none; white-space: nowrap; }
     .fp-actions a:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
@@ -13822,7 +13824,7 @@ const FP_CACHE_MS = 15 * 60 * 1000;
 const FP_EXT = /\.(jpe?g|png|webp|gif|pdf)$/i;
 let FP_FILES = null;          // [{ name, size }]
 let fpLoadState = '';         // '', 'loading', 'error'
-let fpFilters = { type: [], level: [], bldg: [], plan: [] };
+let fpFilters = { type: [], level: [], bldg: [], plan: [], style: [], level2: [], option: [] };
 try { const c = JSON.parse(localStorage.getItem(FP_CACHE_KEY) || 'null'); if (c && Array.isArray(c.files)) FP_FILES = c.files; } catch (e) {}
 async function fpLoadList(force) {
     let cachedAt = 0;
@@ -13855,8 +13857,27 @@ function fpUnitType(u) {
 // File name -> floorplan code, sq ft and the units it covers. Most
 // specific first: the Tour tab's image key ("A3-741-767"), then code +
 // sq ft, then every unit with that code.
+// Tags after the code/sq ft, in any order and any case, separated by
+// "-", "_" or spaces: e.g. LW1-1732-upper-mirror, LW1-1732-mirror-3D.
+const FP_TAGS = [
+    // [label, filter group, words that mean it]
+    ['2D', 'style', ['2d']], ['3D', 'style', ['3d']],
+    ['Upper', 'level2', ['upper']], ['Lower', 'level2', ['lower']], ['Combined', 'level2', ['combined', 'combo']],
+    ['Mirror', 'option', ['mirror', 'mirrored']], ['Measurements', 'option', ['measurements', 'measurement', 'measured', 'dims', 'dimensions']],
+    ['Balcony', 'option', ['balcony']]
+];
+function fpParseTags(base) {
+    const tags = [], rest = [];
+    base.split(/[-_\s]+/).filter(Boolean).forEach(w => {
+        const t = FP_TAGS.find(x => x[2].includes(w.toLowerCase()));
+        if (t) { if (!tags.includes(t[0])) tags.push(t[0]); } else rest.push(w);
+    });
+    return { tags: FP_TAGS.map(t => t[0]).filter(t => tags.includes(t)), core: rest.join('-') };
+}
 function fpDescribe(file) {
-    const base = file.name.replace(/\.[^.]+$/, '');
+    const full = file.name.replace(/\.[^.]+$/, '');
+    const parsed = fpParseTags(full);
+    const base = parsed.core || full;
     const codes = new Set(UNITS.map(u => String(u.floorplan).toUpperCase()));
     const code = (base.toUpperCase().match(/(?:^|[^A-Z])((?:TH|LW|PH|[SABC])\d{1,2})(?![0-9])/g) || [])
         .map(m => m.replace(/^[^A-Z]/, '')).find(c => codes.has(c)) || '';
@@ -13879,7 +13900,7 @@ function fpDescribe(file) {
         sqSort: sqfts[0] || sq[0] || 0,
         levels: uniq(units.map(u => String(u.floor))).sort(),
         bldgs: uniq(units.map(u => String(u.bldg || '').replace(/\D/g, ''))).sort(),
-        balcony: /balcon/i.test(base)
+        tags: parsed.tags
     };
 }
 function fpNaturalCode(a, b) {
@@ -13890,18 +13911,22 @@ function fpNaturalCode(a, b) {
 function renderFloorplanDocs() {
     const list = document.getElementById('fpList');
     const note = document.getElementById('fpNote');
-    const all = (FP_FILES || []).map(fpDescribe).sort((a, b) => fpNaturalCode(a.code, b.code) || a.sqSort - b.sqSort || a.base.localeCompare(b.base));
+    const all = (FP_FILES || []).map(fpDescribe).sort((a, b) => fpNaturalCode(a.code, b.code) || a.sqSort - b.sqSort || a.base.localeCompare(b.base) || a.file.name.localeCompare(b.file.name));
     // Filter chips, built from what the files actually cover.
     const opts = {
         type: FP_TYPE_ORDER.filter(t => all.some(d => d.types.includes(t))),
         level: [...new Set(all.flatMap(d => d.levels))].sort(),
         bldg: [...new Set(all.flatMap(d => d.bldgs))].sort(),
-        plan: [...new Set(all.map(d => d.code).filter(Boolean))].sort(fpNaturalCode)
+        plan: [...new Set(all.map(d => d.code).filter(Boolean))].sort(fpNaturalCode),
+        style: FP_TAGS.filter(t => t[1] === 'style' && all.some(d => d.tags.includes(t[0]))).map(t => t[0]),
+        level2: FP_TAGS.filter(t => t[1] === 'level2' && all.some(d => d.tags.includes(t[0]))).map(t => t[0]),
+        option: FP_TAGS.filter(t => t[1] === 'option' && all.some(d => d.tags.includes(t[0]))).map(t => t[0])
     };
+    const tagRows = ['style', 'level2', 'option'];
     Object.keys(fpFilters).forEach(k => { fpFilters[k] = fpFilters[k].filter(v => opts[k].includes(v)); });
-    const labels = { type: 'Beds', level: 'Level', bldg: 'Building', plan: 'Floorplan' };
+    const labels = { type: 'Beds', level: 'Level', bldg: 'Building', plan: 'Floorplan', style: 'Style', level2: 'Floors', option: 'Tags' };
     const chipText = (k, v) => k === 'level' ? 'Level ' + v : k === 'bldg' ? 'Bldg ' + v : v;
-    document.getElementById('fpFilters').innerHTML = Object.keys(opts).filter(k => opts[k].length > 1).map(k =>
+    document.getElementById('fpFilters').innerHTML = Object.keys(opts).filter(k => opts[k].length > (tagRows.includes(k) ? 0 : 1)).map(k =>
         `<div class="fp-frow"><span class="fp-flabel">${labels[k]}</span>${opts[k].map(v => `<button type="button" class="chip${fpFilters[k].includes(v) ? ' active' : ''}" data-fp-k="${k}" data-fp-v="${escapeAttr(v)}">${escapeHtml(chipText(k, v))}</button>`).join('')}</div>`).join('');
     const q = document.getElementById('fpSearch').value.trim().toUpperCase();
     const shown = all.filter(d =>
@@ -13909,16 +13934,19 @@ function renderFloorplanDocs() {
         (!fpFilters.level.length || d.levels.some(t => fpFilters.level.includes(t))) &&
         (!fpFilters.bldg.length || d.bldgs.some(t => fpFilters.bldg.includes(t))) &&
         (!fpFilters.plan.length || fpFilters.plan.includes(d.code)) &&
-        (!q || d.base.toUpperCase().includes(q) || d.code === q || d.units.includes(q)));
+        (!fpFilters.style.length || d.tags.some(t => fpFilters.style.includes(t))) &&
+        (!fpFilters.level2.length || d.tags.some(t => fpFilters.level2.includes(t))) &&
+        fpFilters.option.every(t => d.tags.includes(t)) &&
+        (!q || d.file.name.toUpperCase().includes(q) || d.code === q || d.units.includes(q) || d.tags.some(t => t.toUpperCase() === q)));
     document.getElementById('fpCount').textContent = FP_FILES ? `${shown.length} of ${all.length} file${all.length === 1 ? '' : 's'}` : '';
     const head = `<div class="fp-row fp-head"><span>Floorplan</span><span>Beds</span><span>Bed/Bath</span><span>Sq Ft</span><span>Building</span><span>Level</span><span>Units</span><span></span></div>`;
     list.innerHTML = shown.length ? head + shown.map(d => {
         const url = fpUrl(d.file.name);
         const bldg = d.bldgs.map(b => 'Bldg ' + b).join(', ');
         const lvl = d.levels.join(', ');
-        const sub = [d.types.join('/'), d.bedBath.join(' or '), d.sqft && d.sqft + ' sf', bldg, lvl && 'Lvl ' + lvl, d.units.length && d.units.length + ' units'].filter(Boolean).join(' \u00b7 ');
+        const sub = [d.tags.join(', '), d.types.join('/'), d.bedBath.join(' or '), d.sqft && d.sqft + ' sf', bldg, lvl && 'Lvl ' + lvl, d.units.length && d.units.length + ' units'].filter(Boolean).join(' \u00b7 ');
         return `<div class="fp-row">
-            <span class="fp-name"><a href="${escapeAttr(url)}" target="_blank" rel="noopener" title="Open ${escapeAttr(d.file.name)}"><b>${escapeHtml(d.code || d.base)}</b></a><span class="fp-file" title="${escapeAttr(d.file.name)}">${escapeHtml(d.file.name)}${d.balcony ? ' \u00b7 balcony' : ''}</span></span>
+            <span class="fp-name"><a href="${escapeAttr(url)}" target="_blank" rel="noopener" title="Open ${escapeAttr(d.file.name)}"><b>${escapeHtml(d.code || d.base)}</b></a><span class="fp-file" title="${escapeAttr(d.file.name)}">${escapeHtml(d.file.name)}</span>${d.tags.map(t => `<span class="fp-tag">${escapeHtml(t)}</span>`).join('')}</span>
             <span class="fp-c">${escapeHtml(d.types.join('/') || '\u2014')}</span>
             <span class="fp-c">${escapeHtml(d.bedBath.join(', ') || '\u2014')}</span>
             <span class="fp-c">${escapeHtml(d.sqft || '\u2014')}</span>
@@ -13948,7 +13976,7 @@ document.getElementById('fpFilters').addEventListener('click', e => {
 });
 document.getElementById('fpSearch').addEventListener('input', renderFloorplanDocs);
 document.getElementById('fpClear').addEventListener('click', () => {
-    fpFilters = { type: [], level: [], bldg: [], plan: [] };
+    Object.keys(fpFilters).forEach(k => { fpFilters[k] = []; });
     document.getElementById('fpSearch').value = '';
     renderFloorplanDocs();
 });
@@ -14671,7 +14699,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-storage": {"title": "Track Storage Locker Interest", "icon": "📦", "category": "Waitlist", "steps": ["On the Waitlist tab, click the Storage tab on the right.", "Click \"+ Add Entry\" and fill in Name, Unit, and Email or phone.", "Check \"Contacted\" once you've reached out.", "Drag the ≡ handle at the left of a row to move it up or down (or focus it and use the arrow keys) — the order is shared with the team.", "Use the × button to remove an entry permanently."]},
     "builtin-site-map": {"title": "Use the Interactive Site Map", "icon": "🗺️", "category": "Media", "steps": ["Open the Media tab and pick a floor: 1st, 2nd, 3rd or 4th.", "Orange units are available now (from today's pricing sheet); gray units aren't currently available.", "Hover (or tap) a unit for options: \"Load in Tour\" opens it in the Tour tab, and \"Watch Video\" plays its video tour when one is on file.", "Retail suites and the Leasing Office are clickable when they have a website — they open it in a new tab.", "\"E\" boxes mark elevators; light corridors show the interior hallways.", "On the 2nd floor, gray outlined numbers mark the upper floor of the two-story townhomes below."]},
     "builtin-print-docs": {"title": "Print Move-in Documents and Signs", "icon": "🖨️", "category": "Documents", "steps": ["Open the Documents tab and pick a section: Move-in Docs, Building Signs, Forms or Bulletin.", "Click Print on a document. Most print two half-sheets per page, ready to cut; each card says \"Prints 2 per page\" or \"Prints full sheet\".", "Open shows the document in a new tab; Download saves the original file.", "Use Details (top right) for a compact list that fits everything on one screen, or Preview for page thumbnails."]},
-    "builtin-floorplan-files": {"title": "Find and Download Floorplan Images", "icon": "📐", "category": "Documents", "steps": ["Open Documents and click the Floorplans sub-tab.", "Narrow the list with the bubbles at the top: Beds, Level, Building and Floorplan (pick several in a row to include any of them).", "Or type a floorplan (e.g. B5) or a unit number (e.g. 4334) in the search box to find the plan for that unit.", "Click Open to view a floorplan in a new tab, or Download to save it.", "To add or update floorplans, upload files to the MEDIA_Floorplans folder on GitHub, named with the floorplan and sq ft (e.g. \"B5-1211.jpg\"), then click \"Refresh list\"."]},
+    "builtin-floorplan-files": {"title": "Find and Download Floorplan Images", "icon": "📐", "category": "Documents", "steps": ["Open Documents and click the Floorplans sub-tab.", "Narrow the list with the bubbles at the top: Beds, Level, Building and Floorplan (pick several in a row to include any of them).", "Or type a floorplan (e.g. B5) or a unit number (e.g. 4334) in the search box to find the plan for that unit.", "Click Open to view a floorplan in a new tab, or Download to save it.", "Tags in the file name show as labels and get their own filters: Style (2D / 3D), Floors (Upper / Lower / Combined) and Tags (Mirror, Measurements, Balcony).", "To add or update floorplans, upload files to the MEDIA_Floorplans folder on GitHub, named floorplan-sqft-tags in any tag order (e.g. \"B5-1211-3D.jpg\", \"LW1-1732-upper-mirror-2D.jpg\"), then click \"Refresh list\"."]},
     "builtin-manage-docs": {"title": "Upload, Replace or Reorder Documents", "icon": "📤", "category": "Documents", "steps": ["Open the section the document belongs in, then click \"+ Upload\" and pick a PDF, JPG or PNG (up to 10 MB).", "Give it a title, then choose OK for two half-sheets per page or Cancel for a full sheet.", "To update a document, click Replace under it and pick the new file — it keeps its title, spot and print setting.", "Drag the ≡ handle at the bottom right of any card to move it to a new spot (or focus it and use the arrow keys).", "Remove deletes an uploaded document, and Revert restores a built-in one — both need the Admin password.", "Uploads, order and replacements are shared with the whole team."]},
     "builtin-new-resident": {"title": "Add a New Resident and Track Move-In Steps", "icon": "🧑‍💼", "category": "Residents", "steps": ["Open the Residents tab and click \"+ New Resident\".", "Fill in Agent, Unit, First and Last name, Date Applied, Move-In date, Term, Rate and Promo.", "Update Screen as the application moves along: Applied → Screening → Approved → ↑ Uploaded.", "Work through the checklist (ID, WL, Lease, Deposit, Pet, Parking, Ins., M/I Pmt, Inv/Cond, M/I Folder, Walk-Thru, Moved In, Latch).", "Once Screen is Approved or Uploaded, any unfinished step is shaded pink. Ins. and M/I Pmt turn red until checked.", "The row turns green when all 8 checklist boxes are checked. Use Status for Notice, Renewed, Transfer, Early Term or Eviction.", "Move-Out and Notice Needed dates calculate automatically from the move-in date and term."]},
     "builtin-residents-views": {"title": "Find Residents: Tabs, Calendar and Search", "icon": "📋", "category": "Residents", "steps": ["Active: everyone not yet moved out. Pending: not moved in yet. Notice Req.: a notice-needed date in the next 30 days. Move-Outs: past residents.", "The calendar at the top shows move-ins for the month — use ‹ › to change months, and click a unit to jump to its row.", "Type in \"Search unit or resident name…\" to find someone fast.", "Use the filter on each column header to narrow the table, and \"Clear Filters\" to reset.", "Click \"Refresh to Update\" to pull the latest changes from other agents."]},
