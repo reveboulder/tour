@@ -1409,6 +1409,27 @@
     .docs-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
     .docs-toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
     .docs-upload-status { font-size: 12px; color: var(--ink-soft); }
+    .docs-sync { display: flex; align-items: center; gap: 8px; font-size: 12.5px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 6px 10px; background: #fff; max-width: 420px; }
+    .docs-sync.working { border-color: #e8b04a; background: #fff8e8; }
+    .docs-sync.ok { border-color: #9ccaa8; background: #eef7f0; }
+    .docs-sync.error { border-color: #e4a39a; background: #fdeeec; }
+    .docs-sync-icon { font-weight: 800; font-size: 14px; flex: none; }
+    .docs-sync.working .docs-sync-icon { color: #b8860b; animation: docsSpin 1s linear infinite; display: inline-block; }
+    .docs-sync.ok .docs-sync-icon { color: var(--good); }
+    .docs-sync.error .docs-sync-icon { color: #c0392b; }
+    @keyframes docsSpin { to { transform: rotate(360deg); } }
+    .docs-sync-body { flex: 1; min-width: 0; }
+    .docs-sync-title { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .docs-sync-step { color: var(--ink-soft); font-size: 11.5px; }
+    .docs-sync-bar { height: 4px; border-radius: 2px; background: rgba(0,0,0,0.08); margin-top: 4px; overflow: hidden; }
+    .docs-sync-bar i { display: block; height: 100%; background: #e8b04a; transition: width 0.2s; }
+    .docs-sync button { font: inherit; font-size: 12px; font-weight: 700; border: 1px solid var(--line); border-radius: 999px; background: #fff; padding: 2px 10px; cursor: pointer; flex: none; }
+    .docs-sync .docs-sync-x { border: none; background: none; font-size: 16px; color: var(--ink-soft); padding: 0 2px; }
+    body.dark-mode .docs-sync { background: var(--dm-card); }
+    body.dark-mode .docs-sync.working { background: #3a3220; }
+    body.dark-mode .docs-sync.ok { background: #1f3326; }
+    body.dark-mode .docs-sync.error { background: #3a2220; }
+    body.dark-mode .docs-sync button { background: var(--dm-card-alt); color: var(--ink); }
     .docs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
     .docs-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
     .docs-thumb { display: block; aspect-ratio: 8.5 / 11; background: #f3efe7; border-bottom: 1px solid var(--line); overflow: hidden; position: relative; }
@@ -3727,6 +3748,7 @@
         <div class="wl-subtabs res-subtab-row" id="docsSubtabs" style="margin:0;max-width:100%;"></div>
         <div class="docs-toolbar-right">
             <span class="docs-upload-status" id="docsUploadStatus"></span>
+            <div class="docs-sync" id="docsSync" style="display:none;" role="status" aria-live="polite"></div>
             <div class="docs-view-toggle" id="docsViewToggle" role="group" aria-label="View">
                 <button type="button" data-docs-view="preview">Preview</button>
                 <button type="button" data-docs-view="details">Details</button>
@@ -3753,6 +3775,7 @@
         </div>
     </div>
     <div id="otherPanel" style="display:none;">
+        <div class="fp-filters" id="otherFilters"><div class="fp-frow"><span class="fp-flabel">Filter</span><button type="button" class="chip" data-other-filter="logo">LOGO</button></div></div>
         <div class="fp-body">
             <div class="fp-list" id="otherList"></div>
             <aside class="fp-preview" id="otherPreview" style="display:none;" aria-live="polite"></aside>
@@ -4344,7 +4367,7 @@ document.getElementById('pricingFileInput').addEventListener('change', (e) => {
             rebuildAvailFilters();
             renderCalendar();
             if (currentUnit) {
-                selectUnit(currentUnit); // refresh spec card badge + sync button visibility
+                refreshCurrentUnit(); // refresh spec card badge + sync button visibility
             }
         } catch (err) {
             alert('Could not read that CSV. Make sure it\'s the daily Yardi pricing export.');
@@ -4364,7 +4387,7 @@ document.getElementById('pricingClearBtn').addEventListener('click', () => {
     rebuildFloorplanFilter();
     rebuildAvailFilters();
     renderCalendar();
-    if (currentUnit) selectUnit(currentUnit);
+    refreshCurrentUnit();
 });
 
 /* ============================================================
@@ -4810,6 +4833,18 @@ function selectUnit(unit) {
     renderPreview();
 }
 
+// Refreshes the open flyer(s) after shared data changes (pricing sheet,
+// concession, reports) WITHOUT treating it as a new pick — selectUnit()
+// would reset a side-by-side comparison back to just this unit. Skips
+// re-filling the editor while someone is typing in it.
+function refreshCurrentUnit() {
+    if (!currentUnit || !byUnit[currentUnit]) return;
+    if (!selectedUnits.includes(currentUnit)) selectedUnits.push(currentUnit);
+    const typing = editorBody.contains(document.activeElement) && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if (!typing) populateEditorForUnit(currentUnit);
+    renderUnitTabs();
+    renderPreview();
+}
 function populateEditorForUnit(unit) {
     const u = byUnit[unit];
     if (!u) return;
@@ -8256,7 +8291,7 @@ async function pullConcessionFromBackend() {
         persistConcessionLocal();
         renderConcessionSummary();
         if (document.getElementById('tab-concession').classList.contains('active')) renderConcessionPage();
-        if (currentUnit) selectUnit(currentUnit);
+        refreshCurrentUnit();
     } else if (CONCESSION_SETTINGS.terms || CONCESSION_SETTINGS.rules.some(r => r.qualifier)) {
         backendPush(CONCESSION_BACKEND_KEY, CONCESSION_SETTINGS); // seed the backend from local
     }
@@ -8302,7 +8337,7 @@ document.getElementById('concessionSaveBtn').addEventListener('click', () => {
     const status = document.getElementById('concessionSaveStatus');
     status.textContent = 'Saved.';
     setTimeout(() => { status.textContent = ''; }, 2500);
-    if (currentUnit) selectUnit(currentUnit); // re-evaluate the currently open unit against the new rules
+    refreshCurrentUnit(); // re-evaluate the currently open unit against the new rules
 });
 
 /* ============================================================
@@ -13309,7 +13344,7 @@ function applyAppMode(mode) {
     renderCalendar();
     renderExpiringList();
     renderRenewalTable();
-    if (currentUnit) selectUnit(currentUnit);
+    refreshCurrentUnit();
 }
 
 /* ---------- Appearance: Light / Dark (this device only, never affects PDFs) ---------- */
@@ -13997,7 +14032,7 @@ function docsForSection(sectionId) {
     const section = DOC_SECTIONS.find(s => s.id === sectionId);
     const mine = DOC_UPLOADS.filter(u => u.section === sectionId);
     const fromUpload = u => ({
-        filename: u.name, size: u.size, uploadId: u.id, fileId: u.fileId || u.id, localOnly: u.localOnly,
+        filename: u.name, size: u.size, uploadId: u.id, fileId: u.fileId || u.id, localOnly: u.localOnly, syncing: u.syncing,
         mime: u.mime || 'application/pdf', updated: u.updated
     });
     // A built-in document replaced in the app is served from its upload
@@ -14198,7 +14233,7 @@ function renderDocuments() {
     const handleIcon = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
     grid.innerHTML = docs.map((d, i) => {
         const meta = d.uploadId
-            ? `${d.replacedBuiltIn ? 'Replaced' : 'Uploaded'} ${DOCS_UPLOAD_TYPES[d.mime] || 'PDF'}${d.size ? ' · ' + docsFormatSize(d.size) : ''}${d.localOnly ? ' · this device only' : ''}`
+            ? `${d.replacedBuiltIn ? 'Replaced' : 'Uploaded'} ${DOCS_UPLOAD_TYPES[d.mime] || 'PDF'}${d.size ? ' · ' + docsFormatSize(d.size) : ''}${d.syncing ? ' · uploading…' : d.localOnly ? ' · this device only (not shared yet)' : ''}`
             : `${d.pages} page${d.pages === 1 ? '' : 's'} · PDF`;
         const printNote = d.print === 'full' ? 'Prints full sheet' : 'Prints 2 per page';
         const added = d.updated ? docsFormatAdded(d.updated).replace(/^Added/, 'Updated') : docsFormatAdded(d.added);
@@ -14612,7 +14647,7 @@ document.getElementById('otherList').addEventListener('pointerdown', e => {
         docsDragging = false;
         const after = keysNow();
         if (after.join('|') === before.join('|')) return;
-        docsSaveOrder(docsCurrentSection, after);
+        docsSaveOrder(docsCurrentSection, otherMergeOrder(after));
         renderOtherDocs();
     };
     document.addEventListener('pointermove', onMove);
@@ -14623,34 +14658,54 @@ document.getElementById('otherList').addEventListener('keydown', e => {
     const handle = e.target.closest('.docs-drag-handle');
     if (!handle || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
     e.preventDefault();
-    const keys = docsForSection(docsCurrentSection).map(d => d.key);
+    const keys = docsForSection(docsCurrentSection).filter(otherMatches).map(d => d.key);
     const key = handle.closest('[data-other-key]').getAttribute('data-other-key');
     const i = keys.indexOf(key), j = i + (e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 1);
     if (j < 0 || j >= keys.length) return;
     [keys[i], keys[j]] = [keys[j], keys[i]];
-    docsSaveOrder(docsCurrentSection, keys);
+    docsSaveOrder(docsCurrentSection, otherMergeOrder(keys));
     renderOtherDocs();
     const moved = document.querySelector(`#otherList [data-other-key="${CSS.escape(key)}"] .docs-drag-handle`);
     if (moved) moved.focus();
 });
+// With a filter on, only the visible rows were reordered: slot them back
+// into the full order so hidden documents keep their places.
+function otherMergeOrder(visibleKeys) {
+    const full = docsForSection(docsCurrentSection).map(d => d.key);
+    const vis = new Set(visibleKeys);
+    let k = 0;
+    return full.map(key => vis.has(key) ? visibleKeys[k++] : key);
+}
 // Documents > Other: uploaded files in the Floorplans-style list, with a
 // preview on the right when a row is clicked.
 let otherSelected = null;
 let otherPreviewToken = 0;
+// LOGO filter: documents with "logo" in the card name or file name.
+let otherFilter = '';
+function otherMatches(d) { return !otherFilter || /logo/i.test((d.title || '') + ' ' + (d.filename || '') + ' ' + (d.origFilename || '')); }
+document.getElementById('otherFilters').addEventListener('click', e => {
+    const b = e.target.closest('[data-other-filter]');
+    if (!b) return;
+    otherFilter = otherFilter === b.getAttribute('data-other-filter') ? '' : b.getAttribute('data-other-filter');
+    renderOtherDocs();
+});
 function renderOtherDocs() {
-    const docs = docsForSection(docsCurrentSection);
+    document.querySelectorAll('#otherFilters [data-other-filter]').forEach(b => b.classList.toggle('active', b.getAttribute('data-other-filter') === otherFilter));
+    const allDocs = docsForSection(docsCurrentSection);
+    const docs = allDocs.map((d, i) => Object.assign(d, { idx: i })).filter(otherMatches);
     const list = document.getElementById('otherList');
     const note = document.getElementById('otherNote');
     if (otherSelected && !docs.some(d => d.key === otherSelected)) otherSelected = null;
     const head = `<div class="fp-row ot-row fp-head"><span></span><span>Document</span><span>Type</span><span>Size</span><span>Added</span><span></span></div>`;
     const handleIcon = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
-    list.innerHTML = docs.length ? head + docs.map((d, i) => {
+    list.innerHTML = docs.length ? head + docs.map(d => {
+        const i = d.idx;
         const type = DOCS_UPLOAD_TYPES[d.mime] || 'PDF';
         const when = d.updated || d.added;
         const date = when ? new Date(when).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '';
         return `<div class="fp-row ot-row${d.key === otherSelected ? ' fp-selected' : ''}" data-other-key="${escapeAttr(d.key)}">
             <span class="docs-drag-handle" role="button" tabindex="0" title="Drag to reorder" aria-label="Drag to reorder ${escapeAttr(d.title)}">${handleIcon}</span>
-            <span class="fp-name"><b>${escapeHtml(d.title)}</b><span class="fp-file" title="${escapeAttr(d.filename || '')}">${escapeHtml(d.filename || '')}${d.localOnly ? ' \u00b7 this device only' : ''}</span></span>
+            <span class="fp-name"><b>${escapeHtml(d.title)}</b><span class="fp-file" title="${escapeAttr(d.filename || '')}">${escapeHtml(d.filename || '')}${d.syncing ? ' \u00b7 uploading\u2026' : d.localOnly ? ' \u00b7 this device only (not shared yet)' : ''}</span></span>
             <span class="fp-c">${escapeHtml(type)}</span>
             <span class="fp-c">${escapeHtml(d.size ? docsFormatSize(d.size) : '')}</span>
             <span class="fp-c">${escapeHtml(date)}</span>
@@ -14663,7 +14718,7 @@ function renderOtherDocs() {
         </div>`;
     }).join('') : '';
     list.style.display = docs.length ? '' : 'none';
-    note.textContent = docs.length ? '' : 'No documents here yet \u2014 click \u201c+ Upload\u201d to add a PDF, JPG or PNG.';
+    note.textContent = docs.length ? '' : allDocs.length ? 'No documents match this filter \u2014 add \u201clogo\u201d to a card or file name (pencil) to include it.' : 'No documents here yet \u2014 click \u201c+ Upload\u201d to add a PDF, JPG or PNG.';
     note.style.display = docs.length ? 'none' : '';
     renderOtherPreview();
 }
@@ -14817,25 +14872,107 @@ document.getElementById('docsReplaceInput').addEventListener('change', async e =
     delete entry.localOnly;
     const oldFileId = current ? (current.fileId || current.id) : null;
     await docsCachePut(fileId, b64);
-    docsSetStatus('Replacing\u2026');
-    let shared = false;
-    if (BACKEND_URL && await backendPush(`document-file-${fileId}`, b64)) {
-        await docsEnsureThumb({ uploadId: entry.id, fileId, mime });
-        const remote = await backendPull(DOCS_UPLOADS_BACKEND_KEY);
-        const list = Array.isArray(remote) ? remote : [];
-        shared = await backendPush(DOCS_UPLOADS_BACKEND_KEY, list.some(u => u.id === entry.id) ? list.map(u => u.id === entry.id ? entry : u) : list.concat([entry]));
-        if (shared && oldFileId) {
-            backendPush(`document-file-${oldFileId}`, null);
-            backendPush(`document-thumb-${oldFileId}`, null);
-        }
+    docsSetStatus('');
+    const shared = await docsRunShare(entry, b64, 'Replacing');
+    if (shared && oldFileId) {
+        backendPush(`document-file-${oldFileId}`, null);
+        backendPush(`document-thumb-${oldFileId}`, null);
     }
-    if (!shared) entry.localOnly = true;
-    DOC_UPLOADS = current ? DOC_UPLOADS.map(u => u.id === entry.id ? entry : u) : DOC_UPLOADS.concat([entry]);
-    docsPersistLocal();
     docsForgetFile(oldFileId);
     renderDocuments();
-    docsSetStatus(shared ? `Replaced \u201c${doc.title}\u201d.` : `Replaced \u201c${doc.title}\u201d on this device only \u2014 the shared backend isn't reachable.`);
 });
+/* ---------- Upload status + verified sharing ----------
+   Every upload/replace goes through docsShareEntry(): send the file (in
+   parts for big files), READ IT BACK to confirm the backend really kept
+   it, then add the document to the shared list and read that back too.
+   The Apps Script answers "OK" even when its own save fails, so an OK
+   alone never counts as uploaded. Anything not confirmed stays on this
+   device ("this device only") and is retried automatically. */
+let docsSyncTimer = null;
+function docsSetSync(state, title, step, progress, retry) {
+    const box = document.getElementById('docsSync');
+    clearTimeout(docsSyncTimer);
+    if (!state) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    const icon = state === 'working' ? '\u21bb' : state === 'ok' ? '\u2713' : '!';
+    box.className = 'docs-sync ' + state;
+    box.innerHTML = `<span class="docs-sync-icon">${icon}</span>
+        <div class="docs-sync-body"><div class="docs-sync-title" title="${escapeAttr(title)}">${escapeHtml(title)}</div>
+            <div class="docs-sync-step">${escapeHtml(step || '')}</div>
+            ${state === 'working' ? `<div class="docs-sync-bar"><i style="width:${Math.round((progress || 0) * 100)}%"></i></div>` : ''}</div>
+        ${retry ? '<button type="button" id="docsSyncRetry">Retry</button>' : ''}
+        ${state !== 'working' ? '<button type="button" class="docs-sync-x" id="docsSyncClose" title="Dismiss" aria-label="Dismiss">&times;</button>' : ''}`;
+    box.style.display = '';
+    if (retry) document.getElementById('docsSyncRetry').onclick = retry;
+    const x = document.getElementById('docsSyncClose');
+    if (x) x.onclick = () => docsSetSync(null);
+    if (state === 'ok') docsSyncTimer = setTimeout(() => docsSetSync(null), 12000);
+}
+// Resolves true only once the backend has provably stored the file and
+// lists the entry. step(text, fraction) reports progress.
+async function docsShareEntry(entry, b64, step) {
+    step = step || (() => {});
+    if (!BACKEND_URL || APP_MODE === 'test') return { ok: false, why: 'No shared backend is set up (Settings) \u2014 saved on this device only.' };
+    const fileKey = `document-file-${entry.fileId || entry.id}`;
+    step('Uploading file\u2026', 0.02);
+    const sent = await backendPush(fileKey, b64, (i, n) => step(`Uploading file \u2014 part ${i} of ${n}\u2026`, 0.05 + 0.6 * i / n));
+    if (!sent) return { ok: false, why: 'The upload was interrupted \u2014 check your connection.' };
+    step('Checking the file was saved\u2026', 0.7);
+    const back = await backendPullRawChecked(fileKey);
+    const want = JSON.stringify(b64).length;
+    const saved = back.ok && (back.value === b64 || (back.value && back.value.__chunks && back.value.length === want));
+    if (!saved) return { ok: false, why: 'The backend didn\u2019t keep the file (it may be too large or the backend is busy).' };
+    step('Making a preview\u2026', 0.78);
+    await docsEnsureThumb({ uploadId: entry.id, fileId: entry.fileId || entry.id, mime: entry.mime });
+    step('Adding it to the shared list\u2026', 0.86);
+    const remote = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
+    if (remote === undefined) return { ok: false, why: 'Couldn\u2019t read the shared document list.' };
+    const list = Array.isArray(remote) ? remote : [];
+    const clean = Object.assign({}, entry); delete clean.localOnly; delete clean.syncing;
+    const next = list.some(u => u.id === clean.id) ? list.map(u => u.id === clean.id ? clean : u) : list.concat([clean]);
+    if (!(await backendPush(DOCS_UPLOADS_BACKEND_KEY, next))) return { ok: false, why: 'Couldn\u2019t update the shared document list.' };
+    step('Confirming\u2026', 0.95);
+    const check = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
+    const listed = Array.isArray(check) && check.some(u => u.id === clean.id && (u.fileId || u.id) === (clean.fileId || clean.id));
+    if (!listed) return { ok: false, why: 'The shared list didn\u2019t keep the new document.' };
+    return { ok: true };
+}
+function docsSectionLabel(id) { const s = DOC_SECTIONS.find(x => x.id === id); return s ? s.label : id; }
+// Runs one upload/replace with the status panel; marks the entry
+// "this device only" if it can't be confirmed.
+const docsSyncing = new Set();
+async function docsRunShare(entry, b64, verb, quiet) {
+    if (docsSyncing.has(entry.id)) return false;
+    docsSyncing.add(entry.id);
+    const title = `${verb} \u201c${entry.title}\u201d (${docsSectionLabel(entry.section)})`;
+    const step = (text, frac) => { if (!quiet) docsSetSync('working', title, text, frac); };
+    entry.localOnly = true; entry.syncing = true;
+    DOC_UPLOADS = DOC_UPLOADS.some(u => u.id === entry.id) ? DOC_UPLOADS.map(u => u.id === entry.id ? entry : u) : DOC_UPLOADS.concat([entry]);
+    docsPersistLocal();
+    if (document.getElementById('tab-documents').classList.contains('active')) renderDocuments();
+    let res;
+    try { res = await docsShareEntry(entry, b64, step); } catch (err) { res = { ok: false, why: 'Something went wrong while uploading.' }; }
+    delete entry.syncing;
+    if (res.ok) delete entry.localOnly;
+    DOC_UPLOADS = DOC_UPLOADS.map(u => u.id === entry.id ? entry : u);
+    docsPersistLocal();
+    docsSyncing.delete(entry.id);
+    if (document.getElementById('tab-documents').classList.contains('active')) renderDocuments();
+    if (res.ok) docsSetSync('ok', `${verb === 'Uploading' ? 'Uploaded' : 'Replaced'} \u201c${entry.title}\u201d`, `Saved and visible to the team in ${docsSectionLabel(entry.section)}.`);
+    else if (!quiet) docsSetSync('error', `Not shared yet: \u201c${entry.title}\u201d`, res.why + ' It\u2019s on this device only; retrying automatically.', 0, () => docsRunShare(entry, b64, verb));
+    return res.ok;
+}
+// Quietly retries anything still "this device only" (file kept in this
+// browser), at most every 2 minutes per document.
+const docsRetryAt = {};
+async function docsRetryLocalOnly() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    for (const u of DOC_UPLOADS.filter(x => x.localOnly && !x.syncing)) {
+        if (Date.now() - (docsRetryAt[u.id] || 0) < 120000) continue;
+        docsRetryAt[u.id] = Date.now();
+        const b64 = await docsCacheGet(u.fileId || u.id);
+        if (b64) await docsRunShare(u, b64, u.replaces || u.updated ? 'Replacing' : 'Uploading', true);
+    }
+}
 document.getElementById('docsUploadInput').addEventListener('change', async e => {
     const file = e.target.files && e.target.files[0];
     e.target.value = '';
@@ -14845,23 +14982,13 @@ document.getElementById('docsUploadInput').addEventListener('change', async e =>
     const section = DOC_SECTIONS.find(s => s.id === docsCurrentSection);
     const title = prompt(`Title for this document (in ${section.label}):`, file.name.replace(/\.(pdf|jpe?g|png)$/i, '').replace(/[_-]+/g, ' ').trim());
     if (title === null || !title.trim()) return;
-    const b64 = await docsReadBase64(file);
     const half = section.list ? false : confirm('Print this as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
+    docsSetSync('working', `Uploading \u201c${title.trim()}\u201d`, 'Reading the file\u2026', 0.01);
+    const b64 = await docsReadBase64(file);
     const entry = { id: docsNewId(), section: section.id, title: title.trim(), name: file.name, size: file.size, mime, print: half ? 'half' : 'full', added: new Date().toISOString() };
     await docsCachePut(entry.id, b64);
-    docsSetStatus('Uploading…');
-    let shared = false;
-    if (BACKEND_URL && await backendPush(`document-file-${entry.id}`, b64)) {
-        // Preview first, so teammates see it as soon as the doc is listed.
-        await docsEnsureThumb({ uploadId: entry.id, mime: entry.mime });
-        const remote = await backendPull(DOCS_UPLOADS_BACKEND_KEY);
-        shared = await backendPush(DOCS_UPLOADS_BACKEND_KEY, (Array.isArray(remote) ? remote : []).concat([entry]));
-    }
-    if (!shared) entry.localOnly = true;
-    DOC_UPLOADS = DOC_UPLOADS.filter(u => u.id !== entry.id).concat([entry]);
-    docsPersistLocal();
-    renderDocuments();
-    docsSetStatus(shared ? `Uploaded “${entry.title}”.` : `Saved “${entry.title}” on this device only — the shared backend isn't reachable.`);
+    docsSetStatus('');
+    await docsRunShare(entry, b64, 'Uploading');
 });
 async function pullDocumentsFromBackend() {
     const [remote, order, meta] = await Promise.all([backendPull(DOCS_UPLOADS_BACKEND_KEY), backendPull(DOCS_ORDER_BACKEND_KEY), backendPull(DOCS_META_BACKEND_KEY)]);
@@ -14872,7 +14999,7 @@ async function pullDocumentsFromBackend() {
         changed = true;
     }
     if (Array.isArray(remote)) {
-        const localOnly = DOC_UPLOADS.filter(u => u.localOnly && !remote.some(r => r.id === u.id));
+        const localOnly = DOC_UPLOADS.filter(u => (u.localOnly || u.syncing) && !remote.some(r => r.id === u.id));
         const next = remote.concat(localOnly);
         if (JSON.stringify(next) !== JSON.stringify(DOC_UPLOADS)) { DOC_UPLOADS = next; docsPersistLocal(); changed = true; }
     }
@@ -14882,6 +15009,7 @@ async function pullDocumentsFromBackend() {
         changed = true;
     }
     if (changed && !docsDragging && document.getElementById('tab-documents').classList.contains('active')) renderDocuments();
+    docsRetryLocalOnly();
 }
 
 /* ============================================================
@@ -14956,10 +15084,10 @@ async function backendPull(key) {
     try { return JSON.parse(json); } catch (e) { return null; }
 }
 
-async function backendPush(key, value) {
+async function backendPush(key, value, onProgress) {
     if (!BACKEND_URL) return false;
     const json = JSON.stringify(value);
-    if (json.length <= BACKEND_CHUNK_CHARS) return backendPushRaw(key, value);
+    if (json.length <= BACKEND_CHUNK_CHARS) { const ok = await backendPushRaw(key, value); if (onProgress) onProgress(1, 1); return ok; }
     const parts = [];
     for (let i = 0; i < json.length; i += BACKEND_CHUNK_CHARS) parts.push(json.slice(i, i + BACKEND_CHUNK_CHARS));
     // One at a time (not in parallel) so the Apps Script never handles
@@ -14967,6 +15095,7 @@ async function backendPush(key, value) {
     // so a reader never sees a manifest pointing at unwritten parts.
     for (let i = 0; i < parts.length; i++) {
         if (!(await backendPushRaw(`${key}__part${i}`, parts[i]))) return false;
+        if (onProgress) onProgress(i + 1, parts.length + 1);
     }
     return backendPushRaw(key, { __chunks: parts.length, length: json.length });
 }
@@ -15091,7 +15220,7 @@ async function pullAllFromBackend() {
     if (!document.activeElement || !document.activeElement.classList.contains('renewal-notes-input')) {
         renderRenewalTable();
     }
-    if (currentUnit) selectUnit(currentUnit);
+    refreshCurrentUnit();
 }
 
 // Poll periodically so agents see each other's updates without a manual
