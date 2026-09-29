@@ -1504,6 +1504,43 @@
     .howto-detail-steps { margin: 0; padding-left: 22px; }
     .howto-detail-steps li { margin-bottom: 10px; line-height: 1.5; font-size: 13.5px; }
     body.dark-mode .howto-tile { background: var(--dm-card-alt); }
+    /* -- Documents > Floorplans (compact list) -- */
+    .fp-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .fp-bar input { width: 220px; max-width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-family: var(--sans); font-size: 12.5px; }
+    .fp-count { font-size: 12px; color: var(--ink-soft); }
+    .fp-link { font: inherit; font-size: 12px; border: none; background: none; color: var(--reve-orange); cursor: pointer; padding: 0; text-decoration: underline; }
+    .fp-bar .fp-link:first-of-type { margin-left: auto; }
+    .fp-filters { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+    .fp-frow { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .fp-flabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); width: 74px; flex: none; }
+    .fp-filters .chip { padding: 2px 9px; font-size: 11.5px; min-height: 0; line-height: 1.5; }
+    .fp-list { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
+    .fp-row { display: grid; grid-template-columns: minmax(150px, 1fr) 84px 70px 78px 70px 60px 50px 150px; align-items: center; gap: 8px; padding: 3px 8px; font-size: 12.5px; border-top: 1px solid var(--line); min-height: 30px; font-variant-numeric: tabular-nums; }
+    .fp-row:first-child { border-top: none; }
+    .fp-row:nth-child(even):not(.fp-head) { background: #faf8f4; }
+    .fp-row:hover:not(.fp-head) { background: #fdf1eb; }
+    .fp-head { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); background: #f4f2ee; min-height: 24px; }
+    .fp-name { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+    .fp-name b { font-family: 'Oswald', var(--sans); font-size: 13.5px; }
+    .fp-name a { color: inherit; text-decoration: none; }
+    .fp-name a:hover b { color: var(--reve-orange); text-decoration: underline; }
+    .fp-file { color: var(--ink-soft); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fp-actions { display: flex; gap: 4px; justify-content: flex-end; }
+    .fp-actions a { font-size: 11.5px; font-weight: 700; border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; color: inherit; text-decoration: none; white-space: nowrap; }
+    .fp-actions a:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+    .fp-units { cursor: help; text-decoration: underline dotted; text-underline-offset: 2px; }
+    .fp-row > .fp-sub { display: none; }
+    @media (max-width: 760px) {
+        .fp-row { grid-template-columns: 1fr auto; row-gap: 0; padding: 4px 8px; }
+        .fp-head { display: none; }
+        .fp-row > .fp-c { display: none; }
+        .fp-row > .fp-sub { display: block; grid-column: 1 / -1; font-size: 11px; color: var(--ink-soft); }
+    }
+    body.dark-mode .fp-list { background: var(--dm-card); }
+    body.dark-mode .fp-head { background: var(--dm-card-alt); }
+    body.dark-mode .fp-row:nth-child(even):not(.fp-head) { background: var(--dm-card-alt); }
+    body.dark-mode .fp-row:hover:not(.fp-head) { background: #3a2a22; }
+    body.dark-mode .fp-bar input { background: var(--dm-card-alt); color: var(--ink); }
     /* -- Help > Questions (chat) -- */
     .qa-shell { border: 1px solid var(--line); border-radius: 12px; background: #fff; display: flex; flex-direction: column; overflow: hidden; }
     .qa-log { height: min(62vh, 620px); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: #faf8f4; }
@@ -3603,6 +3640,17 @@
         </div>
     </div>
     <div class="docs-grid" id="docsGrid"></div>
+    <div id="fpPanel" style="display:none;">
+        <div class="fp-bar">
+            <input type="text" id="fpSearch" placeholder="Search floorplan or unit #&hellip;" autocomplete="off" aria-label="Search floorplans">
+            <span class="fp-count" id="fpCount"></span>
+            <button type="button" class="fp-link" id="fpClear">Clear filters</button>
+            <button type="button" class="fp-link" id="fpRefresh" title="Check the MEDIA_Floorplans folder for new files">&#8635; Refresh list</button>
+        </div>
+        <div class="fp-filters" id="fpFilters"></div>
+        <div class="fp-list" id="fpList"></div>
+        <div class="empty-note" id="fpNote" style="margin-top:8px;"></div>
+    </div>
     <div class="empty-note" id="docsEmptyNote" style="display:none;">No documents in this section yet &mdash; click &ldquo;+ Upload&rdquo; to add one.</div>
     <iframe id="docsPrintFrame" title="Print" style="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;"></iframe>
 </div>
@@ -13690,7 +13738,18 @@ function docsFormatAdded(added) {
 }
 function renderDocuments() {
     const tabs = document.getElementById('docsSubtabs');
-    tabs.innerHTML = DOC_SECTIONS.map(s => `<button type="button" class="wl-subtab${s.id === docsCurrentSection ? ' active' : ''}" data-docs-section="${escapeAttr(s.id)}">${escapeHtml(s.label)}</button>`).join('');
+    tabs.innerHTML = DOC_SECTIONS.map(s => `<button type="button" class="wl-subtab${s.id === docsCurrentSection ? ' active' : ''}" data-docs-section="${escapeAttr(s.id)}">${escapeHtml(s.label)}</button>`).join('')
+        + `<button type="button" class="wl-subtab${docsCurrentSection === 'floorplans' ? ' active' : ''}" data-docs-section="floorplans">Floorplans</button>`;
+    // Floorplans is its own compact, filterable list (open/download only).
+    const isFp = docsCurrentSection === 'floorplans';
+    ['docsViewToggle', 'docsUploadBtn', 'docsGrid'].forEach(id => { document.getElementById(id).style.display = isFp ? 'none' : ''; });
+    document.getElementById('fpPanel').style.display = isFp ? '' : 'none';
+    if (isFp) {
+        document.getElementById('docsEmptyNote').style.display = 'none';
+        renderFloorplanDocs();
+        fpLoadList(false);
+        return;
+    }
     const view = DOC_VIEW[docsCurrentSection] === 'details' ? 'details' : 'preview';
     document.querySelectorAll('#docsViewToggle [data-docs-view]').forEach(b => b.classList.toggle('active', b.getAttribute('data-docs-view') === view));
     const grid = document.getElementById('docsGrid');
@@ -13751,6 +13810,150 @@ document.getElementById('docsViewToggle').addEventListener('click', e => {
     try { localStorage.setItem(DOCS_VIEW_KEY, JSON.stringify(DOC_VIEW)); } catch (e) {}
     renderDocuments();
 });
+/* ---------- Documents > Floorplans: every file in the repo's
+   MEDIA_Floorplans folder, listed live through GitHub's public API (so
+   files added to the folder show up without a code change), with
+   beds / level / building / floorplan filters worked out from the
+   file name and the unit roster. ---------- */
+const FP_REPO = 'reveboulder/tour';
+const FP_FOLDER = 'MEDIA_Floorplans';
+const FP_CACHE_KEY = 'reve-fp-media-list';
+const FP_CACHE_MS = 15 * 60 * 1000;
+const FP_EXT = /\.(jpe?g|png|webp|gif|pdf)$/i;
+let FP_FILES = null;          // [{ name, size }]
+let fpLoadState = '';         // '', 'loading', 'error'
+let fpFilters = { type: [], level: [], bldg: [], plan: [] };
+try { const c = JSON.parse(localStorage.getItem(FP_CACHE_KEY) || 'null'); if (c && Array.isArray(c.files)) FP_FILES = c.files; } catch (e) {}
+async function fpLoadList(force) {
+    let cachedAt = 0;
+    try { const c = JSON.parse(localStorage.getItem(FP_CACHE_KEY) || 'null'); if (c) cachedAt = c.at || 0; } catch (e) {}
+    if (!force && FP_FILES && Date.now() - cachedAt < FP_CACHE_MS) return;
+    if (fpLoadState === 'loading') return;
+    fpLoadState = 'loading';
+    renderFloorplanDocs();
+    try {
+        const res = await fetch(`https://api.github.com/repos/${FP_REPO}/contents/${FP_FOLDER}?ref=main`, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        FP_FILES = (Array.isArray(data) ? data : []).filter(f => f.type === 'file' && FP_EXT.test(f.name)).map(f => ({ name: f.name, size: f.size }));
+        fpLoadState = '';
+        try { localStorage.setItem(FP_CACHE_KEY, JSON.stringify({ at: Date.now(), files: FP_FILES })); } catch (e) {}
+    } catch (e) {
+        fpLoadState = 'error';
+    }
+    if (docsCurrentSection === 'floorplans') renderFloorplanDocs();
+}
+function fpUrl(name) { return FP_FOLDER + '/' + encodeURIComponent(name); }
+const FP_TYPE_ORDER = ['Studio', '1 Bed', '2 Bed', '3 Bed', 'Townhome', 'Live/Work', 'Penthouse'];
+function fpUnitType(u) {
+    const fp = String(u.floorplan || '').toUpperCase();
+    if (/^TH/.test(fp)) return 'Townhome';
+    if (/^LW/.test(fp)) return 'Live/Work';
+    if (/^PH/.test(fp)) return 'Penthouse';
+    return unitBedGroup(u) || '?';
+}
+// File name -> floorplan code, sq ft and the units it covers. Most
+// specific first: the Tour tab's image key ("A3-741-767"), then code +
+// sq ft, then every unit with that code.
+function fpDescribe(file) {
+    const base = file.name.replace(/\.[^.]+$/, '');
+    const codes = new Set(UNITS.map(u => String(u.floorplan).toUpperCase()));
+    const code = (base.toUpperCase().match(/(?:^|[^A-Z])((?:TH|LW|PH|[SABC])\d{1,2})(?![0-9])/g) || [])
+        .map(m => m.replace(/^[^A-Z]/, '')).find(c => codes.has(c)) || '';
+    const sqfts = (base.match(/\d{3,4}/g) || []).map(Number).filter(n => n >= 400 && n <= 3000);
+    const key = base.replace(/\s+/g, '-');
+    let units = UNITS.filter(u => UNIT_IMAGE_MAP[u.unit] === key);
+    if (!units.length && code) {
+        const byCode = UNITS.filter(u => String(u.floorplan).toUpperCase() === code);
+        const bySq = byCode.filter(u => sqfts.includes(Number(u.sqft)));
+        units = bySq.length ? bySq : byCode;
+    }
+    const uniq = arr => [...new Set(arr.filter(v => v !== '' && v != null))];
+    const types = uniq(units.map(fpUnitType));
+    const sq = uniq(units.map(u => Number(u.sqft)).filter(n => !isNaN(n))).sort((a, b) => a - b);
+    return {
+        file, base, code: code || (units[0] ? String(units[0].floorplan).toUpperCase() : ''),
+        units: units.map(u => u.unit).sort(),
+        types, bedBath: uniq(units.map(u => u.bedBath)),
+        sqft: sqfts.length ? sqfts.join('/') : sq.length ? (sq.length > 3 ? sq[0] + '\u2013' + sq[sq.length - 1] : sq.join('/')) : '',
+        sqSort: sqfts[0] || sq[0] || 0,
+        levels: uniq(units.map(u => String(u.floor))).sort(),
+        bldgs: uniq(units.map(u => String(u.bldg || '').replace(/\D/g, ''))).sort(),
+        balcony: /balcon/i.test(base)
+    };
+}
+function fpNaturalCode(a, b) {
+    const pa = String(a).match(/^([A-Z]+)(\d*)/) || [], pb = String(b).match(/^([A-Z]+)(\d*)/) || [];
+    const oa = 'SABCTHLWPH'.indexOf(pa[1] || ''), ob = 'SABCTHLWPH'.indexOf(pb[1] || '');
+    return (oa - ob) || (+(pa[2] || 0) - +(pb[2] || 0));
+}
+function renderFloorplanDocs() {
+    const list = document.getElementById('fpList');
+    const note = document.getElementById('fpNote');
+    const all = (FP_FILES || []).map(fpDescribe).sort((a, b) => fpNaturalCode(a.code, b.code) || a.sqSort - b.sqSort || a.base.localeCompare(b.base));
+    // Filter chips, built from what the files actually cover.
+    const opts = {
+        type: FP_TYPE_ORDER.filter(t => all.some(d => d.types.includes(t))),
+        level: [...new Set(all.flatMap(d => d.levels))].sort(),
+        bldg: [...new Set(all.flatMap(d => d.bldgs))].sort(),
+        plan: [...new Set(all.map(d => d.code).filter(Boolean))].sort(fpNaturalCode)
+    };
+    Object.keys(fpFilters).forEach(k => { fpFilters[k] = fpFilters[k].filter(v => opts[k].includes(v)); });
+    const labels = { type: 'Beds', level: 'Level', bldg: 'Building', plan: 'Floorplan' };
+    const chipText = (k, v) => k === 'level' ? 'Level ' + v : k === 'bldg' ? 'Bldg ' + v : v;
+    document.getElementById('fpFilters').innerHTML = Object.keys(opts).filter(k => opts[k].length > 1).map(k =>
+        `<div class="fp-frow"><span class="fp-flabel">${labels[k]}</span>${opts[k].map(v => `<button type="button" class="chip${fpFilters[k].includes(v) ? ' active' : ''}" data-fp-k="${k}" data-fp-v="${escapeAttr(v)}">${escapeHtml(chipText(k, v))}</button>`).join('')}</div>`).join('');
+    const q = document.getElementById('fpSearch').value.trim().toUpperCase();
+    const shown = all.filter(d =>
+        (!fpFilters.type.length || d.types.some(t => fpFilters.type.includes(t))) &&
+        (!fpFilters.level.length || d.levels.some(t => fpFilters.level.includes(t))) &&
+        (!fpFilters.bldg.length || d.bldgs.some(t => fpFilters.bldg.includes(t))) &&
+        (!fpFilters.plan.length || fpFilters.plan.includes(d.code)) &&
+        (!q || d.base.toUpperCase().includes(q) || d.code === q || d.units.includes(q)));
+    document.getElementById('fpCount').textContent = FP_FILES ? `${shown.length} of ${all.length} file${all.length === 1 ? '' : 's'}` : '';
+    const head = `<div class="fp-row fp-head"><span>Floorplan</span><span>Beds</span><span>Bed/Bath</span><span>Sq Ft</span><span>Building</span><span>Level</span><span>Units</span><span></span></div>`;
+    list.innerHTML = shown.length ? head + shown.map(d => {
+        const url = fpUrl(d.file.name);
+        const bldg = d.bldgs.map(b => 'Bldg ' + b).join(', ');
+        const lvl = d.levels.join(', ');
+        const sub = [d.types.join('/'), d.bedBath.join(' or '), d.sqft && d.sqft + ' sf', bldg, lvl && 'Lvl ' + lvl, d.units.length && d.units.length + ' units'].filter(Boolean).join(' \u00b7 ');
+        return `<div class="fp-row">
+            <span class="fp-name"><a href="${escapeAttr(url)}" target="_blank" rel="noopener" title="Open ${escapeAttr(d.file.name)}"><b>${escapeHtml(d.code || d.base)}</b></a><span class="fp-file" title="${escapeAttr(d.file.name)}">${escapeHtml(d.file.name)}${d.balcony ? ' \u00b7 balcony' : ''}</span></span>
+            <span class="fp-c">${escapeHtml(d.types.join('/') || '\u2014')}</span>
+            <span class="fp-c">${escapeHtml(d.bedBath.join(', ') || '\u2014')}</span>
+            <span class="fp-c">${escapeHtml(d.sqft || '\u2014')}</span>
+            <span class="fp-c">${escapeHtml(d.bldgs.join(', ') || '\u2014')}</span>
+            <span class="fp-c">${escapeHtml(lvl || '\u2014')}</span>
+            <span class="fp-c">${d.units.length ? `<span class="fp-units" title="${escapeAttr(d.units.join(', '))}">${d.units.length}</span>` : '\u2014'}</span>
+            <span class="fp-actions"><a href="${escapeAttr(url)}" target="_blank" rel="noopener">Open</a><a href="${escapeAttr(url)}" download="${escapeAttr(d.file.name)}">Download</a></span>
+            <span class="fp-sub">${escapeHtml(sub)}</span>
+        </div>`;
+    }).join('') : '';
+    list.style.display = shown.length ? '' : 'none';
+    let msg = '';
+    if (fpLoadState === 'loading' && !FP_FILES) msg = 'Loading the floorplan list\u2026';
+    else if (fpLoadState === 'error' && !FP_FILES) msg = 'Couldn\u2019t reach GitHub to list the MEDIA_Floorplans folder \u2014 check your connection and click Refresh list.';
+    else if (FP_FILES && !all.length) msg = 'No floorplan files yet \u2014 add JPG, PNG or PDF files to the MEDIA_Floorplans folder on GitHub (e.g. \u201cB5-1211.jpg\u201d), then click Refresh list.';
+    else if (all.length && !shown.length) msg = 'No floorplans match these filters.';
+    else if (fpLoadState === 'error') msg = 'Showing the last saved list \u2014 GitHub couldn\u2019t be reached just now.';
+    note.textContent = msg;
+    note.style.display = msg ? '' : 'none';
+}
+document.getElementById('fpFilters').addEventListener('click', e => {
+    const b = e.target.closest('[data-fp-k]');
+    if (!b) return;
+    const k = b.getAttribute('data-fp-k'), v = b.getAttribute('data-fp-v');
+    fpFilters[k] = fpFilters[k].includes(v) ? fpFilters[k].filter(x => x !== v) : fpFilters[k].concat(v);
+    renderFloorplanDocs();
+});
+document.getElementById('fpSearch').addEventListener('input', renderFloorplanDocs);
+document.getElementById('fpClear').addEventListener('click', () => {
+    fpFilters = { type: [], level: [], bldg: [], plan: [] };
+    document.getElementById('fpSearch').value = '';
+    renderFloorplanDocs();
+});
+document.getElementById('fpRefresh').addEventListener('click', () => fpLoadList(true));
+
 function docsSetStatus(text) { document.getElementById('docsUploadStatus').textContent = text || ''; }
 async function docsSaveOrder(sectionId, keys) {
     DOC_ORDER[sectionId] = keys;
@@ -14468,6 +14671,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-storage": {"title": "Track Storage Locker Interest", "icon": "📦", "category": "Waitlist", "steps": ["On the Waitlist tab, click the Storage tab on the right.", "Click \"+ Add Entry\" and fill in Name, Unit, and Email or phone.", "Check \"Contacted\" once you've reached out.", "Drag the ≡ handle at the left of a row to move it up or down (or focus it and use the arrow keys) — the order is shared with the team.", "Use the × button to remove an entry permanently."]},
     "builtin-site-map": {"title": "Use the Interactive Site Map", "icon": "🗺️", "category": "Media", "steps": ["Open the Media tab and pick a floor: 1st, 2nd, 3rd or 4th.", "Orange units are available now (from today's pricing sheet); gray units aren't currently available.", "Hover (or tap) a unit for options: \"Load in Tour\" opens it in the Tour tab, and \"Watch Video\" plays its video tour when one is on file.", "Retail suites and the Leasing Office are clickable when they have a website — they open it in a new tab.", "\"E\" boxes mark elevators; light corridors show the interior hallways.", "On the 2nd floor, gray outlined numbers mark the upper floor of the two-story townhomes below."]},
     "builtin-print-docs": {"title": "Print Move-in Documents and Signs", "icon": "🖨️", "category": "Documents", "steps": ["Open the Documents tab and pick a section: Move-in Docs, Building Signs, Forms or Bulletin.", "Click Print on a document. Most print two half-sheets per page, ready to cut; each card says \"Prints 2 per page\" or \"Prints full sheet\".", "Open shows the document in a new tab; Download saves the original file.", "Use Details (top right) for a compact list that fits everything on one screen, or Preview for page thumbnails."]},
+    "builtin-floorplan-files": {"title": "Find and Download Floorplan Images", "icon": "📐", "category": "Documents", "steps": ["Open Documents and click the Floorplans sub-tab.", "Narrow the list with the bubbles at the top: Beds, Level, Building and Floorplan (pick several in a row to include any of them).", "Or type a floorplan (e.g. B5) or a unit number (e.g. 4334) in the search box to find the plan for that unit.", "Click Open to view a floorplan in a new tab, or Download to save it.", "To add or update floorplans, upload files to the MEDIA_Floorplans folder on GitHub, named with the floorplan and sq ft (e.g. \"B5-1211.jpg\"), then click \"Refresh list\"."]},
     "builtin-manage-docs": {"title": "Upload, Replace or Reorder Documents", "icon": "📤", "category": "Documents", "steps": ["Open the section the document belongs in, then click \"+ Upload\" and pick a PDF, JPG or PNG (up to 10 MB).", "Give it a title, then choose OK for two half-sheets per page or Cancel for a full sheet.", "To update a document, click Replace under it and pick the new file — it keeps its title, spot and print setting.", "Drag the ≡ handle at the bottom right of any card to move it to a new spot (or focus it and use the arrow keys).", "Remove deletes an uploaded document, and Revert restores a built-in one — both need the Admin password.", "Uploads, order and replacements are shared with the whole team."]},
     "builtin-new-resident": {"title": "Add a New Resident and Track Move-In Steps", "icon": "🧑‍💼", "category": "Residents", "steps": ["Open the Residents tab and click \"+ New Resident\".", "Fill in Agent, Unit, First and Last name, Date Applied, Move-In date, Term, Rate and Promo.", "Update Screen as the application moves along: Applied → Screening → Approved → ↑ Uploaded.", "Work through the checklist (ID, WL, Lease, Deposit, Pet, Parking, Ins., M/I Pmt, Inv/Cond, M/I Folder, Walk-Thru, Moved In, Latch).", "Once Screen is Approved or Uploaded, any unfinished step is shaded pink. Ins. and M/I Pmt turn red until checked.", "The row turns green when all 8 checklist boxes are checked. Use Status for Notice, Renewed, Transfer, Early Term or Eviction.", "Move-Out and Notice Needed dates calculate automatically from the move-in date and term."]},
     "builtin-residents-views": {"title": "Find Residents: Tabs, Calendar and Search", "icon": "📋", "category": "Residents", "steps": ["Active: everyone not yet moved out. Pending: not moved in yet. Notice Req.: a notice-needed date in the next 30 days. Move-Outs: past residents.", "The calendar at the top shows move-ins for the month — use ‹ › to change months, and click a unit to jump to its row.", "Type in \"Search unit or resident name…\" to find someone fast.", "Use the filter on each column header to narrow the table, and \"Clear Filters\" to reset.", "Click \"Refresh to Update\" to pull the latest changes from other agents."]},
