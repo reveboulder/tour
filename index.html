@@ -1516,9 +1516,21 @@
     .fp-filters .chip { padding: 2px 9px; font-size: 11.5px; min-height: 0; line-height: 1.5; }
     .fp-body { display: flex; align-items: flex-start; gap: 16px; }
     .fp-list { flex: none; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
-    .fp-row { display: grid; grid-template-columns: 270px 70px 62px 66px 58px 54px 40px 68px; align-items: center; gap: 8px; padding: 3px 8px; font-size: 12.5px; border-top: 1px solid var(--line); min-height: 30px; font-variant-numeric: tabular-nums; cursor: pointer; }
+    .fp-row { display: grid; grid-template-columns: 270px 70px 62px 66px 58px 54px 40px 96px; align-items: center; gap: 8px; padding: 3px 8px; font-size: 12.5px; border-top: 1px solid var(--line); min-height: 30px; font-variant-numeric: tabular-nums; cursor: pointer; }
     .fp-head { cursor: default; }
-    .fp-row.ot-row { grid-template-columns: 300px 44px 64px 64px 68px; }
+    .fp-row.ot-row { grid-template-columns: 26px 290px 44px 64px 64px 96px; }
+    .fp-row.ot-row .docs-drag-handle { margin: 0; width: 24px; height: 22px; }
+    .fp-row.ot-dragging { opacity: 0.55; outline: 2px dashed var(--reve-orange); outline-offset: -2px; }
+    .docs-edit-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 24px; border: none; background: none; color: var(--ink-soft); border-radius: 5px; cursor: pointer; padding: 0; flex: none; }
+    .docs-edit-btn svg { width: 16px; height: 16px; }
+    .docs-edit-btn:hover, .docs-edit-btn:focus-visible { background: rgba(0,0,0,0.06); color: var(--reve-orange); outline: none; }
+    .fp-actions .docs-edit-btn { width: 24px; height: 22px; border: 1px solid var(--line); border-radius: 999px; }
+    .fp-actions .docs-edit-btn svg { width: 13px; height: 13px; }
+    .docs-card-foot .docs-edit-btn { margin-left: auto; }
+    .docs-edit-card { max-width: 420px; }
+    .docs-edit-field { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-top: 10px; }
+    .docs-edit-field input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-family: var(--sans); font-size: 13.5px; color: var(--ink); }
+    body.dark-mode .docs-edit-field input { background: var(--dm-card-alt); }
     .fp-row.fp-selected, .fp-row.fp-selected:hover { background: #fbe0d4 !important; box-shadow: inset 3px 0 0 var(--reve-orange); }
     .fp-row.fp-dup { background: #fde2e2 !important; box-shadow: inset 3px 0 0 #c0392b; }
     .fp-row.fp-dup .fp-file { color: #c0392b; font-weight: 600; }
@@ -3725,6 +3737,21 @@
         </div>
     </div>
     <div class="docs-grid" id="docsGrid"></div>
+    <div id="docsEditOverlay" class="howto-overlay" style="display:none;">
+        <div class="howto-detail-card docs-edit-card">
+            <form id="docsEditForm">
+                <div class="mmr-section-title">EDIT DOCUMENT</div>
+                <label class="docs-edit-field" id="docsEditTitleRow">Card name<input type="text" id="docsEditTitle" autocomplete="off"></label>
+                <label class="docs-edit-field">File name<input type="text" id="docsEditFile" autocomplete="off" spellcheck="false"></label>
+                <div class="empty-note" id="docsEditNote" style="margin:4px 0 0;"></div>
+                <div class="empty-note" style="margin:4px 0 0;">Leave a box empty to go back to the original. The file type (e.g. .pdf) is kept.</div>
+                <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+                    <button type="button" class="btn" id="docsEditCancel" style="width:auto;flex:none;padding:8px 16px;">Cancel</button>
+                    <button type="submit" class="btn primary" style="width:auto;flex:none;padding:8px 16px;">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
     <div id="otherPanel" style="display:none;">
         <div class="fp-body">
             <div class="fp-list" id="otherList"></div>
@@ -13894,6 +13921,77 @@ async function docsUrlFor(doc) {
     docsBlobUrls[fid] = URL.createObjectURL(docsBase64ToBlob(b64, doc.mime));
     return docsBlobUrls[fid];
 }
+/* Edited card names / file names (pencil button), shared with the team.
+   { [doc key]: { title?, filename? } } — keys are the same ones used for
+   ordering ("file:<name>", "up:<id>"), and "fp:<name>" for Floorplans. */
+const DOCS_META_KEY = 'reve-documents-meta';
+const DOCS_META_BACKEND_KEY = 'documents-meta';
+let DOC_META = {};
+try { DOC_META = JSON.parse(localStorage.getItem(DOCS_META_KEY) || '{}') || {}; } catch (e) { DOC_META = {}; }
+function docsApplyMeta(d) {
+    const m = DOC_META[d.key];
+    d.origTitle = d.title;
+    d.origFilename = d.filename;
+    if (m && m.title) d.title = m.title;
+    if (m && m.filename) d.filename = m.filename;
+    return d;
+}
+async function docsSaveMeta(key, patch) {
+    const next = Object.assign({}, DOC_META[key] || {}, patch);
+    Object.keys(next).forEach(k => { if (!next[k]) delete next[k]; });
+    if (Object.keys(next).length) DOC_META[key] = next; else delete DOC_META[key];
+    try { localStorage.setItem(DOCS_META_KEY, JSON.stringify(DOC_META)); } catch (e) {}
+    if (!BACKEND_URL || APP_MODE === 'test') return true;
+    const remote = await backendPullChecked(DOCS_META_BACKEND_KEY);
+    if (remote === undefined) return false;
+    const merged = Object.assign({}, remote && typeof remote === 'object' ? remote : {});
+    if (DOC_META[key]) merged[key] = DOC_META[key]; else delete merged[key];
+    return backendPush(DOCS_META_BACKEND_KEY, merged);
+}
+// Keeps the original extension if a new file name leaves it off or changes it.
+function docsFixFilename(name, original) {
+    const ext = (String(original || '').match(/\.[a-z0-9]+$/i) || [''])[0];
+    let n = String(name || '').replace(/[\\/:*?"<>|]+/g, '-').trim();
+    if (!n) return '';
+    if (ext && !n.toLowerCase().endsWith(ext.toLowerCase())) n = n.replace(/\.(pdf|jpe?g|png|webp|gif)$/i, '') + ext;
+    return n;
+}
+const DOCS_EDIT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><path d="M17.6 3.6a2 2 0 0 1 2.8 2.8L12 14.8l-3.6.8.8-3.6z"/></svg>';
+// Edit dialog: card name + file name. onSave({ title, filename }) gets the
+// values to store ('' = back to the original).
+let docsEditCtx = null;
+function openDocsEdit(ctx) {
+    docsEditCtx = ctx;
+    document.getElementById('docsEditTitle').value = ctx.title || '';
+    document.getElementById('docsEditTitle').placeholder = ctx.origTitle || '';
+    document.getElementById('docsEditFile').value = ctx.filename || '';
+    document.getElementById('docsEditFile').placeholder = ctx.origFilename || '';
+    document.getElementById('docsEditNote').textContent = ctx.note || '';
+    document.getElementById('docsEditTitleRow').style.display = ctx.noTitle ? 'none' : '';
+    document.getElementById('docsEditOverlay').style.display = 'flex';
+    const first = document.getElementById(ctx.noTitle ? 'docsEditFile' : 'docsEditTitle');
+    first.focus(); first.select();
+}
+function closeDocsEdit() { document.getElementById('docsEditOverlay').style.display = 'none'; docsEditCtx = null; }
+document.getElementById('docsEditCancel').addEventListener('click', closeDocsEdit);
+document.getElementById('docsEditOverlay').addEventListener('click', e => { if (e.target.id === 'docsEditOverlay') closeDocsEdit(); });
+document.getElementById('docsEditForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const ctx = docsEditCtx;
+    if (!ctx) return;
+    const title = document.getElementById('docsEditTitle').value.trim();
+    const filename = docsFixFilename(document.getElementById('docsEditFile').value, ctx.origFilename);
+    closeDocsEdit();
+    const ok = await docsSaveMeta(ctx.key, {
+        title: title && title !== ctx.origTitle ? title : '',
+        filename: filename && filename !== ctx.origFilename ? filename : ''
+    });
+    if (typeof ctx.done === 'function') ctx.done();
+    docsSetStatus(ok ? 'Saved.' : 'Saved on this device \u2014 the shared backend couldn\u2019t be reached, so teammates won\u2019t see it yet.');
+});
+function docsEditDoc(d) {
+    openDocsEdit({ key: d.key, title: d.title, filename: d.filename, origTitle: d.origTitle, origFilename: d.origFilename, done: renderDocuments });
+}
 function docsNewId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function docsForSection(sectionId) {
     const section = DOC_SECTIONS.find(s => s.id === sectionId);
@@ -13918,7 +14016,7 @@ function docsForSection(sectionId) {
         key: `up:${u.id}`, title: u.title, print: u.print || 'half', added: u.added
     }, fromUpload(u)));
     // Saved order first; anything not in it (new uploads) keeps its default place after.
-    const all = builtIn.concat(uploaded);
+    const all = builtIn.concat(uploaded).map(docsApplyMeta);
     const order = DOC_ORDER[sectionId] || [];
     const rank = k => { const i = order.indexOf(k); return i === -1 ? order.length : i; };
     return all.map((d, i) => [d, i]).sort((a, b) => rank(a[0].key) - rank(b[0].key) || a[1] - b[1]).map(x => x[0]);
@@ -14112,6 +14210,7 @@ function renderDocuments() {
             .concat(d.uploadId ? [`<button type="button" class="docs-card-remove" data-docs-action="remove" data-docs-i="${i}">${d.replacedBuiltIn ? 'Revert' : 'Remove'}</button>`] : [])
             .join(' <span class="docs-card-links-sep">·</span> ');
         const handle = `<span class="docs-drag-handle" role="button" tabindex="0" title="Drag to reorder" aria-label="Drag to reorder ${escapeAttr(d.title)}">${handleIcon}</span>`;
+        const editBtn = `<button type="button" class="docs-edit-btn" data-docs-action="edit" data-docs-i="${i}" title="Edit name" aria-label="Edit name of ${escapeAttr(d.title)}">${DOCS_EDIT_ICON}</button>`;
         if (view === 'details') {
             return `<div class="docs-card docs-row" data-docs-key="${escapeAttr(d.key)}">
                 <div class="docs-row-info">
@@ -14119,7 +14218,7 @@ function renderDocuments() {
                     <div class="docs-card-meta">${escapeHtml([meta, printNote, added].filter(Boolean).join(' · '))}${remove ? ' · ' + remove : ''}</div>
                 </div>
                 <div class="docs-card-actions">${buttons}</div>
-                ${handle}
+                ${editBtn}${handle}
             </div>`;
         }
         const thumbSrc = d.thumb || (d.uploadId && docsThumbs[d.fileId]);
@@ -14136,7 +14235,7 @@ function renderDocuments() {
                 </div>
                 <div class="docs-card-foot">
                     <span class="docs-card-links">${remove}</span>
-                    ${handle}
+                    ${editBtn}${handle}
                 </div>
             </div>
         </div>`;
@@ -14215,8 +14314,11 @@ function fpParseTags(base) {
     });
     return { tags: FP_TAGS.map(t => t[0]).filter(t => tags.includes(t)), core: rest.join('-') };
 }
+// A floorplan's name as edited in the app (pencil), else its real file name.
+function fpEffectiveName(file) { const m = DOC_META['fp:' + file.name]; return (m && m.filename) || file.name; }
 function fpDescribe(file) {
-    const full = file.name.replace(/\.[^.]+$/, '');
+    const effName = fpEffectiveName(file);
+    const full = effName.replace(/\.[^.]+$/, '');
     const parsed = fpParseTags(full);
     const base = parsed.core || full;
     const codes = new Set(UNITS.map(u => String(u.floorplan).toUpperCase()));
@@ -14241,7 +14343,9 @@ function fpDescribe(file) {
         sqSort: sqfts[0] || sq[0] || 0,
         levels: uniq(units.map(u => String(u.floor))).sort(),
         bldgs: uniq(units.map(u => String(u.bldg || '').replace(/\D/g, ''))).sort(),
-        tags: parsed.tags
+        tags: parsed.tags,
+        name: effName,
+        title: (DOC_META['fp:' + file.name] || {}).title || ''
     };
 }
 function fpNaturalCode(a, b) {
@@ -14285,7 +14389,7 @@ function renderFloorplanDocs() {
         (!fpFilters.style.length || d.tags.some(t => fpFilters.style.includes(t))) &&
         (!fpFilters.level2.length || d.tags.some(t => fpFilters.level2.includes(t))) &&
         fpFilters.option.every(t => d.tags.includes(t)) &&
-        (!q || d.file.name.toUpperCase().includes(q) || d.code === q || d.units.includes(q) || d.tags.some(t => t.toUpperCase() === q)));
+        (!q || d.name.toUpperCase().includes(q) || d.file.name.toUpperCase().includes(q) || (d.title && d.title.toUpperCase().includes(q)) || d.code === q || d.units.includes(q) || d.tags.some(t => t.toUpperCase() === q)));
     document.getElementById('fpCount').textContent = FP_FILES ? `${shown.length} of ${all.length} file${all.length === 1 ? '' : 's'}` : '';
     // Same name = same floorplan/sq ft part and the same tags in any order
     // (S1-3D-mirror-combined == S1-combined-3D-mirror), any file type.
@@ -14303,14 +14407,14 @@ function renderFloorplanDocs() {
         const cls = (d.dupOf.length ? ' fp-dup' : '') + (d.file.name === fpSelected ? ' fp-selected' : '');
         const dupTitle = d.dupOf.length ? ` title="Duplicate name \u2014 same as ${escapeAttr(d.dupOf.join(', '))}"` : '';
         return `<div class="fp-row${cls}" data-fp-file="${escapeAttr(d.file.name)}"${dupTitle}>
-            <span class="fp-name"><b>${escapeHtml(d.code || d.base)}</b><span class="fp-file" title="${escapeAttr(d.file.name)}">${escapeHtml(d.file.name)}</span>${d.tags.map(t => `<span class="fp-tag">${escapeHtml(t)}</span>`).join('')}</span>
+            <span class="fp-name"><b>${escapeHtml(d.title || d.code || d.base)}</b><span class="fp-file" title="${escapeAttr(d.name)}${d.name !== d.file.name ? ' (file in GitHub: ' + escapeAttr(d.file.name) + ')' : ''}">${escapeHtml(d.name)}</span>${d.tags.map(t => `<span class="fp-tag">${escapeHtml(t)}</span>`).join('')}</span>
             <span class="fp-c">${escapeHtml(d.types.join('/') || '\u2014')}</span>
             <span class="fp-c">${escapeHtml(d.bedBath.join(', ') || '\u2014')}</span>
             <span class="fp-c">${escapeHtml(d.sqft || '\u2014')}</span>
             <span class="fp-c">${escapeHtml(d.bldgs.join(', ') || '\u2014')}</span>
             <span class="fp-c">${escapeHtml(lvl || '\u2014')}</span>
             <span class="fp-c">${d.units.length ? `<span class="fp-units" title="${escapeAttr(d.units.join(', '))}">${d.units.length}</span>` : '\u2014'}</span>
-            <span class="fp-actions"><a href="${escapeAttr(url)}" target="_blank" rel="noopener">Open</a><a class="fp-dl" href="${escapeAttr(url)}" download="${escapeAttr(d.file.name)}" title="Download ${escapeAttr(d.file.name)}" aria-label="Download ${escapeAttr(d.file.name)}">${FP_DL_ICON}</a></span>
+            <span class="fp-actions"><a href="${escapeAttr(url)}" target="_blank" rel="noopener">Open</a><a class="fp-dl" href="${escapeAttr(url)}" download="${escapeAttr(d.name)}" title="Download ${escapeAttr(d.name)}" aria-label="Download ${escapeAttr(d.name)}">${FP_DL_ICON}</a><button type="button" class="docs-edit-btn" data-fp-edit="${escapeAttr(d.file.name)}" title="Edit name" aria-label="Edit name of ${escapeAttr(d.name)}">${DOCS_EDIT_ICON}</button></span>
             <span class="fp-sub">${escapeHtml(sub)}</span>
         </div>`;
     }).join('') : '';
@@ -14334,19 +14438,29 @@ function renderFpPreview() {
     const d = fpSelected && FP_SHOWN.find(x => x.file.name === fpSelected);
     if (!d) { box.style.display = 'none'; box.innerHTML = ''; return; }
     const url = fpUrl(d.file.name);
-    if (box.dataset.file === d.file.name && box.style.display !== 'none') return;   // already showing
-    box.dataset.file = d.file.name;
+    if (box.dataset.file === d.file.name + '|' + d.name + '|' + d.title && box.style.display !== 'none') return;   // already showing
+    box.dataset.file = d.file.name + '|' + d.name + '|' + d.title;
     const isPdf = /\.pdf$/i.test(d.file.name);
     const meta = [d.types.join('/'), d.bedBath.join(' or ') && d.bedBath.join(' or ') + ' bed/bath', d.sqft && d.sqft + ' sq ft',
         d.bldgs.length && 'Bldg ' + d.bldgs.join(', '), d.levels.length && 'Level ' + d.levels.join(', ')].filter(Boolean).join(' \u00b7 ');
-    box.innerHTML = `<div class="fp-pv-head"><b>${escapeHtml(d.code || d.base)}</b><span class="fp-pv-name" title="${escapeAttr(d.file.name)}">${escapeHtml(d.file.name)}</span><button type="button" class="fp-pv-close" id="fpPvClose" title="Close preview" aria-label="Close preview">&times;</button></div>
+    box.innerHTML = `<div class="fp-pv-head"><b>${escapeHtml(d.title || d.code || d.base)}</b><span class="fp-pv-name" title="${escapeAttr(d.name)}">${escapeHtml(d.name)}</span><button type="button" class="fp-pv-close" id="fpPvClose" title="Close preview" aria-label="Close preview">&times;</button></div>
         ${isPdf ? `<iframe class="fp-pv-pdf" src="${escapeAttr(url)}" title="${escapeAttr(d.file.name)}"></iframe>` : `<img class="fp-pv-img" src="${escapeAttr(url)}" alt="${escapeAttr(d.code + ' floorplan')}">`}
         <div class="fp-pv-meta">${d.tags.map(t => `<span class="fp-tag">${escapeHtml(t)}</span>`).join(' ')} ${escapeHtml(meta)}${d.units.length ? `<br>Units: ${escapeHtml(d.units.join(', '))}` : ''}</div>
         ${d.dupOf.length ? `<div class="fp-pv-dupnote">Duplicate name \u2014 same as ${escapeHtml(d.dupOf.join(', '))}</div>` : ''}
-        <div class="fp-pv-actions"><a href="${escapeAttr(url)}" target="_blank" rel="noopener">Open full size \u2197</a><a href="${escapeAttr(url)}" download="${escapeAttr(d.file.name)}">${FP_DL_ICON} Download</a></div>`;
+        <div class="fp-pv-actions"><a href="${escapeAttr(url)}" target="_blank" rel="noopener">Open full size \u2197</a><a href="${escapeAttr(url)}" download="${escapeAttr(d.name)}">${FP_DL_ICON} Download</a></div>`;
     box.style.display = '';
 }
 document.getElementById('fpList').addEventListener('click', e => {
+    const edit = e.target.closest('[data-fp-edit]');
+    if (edit) {
+        const real = edit.getAttribute('data-fp-edit');
+        const d = FP_SHOWN.find(x => x.file.name === real);
+        if (!d) return;
+        openDocsEdit({ key: 'fp:' + real, title: d.title || d.code || d.base, filename: d.name, origTitle: d.code || d.base, origFilename: real,
+            note: 'Changes the name shown here and used for filters and downloads. The file in the GitHub folder keeps its name (' + real + ').',
+            done: () => { if (docsCurrentSection === 'floorplans') renderFloorplanDocs(); } });
+        return;
+    }
     if (e.target.closest('a, button')) return;
     const row = e.target.closest('[data-fp-file]');
     if (!row) return;
@@ -14452,6 +14566,7 @@ document.getElementById('docsSubtabs').addEventListener('click', e => {
 document.getElementById('docsGrid').addEventListener('click', e => docsHandleAction(e));
 document.getElementById('otherList').addEventListener('click', e => {
     if (e.target.closest('[data-docs-action]')) { docsHandleAction(e); return; }
+    if (e.target.closest('.docs-drag-handle')) return;
     const row = e.target.closest('[data-other-key]');
     if (!row) return;
     const key = row.getAttribute('data-other-key');
@@ -14467,6 +14582,57 @@ document.getElementById('otherPreview').addEventListener('click', e => {
     document.querySelectorAll('#otherList .fp-selected').forEach(r => r.classList.remove('fp-selected'));
     renderOtherPreview();
 });
+// Drag the \u2261 handle (or arrow keys on it) to reorder the Other list.
+document.getElementById('otherList').addEventListener('pointerdown', e => {
+    const handle = e.target.closest('.docs-drag-handle');
+    if (!handle || e.button > 0) return;
+    e.preventDefault();
+    const list = document.getElementById('otherList');
+    const row = handle.closest('[data-other-key]');
+    const keysNow = () => [...list.querySelectorAll('[data-other-key]')].map(r => r.getAttribute('data-other-key'));
+    const before = keysNow();
+    docsDragging = true;
+    row.classList.add('ot-dragging');
+    const onMove = ev => {
+        if (ev.pointerId !== e.pointerId) return;
+        if (ev.clientY < 60) window.scrollBy(0, -14);
+        else if (ev.clientY > window.innerHeight - 60) window.scrollBy(0, 14);
+        const over = document.elementFromPoint(ev.clientX, ev.clientY);
+        const target = over && over.closest('[data-other-key]');
+        if (!target || target === row || target.parentNode !== list) return;
+        const rows = [...list.children];
+        list.insertBefore(row, rows.indexOf(target) < rows.indexOf(row) ? target : target.nextSibling);
+    };
+    const onEnd = ev => {
+        if (ev.pointerId !== e.pointerId) return;
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onEnd);
+        document.removeEventListener('pointercancel', onEnd);
+        row.classList.remove('ot-dragging');
+        docsDragging = false;
+        const after = keysNow();
+        if (after.join('|') === before.join('|')) return;
+        docsSaveOrder(docsCurrentSection, after);
+        renderOtherDocs();
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onEnd);
+    document.addEventListener('pointercancel', onEnd);
+});
+document.getElementById('otherList').addEventListener('keydown', e => {
+    const handle = e.target.closest('.docs-drag-handle');
+    if (!handle || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+    e.preventDefault();
+    const keys = docsForSection(docsCurrentSection).map(d => d.key);
+    const key = handle.closest('[data-other-key]').getAttribute('data-other-key');
+    const i = keys.indexOf(key), j = i + (e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 1);
+    if (j < 0 || j >= keys.length) return;
+    [keys[i], keys[j]] = [keys[j], keys[i]];
+    docsSaveOrder(docsCurrentSection, keys);
+    renderOtherDocs();
+    const moved = document.querySelector(`#otherList [data-other-key="${CSS.escape(key)}"] .docs-drag-handle`);
+    if (moved) moved.focus();
+});
 // Documents > Other: uploaded files in the Floorplans-style list, with a
 // preview on the right when a row is clicked.
 let otherSelected = null;
@@ -14476,12 +14642,14 @@ function renderOtherDocs() {
     const list = document.getElementById('otherList');
     const note = document.getElementById('otherNote');
     if (otherSelected && !docs.some(d => d.key === otherSelected)) otherSelected = null;
-    const head = `<div class="fp-row ot-row fp-head"><span>Document</span><span>Type</span><span>Size</span><span>Added</span><span></span></div>`;
+    const head = `<div class="fp-row ot-row fp-head"><span></span><span>Document</span><span>Type</span><span>Size</span><span>Added</span><span></span></div>`;
+    const handleIcon = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
     list.innerHTML = docs.length ? head + docs.map((d, i) => {
         const type = DOCS_UPLOAD_TYPES[d.mime] || 'PDF';
         const when = d.updated || d.added;
         const date = when ? new Date(when).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '';
         return `<div class="fp-row ot-row${d.key === otherSelected ? ' fp-selected' : ''}" data-other-key="${escapeAttr(d.key)}">
+            <span class="docs-drag-handle" role="button" tabindex="0" title="Drag to reorder" aria-label="Drag to reorder ${escapeAttr(d.title)}">${handleIcon}</span>
             <span class="fp-name"><b>${escapeHtml(d.title)}</b><span class="fp-file" title="${escapeAttr(d.filename || '')}">${escapeHtml(d.filename || '')}${d.localOnly ? ' \u00b7 this device only' : ''}</span></span>
             <span class="fp-c">${escapeHtml(type)}</span>
             <span class="fp-c">${escapeHtml(d.size ? docsFormatSize(d.size) : '')}</span>
@@ -14489,6 +14657,7 @@ function renderOtherDocs() {
             <span class="fp-actions">
                 <a href="#" data-docs-action="open" data-docs-i="${i}">Open</a>
                 <a href="#" class="fp-dl" data-docs-action="download" data-docs-i="${i}" title="Download" aria-label="Download ${escapeAttr(d.title)}">${FP_DL_ICON}</a>
+                <button type="button" class="docs-edit-btn" data-docs-action="edit" data-docs-i="${i}" title="Edit name" aria-label="Edit name of ${escapeAttr(d.title)}">${DOCS_EDIT_ICON}</button>
             </span>
             <span class="fp-sub">${escapeHtml([type, d.size ? docsFormatSize(d.size) : '', date].filter(Boolean).join(' \u00b7 '))}</span>
         </div>`;
@@ -14526,6 +14695,7 @@ async function docsHandleAction(e) {
     const doc = docsForSection(docsCurrentSection)[+el.getAttribute('data-docs-i')];
     if (!doc) return;
     const action = el.getAttribute('data-docs-action');
+    if (action === 'edit') { docsEditDoc(doc); return; }
     if (action === 'replace') {
         docsReplaceTarget = doc;
         document.getElementById('docsReplaceInput').click();
@@ -14694,8 +14864,13 @@ document.getElementById('docsUploadInput').addEventListener('change', async e =>
     docsSetStatus(shared ? `Uploaded “${entry.title}”.` : `Saved “${entry.title}” on this device only — the shared backend isn't reachable.`);
 });
 async function pullDocumentsFromBackend() {
-    const [remote, order] = await Promise.all([backendPull(DOCS_UPLOADS_BACKEND_KEY), backendPull(DOCS_ORDER_BACKEND_KEY)]);
+    const [remote, order, meta] = await Promise.all([backendPull(DOCS_UPLOADS_BACKEND_KEY), backendPull(DOCS_ORDER_BACKEND_KEY), backendPull(DOCS_META_BACKEND_KEY)]);
     let changed = false;
+    if (meta && typeof meta === 'object' && !Array.isArray(meta) && JSON.stringify(meta) !== JSON.stringify(DOC_META) && !docsEditCtx) {
+        DOC_META = meta;
+        try { localStorage.setItem(DOCS_META_KEY, JSON.stringify(DOC_META)); } catch (e) {}
+        changed = true;
+    }
     if (Array.isArray(remote)) {
         const localOnly = DOC_UPLOADS.filter(u => u.localOnly && !remote.some(r => r.id === u.id));
         const next = remote.concat(localOnly);
