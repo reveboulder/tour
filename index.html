@@ -17188,7 +17188,7 @@ function qaSaveLog() { try { sessionStorage.setItem(QA_LOG_KEY, JSON.stringify(Q
 function qaSuggestions() {
     const avail = Object.keys(PRICING_SUMMARY).sort((a, b) => PRICING_SUMMARY[a].availableSortKey - PRICING_SUMMARY[b].availableSortKey)[0];
     const unit = avail || (UNITS[0] && UNITS[0].unit) || '4334';
-    return ['What 2-beds are available now?', `Tell me about ${unit}`, 'How much is the pet deposit?', 'Who is moving in this week?', 'Which leases expire next month?', 'What does ↑ mean on Residents?', 'How do I print move-in docs?', 'How many units have a mountain view?'];
+    return ['What 2-beds are available now?', `Tell me about ${unit}`, 'How much is the pet deposit?', 'Who is moving in this week?', 'Which leases expire next month?', 'What does ↑ mean on Residents?', 'Average move-ins per month over the last year', 'Which month had the most move-ins this year?'];
 }
 function renderQaLog() {
     const log = document.getElementById('qaLog');
