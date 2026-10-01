@@ -1633,6 +1633,12 @@
     .clr-x:hover { background: rgba(0,0,0,0.07); color: var(--ink); }
     body.dark-mode .clr-x:hover { background: rgba(255,255,255,0.1); }
     .docs-card.fp-dup { outline: 2px solid #c0392b; outline-offset: -2px; }
+    .docs-pv-file { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 220px; border: 1px dashed var(--line); border-radius: 6px; color: var(--ink-soft); font-size: 12.5px; text-align: center; padding: 16px; }
+    .docs-pv-file span { font-family: 'Oswald', var(--sans); font-size: 26px; font-weight: 600; color: var(--reve-orange); letter-spacing: 0.04em; }
+    .docs-zip-btn { width: 36px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+    .docs-zip-btn svg { width: 17px; height: 17px; }
+    .docs-move-field select { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; font-family: var(--sans); font-size: 13.5px; background: #fff; color: var(--ink); }
+    body.dark-mode .docs-move-field select { background: var(--dm-card-alt); }
     .docs-card-actions a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; color: var(--ink); }
     .docs-card.fp-dup .docs-card-body { background: #fde2e2; }
     /* -- Help > Questions (chat) -- */
@@ -3786,9 +3792,10 @@
                 <button type="button" data-docs-view="preview">Preview</button>
                 <button type="button" data-docs-view="details">Details</button>
             </div>
+            <button type="button" class="btn docs-zip-btn" id="docsZipBtn" title="Download this tab as a ZIP" aria-label="Download this tab as a ZIP"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg></button>
             <button type="button" class="btn" id="docsUploadBtn" style="width:auto;flex:none;padding:8px 16px;">+ Upload</button>
-            <input type="file" id="docsUploadInput" accept="application/pdf,.pdf,image/jpeg,.jpg,.jpeg,image/png,.png" style="display:none;">
-            <input type="file" id="docsReplaceInput" accept="application/pdf,.pdf,image/jpeg,.jpg,.jpeg,image/png,.png" style="display:none;">
+            <input type="file" id="docsUploadInput" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.tif,.tiff,.doc,.docx,.xls,.xlsx,.xlsm,.csv,.ppt,.pptx,.txt,.rtf,.odt,.ods,.odp,.pages,.numbers,.key,.eml,.msg,.zip" style="display:none;">
+            <input type="file" id="docsReplaceInput" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.tif,.tiff,.doc,.docx,.xls,.xlsx,.xlsm,.csv,.ppt,.pptx,.txt,.rtf,.odt,.ods,.odp,.pages,.numbers,.key,.eml,.msg,.zip" style="display:none;">
         </div>
     </div>
     <div class="docs-grid" id="docsGrid"></div>
@@ -3798,6 +3805,7 @@
                 <div class="mmr-section-title">EDIT DOCUMENT</div>
                 <label class="docs-edit-field" id="docsEditTitleRow">Card name<input type="text" id="docsEditTitle" autocomplete="off"></label>
                 <label class="docs-edit-field">File name<input type="text" id="docsEditFile" autocomplete="off" spellcheck="false"></label>
+                <label class="docs-edit-field docs-move-field" id="docsEditMoveRow">Move to another tab<select id="docsEditMove"></select></label>
                 <div class="empty-note" id="docsEditNote" style="margin:4px 0 0;"></div>
                 <div class="empty-note" style="margin:4px 0 0;">Leave a box empty to go back to the original. The file type (e.g. .pdf) is kept.</div>
                 <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
@@ -14283,6 +14291,27 @@ async function docsCachePut(id, b64) {
 }
 // Upload types: MIME -> label. Entries saved before images were allowed have no mime (PDF).
 const DOCS_UPLOAD_TYPES = { 'application/pdf': 'PDF', 'image/jpeg': 'JPG', 'image/png': 'PNG' };
+// Every accepted extension -> [MIME type, label]. (SVG and HTML are left
+// out on purpose: opened from the app they could run code.)
+const DOCS_EXT_TYPES = {
+    pdf: ['application/pdf', 'PDF'], jpg: ['image/jpeg', 'JPG'], jpeg: ['image/jpeg', 'JPG'], png: ['image/png', 'PNG'],
+    gif: ['image/gif', 'GIF'], webp: ['image/webp', 'WEBP'], heic: ['image/heic', 'HEIC'], tif: ['image/tiff', 'TIFF'], tiff: ['image/tiff', 'TIFF'],
+    doc: ['application/msword', 'DOC'], docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'DOCX'],
+    xls: ['application/vnd.ms-excel', 'XLS'], xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'XLSX'], xlsm: ['application/vnd.ms-excel.sheet.macroEnabled.12', 'XLSM'],
+    csv: ['text/csv', 'CSV'], ppt: ['application/vnd.ms-powerpoint', 'PPT'], pptx: ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'PPTX'],
+    txt: ['text/plain', 'TXT'], rtf: ['application/rtf', 'RTF'], odt: ['application/vnd.oasis.opendocument.text', 'ODT'], ods: ['application/vnd.oasis.opendocument.spreadsheet', 'ODS'],
+    odp: ['application/vnd.oasis.opendocument.presentation', 'ODP'], pages: ['application/vnd.apple.pages', 'PAGES'], numbers: ['application/vnd.apple.numbers', 'NUMBERS'],
+    key: ['application/vnd.apple.keynote', 'KEY'], eml: ['message/rfc822', 'EML'], msg: ['application/vnd.ms-outlook', 'MSG'], zip: ['application/zip', 'ZIP']
+};
+function docsExt(name) { return (/\.([a-z0-9]+)$/i.exec(name || '') || [])[1]?.toLowerCase() || ''; }
+// Short type label for a document (from its MIME type or file name).
+function docsTypeLabel(d) {
+    if (DOCS_UPLOAD_TYPES[d.mime]) return DOCS_UPLOAD_TYPES[d.mime];
+    const e = DOCS_EXT_TYPES[docsExt(d.filename || d.name || d.origFilename)];
+    return e ? e[1] : (d.mime ? 'FILE' : 'PDF');
+}
+// Shown inside the app (preview, thumbnail, print): PDFs and web images.
+function docsCanPreview(d) { return !d.mime || d.mime === 'application/pdf' || /^image\/(jpeg|png|gif|webp)$/.test(d.mime); }
 function docsIsImage(doc) { return /^image\//.test(doc.mime || ''); }
 function docsBase64ToBlob(b64, type) {
     const bin = atob(b64);
@@ -14374,6 +14403,13 @@ function openDocsEdit(ctx) {
     document.getElementById('docsEditFile').placeholder = ctx.origFilename || '';
     document.getElementById('docsEditNote').textContent = ctx.note || '';
     document.getElementById('docsEditTitleRow').style.display = ctx.noTitle ? 'none' : '';
+    // Destinations: every sub-tab except this one and Floorplans (that one
+    // is the GitHub folder, so files can be moved out of it but not in).
+    const moveSel = document.getElementById('docsEditMove');
+    const here = DOC_SECTIONS.find(x => x.id === ctx.section);
+    moveSel.innerHTML = `<option value="">\u2014 Keep in ${escapeHtml(here ? here.label : 'Floorplans')} \u2014</option>`
+        + DOC_SECTIONS.filter(x => x.id !== ctx.section).map(x => `<option value="${escapeAttr(x.id)}">${escapeHtml(x.label)}</option>`).join('');
+    document.getElementById('docsEditMoveRow').style.display = ctx.onMove ? '' : 'none';
     document.getElementById('docsEditOverlay').style.display = 'flex';
     const first = document.getElementById(ctx.noTitle ? 'docsEditFile' : 'docsEditTitle');
     first.focus(); first.select();
@@ -14387,13 +14423,115 @@ document.getElementById('docsEditForm').addEventListener('submit', async e => {
     if (!ctx) return;
     const title = document.getElementById('docsEditTitle').value.trim();
     const filename = docsFixFilename(document.getElementById('docsEditFile').value, ctx.origFilename);
+    const moveTo = document.getElementById('docsEditMove').value;
     closeDocsEdit();
     const ok = await docsSaveMeta(ctx.key, {
         title: title && title !== ctx.origTitle ? title : '',
         filename: filename && filename !== ctx.origFilename ? filename : ''
     });
+    if (moveTo && ctx.onMove) {
+        await ctx.onMove(moveTo, title || ctx.title, filename || ctx.filename);
+        renderDocuments();
+        return;
+    }
     if (typeof ctx.done === 'function') ctx.done();
     docsSetStatus(ok ? 'Saved.' : 'Saved on this device \u2014 the shared backend couldn\u2019t be reached, so teammates won\u2019t see it yet.');
+});
+/* ---------- Move a document to another sub-tab ----------
+   Uploaded files just change section. Built-in documents and GitHub
+   floorplans can't move themselves, so a copy of the file is uploaded
+   into the new tab and the original is hidden. */
+function docsSectionName(id) { const x = DOC_SECTIONS.find(s => s.id === id); return x ? x.label : id === 'floorplans' ? 'Floorplans' : id; }
+async function docsShareListEntry(entry) {
+    if (!BACKEND_URL || APP_MODE === 'test') return false;
+    const remote = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
+    if (remote === undefined) return false;
+    const list = Array.isArray(remote) ? remote : [];
+    const clean = Object.assign({}, entry); delete clean.localOnly; delete clean.syncing;
+    const next = list.some(u => u.id === clean.id) ? list.map(u => u.id === clean.id ? clean : u) : list.concat([clean]);
+    if (!(await backendPush(DOCS_UPLOADS_BACKEND_KEY, next))) return false;
+    const check = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
+    return Array.isArray(check) && check.some(u => u.id === clean.id && u.section === clean.section);
+}
+async function docsFetchBase64(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const blob = await res.blob();
+    return { b64: await docsReadBase64(blob), size: blob.size };
+}
+async function docsMoveDoc(d, to, title, filename) {
+    const label = `Moving \u201c${title}\u201d to ${docsSectionName(to)}`;
+    docsSetSync('working', label, 'Moving\u2026', 0.2);
+    const existing = d.uploadId && DOC_UPLOADS.find(u => u.id === d.uploadId);
+    if (existing && (!d.replacedBuiltIn || existing.replaces)) {
+        // An upload (or a replacement of a built-in): re-file it.
+        const entry = Object.assign({}, existing, { section: to });
+        if (entry.replaces) { await docsSaveMeta(entry.replaces, { hidden: true }); delete entry.replaces; entry.title = title; entry.name = filename; }
+        DOC_UPLOADS = DOC_UPLOADS.map(u => u.id === entry.id ? entry : u);
+        docsPersistLocal();
+        const ok = entry.localOnly ? false : await docsShareListEntry(entry);
+        if (!ok && !entry.localOnly) { entry.localOnly = true; docsPersistLocal(); }
+        docsSetSync(ok || entry.localOnly ? (ok ? 'ok' : 'error') : 'error', ok ? `Moved \u201c${title}\u201d to ${docsSectionName(to)}` : `Moved \u201c${title}\u201d on this device`,
+            ok ? 'Saved for the team.' : 'Not shared yet \u2014 it will sync when the backend is reachable.');
+        return;
+    }
+    // Built-in file: copy it into the new tab, then hide the original.
+    try {
+        const { b64, size } = await docsFetchBase64(d.url);
+        const mime = (DOCS_EXT_TYPES[docsExt(filename)] || ['application/pdf'])[0];
+        const entry = { id: docsNewId(), section: to, title, name: filename, size, mime, print: d.print || 'half', added: new Date().toISOString() };
+        await docsCachePut(entry.id, b64);
+        const ok = await docsRunShare(entry, b64, 'Moving');
+        if (ok || !BACKEND_URL) await docsSaveMeta(d.key, { hidden: true });
+    } catch (err) {
+        docsSetSync('error', `Couldn\u2019t move \u201c${title}\u201d`, 'The file couldn\u2019t be read \u2014 try again.');
+    }
+}
+async function docsMoveFloorplan(d, to, title, filename) {
+    docsSetSync('working', `Moving \u201c${filename}\u201d to ${docsSectionName(to)}`, 'Copying the file from the Floorplans folder\u2026', 0.1);
+    try {
+        const { b64, size } = await docsFetchBase64(fpUrl(d.file.name));
+        const mime = (DOCS_EXT_TYPES[docsExt(d.file.name)] || ['application/octet-stream'])[0];
+        const entry = { id: docsNewId(), section: to, title, name: filename, size, mime, print: 'full', added: new Date().toISOString() };
+        await docsCachePut(entry.id, b64);
+        const ok = await docsRunShare(entry, b64, 'Moving');
+        if (ok || !BACKEND_URL) await docsSaveMeta('fp:' + d.file.name, { hidden: true });
+    } catch (err) {
+        docsSetSync('error', `Couldn\u2019t move \u201c${filename}\u201d`, 'The file couldn\u2019t be read from the Floorplans folder \u2014 try again.');
+    }
+}
+
+/* ---------- Download a whole sub-tab as one ZIP ---------- */
+document.getElementById('docsZipBtn').addEventListener('click', async () => {
+    const sec = docsCurrentSection;
+    const label = docsSectionName(sec);
+    const items = sec === 'floorplans'
+        ? (FP_FILES || []).filter(f => !(DOC_META['fp:' + f.name] && DOC_META['fp:' + f.name].hidden))
+            .map(f => ({ name: fpEffectiveName(f), get: () => fetch(fpUrl(f.name)).then(r => { if (!r.ok) throw 0; return r.blob(); }) }))
+        : docsForSection(sec).map(d => ({ name: d.filename || (d.title + '.pdf'), get: async () => { const u = await docsUrlFor(d); if (!u) throw 0; return (await fetch(u)).blob(); } }));
+    if (!items.length) { docsSetSync('error', `Nothing to download in ${label}`, 'This tab has no documents yet.'); return; }
+    if (!window.JSZip) { docsSetSync('error', 'ZIP isn\u2019t available', 'Refresh the page and try again.'); return; }
+    const zip = new JSZip();
+    const used = {};
+    let done = 0, failed = [];
+    for (const it of items) {
+        docsSetSync('working', `Zipping ${label}`, `Adding file ${done + 1} of ${items.length}\u2026`, 0.05 + 0.8 * done / items.length);
+        // Same names in one folder get (2), (3)...
+        let name = String(it.name).replace(/[\\/:*?"<>|]+/g, '-');
+        const key = name.toLowerCase();
+        if (used[key]) { const m = /^(.*?)(\.[^.]+)?$/.exec(name); name = `${m[1]} (${++used[key]})${m[2] || ''}`; } else used[key] = 1;
+        try { zip.file(name, await it.get()); } catch (e) { failed.push(it.name); }
+        done++;
+    }
+    docsSetSync('working', `Zipping ${label}`, 'Compressing\u2026', 0.9);
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `REVE ${label} ${new Date().toISOString().slice(0, 10)}.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    docsSetSync(failed.length ? 'error' : 'ok', `Downloaded ${label} (${items.length - failed.length} file${items.length - failed.length === 1 ? '' : 's'})`,
+        failed.length ? `Couldn\u2019t include: ${failed.join(', ')}` : `Saved as \u201c${a.download}\u201d.`);
 });
 document.getElementById('docsRestoreHidden').addEventListener('click', async () => {
     const keys = docsHiddenKeys(docsCurrentSection);
@@ -14402,7 +14540,8 @@ document.getElementById('docsRestoreHidden').addEventListener('click', async () 
     renderDocuments();
 });
 function docsEditDoc(d) {
-    openDocsEdit({ key: d.key, title: d.title, filename: d.filename, origTitle: d.origTitle, origFilename: d.origFilename, done: renderDocuments });
+    openDocsEdit({ key: d.key, title: d.title, filename: d.filename, origTitle: d.origTitle, origFilename: d.origFilename, done: renderDocuments,
+        section: docsCurrentSection, onMove: (to, title, filename) => docsMoveDoc(d, to, title, filename) });
 }
 function docsNewId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function docsForSection(sectionId, includeHidden) {
@@ -14543,6 +14682,7 @@ const docsThumbTried = {};
 // Uploaded preview: memory, then this browser's cache, then the shared
 // backend, else rendered here (and shared so teammates skip the render).
 async function docsEnsureThumb(doc) {
+    if (!docsCanPreview(doc)) return null;
     const id = doc.fileId || doc.uploadId;
     if (docsThumbs[id] || docsThumbTried[id]) return docsThumbs[id] || null;
     docsThumbTried[id] = true;
@@ -14613,13 +14753,13 @@ function renderDocuments() {
     const handleIcon = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
     grid.innerHTML = docs.map((d, i) => {
         const meta = d.uploadId
-            ? `${d.replacedBuiltIn ? 'Replaced' : 'Uploaded'} ${DOCS_UPLOAD_TYPES[d.mime] || 'PDF'}${d.size ? ' · ' + docsFormatSize(d.size) : ''}${d.syncing ? ' · uploading…' : d.localOnly ? ' · this device only (not shared yet)' : ''}`
+            ? `${d.replacedBuiltIn ? 'Replaced' : 'Uploaded'} ${docsTypeLabel(d)}${d.size ? ' · ' + docsFormatSize(d.size) : ''}${d.syncing ? ' · uploading…' : d.localOnly ? ' · this device only (not shared yet)' : ''}`
             : `${d.pages} page${d.pages === 1 ? '' : 's'} · PDF`;
         const printable = !(cur && cur.list);
-        const printNote = !printable ? '' : d.print === 'full' ? 'Prints full sheet' : 'Prints 2 per page';
+        const printNote = !printable || !docsCanPreview(d) ? '' : d.print === 'full' ? 'Prints full sheet' : 'Prints 2 per page';
         const added = d.updated ? docsFormatAdded(d.updated).replace(/^Added/, 'Updated') : docsFormatAdded(d.added);
         const buttons = `<button type="button" class="btn" data-docs-action="open" data-docs-i="${i}">Open</button>
-                    ${printable ? `<button type="button" class="btn primary" data-docs-action="print" data-docs-i="${i}">Print</button>` : ''}
+                    ${printable && docsCanPreview(d) ? `<button type="button" class="btn primary" data-docs-action="print" data-docs-i="${i}">Print</button>` : ''}
                     <button type="button" class="btn" data-docs-action="download" data-docs-i="${i}">Download</button>`;
         // Replace on every card; Remove for uploads, Revert for a replaced built-in.
         const remove = [`<button type="button" class="docs-card-remove" data-docs-action="replace" data-docs-i="${i}">Replace</button>`]
@@ -14641,7 +14781,7 @@ function renderDocuments() {
         const thumbSrc = d.thumb || (d.uploadId && docsThumbs[d.fileId]);
         const thumb = thumbSrc
             ? `<img src="${escapeAttr(thumbSrc)}" alt="" loading="lazy">`
-            : `<span class="docs-thumb-placeholder">${pdfIcon}PDF</span>`;
+            : `<span class="docs-thumb-placeholder">${pdfIcon}${escapeHtml(docsTypeLabel(d))}</span>`;
         return `<div class="docs-card" data-docs-key="${escapeAttr(d.key)}">
             <a class="docs-thumb" href="#" data-docs-action="open" data-docs-i="${i}"${d.uploadId ? ` data-docs-thumb="${escapeAttr(d.fileId)}"` : ''}${docsIsImage(d) ? ' data-docs-kind="image"' : ''} title="Open ${escapeAttr(d.title)}">${thumb}</a>
             <div class="docs-card-body">
@@ -14914,7 +15054,8 @@ async function fpListClick(e) {
         if (!d) return;
         openDocsEdit({ key: 'fp:' + real, title: d.title || d.code || d.base, filename: d.name, origTitle: d.code || d.base, origFilename: real,
             note: 'Changes the name shown here and used for filters and downloads. The file in the GitHub folder keeps its name (' + real + ').',
-            done: () => { if (docsCurrentSection === 'floorplans') renderFloorplanDocs(); } });
+            done: () => { if (docsCurrentSection === 'floorplans') renderFloorplanDocs(); },
+            section: 'floorplans', onMove: (to, title, filename) => docsMoveFloorplan(d, to, title, filename) });
         return;
     }
     if (e.target.closest('a, button')) return;
@@ -15127,7 +15268,7 @@ function renderOtherDocs() {
     const handleIcon = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
     list.innerHTML = docs.length ? head + docs.map(d => {
         const i = d.idx;
-        const type = DOCS_UPLOAD_TYPES[d.mime] || 'PDF';
+        const type = docsTypeLabel(d);
         const when = d.updated || d.added;
         const date = when ? new Date(when).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '';
         return `<div class="fp-row ot-row${d.key === otherSelected ? ' fp-selected' : ''}" data-other-key="${escapeAttr(d.key)}">
@@ -15138,7 +15279,7 @@ function renderOtherDocs() {
             <span class="fp-c">${escapeHtml(date)}</span>
             <span class="fp-actions">
                 <a href="#" data-docs-action="open" data-docs-i="${i}">Open</a>
-                ${printable ? `<a href="#" data-docs-action="print" data-docs-i="${i}" title="${d.print === 'full' ? 'Prints full sheet' : 'Prints 2 per page'}">Print</a>` : ''}
+                ${printable && docsCanPreview(d) ? `<a href="#" data-docs-action="print" data-docs-i="${i}" title="${d.print === 'full' ? 'Prints full sheet' : 'Prints 2 per page'}">Print</a>` : ''}
                 <a href="#" class="fp-dl" data-docs-action="download" data-docs-i="${i}" title="Download" aria-label="Download ${escapeAttr(d.title)}">${FP_DL_ICON}</a>
                 <button type="button" class="docs-edit-btn" data-docs-action="edit" data-docs-i="${i}" title="Edit name" aria-label="Edit name of ${escapeAttr(d.title)}">${DOCS_EDIT_ICON}</button>
                 <button type="button" class="docs-x-btn" data-docs-action="delete" data-docs-i="${i}" title="Remove" aria-label="Remove ${escapeAttr(d.title)}">${DOCS_X_ICON}</button>
@@ -15161,8 +15302,8 @@ async function renderOtherPreview() {
     box.dataset.key = d.key + '|' + (d.fileId || '');
     const token = ++otherPreviewToken;
     const secP = DOC_SECTIONS.find(x => x.id === docsCurrentSection);
-    const actions = `<div class="fp-pv-actions"><a href="#" data-docs-action="open" data-docs-i="${i}">Open full size \u2197</a>`
-        + (secP && !secP.list ? `<a href="#" data-docs-action="print" data-docs-i="${i}">Print</a>` : '')
+    const actions = `<div class="fp-pv-actions"><a href="#" data-docs-action="open" data-docs-i="${i}">${docsCanPreview(d) ? 'Open full size' : 'Open'} \u2197</a>`
+        + (secP && !secP.list && docsCanPreview(d) ? `<a href="#" data-docs-action="print" data-docs-i="${i}">Print</a>` : '')
         + `<a href="#" data-docs-action="download" data-docs-i="${i}">${FP_DL_ICON} Download</a>`
         + (d.replacedBuiltIn ? `<a href="#" data-docs-action="remove" data-docs-i="${i}">Revert</a>` : '')
         + `<a href="#" data-docs-action="replace" data-docs-i="${i}">Replace</a><a href="#" class="docs-x-pill" data-docs-action="delete" data-docs-i="${i}" title="Remove" aria-label="Remove ${escapeAttr(d.title)}">${DOCS_X_ICON}</a>` + '</div>';
@@ -15172,6 +15313,7 @@ async function renderOtherPreview() {
     const url = await docsUrlFor(d);
     if (token !== otherPreviewToken) return;
     const body = !url ? '<div class="fp-pv-meta">Couldn\u2019t load this file \u2014 check the backend connection in Settings.</div>'
+        : !docsCanPreview(d) ? `<div class="docs-pv-file"><span>${escapeHtml(docsTypeLabel(d))}</span>No preview for this file type \u2014 use Download${docsTypeLabel(d) === 'ZIP' ? '' : ' or Open'}.</div>`
         : docsIsImage(d) ? `<img class="fp-pv-img" src="${escapeAttr(url)}" alt="${escapeAttr(d.title)}">`
         : `<iframe class="fp-pv-pdf" src="${escapeAttr(url)}" title="${escapeAttr(d.title)}"></iframe>`;
     box.innerHTML = headHtml + body + actions;
@@ -15280,10 +15422,9 @@ async function docsHandleAction(e) {
 document.getElementById('docsUploadBtn').addEventListener('click', () => document.getElementById('docsUploadInput').click());
 // Checks type and size; returns the MIME type, or '' after telling the user why not.
 function docsCheckFile(file) {
-    const ext = (/\.(pdf|jpe?g|png)$/i.exec(file.name) || [])[1];
-    const mime = DOCS_UPLOAD_TYPES[file.type] ? file.type
-        : ext ? { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' }[ext.toLowerCase()] : '';
-    if (!mime) { alert('Please choose a PDF, JPG or PNG file.'); return ''; }
+    const known = DOCS_EXT_TYPES[docsExt(file.name)];
+    const mime = known ? known[0] : '';
+    if (!mime) { alert('That file type isn\u2019t supported. Use PDF, Word, Excel, PowerPoint, CSV, text, an image (JPG/PNG/GIF/WEBP/HEIC) or a ZIP.'); return ''; }
     if (file.size > DOCS_MAX_UPLOAD_BYTES) { alert('That file is over 10 MB — please use a smaller file.'); return ''; }
     return mime;
 }
@@ -15407,7 +15548,7 @@ async function docsRunShare(entry, b64, verb, quiet) {
     docsPersistLocal();
     docsSyncing.delete(entry.id);
     if (document.getElementById('tab-documents').classList.contains('active')) renderDocuments();
-    if (res.ok) docsSetSync('ok', `${verb === 'Uploading' ? 'Uploaded' : 'Replaced'} \u201c${entry.title}\u201d`, `Saved and visible to the team in ${docsSectionLabel(entry.section)}.`);
+    if (res.ok) docsSetSync('ok', `${({ Uploading: 'Uploaded', Replacing: 'Replaced', Moving: 'Moved' })[verb] || 'Saved'} \u201c${entry.title}\u201d`, `Saved and visible to the team in ${docsSectionLabel(entry.section)}.`);
     else if (!quiet) docsSetSync('error', `Not shared yet: \u201c${entry.title}\u201d`, res.why + ' It\u2019s on this device only; retrying automatically.', 0, () => docsRunShare(entry, b64, verb));
     return res.ok;
 }
@@ -15430,9 +15571,9 @@ document.getElementById('docsUploadInput').addEventListener('change', async e =>
     const mime = docsCheckFile(file);
     if (!mime) return;
     const section = DOC_SECTIONS.find(s => s.id === docsCurrentSection);
-    const title = prompt(`Title for this document (in ${section.label}):`, file.name.replace(/\.(pdf|jpe?g|png)$/i, '').replace(/[_-]+/g, ' ').trim());
+    const title = prompt(`Title for this document (in ${section.label}):`, file.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim());
     if (title === null || !title.trim()) return;
-    const half = section.list ? false : confirm('Print this as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
+    const half = section.list || !docsCanPreview({ mime }) ? false : confirm('Print this as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
     docsSetSync('working', `Uploading \u201c${title.trim()}\u201d`, 'Reading the file\u2026', 0.01);
     const b64 = await docsReadBase64(file);
     const entry = { id: docsNewId(), section: section.id, title: title.trim(), name: file.name, size: file.size, mime, print: half ? 'half' : 'full', added: new Date().toISOString() };
