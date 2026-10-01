@@ -1658,6 +1658,10 @@
     .qa-list, .qa-steps { margin: 4px 0 6px; padding-left: 20px; }
     .qa-list li, .qa-steps li { margin-bottom: 4px; }
     .qa-muted { color: var(--ink-soft); font-size: 12px; }
+    .qa-table { border-collapse: collapse; margin: 6px 0; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+    .qa-table th, .qa-table td { padding: 3px 10px 3px 0; text-align: left; border-bottom: 1px solid var(--line); }
+    .qa-table th { font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+    .qa-bar { display: inline-block; height: 8px; background: var(--reve-orange); opacity: 0.7; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
     .qa-answer-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
     .qa-act { font: inherit; font-size: 12px; font-weight: 700; border: 1px solid var(--reve-orange); color: var(--reve-orange); background: transparent; border-radius: 999px; padding: 3px 10px; cursor: pointer; text-decoration: none; }
     .qa-act:hover { background: var(--reve-orange); color: #fff; }
@@ -10132,41 +10136,57 @@ document.getElementById('mmrExportBtn').addEventListener('click', async () => {
    ============================================================ */
 function createMMRLeaseTableController(opts) {
     // opts: { localKey, backendKey, fieldsConfig, tbodyId, addBtnId, emptyLabel }
+    // Saving works like Residents: every edit stamps the field's time
+    // (row._ts), merges keep the newest edit per field, a save only counts
+    // once the backend is read back holding it, and unsaved edits survive
+    // a page refresh (DIRTY is kept in localStorage).
     let ROWS = {};
-    const DIRTY = new Set();
+    const DIRTY_KEY = opts.localKey + '-dirty';
+    const DIRTY = new Set((() => { try { return JSON.parse(localStorage.getItem(DIRTY_KEY) || '[]'); } catch (e) { return []; } })());
 
     function newRowId() { return 'ml_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7); }
-    function persistLocal() { try { localStorage.setItem(opts.localKey, JSON.stringify(ROWS)); } catch (e) {} }
+    function persistLocal() {
+        try { localStorage.setItem(opts.localKey, JSON.stringify(ROWS)); } catch (e) {}
+        try { localStorage.setItem(DIRTY_KEY, JSON.stringify([...DIRTY])); } catch (e) {}
+    }
+    function stamp(row, field) { residentTouch(row, field); }
 
+    let pushing = false, pushAgain = false, retryTimer = null;
     async function pushDirty() {
         persistLocal();
         if (!BACKEND_URL || APP_MODE === 'test') return;
-        const dirtyIds = [...DIRTY];
-        const remote = await backendPullChecked(opts.backendKey);
-        // Never push without a fresh copy to merge into (a failed pull used
-        // to push this browser's whole table over everyone else's rows).
-        if (remote === undefined) { setTimeout(pushDirtyDebounced, 15000); return; }
-        if (remote) {
-            const merged = Object.assign({}, remote);
-            dirtyIds.forEach(id => { if (ROWS[id]) merged[id] = ROWS[id]; else delete merged[id]; });
-            ROWS = merged;
+        if (pushing) { pushAgain = true; return; }
+        pushing = true;
+        clearTimeout(retryTimer);
+        let wait = 0;
+        try {
+            if (!DIRTY.size) return;
+            const remote = await backendPullChecked(opts.backendKey);
+            // Never push without a fresh copy to merge into.
+            if (remote === undefined) { wait = 15000; return; }
+            const base = remote && typeof remote === 'object' ? remote : {};
+            const merged = Object.assign({}, base);
+            Object.keys(ROWS).forEach(id => {
+                if (base[id]) merged[id] = residentMergeRow(base[id], ROWS[id]).row;
+                else if (DIRTY.has(id)) merged[id] = ROWS[id];   // new row from here
+            });
+            Object.keys(merged).forEach(id => { ROWS[id] = merged[id]; });
             persistLocal();
+            const ok = await backendPush(opts.backendKey, merged);
+            const check = ok ? await backendPullChecked(opts.backendKey) : undefined;
+            if (check && typeof check === 'object') {
+                [...DIRTY].forEach(id => { if (residentRowCovered(check[id], ROWS[id])) DIRTY.delete(id); });
+            }
+            if (DIRTY.size) wait = 15000;   // not confirmed yet: try again shortly
+            persistLocal();
+            // Don't redraw while someone is typing in this table.
+            const tbody = document.getElementById(opts.tbodyId);
+            if (!tbody || !tbody.contains(document.activeElement)) render();
+        } finally {
+            pushing = false;
+            if (pushAgain) { pushAgain = false; retryTimer = setTimeout(pushDirty, 400); }
+            else if (wait) retryTimer = setTimeout(pushDirty, wait);
         }
-        const ok = await backendPush(opts.backendKey, ROWS);
-        if (ok) dirtyIds.forEach(id => DIRTY.delete(id));
-        // A full render() replaces the whole tbody's innerHTML, which
-        // destroys and recreates every row's DOM node — including
-        // whatever the user is actively typing in or has a dropdown
-        // open on right now, even if THAT row's own data didn't
-        // change. This debounced push fires on a timer independent of
-        // what the user is doing at that moment, so re-rendering
-        // unconditionally here was stealing focus / closing an open
-        // <select> mid-edit. Skip the visual refresh entirely while
-        // any field in this table has focus — the data is already
-        // safely merged into ROWS regardless, and it'll show up on
-        // the next render once the user blurs away.
-        const tbody = document.getElementById(opts.tbodyId);
-        if (!tbody || !tbody.contains(document.activeElement)) render();
     }
     const pushDirtyDebounced = debounce(pushDirty, 900);
 
@@ -10175,19 +10195,47 @@ function createMMRLeaseTableController(opts) {
         const remote = await backendPullChecked(opts.backendKey);
         if (remote === undefined) return;   // failed pull: change nothing, push nothing
         if (remote) {
-            const focusedRow = document.activeElement ? document.activeElement.closest('tr[data-row]') : null;
-            const focusedId = focusedRow ? focusedRow.getAttribute('data-row') : null;
+            let changed = false;
             Object.keys(remote).forEach(id => {
-                if (id === focusedId || DIRTY.has(id)) return;
-                ROWS[id] = remote[id];
+                const r = remote[id];
+                if (!r || typeof r !== 'object') return;
+                if (!ROWS[id]) { ROWS[id] = r; changed = true; return; }
+                const m = residentMergeRow(r, ROWS[id]);
+                if (m.mineNewer) DIRTY.add(id);   // this browser holds a newer edit: (re)send it
+                if (residentStableJson(m.row) !== residentStableJson(ROWS[id])) { ROWS[id] = m.row; changed = true; }
             });
+            if (fillComputedAll()) changed = true;
             persistLocal();
             const tbody = document.getElementById(opts.tbodyId);
-            if (!tbody || !tbody.contains(document.activeElement)) render();
+            if (changed && (!tbody || !tbody.contains(document.activeElement))) render();
             if (DIRTY.size) pushDirtyDebounced();
         } else if (Object.keys(ROWS).length) {
-            backendPush(opts.backendKey, ROWS);   // nothing stored yet: seed it
+            Object.keys(ROWS).forEach(id => DIRTY.add(id));   // nothing stored yet: seed it
+            pushDirtyDebounced();
         }
+    }
+    // Fills computed/autofill fields on a row (in order, so one fill can
+    // feed the next). Returns true if anything changed.
+    function applyComputed(id) {
+        const row = ROWS[id];
+        if (!row || row.deleted) return false;
+        let changed = false;
+        (opts.computedFields || []).forEach(cf => {
+            if (cf.onlyIfEmpty && row[cf.key]) return;
+            const val = cf.calc(row);
+            if (val !== undefined && val !== null && val !== '' && val !== row[cf.key]) {
+                row[cf.key] = val;
+                stamp(row, cf.key);
+                changed = true;
+            }
+        });
+        if (changed) DIRTY.add(id);
+        return changed;
+    }
+    function fillComputedAll() {
+        let any = false;
+        Object.keys(ROWS).forEach(id => { if (applyComputed(id)) any = true; });
+        return any;
     }
 
     function computeNextEmptyKey(row) {
@@ -10249,19 +10297,11 @@ function createMMRLeaseTableController(opts) {
         // onlyIfEmpty fields (e.g. Bonus, looked up from the roster) fill
         // in once and then respect a manual override; without that flag
         // (e.g. Lease Expiration) they always stay in sync with their inputs.
-        let computedChanged = false;
-        (opts.computedFields || []).forEach(cf => {
-            if (cf.onlyIfEmpty && row[cf.key]) return;
-            const val = cf.calc(row);
-            if (val !== undefined && val !== row[cf.key]) {
-                row[cf.key] = val;
-                computedChanged = true;
+        if (applyComputed(id)) {
+            (opts.computedFields || []).forEach(cf => {
                 const input = tr.querySelector(`[data-field="${cf.key}"]`);
-                if (input) input.value = val;
-            }
-        });
-        if (computedChanged) {
-            DIRTY.add(id);
+                if (input && document.activeElement !== input && input.value !== String(row[cf.key] || '')) input.value = row[cf.key] || '';
+            });
             persistLocal();
             pushDirtyDebounced();
         }
@@ -10284,8 +10324,9 @@ function createMMRLeaseTableController(opts) {
             // on) both happen there instead.
             el.addEventListener(isSelect ? 'change' : 'input', (e) => {
                 ROWS[id][e.target.getAttribute('data-field')] = e.target.value;
-                persistLocal();
+                stamp(ROWS[id], e.target.getAttribute('data-field'));
                 DIRTY.add(id);
+                persistLocal();
                 pushDirtyDebounced();
                 if (isSelect) refreshRow(id);
             });
@@ -10294,6 +10335,7 @@ function createMMRLeaseTableController(opts) {
         tr.querySelector('.wl-remove').addEventListener('click', () => {
             if (!confirm('Remove this entry?')) return;
             ROWS[id].deleted = true;
+            stamp(ROWS[id], 'deleted');
             DIRTY.add(id);
             pushDirtyDebounced();
             render();
@@ -10321,6 +10363,7 @@ function createMMRLeaseTableController(opts) {
         const blank = {};
         opts.fieldsConfig.forEach(f => { blank[f.key] = ''; });
         Object.assign(blank, opts.defaults || {});
+        Object.keys(blank).forEach(k => stamp(blank, k));
         ROWS[id] = blank;
         DIRTY.add(id);
         persistLocal();
@@ -10334,7 +10377,7 @@ function createMMRLeaseTableController(opts) {
             const ids = Object.keys(ROWS).filter(id => !ROWS[id].deleted);
             if (!ids.length) return;
             if (!confirm(`Remove all ${ids.length} row(s) from this table? This can't be undone.`)) return;
-            ids.forEach(id => { ROWS[id].deleted = true; DIRTY.add(id); });
+            ids.forEach(id => { ROWS[id].deleted = true; stamp(ROWS[id], 'deleted'); DIRTY.add(id); });
             pushDirtyDebounced();
             render();
         });
@@ -10364,7 +10407,9 @@ function createMMRLeaseTableController(opts) {
             ROWS = opts.seedRows();
             persistLocal();
         }
+        if (fillComputedAll()) persistLocal();
         render();
+        if (DIRTY.size) pushDirtyDebounced();   // edits left unsaved by the last visit
     }
 
     function addRowWithData(data) {
@@ -10372,14 +10417,19 @@ function createMMRLeaseTableController(opts) {
         const blank = {};
         opts.fieldsConfig.forEach(f => { blank[f.key] = ''; });
         Object.assign(blank, opts.defaults || {}, data);
+        Object.keys(blank).forEach(k => stamp(blank, k));
         ROWS[id] = blank;
         DIRTY.add(id);
+        applyComputed(id);
         persistLocal();
         render();
         pushDirtyDebounced();
         return id;
     }
-    function markDirty(id) { DIRTY.add(id); persistLocal(); pushDirtyDebounced(); }
+    function markDirty(id, fields) {
+        if (ROWS[id]) [].concat(fields || []).forEach(f => stamp(ROWS[id], f));
+        DIRTY.add(id); persistLocal(); pushDirtyDebounced();
+    }
     return { init, pullFromBackend, render, getRows: () => ROWS, addRowWithData, markDirty, refreshRow };
 }
 
@@ -10533,6 +10583,29 @@ function calcCommRenewalMoveOut(row) {
 // Looked up from the roster's per-unit commission amount (added from
 // Justin's Unit/Commission list) — fills in once and then leaves a
 // manual override alone (see onlyIfEmpty in refreshRow).
+// Move-Ins autofill from the Residents row for this unit (the one with
+// the same move-in date if set, otherwise the latest move-in): name,
+// move-in date, term, rent and agent fill in once when blank.
+function commResidentFor(row) {
+    const unit = String(row.unit || '').trim();
+    if (!unit || typeof RESIDENT_ROWS === 'undefined') return null;
+    const rows = Object.values(RESIDENT_ROWS).filter(r => r && !r.deleted && String(r.unit || '').trim() === unit);
+    if (!rows.length) return null;
+    const same = row.moveIn && rows.find(r => r.moveInDate === row.moveIn);
+    return same || rows.sort((a, b) => String(b.moveInDate || '').localeCompare(String(a.moveInDate || '')))[0];
+}
+function calcCommFromResident(field) {
+    return row => {
+        const r = commResidentFor(row);
+        if (!r) return undefined;
+        if (field === 'resident') return [r.first, r.last].filter(Boolean).join(' ') || undefined;
+        if (field === 'moveIn') return r.moveInDate || undefined;
+        if (field === 'leaseTerm') return r.leaseTerm ? String(r.leaseTerm) : undefined;
+        if (field === 'rent') return r.rate ? String(r.rate).replace(/[^0-9.]/g, '') : undefined;
+        if (field === 'agent') return r.agent || undefined;
+        return undefined;
+    };
+}
 function calcCommBonus(row) {
     const unitRec = byUnit[row.unit];
     return unitRec && unitRec.commission ? unitRec.commission : undefined;
@@ -10545,8 +10618,17 @@ const commMoveInController = createMMRLeaseTableController({
     countId: 'commMoveInCount', seedRows: seedCommMoveIns,
     defaults: { property: '01382', get deposit() { return String(defaultCharge('security')); } },
     clearBtnId: 'commMoveInClearBtn',
+    // Order matters: Residents fills Move In / Term first, then Date,
+    // Lease Expiration and Move Out follow from them, then the Bonus.
     computedFields: [
+        { key: 'resident', calc: calcCommFromResident('resident'), onlyIfEmpty: true },
+        { key: 'moveIn', calc: calcCommFromResident('moveIn'), onlyIfEmpty: true },
+        { key: 'leaseTerm', calc: calcCommFromResident('leaseTerm'), onlyIfEmpty: true },
+        { key: 'rent', calc: calcCommFromResident('rent'), onlyIfEmpty: true },
+        { key: 'agent', calc: calcCommFromResident('agent'), onlyIfEmpty: true },
+        { key: 'date', calc: row => row.moveIn || undefined, onlyIfEmpty: true },
         { key: 'leaseExpiration', calc: calcCommLeaseExpiration },
+        { key: 'moveOut', calc: calcCommLeaseExpiration },
         { key: 'bonus', calc: calcCommBonus, onlyIfEmpty: true }
     ]
 });
@@ -10830,7 +10912,7 @@ function pcardGlCell(id, row) {
         if (m.clear && m.best) {
             // Clear winner: fill it in (saved like a typed code, flagged as automatic).
             row.gl = m.best.code; row.glAuto = true;
-            setTimeout(() => pcardController.markDirty(id), 0);
+            setTimeout(() => pcardController.markDirty(id, ['gl', 'glAuto']), 0);
         } else {
             const opts = m.candidates.length ? m.candidates : PCARD_COA.accounts.filter(a => !a.skip);
             return `<td class="pcard-gl-alert">${PCARD_ALERT_ICON}<select class="pcard-gl-select" data-gl-row="${escapeAttr(id)}" aria-label="Choose a GL code">
@@ -10853,7 +10935,7 @@ function pcardGlRefreshCell(id, row, tr) {
     const tmp = document.createElement('tbody');
     tmp.innerHTML = `<tr>${pcardGlCell(id, row)}</tr>`;
     td.replaceWith(tmp.querySelector('td'));
-    if (!row.gl) pcardController.markDirty(id);
+    if (!row.gl) pcardController.markDirty(id, ['gl', 'glAuto']);
 }
 document.getElementById('pcardBody').addEventListener('change', e => {
     const sel = e.target.closest('select.pcard-gl-select');
@@ -10874,7 +10956,7 @@ document.getElementById('pcardBody').addEventListener('change', e => {
     if (!sel.value) return;
     row.gl = sel.value; row.glAuto = false;
     pcardGlLearn(row.to, row.gl, row.for);
-    pcardController.markDirty(id);
+    pcardController.markDirty(id, ['gl', 'glAuto']);
     const td = sel.closest('td');
     const tmp = document.createElement('tbody');
     tmp.innerHTML = `<tr>${pcardGlCell(id, row)}</tr>`;
@@ -10888,7 +10970,7 @@ document.getElementById('pcardBody').addEventListener('input', e => {
     if (!row) return;
     row.gl = inp.value; row.glAuto = false;
     inp.closest('td').classList.remove('pcard-gl-auto');
-    pcardController.markDirty(inp.getAttribute('data-gl-row'));
+    pcardController.markDirty(inp.getAttribute('data-gl-row'), ['gl', 'glAuto']);
 });
 document.getElementById('pcardBody').addEventListener('focusout', e => {
     const inp = e.target.closest('input.pcard-gl-input');
@@ -13581,7 +13663,7 @@ function renderCommSuggested() {
             } else {
                 commMoveInController.addRowWithData({
                     property: '01382', unit: r.unit, resident: `${r.first} ${r.last}`,
-                    status: 'Move-In', rent, deposit: String(defaultCharge('security')), moveIn: r.moveInDate, leaseTerm: String(r.leaseTerm || ''), agent: r.agent || ''
+                    status: 'Move-In', rent, deposit: String(defaultCharge('security')), moveIn: r.moveInDate, date: r.moveInDate, leaseTerm: String(r.leaseTerm || ''), agent: r.agent || ''
                 });
             }
             renderCommSuggested();
@@ -16772,11 +16854,284 @@ function qaProspectsByName(q) {
 }
 
 /* ---------- Answering ---------- */
+/* ---------- Questions: analytics over the app's data ----------
+   Reads a question as  [calculation] of [what] [per group] [time range]
+   [filters]  - e.g. "Average number of move-ins per month over the last
+   year" = average count of move-ins, grouped by month, over the last 12
+   complete months. Answers say exactly how the question was read and
+   what was counted. Returns null when the question isn't this kind. */
+const QA_MONTH_NAMES = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+function qaDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+function qaMonthStart(y, m) { return new Date(y, m, 1); }
+function qaMonthEnd(y, m) { return new Date(y, m + 1, 0); }
+function qaMonthLabel(d) { return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }); }
+function qaFmt(d) { return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`; }
+function qaYmd(s) { const m = String(s || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return new Date(+m[1], +m[2] - 1, +m[3]); const m2 = String(s || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/); if (m2) return new Date(+m2[3] < 100 ? 2000 + +m2[3] : +m2[3], +m2[1] - 1, +m2[2]); return null; }
+function qaNum(v) { const x = parseFloat(String(v == null ? '' : v).replace(/[$,]/g, '')); return isNaN(x) ? null : x; }
+
+// Time range in the question -> { from, to, label, wholeMonths } or null.
+function qaParseRange(n, wantMonths) {
+    const t = qaDay(new Date());
+    const y = t.getFullYear(), mo = t.getMonth();
+    const unitMs = { day: 864e5, week: 7 * 864e5 };
+    let m;
+    const monthIdx = w => QA_MONTH_NAMES.findIndex(x => x === w || x.slice(0, 3) === w.slice(0, 3));
+    // between / from X to Y (month names or m/d/yyyy)
+    m = n.match(/\b(?:between|from)\s+([a-z]+\.?\s*\d{0,4}|\d{1,2}\/\d{1,2}\/\d{2,4})\s+(?:and|to|through|-)\s+([a-z]+\.?\s*\d{0,4}|\d{1,2}\/\d{1,2}\/\d{2,4})/);
+    if (m) {
+        const part = (s, end) => {
+            const dd = qaYmd(s.trim()); if (dd) return dd;
+            const mm = s.trim().match(/^([a-z]+)\.?\s*(\d{4})?$/); if (!mm) return null;
+            const i = monthIdx(mm[1]); if (i < 0) return null;
+            const yy = mm[2] ? +mm[2] : y;
+            return end ? qaMonthEnd(yy, i) : qaMonthStart(yy, i);
+        };
+        const a = part(m[1], false), b = part(m[2], true);
+        if (a && b && a <= b) return { from: a, to: b, label: `${qaFmt(a)}–${qaFmt(b)}`, wholeMonths: true };
+    }
+    // last / past / previous / next N days|weeks|months|years
+    m = n.match(/\b(last|past|previous|prior|next|coming|upcoming)\s+(\d+|two|three|four|five|six|twelve)\s+(day|week|month|year)s?\b/);
+    if (m) {
+        const words = { two: 2, three: 3, four: 4, five: 5, six: 6, twelve: 12 };
+        const k = words[m[2]] || +m[2], unit = m[3], future = /next|coming|upcoming/.test(m[1]);
+        if (unit === 'month' || unit === 'year') {
+            const months = unit === 'year' ? 12 * k : k;
+            if (future) return { from: qaMonthStart(y, mo + 1), to: qaMonthEnd(y, mo + months), label: `the next ${months} months`, wholeMonths: true };
+            return { from: qaMonthStart(y, mo - months), to: qaMonthEnd(y, mo - 1), label: `the last ${months} complete months`, wholeMonths: true };
+        }
+        const span = k * unitMs[unit];
+        return future ? { from: t, to: new Date(t.getTime() + span), label: `the next ${k} ${unit}${k === 1 ? '' : 's'}` }
+            : { from: new Date(t.getTime() - span), to: t, label: `the last ${k} ${unit}${k === 1 ? '' : 's'}` };
+    }
+    if (/\b(the (last|past) (year|12 months)|past year|over the year|trailing (year|12 months)|last 12 months|previous 12 months|prior year)\b/.test(n))
+        return { from: qaMonthStart(y, mo - 12), to: qaMonthEnd(y, mo - 1), label: 'the last 12 complete months', wholeMonths: true };
+    if (/\blast year\b/.test(n)) return { from: new Date(y - 1, 0, 1), to: new Date(y - 1, 11, 31), label: String(y - 1), wholeMonths: true };
+    if (/\bnext year\b/.test(n)) return { from: new Date(y + 1, 0, 1), to: new Date(y + 1, 11, 31), label: String(y + 1), wholeMonths: true };
+    if (/\b(this year|year to date|ytd|so far this year)\b/.test(n))
+        return /\b(ytd|year to date|so far)\b/.test(n) ? { from: new Date(y, 0, 1), to: t, label: `${y} to date` } : { from: new Date(y, 0, 1), to: new Date(y, 11, 31), label: String(y), wholeMonths: true };
+    m = n.match(/\b(q[1-4])\s*(\d{4})?\b/) || (/\b(this|last|next) quarter\b/.test(n) ? [null, null] : null);
+    if (m) {
+        let q, yy = m[2] ? +m[2] : y;
+        if (m[1]) q = +m[1][1] - 1;
+        else { q = Math.floor(mo / 3) + (/last quarter/.test(n) ? -1 : /next quarter/.test(n) ? 1 : 0); if (q < 0) { q += 4; yy--; } if (q > 3) { q -= 4; yy++; } }
+        return { from: qaMonthStart(yy, q * 3), to: qaMonthEnd(yy, q * 3 + 2), label: `Q${q + 1} ${yy}`, wholeMonths: true };
+    }
+    if (/\bthis month\b/.test(n)) return { from: qaMonthStart(y, mo), to: qaMonthEnd(y, mo), label: 'this month', wholeMonths: true };
+    if (/\blast month\b/.test(n)) return { from: qaMonthStart(y, mo - 1), to: qaMonthEnd(y, mo - 1), label: 'last month', wholeMonths: true };
+    if (/\bnext month\b/.test(n)) return { from: qaMonthStart(y, mo + 1), to: qaMonthEnd(y, mo + 1), label: 'next month', wholeMonths: true };
+    const wk = d => { const s = new Date(d); s.setDate(d.getDate() - d.getDay()); return s; };
+    if (/\bthis week\b/.test(n)) { const s = wk(t); return { from: s, to: new Date(s.getTime() + 6 * 864e5), label: 'this week' }; }
+    if (/\blast week\b/.test(n)) { const s = new Date(wk(t).getTime() - 7 * 864e5); return { from: s, to: new Date(s.getTime() + 6 * 864e5), label: 'last week' }; }
+    if (/\bnext week\b/.test(n)) { const s = new Date(wk(t).getTime() + 7 * 864e5); return { from: s, to: new Date(s.getTime() + 6 * 864e5), label: 'next week' }; }
+    if (/\btoday\b/.test(n)) return { from: t, to: t, label: 'today' };
+    if (/\btomorrow\b/.test(n)) { const d = new Date(t.getTime() + 864e5); return { from: d, to: d, label: 'tomorrow' }; }
+    if (/\byesterday\b/.test(n)) { const d = new Date(t.getTime() - 864e5); return { from: d, to: d, label: 'yesterday' }; }
+    m = n.match(/\bsince\s+([a-z]+)\.?\s*(\d{4})?\b/);
+    if (m && monthIdx(m[1]) >= 0) { const i = monthIdx(m[1]); const yy = m[2] ? +m[2] : (i > mo ? y - 1 : y); return { from: qaMonthStart(yy, i), to: t, label: `since ${QA_MONTH_NAMES[i][0].toUpperCase() + QA_MONTH_NAMES[i].slice(1, 3)} ${yy}` }; }
+    // a month name (optionally with a year), then a bare year
+    for (let i = 0; i < 12; i++) {
+        const re = new RegExp('\\b(' + QA_MONTH_NAMES[i] + (i === 4 ? '' : '|' + QA_MONTH_NAMES[i].slice(0, 3)) + ')\\.?\\s*(\\d{4})?\\b');
+        const mm = n.match(re);
+        if (mm && !(i === 4 && !mm[2] && !/\b(in|during|for|of) may\b/.test(n))) {
+            const yy = mm[2] ? +mm[2] : y;
+            return { from: qaMonthStart(yy, i), to: qaMonthEnd(yy, i), label: `${QA_MONTH_NAMES[i][0].toUpperCase() + QA_MONTH_NAMES[i].slice(1)} ${yy}`, wholeMonths: true };
+        }
+    }
+    m = n.match(/\b(?:in|during|for|of)\s+(20\d\d)\b/) || n.match(/\b(20\d\d)\b/);
+    if (m) return { from: new Date(+m[1], 0, 1), to: new Date(+m[1], 11, 31), label: m[1], wholeMonths: true };
+    return null;
+}
+
+// What is being counted / measured: events with a date.
+const QA_EVENTS = [
+    { id: 'movein', re: /\bmovein|\bnew (leases?|residents?)\b|\bmoved in\b/, label: 'move-ins', source: 'Residents (Move-In date)' },
+    { id: 'moveout', re: /\bmoveout|\bmoved out\b|\bmoving out\b/, label: 'move-outs', source: 'Residents (Move-Out date)' },
+    { id: 'application', re: /\bapplication|\bapplied\b|\bapplicants?\b|\bapps\b/, label: 'applications', source: 'Residents (Date Applied)' },
+    { id: 'renewal', re: /\brenew/, label: 'renewals', source: 'Renewals tab (marked Renewed, by lease end)' },
+    { id: 'notice', re: /\bnotices?\b|\bgave notice\b/, label: 'notices', source: 'Renewals tab (marked Notice, by lease end)' },
+    { id: 'expiring', re: /\bexpir|\blease(s)? end|\bleases? ending\b|\bending leases?\b/, label: 'lease expirations', source: 'lease expiration report' },
+    { id: 'prospect', re: /\bprospects?\b|\bleads?\b|\bwaitlist\b/, label: 'prospects', source: 'Waitlist (desired Move-In date)' },
+    { id: 'available', re: /\bavailab|\bvacan/, label: 'available units', source: 'pricing sheet (available date)' }
+];
+function qaEventItems(id) {
+    const live = Object.keys(RESIDENT_ROWS).map(k => RESIDENT_ROWS[k]).filter(r => r && !r.deleted);
+    const unitOf = u => byUnit[String(u || '').trim()] || null;
+    const resItem = (r, date) => ({ date, unit: unitOf(r.unit), agent: String(r.agent || '').trim(), rent: qaNum(r.rate), term: qaNum(r.leaseTerm), promo: qaNum(r.promo), name: [r.first, r.last].filter(Boolean).join(' '), unitNo: r.unit });
+    if (id === 'movein') return live.map(r => resItem(r, qaYmd(r.moveInDate))).filter(x => x.date);
+    if (id === 'moveout') return live.map(r => resItem(r, computeResidentDerived(r).moveOut)).filter(x => x.date);
+    if (id === 'application') return live.map(r => resItem(r, qaYmd(r.dateApplied))).filter(x => x.date);
+    if (id === 'renewal' || id === 'notice') return RENEWAL_UNITS.filter(u => u.expiration && (RENEWAL_STATE[u.unit] || {})[id === 'renewal' ? 'renewed' : 'notice'])
+        .map(u => ({ date: qaDay(u.expiration), unit: unitOf(u.unit), unitNo: u.unit }));
+    if (id === 'expiring') return EXPIRING_UNITS.map(e => ({ date: qaDay(e.leaseTo), unit: unitOf(e.unit), unitNo: e.unit }));
+    if (id === 'prospect') return Object.values(WAITLIST_ROWS).filter(r => r && !r.deleted && r.prospect).map(r => ({ date: qaYmd(r.moveIn), agent: String(r.agent || '').trim(), name: r.prospect, beds: r.beds }));
+    if (id === 'available') return Object.keys(PRICING_SUMMARY).map(u => ({ date: new Date(PRICING_SUMMARY[u].availableSortKey), unit: unitOf(u), unitNo: u, rent: qaNum(PRICING_SUMMARY[u].bestPrice) })).filter(x => !isNaN(x.date));
+    return [];
+}
+const QA_METRICS = [
+    { id: 'rent', re: /\b(rent|rate|price|pricing)s?\b/, label: 'rent', get: x => x.rent, money: true },
+    { id: 'term', re: /\b(lease )?(term|length)s?\b/, label: 'lease term', get: x => x.term, unit: 'months' },
+    { id: 'promo', re: /\b(promo|concession)s?\b/, label: 'promo/concession', get: x => x.promo, money: true },
+    { id: 'sqft', re: /\bsqft\b/, label: 'square footage', get: x => x.unit ? qaNum(x.unit.sqft) : null, unit: 'sq ft' }
+];
+const QA_GROUPS = [
+    { id: 'month', re: /\b(per|each|every|by|a) month\b|\bmonthly\b|\bmonth by month\b|\bper calendar month\b/, label: 'month' },
+    { id: 'week', re: /\b(per|each|every|by|a) week\b|\bweekly\b/, label: 'week' },
+    { id: 'quarter', re: /\b(per|each|by|a) quarter\b|\bquarterly\b/, label: 'quarter' },
+    { id: 'year', re: /\b(per|each|by|a) year\b|\byearly\b|\bannually\b|\bannual\b/, label: 'year' },
+    { id: 'agent', re: /\b(per|each|by|for each) agent\b|\bagents?\b.*\b(most|least|top|leaderboard|breakdown)\b|\b(most|least)\b.*\bagents?\b/, label: 'agent' },
+    { id: 'floorplan', re: /\b(per|each|by) floor ?plan\b/, label: 'floorplan' },
+    { id: 'beds', re: /\b(per|each|by) (bed|bedroom|unit type|type)\b/, label: 'bed type' },
+    { id: 'building', re: /\b(per|each|by) (building|bldg)\b/, label: 'building' }
+];
+function qaGroupKey(g, x) {
+    const d = x.date;
+    if (g === 'month') return [new Date(d.getFullYear(), d.getMonth(), 1).getTime(), qaMonthLabel(d), qaMonthEnd(d.getFullYear(), d.getMonth())];
+    if (g === 'week') { const s = qaDay(d); s.setDate(s.getDate() - s.getDay()); return [s.getTime(), 'Week of ' + qaFmt(s), new Date(s.getTime() + 6 * 864e5)]; }
+    if (g === 'quarter') { const q = Math.floor(d.getMonth() / 3); return [d.getFullYear() * 10 + q, `Q${q + 1} ${d.getFullYear()}`, qaMonthEnd(d.getFullYear(), q * 3 + 2)]; }
+    if (g === 'year') return [d.getFullYear(), String(d.getFullYear()), new Date(d.getFullYear(), 11, 31)];
+    if (g === 'agent') return [x.agent || '(none)', x.agent || '(no agent)'];
+    if (g === 'floorplan') return [x.unit ? x.unit.floorplan : '?', x.unit ? x.unit.floorplan : '(unknown)'];
+    if (g === 'beds') { const k = x.unit ? (qaUnitKind(x.unit) || '?') : (x.beds ? x.beds + ' bed' : '?'); return [k, k]; }
+    if (g === 'building') { const b = x.unit ? String(x.unit.bldg) : '?'; return [b, b]; }
+    return ['all', 'All'];
+}
+// Every period in the range (so months with none show as 0).
+function qaPeriods(g, from, to) {
+    const out = [];
+    if (g === 'month') for (let d = new Date(from.getFullYear(), from.getMonth(), 1); d <= to; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) out.push(qaGroupKey('month', { date: d }));
+    else if (g === 'quarter') for (let d = new Date(from.getFullYear(), Math.floor(from.getMonth() / 3) * 3, 1); d <= to; d = new Date(d.getFullYear(), d.getMonth() + 3, 1)) out.push(qaGroupKey('quarter', { date: d }));
+    else if (g === 'year') for (let yy = from.getFullYear(); yy <= to.getFullYear(); yy++) out.push(qaGroupKey('year', { date: new Date(yy, 0, 1) }));
+    else if (g === 'week') { const s = qaDay(from); s.setDate(s.getDate() - s.getDay()); for (let d = s; d <= to; d = new Date(d.getTime() + 7 * 864e5)) out.push(qaGroupKey('week', { date: d })); }
+    return out;
+}
+function qaMoney(v) { return '$' + Math.round(v).toLocaleString('en-US'); }
+
+function qaAnalytics(q) {
+    const n = qaNormalize(q);
+    if (/\bhow (do|to|can|would|should) (i|we|you)\b/.test(n)) return null;
+    let agg = null;
+    if (/\b(average|avg|mean|typical)\b/.test(n)) agg = 'avg';
+    else if (/\b(total|sum)\b/.test(n) && !/\btotal (number|count)\b/.test(n)) agg = 'sum';
+    else if (/\b(most|highest|max|maximum|busiest|top|peak|largest|biggest)\b/.test(n)) agg = 'max';
+    else if (/\b(least|lowest|min|minimum|fewest|slowest|smallest)\b/.test(n)) agg = 'min';
+    else if (/\bhow many\b|\bnumber of\b|\bcount\b|\btotal (number|count)\b|\bhow much\b/.test(n)) agg = 'count';
+    const event = QA_EVENTS.find(e => e.re.test(n));
+    const metric = QA_METRICS.find(m => m.re.test(n));
+    let group = QA_GROUPS.find(g => g.re.test(n));
+    if (!group) {
+        // "Which month / What week / Which agent had the most..."
+        const im = n.match(/\b(which|what|whose|the) (month|week|quarter|year|agent|floor ?plan|building)\b|\b(month|week|quarter|agent)s? (had|with|has)\b/);
+        if (im) { const w = (im[2] || im[3]).replace(' ', ''); group = QA_GROUPS.find(g => g.id === w); }
+    }
+    const range = qaParseRange(n);
+    // Only answer here when the question is clearly a calculation over dated events.
+    if (!event || (!agg && !group && !(range && /\bhow many|\bnumber\b|\bcount\b/.test(n)))) return null;
+    if (event.id === 'available' && !group && agg !== 'avg' && !range) return null;   // plain availability questions go to the availability answer
+    if (!agg) agg = 'count';
+    const countMode = !metric || /\b(number|count|how many)\b/.test(n);
+    const groupId = group ? group.id : null;
+    const t = qaDay(new Date());
+    // Default range when none is given.
+    let r = range;
+    if (!r) {
+        if (groupId === 'month' || groupId === 'quarter' || groupId === 'week' || agg === 'avg' && countMode) r = { from: qaMonthStart(t.getFullYear(), t.getMonth() - 12), to: qaMonthEnd(t.getFullYear(), t.getMonth() - 1), label: 'the last 12 complete months (no range given)', wholeMonths: true };
+        else r = null;   // all dates
+    }
+    // Filters: beds / floorplan / building / floor / agent name.
+    const f = qaUnitFilters(q);
+    const agents = [...new Set(Object.values(RESIDENT_ROWS).map(x => String((x && x.agent) || '').trim()).filter(a => a.length >= 3))];
+    const agentHit = agents.find(a => new RegExp('\\b' + a.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, '') + '\\b').test(n) && a.split(/\s+/)[0].length >= 3);
+    let items = qaEventItems(event.id);
+    const totalAll = items.length;
+    if (r) items = items.filter(x => x.date >= r.from && x.date <= r.to);
+    items = items.filter(x => {
+        if ((f.kind || f.floor || f.bldg || f.mv || f.corner) && (!x.unit || !qaUnitMatches(x.unit, f))) return false;
+        if (agentHit && x.agent !== agentHit) return false;
+        return true;
+    });
+    const filterBits = [qaFilterLabel(f), agentHit ? 'agent ' + agentHit : ''].filter(Boolean).join(', ');
+    const what = `${event.label}${filterBits ? ' (' + filterBits + ')' : ''}`;
+    const rangeTxt = r ? `${r.label}${/\d/.test(r.label) ? '' : ` (${qaFmt(r.from)}–${qaFmt(r.to)})`}` : 'all dates on file';
+    // "in 2026" / "in October 2026" but "last month", "this week", "the last 12 months"
+    const inRange = r && !/^(the |this |last |next |today|tomorrow|yesterday|since )/.test(r.label) ? 'in ' + rangeTxt : rangeTxt;
+    const val = metric ? (x => metric.get(x)) : null;
+    const fmtVal = v => metric && metric.money ? qaMoney(v) : metric && metric.unit ? `${Math.round(v * 10) / 10} ${metric.unit}` : (Math.round(v * 10) / 10).toLocaleString('en-US');
+    // Group the items.
+    const groups = new Map();
+    if (groupId) {
+        qaPeriods(groupId, r ? r.from : (items.length ? new Date(Math.min(...items.map(x => x.date))) : t), r ? r.to : (items.length ? new Date(Math.max(...items.map(x => x.date))) : t))
+            .forEach(([k, label, end]) => groups.set(k, { label, items: [], end }));
+        items.forEach(x => { const [k, label, end] = qaGroupKey(groupId, x); if (!groups.has(k)) groups.set(k, { label, items: [], end }); groups.get(k).items.push(x); });
+    }
+    const rows = [...groups.entries()].sort((a, b) => (typeof a[0] === 'number' && typeof b[0] === 'number') ? a[0] - b[0] : String(a[1].label).localeCompare(String(b[1].label)))
+        .map(([, g]) => {
+            const vals = val ? g.items.map(val).filter(v => v != null) : [];
+            return { label: g.label, end: g.end || new Date(0), count: g.items.length, avg: vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null, sum: vals.reduce((s, v) => s + v, 0) };
+        });
+    // Data coverage: earliest record on file for this kind of event.
+    const allDates = qaEventItems(event.id).map(x => x.date).filter(Boolean);
+    const earliest = allDates.length ? new Date(Math.min(...allDates)) : null;
+    const coverage = r && earliest && earliest > r.from ? `<p class="qa-muted">Note: the earliest ${escapeHtml(event.label.replace(/s$/, ''))} on file is ${qaFmt(earliest)}, so periods before that count as 0 — the app only knows what’s been entered.</p>` : '';
+    let head = '';
+    const per = groupId || 'period';
+    if (agg === 'avg' && countMode && groupId) {
+        // Calendar periods that haven't finished yet are left out of the
+        // average (they'd pull it down) and called out instead.
+        const timeGroup = ['month', 'week', 'quarter', 'year'].includes(groupId);
+        const done = timeGroup ? rows.filter(x => x.end < t) : rows;
+        const open = timeGroup ? rows.filter(x => x.end >= t) : [];
+        const base = done.length ? done : rows;
+        const total = base.reduce((sum, x) => sum + x.count, 0);
+        const avg = base.length ? total / base.length : 0;
+        const withData = base.filter(x => x.count);
+        head = `<p>On average <b>${(Math.round(avg * 10) / 10).toLocaleString('en-US')} ${escapeHtml(event.label)} per ${per}</b> over ${escapeHtml(rangeTxt)} \u2014 ${total} in total across ${base.length} ${done.length && open.length ? 'completed ' : ''}${per}${base.length === 1 ? '' : 's'}.</p>`
+            + (done.length && open.length ? `<p class="qa-muted">Left out of the average because ${open.length === 1 ? 'it isn\u2019t' : 'they aren\u2019t'} over yet: ${open.map(x => `${escapeHtml(x.label)} (${x.count} so far)`).join(', ')}.</p>` : '')
+            + (withData.length && withData.length < base.length ? `<p class="qa-muted">Counting only the ${withData.length} ${per}${withData.length === 1 ? '' : 's'} that have any: ${(Math.round(total / withData.length * 10) / 10)} per ${per}.</p>` : '');
+    } else if (agg === 'avg' && metric) {
+        const vals = items.map(val).filter(v => v != null);
+        if (!vals.length) return { html: `<p>No ${escapeHtml(metric.label)} values on file for ${escapeHtml(what)} ${escapeHtml(inRange)}.</p>`, source: event.source };
+        head = `<p>Average ${escapeHtml(metric.label)} for ${escapeHtml(what)} ${escapeHtml(inRange)}: <b>${fmtVal(vals.reduce((s, v) => s + v, 0) / vals.length)}</b> (from ${vals.length} with a ${escapeHtml(metric.label)} entered${vals.length < items.length ? ` of ${items.length}` : ''}).</p>`;
+    } else if (agg === 'avg') {
+        // "average move-ins" with no grouping: per month by default
+        return qaAnalytics(q + ' per month');
+    } else if (agg === 'sum' && metric) {
+        const vals = items.map(val).filter(v => v != null);
+        head = `<p>Total ${escapeHtml(metric.label)} for ${escapeHtml(what)} ${escapeHtml(inRange)}: <b>${fmtVal(vals.reduce((s, v) => s + v, 0))}</b> (${vals.length} with a value).</p>`;
+    } else if ((agg === 'max' || agg === 'min') && groupId) {
+        const key = metric && !countMode ? 'avg' : 'count';
+        const pool = rows.filter(x => key === 'count' || x.avg != null);
+        if (!pool.length) return { html: `<p>No ${escapeHtml(what)} found ${escapeHtml(inRange)}.</p>`, source: event.source };
+        const best = pool.reduce((a, b) => (agg === 'max' ? b[key] > a[key] : b[key] < a[key]) ? b : a);
+        const ties = pool.filter(x => x[key] === best[key]).map(x => x.label);
+        head = `<p><b>${escapeHtml(ties.join(', '))}</b> had the ${agg === 'max' ? 'most' : 'fewest'} ${escapeHtml(key === 'count' ? event.label : 'average ' + metric.label)}: ${key === 'count' ? best.count : fmtVal(best.avg)} (${escapeHtml(rangeTxt)}).</p>`;
+    } else if ((agg === 'max' || agg === 'min') && metric) {
+        const pool = items.filter(x => val(x) != null);
+        if (!pool.length) return { html: `<p>No ${escapeHtml(metric.label)} values on file for ${escapeHtml(what)}.</p>`, source: event.source };
+        const best = pool.reduce((a, b) => (agg === 'max' ? val(b) > val(a) : val(b) < val(a)) ? b : a);
+        head = `<p>${agg === 'max' ? 'Highest' : 'Lowest'} ${escapeHtml(metric.label)} among ${escapeHtml(what)} ${escapeHtml(inRange)}: <b>${fmtVal(val(best))}</b>${best.unitNo ? ' — unit ' + escapeHtml(best.unitNo) : ''}${best.date ? ' (' + qaFmt(best.date) + ')' : ''}.</p>`;
+    } else {
+        head = `<p><b>${items.length.toLocaleString('en-US')}</b> ${escapeHtml(what)} ${escapeHtml(inRange)}.</p>`;
+    }
+    let table = '';
+    if (groupId && rows.length) {
+        const showAvg = metric && !countMode;
+        const maxCount = Math.max(1, ...rows.map(x => x.count));
+        table = `<table class="qa-table"><thead><tr><th>${escapeHtml(group.label[0].toUpperCase() + group.label.slice(1))}</th><th>${escapeHtml(event.label[0].toUpperCase() + event.label.slice(1))}</th>${showAvg ? `<th>Avg ${escapeHtml(metric.label)}</th>` : ''}</tr></thead><tbody>`
+            + rows.map(x => `<tr><td>${escapeHtml(x.label)}</td><td><span class="qa-bar" style="width:${Math.round(x.count / maxCount * 60)}px"></span>${x.count}</td>${showAvg ? `<td>${x.avg != null ? fmtVal(x.avg) : '—'}</td>` : ''}</tr>`).join('') + '</tbody></table>';
+    }
+    const how = `<p class="qa-muted">Read as: ${escapeHtml({ avg: 'average', sum: 'total', max: 'highest', min: 'lowest', count: 'count' }[agg])} of ${escapeHtml(metric && !countMode ? metric.label + ' for ' : '')}${escapeHtml(what)}${groupId ? ' per ' + escapeHtml(group.label) : ''}, ${escapeHtml(rangeTxt)}. Counted from ${escapeHtml(event.source)}${event.id === 'movein' || event.id === 'moveout' || event.id === 'application' ? ' (deleted rows excluded)' : ''}; ${totalAll} on file in all.</p>`;
+    const tab = { movein: 'residents', moveout: 'residents', application: 'residents', renewal: 'renewals', notice: 'renewals', expiring: 'expiring', prospect: 'waitlist', available: 'availability' }[event.id];
+    return { html: head + coverage + table + how, actions: tab ? [{ label: 'Open ' + qaTabLabel(tab), act: 'tab:' + tab }] : [], source: escapeHtml(event.source) };
+}
+
 function qaAnswerOne(q) {
     const n = qaNormalize(q);
     const qToks = qaTokens(q);
     const answers = [];
     const has = re => re.test(n);
+    // 0) Calculations over dated data ("average move-ins per month last year").
+    const analytic = qaAnalytics(q);
+    if (analytic) return [analytic];
     // 1) Specific unit numbers (or retail suites).
     const nums = [...new Set((n.match(/\b\d{4}\b/g) || []))];
     const unitNums = nums.filter(x => byUnit[x]);
@@ -16911,7 +17266,7 @@ function qaSaveLog() { try { sessionStorage.setItem(QA_LOG_KEY, JSON.stringify(Q
 function qaSuggestions() {
     const avail = Object.keys(PRICING_SUMMARY).sort((a, b) => PRICING_SUMMARY[a].availableSortKey - PRICING_SUMMARY[b].availableSortKey)[0];
     const unit = avail || (UNITS[0] && UNITS[0].unit) || '4334';
-    return ['What 2-beds are available now?', `Tell me about ${unit}`, 'How much is the pet deposit?', 'Who is moving in this week?', 'Which leases expire next month?', 'What does ↑ mean on Residents?', 'How do I print move-in docs?', 'How many units have a mountain view?'];
+    return ['What 2-beds are available now?', `Tell me about ${unit}`, 'How much is the pet deposit?', 'Who is moving in this week?', 'Which leases expire next month?', 'What does ↑ mean on Residents?', 'Average move-ins per month over the last year', 'Which month had the most move-ins this year?'];
 }
 function renderQaLog() {
     const log = document.getElementById('qaLog');
