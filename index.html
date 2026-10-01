@@ -10606,6 +10606,8 @@ function calcCommFromResident(field) {
         return undefined;
     };
 }
+function commIsTransfer(row) { return String(row.status || '').trim().toUpperCase() === 'TRANSFER'; }
+function commTransferOnly(calc) { return row => commIsTransfer(row) ? calc(row) : undefined; }
 function calcCommBonus(row) {
     const unitRec = byUnit[row.unit];
     return unitRec && unitRec.commission ? unitRec.commission : undefined;
@@ -10639,9 +10641,20 @@ const commRenewalController = createMMRLeaseTableController({
     countId: 'commRenewalCount', seedRows: seedCommRenewals,
     defaults: { property: '01382', get deposit() { return String(defaultCharge('security')); } },
     clearBtnId: 'commRenewalClearBtn',
+    // Transfers (Status TRANSFER — a resident moving to a new unit) are
+    // dated like a move-in: Residents fills name, Move In, Term and Rent;
+    // Lease Start = Move In, and Lease Expiration = Move Out = Move In +
+    // term - 1 day. Normal renewals keep the chain below (Lease Start =
+    // Lease Expiration + 1 day, Move Out = Lease Start + term - 1 day).
     computedFields: [
-        { key: 'leaseStart', calc: calcCommRenewalLeaseStart },
-        { key: 'moveOut', calc: calcCommRenewalMoveOut }
+        { key: 'resident', calc: commTransferOnly(calcCommFromResident('resident')), onlyIfEmpty: true },
+        { key: 'moveIn', calc: commTransferOnly(calcCommFromResident('moveIn')), onlyIfEmpty: true },
+        { key: 'leaseTerm', calc: commTransferOnly(calcCommFromResident('leaseTerm')), onlyIfEmpty: true },
+        { key: 'rent', calc: commTransferOnly(calcCommFromResident('rent')), onlyIfEmpty: true },
+        { key: 'date', calc: commTransferOnly(row => row.moveIn || undefined), onlyIfEmpty: true },
+        { key: 'leaseStart', calc: row => commIsTransfer(row) ? (row.moveIn || undefined) : calcCommRenewalLeaseStart(row) },
+        { key: 'leaseExpiration', calc: commTransferOnly(calcCommLeaseExpiration) },
+        { key: 'moveOut', calc: row => commIsTransfer(row) ? calcCommLeaseExpiration(row) : calcCommRenewalMoveOut(row) }
     ]
 });
 
@@ -13658,7 +13671,7 @@ function renderCommSuggested() {
             if (isTransfer) {
                 commRenewalController.addRowWithData({
                     property: '01382', unit: r.unit, resident: `${r.first} ${r.last}`,
-                    status: 'TRANSFER', rent, deposit: String(defaultCharge('security')), moveIn: r.moveInDate, leaseTerm: String(r.leaseTerm || '')
+                    status: 'TRANSFER', rent, deposit: String(defaultCharge('security')), moveIn: r.moveInDate, date: r.moveInDate, leaseStart: r.moveInDate, leaseTerm: String(r.leaseTerm || '')
                 });
             } else {
                 commMoveInController.addRowWithData({
