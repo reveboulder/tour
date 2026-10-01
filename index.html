@@ -10136,41 +10136,57 @@ document.getElementById('mmrExportBtn').addEventListener('click', async () => {
    ============================================================ */
 function createMMRLeaseTableController(opts) {
     // opts: { localKey, backendKey, fieldsConfig, tbodyId, addBtnId, emptyLabel }
+    // Saving works like Residents: every edit stamps the field's time
+    // (row._ts), merges keep the newest edit per field, a save only counts
+    // once the backend is read back holding it, and unsaved edits survive
+    // a page refresh (DIRTY is kept in localStorage).
     let ROWS = {};
-    const DIRTY = new Set();
+    const DIRTY_KEY = opts.localKey + '-dirty';
+    const DIRTY = new Set((() => { try { return JSON.parse(localStorage.getItem(DIRTY_KEY) || '[]'); } catch (e) { return []; } })());
 
     function newRowId() { return 'ml_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7); }
-    function persistLocal() { try { localStorage.setItem(opts.localKey, JSON.stringify(ROWS)); } catch (e) {} }
+    function persistLocal() {
+        try { localStorage.setItem(opts.localKey, JSON.stringify(ROWS)); } catch (e) {}
+        try { localStorage.setItem(DIRTY_KEY, JSON.stringify([...DIRTY])); } catch (e) {}
+    }
+    function stamp(row, field) { residentTouch(row, field); }
 
+    let pushing = false, pushAgain = false, retryTimer = null;
     async function pushDirty() {
         persistLocal();
         if (!BACKEND_URL || APP_MODE === 'test') return;
-        const dirtyIds = [...DIRTY];
-        const remote = await backendPullChecked(opts.backendKey);
-        // Never push without a fresh copy to merge into (a failed pull used
-        // to push this browser's whole table over everyone else's rows).
-        if (remote === undefined) { setTimeout(pushDirtyDebounced, 15000); return; }
-        if (remote) {
-            const merged = Object.assign({}, remote);
-            dirtyIds.forEach(id => { if (ROWS[id]) merged[id] = ROWS[id]; else delete merged[id]; });
-            ROWS = merged;
+        if (pushing) { pushAgain = true; return; }
+        pushing = true;
+        clearTimeout(retryTimer);
+        let wait = 0;
+        try {
+            if (!DIRTY.size) return;
+            const remote = await backendPullChecked(opts.backendKey);
+            // Never push without a fresh copy to merge into.
+            if (remote === undefined) { wait = 15000; return; }
+            const base = remote && typeof remote === 'object' ? remote : {};
+            const merged = Object.assign({}, base);
+            Object.keys(ROWS).forEach(id => {
+                if (base[id]) merged[id] = residentMergeRow(base[id], ROWS[id]).row;
+                else if (DIRTY.has(id)) merged[id] = ROWS[id];   // new row from here
+            });
+            Object.keys(merged).forEach(id => { ROWS[id] = merged[id]; });
             persistLocal();
+            const ok = await backendPush(opts.backendKey, merged);
+            const check = ok ? await backendPullChecked(opts.backendKey) : undefined;
+            if (check && typeof check === 'object') {
+                [...DIRTY].forEach(id => { if (residentRowCovered(check[id], ROWS[id])) DIRTY.delete(id); });
+            }
+            if (DIRTY.size) wait = 15000;   // not confirmed yet: try again shortly
+            persistLocal();
+            // Don't redraw while someone is typing in this table.
+            const tbody = document.getElementById(opts.tbodyId);
+            if (!tbody || !tbody.contains(document.activeElement)) render();
+        } finally {
+            pushing = false;
+            if (pushAgain) { pushAgain = false; retryTimer = setTimeout(pushDirty, 400); }
+            else if (wait) retryTimer = setTimeout(pushDirty, wait);
         }
-        const ok = await backendPush(opts.backendKey, ROWS);
-        if (ok) dirtyIds.forEach(id => DIRTY.delete(id));
-        // A full render() replaces the whole tbody's innerHTML, which
-        // destroys and recreates every row's DOM node — including
-        // whatever the user is actively typing in or has a dropdown
-        // open on right now, even if THAT row's own data didn't
-        // change. This debounced push fires on a timer independent of
-        // what the user is doing at that moment, so re-rendering
-        // unconditionally here was stealing focus / closing an open
-        // <select> mid-edit. Skip the visual refresh entirely while
-        // any field in this table has focus — the data is already
-        // safely merged into ROWS regardless, and it'll show up on
-        // the next render once the user blurs away.
-        const tbody = document.getElementById(opts.tbodyId);
-        if (!tbody || !tbody.contains(document.activeElement)) render();
     }
     const pushDirtyDebounced = debounce(pushDirty, 900);
 
@@ -10179,19 +10195,47 @@ function createMMRLeaseTableController(opts) {
         const remote = await backendPullChecked(opts.backendKey);
         if (remote === undefined) return;   // failed pull: change nothing, push nothing
         if (remote) {
-            const focusedRow = document.activeElement ? document.activeElement.closest('tr[data-row]') : null;
-            const focusedId = focusedRow ? focusedRow.getAttribute('data-row') : null;
+            let changed = false;
             Object.keys(remote).forEach(id => {
-                if (id === focusedId || DIRTY.has(id)) return;
-                ROWS[id] = remote[id];
+                const r = remote[id];
+                if (!r || typeof r !== 'object') return;
+                if (!ROWS[id]) { ROWS[id] = r; changed = true; return; }
+                const m = residentMergeRow(r, ROWS[id]);
+                if (m.mineNewer) DIRTY.add(id);   // this browser holds a newer edit: (re)send it
+                if (residentStableJson(m.row) !== residentStableJson(ROWS[id])) { ROWS[id] = m.row; changed = true; }
             });
+            if (fillComputedAll()) changed = true;
             persistLocal();
             const tbody = document.getElementById(opts.tbodyId);
-            if (!tbody || !tbody.contains(document.activeElement)) render();
+            if (changed && (!tbody || !tbody.contains(document.activeElement))) render();
             if (DIRTY.size) pushDirtyDebounced();
         } else if (Object.keys(ROWS).length) {
-            backendPush(opts.backendKey, ROWS);   // nothing stored yet: seed it
+            Object.keys(ROWS).forEach(id => DIRTY.add(id));   // nothing stored yet: seed it
+            pushDirtyDebounced();
         }
+    }
+    // Fills computed/autofill fields on a row (in order, so one fill can
+    // feed the next). Returns true if anything changed.
+    function applyComputed(id) {
+        const row = ROWS[id];
+        if (!row || row.deleted) return false;
+        let changed = false;
+        (opts.computedFields || []).forEach(cf => {
+            if (cf.onlyIfEmpty && row[cf.key]) return;
+            const val = cf.calc(row);
+            if (val !== undefined && val !== null && val !== '' && val !== row[cf.key]) {
+                row[cf.key] = val;
+                stamp(row, cf.key);
+                changed = true;
+            }
+        });
+        if (changed) DIRTY.add(id);
+        return changed;
+    }
+    function fillComputedAll() {
+        let any = false;
+        Object.keys(ROWS).forEach(id => { if (applyComputed(id)) any = true; });
+        return any;
     }
 
     function computeNextEmptyKey(row) {
@@ -10253,19 +10297,11 @@ function createMMRLeaseTableController(opts) {
         // onlyIfEmpty fields (e.g. Bonus, looked up from the roster) fill
         // in once and then respect a manual override; without that flag
         // (e.g. Lease Expiration) they always stay in sync with their inputs.
-        let computedChanged = false;
-        (opts.computedFields || []).forEach(cf => {
-            if (cf.onlyIfEmpty && row[cf.key]) return;
-            const val = cf.calc(row);
-            if (val !== undefined && val !== row[cf.key]) {
-                row[cf.key] = val;
-                computedChanged = true;
+        if (applyComputed(id)) {
+            (opts.computedFields || []).forEach(cf => {
                 const input = tr.querySelector(`[data-field="${cf.key}"]`);
-                if (input) input.value = val;
-            }
-        });
-        if (computedChanged) {
-            DIRTY.add(id);
+                if (input && document.activeElement !== input && input.value !== String(row[cf.key] || '')) input.value = row[cf.key] || '';
+            });
             persistLocal();
             pushDirtyDebounced();
         }
@@ -10288,8 +10324,9 @@ function createMMRLeaseTableController(opts) {
             // on) both happen there instead.
             el.addEventListener(isSelect ? 'change' : 'input', (e) => {
                 ROWS[id][e.target.getAttribute('data-field')] = e.target.value;
-                persistLocal();
+                stamp(ROWS[id], e.target.getAttribute('data-field'));
                 DIRTY.add(id);
+                persistLocal();
                 pushDirtyDebounced();
                 if (isSelect) refreshRow(id);
             });
@@ -10298,6 +10335,7 @@ function createMMRLeaseTableController(opts) {
         tr.querySelector('.wl-remove').addEventListener('click', () => {
             if (!confirm('Remove this entry?')) return;
             ROWS[id].deleted = true;
+            stamp(ROWS[id], 'deleted');
             DIRTY.add(id);
             pushDirtyDebounced();
             render();
@@ -10325,6 +10363,7 @@ function createMMRLeaseTableController(opts) {
         const blank = {};
         opts.fieldsConfig.forEach(f => { blank[f.key] = ''; });
         Object.assign(blank, opts.defaults || {});
+        Object.keys(blank).forEach(k => stamp(blank, k));
         ROWS[id] = blank;
         DIRTY.add(id);
         persistLocal();
@@ -10338,7 +10377,7 @@ function createMMRLeaseTableController(opts) {
             const ids = Object.keys(ROWS).filter(id => !ROWS[id].deleted);
             if (!ids.length) return;
             if (!confirm(`Remove all ${ids.length} row(s) from this table? This can't be undone.`)) return;
-            ids.forEach(id => { ROWS[id].deleted = true; DIRTY.add(id); });
+            ids.forEach(id => { ROWS[id].deleted = true; stamp(ROWS[id], 'deleted'); DIRTY.add(id); });
             pushDirtyDebounced();
             render();
         });
@@ -10368,7 +10407,9 @@ function createMMRLeaseTableController(opts) {
             ROWS = opts.seedRows();
             persistLocal();
         }
+        if (fillComputedAll()) persistLocal();
         render();
+        if (DIRTY.size) pushDirtyDebounced();   // edits left unsaved by the last visit
     }
 
     function addRowWithData(data) {
@@ -10376,14 +10417,19 @@ function createMMRLeaseTableController(opts) {
         const blank = {};
         opts.fieldsConfig.forEach(f => { blank[f.key] = ''; });
         Object.assign(blank, opts.defaults || {}, data);
+        Object.keys(blank).forEach(k => stamp(blank, k));
         ROWS[id] = blank;
         DIRTY.add(id);
+        applyComputed(id);
         persistLocal();
         render();
         pushDirtyDebounced();
         return id;
     }
-    function markDirty(id) { DIRTY.add(id); persistLocal(); pushDirtyDebounced(); }
+    function markDirty(id, fields) {
+        if (ROWS[id]) [].concat(fields || []).forEach(f => stamp(ROWS[id], f));
+        DIRTY.add(id); persistLocal(); pushDirtyDebounced();
+    }
     return { init, pullFromBackend, render, getRows: () => ROWS, addRowWithData, markDirty, refreshRow };
 }
 
@@ -10537,6 +10583,29 @@ function calcCommRenewalMoveOut(row) {
 // Looked up from the roster's per-unit commission amount (added from
 // Justin's Unit/Commission list) — fills in once and then leaves a
 // manual override alone (see onlyIfEmpty in refreshRow).
+// Move-Ins autofill from the Residents row for this unit (the one with
+// the same move-in date if set, otherwise the latest move-in): name,
+// move-in date, term, rent and agent fill in once when blank.
+function commResidentFor(row) {
+    const unit = String(row.unit || '').trim();
+    if (!unit || typeof RESIDENT_ROWS === 'undefined') return null;
+    const rows = Object.values(RESIDENT_ROWS).filter(r => r && !r.deleted && String(r.unit || '').trim() === unit);
+    if (!rows.length) return null;
+    const same = row.moveIn && rows.find(r => r.moveInDate === row.moveIn);
+    return same || rows.sort((a, b) => String(b.moveInDate || '').localeCompare(String(a.moveInDate || '')))[0];
+}
+function calcCommFromResident(field) {
+    return row => {
+        const r = commResidentFor(row);
+        if (!r) return undefined;
+        if (field === 'resident') return [r.first, r.last].filter(Boolean).join(' ') || undefined;
+        if (field === 'moveIn') return r.moveInDate || undefined;
+        if (field === 'leaseTerm') return r.leaseTerm ? String(r.leaseTerm) : undefined;
+        if (field === 'rent') return r.rate ? String(r.rate).replace(/[^0-9.]/g, '') : undefined;
+        if (field === 'agent') return r.agent || undefined;
+        return undefined;
+    };
+}
 function calcCommBonus(row) {
     const unitRec = byUnit[row.unit];
     return unitRec && unitRec.commission ? unitRec.commission : undefined;
@@ -10549,8 +10618,17 @@ const commMoveInController = createMMRLeaseTableController({
     countId: 'commMoveInCount', seedRows: seedCommMoveIns,
     defaults: { property: '01382', get deposit() { return String(defaultCharge('security')); } },
     clearBtnId: 'commMoveInClearBtn',
+    // Order matters: Residents fills Move In / Term first, then Date,
+    // Lease Expiration and Move Out follow from them, then the Bonus.
     computedFields: [
+        { key: 'resident', calc: calcCommFromResident('resident'), onlyIfEmpty: true },
+        { key: 'moveIn', calc: calcCommFromResident('moveIn'), onlyIfEmpty: true },
+        { key: 'leaseTerm', calc: calcCommFromResident('leaseTerm'), onlyIfEmpty: true },
+        { key: 'rent', calc: calcCommFromResident('rent'), onlyIfEmpty: true },
+        { key: 'agent', calc: calcCommFromResident('agent'), onlyIfEmpty: true },
+        { key: 'date', calc: row => row.moveIn || undefined, onlyIfEmpty: true },
         { key: 'leaseExpiration', calc: calcCommLeaseExpiration },
+        { key: 'moveOut', calc: calcCommLeaseExpiration },
         { key: 'bonus', calc: calcCommBonus, onlyIfEmpty: true }
     ]
 });
@@ -10834,7 +10912,7 @@ function pcardGlCell(id, row) {
         if (m.clear && m.best) {
             // Clear winner: fill it in (saved like a typed code, flagged as automatic).
             row.gl = m.best.code; row.glAuto = true;
-            setTimeout(() => pcardController.markDirty(id), 0);
+            setTimeout(() => pcardController.markDirty(id, ['gl', 'glAuto']), 0);
         } else {
             const opts = m.candidates.length ? m.candidates : PCARD_COA.accounts.filter(a => !a.skip);
             return `<td class="pcard-gl-alert">${PCARD_ALERT_ICON}<select class="pcard-gl-select" data-gl-row="${escapeAttr(id)}" aria-label="Choose a GL code">
@@ -10857,7 +10935,7 @@ function pcardGlRefreshCell(id, row, tr) {
     const tmp = document.createElement('tbody');
     tmp.innerHTML = `<tr>${pcardGlCell(id, row)}</tr>`;
     td.replaceWith(tmp.querySelector('td'));
-    if (!row.gl) pcardController.markDirty(id);
+    if (!row.gl) pcardController.markDirty(id, ['gl', 'glAuto']);
 }
 document.getElementById('pcardBody').addEventListener('change', e => {
     const sel = e.target.closest('select.pcard-gl-select');
@@ -10878,7 +10956,7 @@ document.getElementById('pcardBody').addEventListener('change', e => {
     if (!sel.value) return;
     row.gl = sel.value; row.glAuto = false;
     pcardGlLearn(row.to, row.gl, row.for);
-    pcardController.markDirty(id);
+    pcardController.markDirty(id, ['gl', 'glAuto']);
     const td = sel.closest('td');
     const tmp = document.createElement('tbody');
     tmp.innerHTML = `<tr>${pcardGlCell(id, row)}</tr>`;
@@ -10892,7 +10970,7 @@ document.getElementById('pcardBody').addEventListener('input', e => {
     if (!row) return;
     row.gl = inp.value; row.glAuto = false;
     inp.closest('td').classList.remove('pcard-gl-auto');
-    pcardController.markDirty(inp.getAttribute('data-gl-row'));
+    pcardController.markDirty(inp.getAttribute('data-gl-row'), ['gl', 'glAuto']);
 });
 document.getElementById('pcardBody').addEventListener('focusout', e => {
     const inp = e.target.closest('input.pcard-gl-input');
@@ -13585,7 +13663,7 @@ function renderCommSuggested() {
             } else {
                 commMoveInController.addRowWithData({
                     property: '01382', unit: r.unit, resident: `${r.first} ${r.last}`,
-                    status: 'Move-In', rent, deposit: String(defaultCharge('security')), moveIn: r.moveInDate, leaseTerm: String(r.leaseTerm || ''), agent: r.agent || ''
+                    status: 'Move-In', rent, deposit: String(defaultCharge('security')), moveIn: r.moveInDate, date: r.moveInDate, leaseTerm: String(r.leaseTerm || ''), agent: r.agent || ''
                 });
             }
             renderCommSuggested();
