@@ -9868,8 +9868,9 @@ async function exportCommissionsViaXmlSurgery() {
         throw new Error('Could not locate the Move-Ins / Renewals section titles in this file.');
     }
 
-    const moveInRows = Object.values(commMoveInController.getRows()).filter(r => !r.deleted);
-    const renewalRows = Object.values(commRenewalController.getRows()).filter(r => !r.deleted);
+    const byDate = (x, y) => commDateCompare(x.date, y.date);
+    const moveInRows = Object.values(commMoveInController.getRows()).filter(r => !r.deleted).sort(byDate);
+    const renewalRows = Object.values(commRenewalController.getRows()).filter(r => !r.deleted).sort(byDate);
     const moveInCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
     const renewalCols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
 
@@ -10182,6 +10183,14 @@ document.getElementById('mmrExportBtn').addEventListener('click', async () => {
    A generic factory since New Leases and Unit Renewals differ only in
    their field list and storage keys.
    ============================================================ */
+// Earliest date first; rows without a date go last (stable, so ties
+// keep their added order).
+function commDateCompare(a, b) {
+    const ta = mmrExcelDateFromInput(a), tb = mmrExcelDateFromInput(b);
+    const va = ta instanceof Date && !isNaN(ta) ? ta.getTime() : Infinity;
+    const vb = tb instanceof Date && !isNaN(tb) ? tb.getTime() : Infinity;
+    return va === vb ? 0 : (va < vb ? -1 : 1);
+}
 function createMMRLeaseTableController(opts) {
     // opts: { localKey, backendKey, fieldsConfig, tbodyId, addBtnId, emptyLabel }
     // Saving works like Residents: every edit stamps the field's time
@@ -10395,6 +10404,7 @@ function createMMRLeaseTableController(opts) {
         const tbody = document.getElementById(opts.tbodyId);
         if (!tbody) return;
         const ids = Object.keys(ROWS).filter(id => !ROWS[id].deleted);
+        if (opts.sortKey) ids.sort((a, b) => commDateCompare(ROWS[a][opts.sortKey], ROWS[b][opts.sortKey]));
         if (opts.countId) {
             const countEl = document.getElementById(opts.countId);
             if (countEl) countEl.textContent = `(${ids.length})`;
@@ -10669,6 +10679,7 @@ const commMoveInController = createMMRLeaseTableController({
     countId: 'commMoveInCount', seedRows: seedCommMoveIns,
     defaults: { property: '01382', get deposit() { return String(defaultCharge('security')); } },
     clearBtnId: 'commMoveInClearBtn',
+    sortKey: 'date',
     // Lease Expiration / Move Out fill themselves from Move In + Lease
     // Term, so the "fill next" highlight goes to Lease Term instead.
     nextFieldSkip: (row, key) => key === 'leaseExpiration' || key === 'moveOut',
@@ -10693,6 +10704,7 @@ const commRenewalController = createMMRLeaseTableController({
     countId: 'commRenewalCount', seedRows: seedCommRenewals,
     defaults: { property: '01382', get deposit() { return String(defaultCharge('security')); } },
     clearBtnId: 'commRenewalClearBtn',
+    sortKey: 'date',
     // Move Out and Lease Start are always calculated (and Lease
     // Expiration too for Transfers), so the "fill next" highlight skips
     // them and lands on Lease Term.
@@ -11406,9 +11418,11 @@ document.getElementById('commExportBtn').addEventListener('click', async () => {
         }
     }
     const moveInRows = commMoveInController.getRows();
-    const moveInIds = Object.keys(moveInRows).filter(id => !moveInRows[id].deleted);
+    const moveInIds = Object.keys(moveInRows).filter(id => !moveInRows[id].deleted)
+        .sort((a, b) => commDateCompare(moveInRows[a].date, moveInRows[b].date));
     const renewalRows = commRenewalController.getRows();
-    const renewalIds = Object.keys(renewalRows).filter(id => !renewalRows[id].deleted);
+    const renewalIds = Object.keys(renewalRows).filter(id => !renewalRows[id].deleted)
+        .sort((a, b) => commDateCompare(renewalRows[a].date, renewalRows[b].date));
 
     const moveInHeader = ['Property', 'Unit', 'Unit Type', 'Resident', 'Date', 'Status', 'Rent', 'Deposit', 'Move In', 'Lease\n Expiration', 'Move Out', 'Lease Term', 'Agent', 'Bonus'];
     const renewalHeader = ['Property', 'Unit', 'Unit Type', 'Resident', 'Date', 'Status', 'Rent', 'Deposit', 'Move In', 'Lease Expiration', 'Move Out', 'Lease Term', 'Lease Start'];
