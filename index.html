@@ -9861,6 +9861,9 @@ async function exportCommissionsViaXmlSurgery() {
     };
     const moveInFmt = rowFormat(lastOldMoveInRow > moveInHeaderRow ? rowXmlAt(lastOldMoveInRow) : rowXmlAt(renewalTitleRow - 1));
     const renewalFmt = rowFormat(lastOldRenewalRow > renewalHeaderRow ? rowXmlAt(lastOldRenewalRow) : null);
+    // Move Out (K) uses the Move In (I) cell format so it shows as a
+    // date like Move In does, whatever style the old K cells carried.
+    [moveInFmt, renewalFmt].forEach(f => { if (f.styles.I) f.styles.K = f.styles.I; });
 
     const newMoveInRowsXml = moveInRows.map((r, i) => xmlBuildDataRowXml(
         moveInHeaderRow + 1 + i,
@@ -9905,7 +9908,7 @@ async function exportCommissionsViaXmlSurgery() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Commissions_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = commExportFileName();
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -9914,8 +9917,14 @@ async function exportCommissionsViaXmlSurgery() {
 
 function mmrExcelDateFromInput(inputVal) {
     if (!inputVal) return null;
-    const [y, m, d] = inputVal.split('-').map(Number);
-    return new Date(y, m - 1, d);
+    const v = String(inputVal).trim();
+    let m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    // Older rows can hold "9/30/2026"-style text (e.g. Move Out from the
+    // original seed) — still export those as real dates.
+    m = v.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+    if (m) return new Date(+m[3] < 100 ? 2000 + +m[3] : +m[3], +m[1] - 1, +m[2]);
+    return v;
 }
 // Strips "$"/commas and parses a number — MTD Income/Delinquency fields
 // are free-text on the site (so agents can type "$1,200"), but the
@@ -10240,6 +10249,7 @@ function createMMRLeaseTableController(opts) {
 
     function computeNextEmptyKey(row) {
         for (const f of opts.fieldsConfig) {
+            if (opts.nextFieldSkip && opts.nextFieldSkip(row, f.key)) continue;
             if (!row[f.key]) return f.key;
         }
         return null;
@@ -10620,6 +10630,9 @@ const commMoveInController = createMMRLeaseTableController({
     countId: 'commMoveInCount', seedRows: seedCommMoveIns,
     defaults: { property: '01382', get deposit() { return String(defaultCharge('security')); } },
     clearBtnId: 'commMoveInClearBtn',
+    // Lease Expiration / Move Out fill themselves from Move In + Lease
+    // Term, so the "fill next" highlight goes to Lease Term instead.
+    nextFieldSkip: (row, key) => key === 'leaseExpiration' || key === 'moveOut',
     // Order matters: Residents fills Move In / Term first, then Date,
     // Lease Expiration and Move Out follow from them, then the Bonus.
     computedFields: [
@@ -10641,6 +10654,10 @@ const commRenewalController = createMMRLeaseTableController({
     countId: 'commRenewalCount', seedRows: seedCommRenewals,
     defaults: { property: '01382', get deposit() { return String(defaultCharge('security')); } },
     clearBtnId: 'commRenewalClearBtn',
+    // Move Out and Lease Start are always calculated (and Lease
+    // Expiration too for Transfers), so the "fill next" highlight skips
+    // them and lands on Lease Term.
+    nextFieldSkip: (row, key) => key === 'moveOut' || key === 'leaseStart' || (key === 'leaseExpiration' && commIsTransfer(row)),
     // Transfers (Status TRANSFER — a resident moving to a new unit) are
     // dated like a move-in: Residents fills name, Move In, Term and Rent;
     // Lease Start = Move In, and Lease Expiration = Move Out = Move In +
@@ -10739,10 +10756,17 @@ document.getElementById('commImportRenewalsInput').addEventListener('change', (e
 // sheet's structure, section titles, and column order exactly, but
 // comes out as plain (unstyled) data rather than with the yellow
 // header row / dark title bar from the original.
-function commExcelDate(inputVal) {
-    if (!inputVal) return null;
-    const [y, m, d] = inputVal.split('-').map(Number);
-    return new Date(y, m - 1, d);
+function commExcelDate(inputVal) { return mmrExcelDateFromInput(inputVal); }
+// Export file name: the span of the Date column across Move-Ins and
+// Renewals, e.g. "9.5.2026_9.18.2026 Commissions.xlsx" (today's date
+// on both sides when no row has a Date yet).
+function commExportFileName() {
+    const dates = [...Object.values(commMoveInController.getRows()), ...Object.values(commRenewalController.getRows())]
+        .filter(r => r && !r.deleted).map(r => mmrExcelDateFromInput(r.date))
+        .filter(d => d instanceof Date && !isNaN(d)).sort((a, b) => a - b);
+    const fmt = d => `${d.getMonth() + 1}.${d.getDate()}.${d.getFullYear()}`;
+    const first = dates[0] || new Date(), last = dates[dates.length - 1] || first;
+    return `${fmt(first)}_${fmt(last)} Commissions.xlsx`;
 }
 function commNumOrRaw(v) {
     // parseFloat alone chokes on a leading "$" (commission values are
@@ -11401,8 +11425,7 @@ document.getElementById('commExportBtn').addEventListener('click', async () => {
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Commissions');
-    const today = new Date();
-    XLSX.writeFile(wb, `Commissions_-_${today.getMonth() + 1}_${today.getDate()}_${today.getFullYear()}_-_REVE.xlsx`);
+    XLSX.writeFile(wb, commExportFileName());
 });
 
 
