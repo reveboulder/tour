@@ -12391,11 +12391,44 @@ function findResidentByUnit(unit) {
     const id = Object.keys(RESIDENT_ROWS).find(rid => !RESIDENT_ROWS[rid].deleted && RESIDENT_ROWS[rid].unit === unit);
     return id ? RESIDENT_ROWS[id] : null;
 }
+/* Welcome Letter and Lease records belong to one Residents ROW (keyed by
+   its id), so a new applicant and the current resident of the same unit
+   each get their own. Older records were keyed by unit number; the first
+   time a resident is opened, the old unit record moves to the row it was
+   showing before (the first Residents row for that unit), and any other
+   row in that unit starts fresh. Keys: a resident id, '_new' (blank
+   form), or a legacy unit number. */
+function wlKeyResident(key) {
+    if (!key || key === '_new') return null;
+    if (RESIDENT_ROWS[key] && !RESIDENT_ROWS[key].deleted) return RESIDENT_ROWS[key];
+    return RESIDENT_ROWS[key] ? null : findResidentByUnit(key);
+}
+function wlKeyUnit(key) {
+    if (!key || key === '_new') return '';
+    const r = RESIDENT_ROWS[key];
+    return r ? String(r.unit || '').trim() : key;
+}
+function wlLegacyOwnerId(unit) {
+    return Object.keys(RESIDENT_ROWS).find(rid => !RESIDENT_ROWS[rid].deleted && RESIDENT_ROWS[rid].unit === unit) || null;
+}
+// Gets (creating if needed) a resident's record in a store, adopting the
+// old unit-keyed record if this resident is the one it belonged to.
+function wlRecordForKey(store, key, makeDefault) {
+    if (store[key]) return store[key];
+    const unit = wlKeyUnit(key);
+    const legacy = unit && RESIDENT_ROWS[key] ? store[unit] : null;
+    store[key] = legacy && wlLegacyOwnerId(unit) === key ? JSON.parse(JSON.stringify(legacy)) : makeDefault();
+    return store[key];
+}
 
-function wlSelectUnit(unit) {
-    wlSelectedUnit = unit;
-    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
-    const resident = findResidentByUnit(unit);
+function wlSelectUnit(key) {
+    // Accepts a resident id (from the search list) or, for old links, a unit.
+    if (!RESIDENT_ROWS[key] && key !== '_new') { const id = wlLegacyOwnerId(key); if (id) key = id; }
+    wlSelectedUnit = key;
+    wlRecordForKey(WL_RECORDS, key, wlDefaultRecord);
+    wlPersistLocal(); wlPushDebounced();
+    const resident = wlKeyResident(key);
+    const unit = wlKeyUnit(key);
     document.getElementById('wlUnitSearch').value = resident ? `Unit ${unit} - ${resident.first} ${resident.last}` : `Unit ${unit}`;
     document.getElementById('wlUnitResults').classList.remove('open');
     document.getElementById('wlSelectedNote').textContent = resident
@@ -12412,6 +12445,14 @@ function wlEnsureFormVisible() {
     renderWlForm();
 }
 
+// Move-in date (and "moved in") in the result list, so two people in the
+// same unit are easy to tell apart.
+function wlResultMeta(r) {
+    const d = qaParseYmdSafe(r.moveInDate);
+    const bits = [d ? 'Move-in ' + (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear() : '', r.movedIn ? 'moved in' : ''].filter(Boolean);
+    return bits.length ? ` <span class="u-meta">${escapeHtml(bits.join(' \u00b7 '))}</span>` : '';
+}
+function qaParseYmdSafe(s) { const m = String(s || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
 function wlRunSearch() {
     const q = document.getElementById('wlUnitSearch').value.trim().toLowerCase();
     const box = document.getElementById('wlUnitResults');
@@ -12435,11 +12476,11 @@ function wlRunSearch() {
         // Already moved in — still selectable, just shown muted so the
         // search reads as "who's still coming" at a glance.
         const mutedClass = r.movedIn ? ' wl-result-muted' : '';
-        return `<div class="unit-result${mutedClass}" data-unit="${escapeAttr(r.unit)}"><span class="u-num">Unit ${escapeHtml(r.unit)} - ${escapeHtml(r.first)} ${escapeHtml(r.last)}</span></div>`;
+        return `<div class="unit-result${mutedClass}" data-res-id="${escapeAttr(id)}"><span class="u-num">Unit ${escapeHtml(r.unit)} - ${escapeHtml(r.first)} ${escapeHtml(r.last)}</span>${wlResultMeta(r)}</div>`;
     }).join('');
     box.classList.add('open');
-    [...box.querySelectorAll('.unit-result[data-unit]')].forEach(el => {
-        el.addEventListener('click', () => wlSelectUnit(el.getAttribute('data-unit')));
+    [...box.querySelectorAll('.unit-result[data-res-id]')].forEach(el => {
+        el.addEventListener('click', () => wlSelectUnit(el.getAttribute('data-res-id')));
     });
 }
 document.getElementById('wlUnitSearch').addEventListener('input', wlRunSearch);
@@ -12571,11 +12612,12 @@ function wlComputeTotals(r, resident) {
 }
 
 function renderWlForm() {
-    const unit = wlSelectedUnit;
-    if (!unit) return;
-    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
-    const r = WL_RECORDS[unit];
-    const resident = findResidentByUnit(unit);
+    const wlKey = wlSelectedUnit;
+    const unit = wlKeyUnit(wlKey);
+    if (!wlKey) return;
+    if (!WL_RECORDS[wlKey]) WL_RECORDS[wlKey] = wlDefaultRecord();
+    const r = WL_RECORDS[wlKey];
+    const resident = wlKeyResident(wlKey);
     const unitRec = byUnit[unit];
     const leaseEnd = resident ? residentMoveOutDate(resident) : null;
     const rentAuto = resident ? formatResidentCurrency(resident.rate) : '';
@@ -12887,11 +12929,12 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
 }
 
 async function wlDownloadPdf(btn) {
-    const unit = wlSelectedUnit;
-    if (!unit) { alert('Select a resident first.'); return; }
-    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
-    const r = WL_RECORDS[unit];
-    const resident = findResidentByUnit(unit);
+    const wlKey = wlSelectedUnit;
+    const unit = wlKeyUnit(wlKey);
+    if (!wlKey) { alert('Select a resident first.'); return; }
+    if (!WL_RECORDS[wlKey]) WL_RECORDS[wlKey] = wlDefaultRecord();
+    const r = WL_RECORDS[wlKey];
+    const resident = wlKeyResident(wlKey);
     const unitRec = byUnit[unit];
 
     const originalLabel = btn.textContent;
@@ -12983,11 +13026,12 @@ function wlStickerSplitName(name) {
     return best > 0 ? [name.slice(0, best), name.slice(best + 1)] : [name];
 }
 async function wlDownloadSticker(btn) {
-    const unit = wlSelectedUnit;
-    if (!unit || unit === '_new') { alert('Select a resident first.'); return; }
-    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
-    const resident = findResidentByUnit(unit);
-    const name = (WL_RECORDS[unit].stickerNameManual || '').trim() || wlStickerAutoName(resident);
+    const wlKey = wlSelectedUnit;
+    const unit = wlKeyUnit(wlKey);
+    if (!wlKey || wlKey === '_new') { alert('Select a resident first.'); return; }
+    if (!WL_RECORDS[wlKey]) WL_RECORDS[wlKey] = wlDefaultRecord();
+    const resident = wlKeyResident(wlKey);
+    const name = (WL_RECORDS[wlKey].stickerNameManual || '').trim() || wlStickerAutoName(resident);
     if (!name) { alert('No resident name found \u2014 type one in "Name on sticker".'); return; }
     const originalLabel = btn.textContent;
     btn.disabled = true;
@@ -13057,12 +13101,13 @@ async function wlDownloadSticker(btn) {
    (e.g. desktop Outlook) via a mailto: link, addressed and with a
    subject line — the Outlook template and attachments are added there. */
 function wlCreateEmailDraft() {
-    const unit = wlSelectedUnit;
-    if (!unit || unit === '_new') { alert('Select a resident first.'); return; }
-    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
-    const resident = findResidentByUnit(unit);
+    const wlKey = wlSelectedUnit;
+    const unit = wlKeyUnit(wlKey);
+    if (!wlKey || wlKey === '_new') { alert('Select a resident first.'); return; }
+    if (!WL_RECORDS[wlKey]) WL_RECORDS[wlKey] = wlDefaultRecord();
+    const resident = wlKeyResident(wlKey);
     const who = wlStickerAutoName(resident);
-    const entered = prompt(`Email address for ${who || 'Apt ' + unit}:\n(separate several with commas)`, WL_RECORDS[unit].residentEmail || '');
+    const entered = prompt(`Email address for ${who || 'Apt ' + unit}:\n(separate several with commas)`, WL_RECORDS[wlKey].residentEmail || '');
     if (entered === null) return; // cancelled
     const emails = entered.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
     if (!emails.length) { alert('Enter an email address.'); return; }
@@ -13127,11 +13172,14 @@ async function pullLeaseFromBackend() {
     }
 }
 
-function leaseSelectUnit(unit) {
-    leaseSelectedUnit = unit;
-    if (!LEASE_RECORDS[unit]) LEASE_RECORDS[unit] = leaseDefaultRecord();
-    if (!WL_RECORDS[unit]) WL_RECORDS[unit] = wlDefaultRecord();
-    const resident = findResidentByUnit(unit);
+function leaseSelectUnit(key) {
+    if (!RESIDENT_ROWS[key]) { const id = wlLegacyOwnerId(key); if (id) key = id; }
+    leaseSelectedUnit = key;
+    wlRecordForKey(LEASE_RECORDS, key, leaseDefaultRecord);
+    wlRecordForKey(WL_RECORDS, key, wlDefaultRecord);
+    leasePersistLocal(); leasePushDebounced(); wlPersistLocal(); wlPushDebounced();
+    const resident = wlKeyResident(key);
+    const unit = wlKeyUnit(key);
     document.getElementById('leaseUnitSearch').value = resident ? `Unit ${unit} - ${resident.first} ${resident.last}` : `Unit ${unit}`;
     document.getElementById('leaseUnitResults').classList.remove('open');
     document.getElementById('leaseSelectedNote').textContent = resident
@@ -13161,11 +13209,11 @@ function leaseRunSearch() {
     box.innerHTML = matches.map(id => {
         const r = RESIDENT_ROWS[id];
         const mutedClass = r.movedIn ? ' wl-result-muted' : '';
-        return `<div class="unit-result${mutedClass}" data-unit="${escapeAttr(r.unit)}"><span class="u-num">Unit ${escapeHtml(r.unit)} - ${escapeHtml(r.first)} ${escapeHtml(r.last)}</span></div>`;
+        return `<div class="unit-result${mutedClass}" data-res-id="${escapeAttr(id)}"><span class="u-num">Unit ${escapeHtml(r.unit)} - ${escapeHtml(r.first)} ${escapeHtml(r.last)}</span>${wlResultMeta(r)}</div>`;
     }).join('');
     box.classList.add('open');
-    [...box.querySelectorAll('.unit-result[data-unit]')].forEach(el => {
-        el.addEventListener('click', () => leaseSelectUnit(el.getAttribute('data-unit')));
+    [...box.querySelectorAll('.unit-result[data-res-id]')].forEach(el => {
+        el.addEventListener('click', () => leaseSelectUnit(el.getAttribute('data-res-id')));
     });
 }
 document.getElementById('leaseUnitSearch').addEventListener('input', leaseRunSearch);
@@ -13221,12 +13269,13 @@ function wireLeaseInputs() {
 function leaseMonthEnd(year, month1) { return new Date(year, month1, 0).getDate(); }
 
 function renderLeaseForm() {
-    const unit = leaseSelectedUnit;
-    if (!unit) return;
-    if (!LEASE_RECORDS[unit]) LEASE_RECORDS[unit] = leaseDefaultRecord();
-    const lr = LEASE_RECORDS[unit];
-    const wr = WL_RECORDS[unit] || wlDefaultRecord();
-    const resident = findResidentByUnit(unit);
+    const wlKey = leaseSelectedUnit;
+    const unit = wlKeyUnit(wlKey);
+    if (!wlKey) return;
+    if (!LEASE_RECORDS[wlKey]) LEASE_RECORDS[wlKey] = leaseDefaultRecord();
+    const lr = LEASE_RECORDS[wlKey];
+    const wr = WL_RECORDS[wlKey] || wlDefaultRecord();
+    const resident = wlKeyResident(wlKey);
     const unitRec = byUnit[unit];
     const t = wlComputeTotals(wr, resident);
     const fmt = (n) => formatResidentCurrency(n);
