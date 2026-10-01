@@ -9759,6 +9759,42 @@ function xmlRemapRows(sheetXml, mapRow, insertRows) {
 }
 // Builds a single <row> XML string for one new Commissions data row,
 // styled to match an existing row's per-column style references.
+// Makes column `colIdx` (1-based) at least `minWidth` wide in a sheet's
+// <cols>, splitting a <col min..max> range that covers it if needed.
+// Narrow date columns show as ##### in Excel.
+function xmlColWidth(xml, colIdx) {
+    const re = /<col\b[^>]*\/>/g; let m;
+    while ((m = re.exec(xml))) {
+        const min = +(m[0].match(/\bmin="(\d+)"/) || [])[1], max = +(m[0].match(/\bmax="(\d+)"/) || [])[1];
+        if (colIdx >= min && colIdx <= max) return parseFloat((m[0].match(/\bwidth="([\d.]+)"/) || [])[1]) || null;
+    }
+    return null;
+}
+function xmlEnsureColWidth(xml, colIdx, minWidth) {
+    const setAttr = (tag, k, v) => new RegExp(`\\b${k}="[^"]*"`).test(tag) ? tag.replace(new RegExp(`\\b${k}="[^"]*"`), `${k}="${v}"`) : tag.replace(/\s*\/>$/, ` ${k}="${v}"/>`);
+    const own = `<col min="${colIdx}" max="${colIdx}" width="${minWidth}" customWidth="1"/>`;
+    let found = false;
+    xml = xml.replace(/<col\b[^>]*\/>/g, tag => {
+        const min = +(tag.match(/\bmin="(\d+)"/) || [])[1], max = +(tag.match(/\bmax="(\d+)"/) || [])[1];
+        if (found || !(colIdx >= min && colIdx <= max)) return tag;
+        found = true;
+        const w = parseFloat((tag.match(/\bwidth="([\d.]+)"/) || [])[1]) || 0;
+        if (w >= minWidth) return tag;
+        const mine = setAttr(setAttr(setAttr(setAttr(tag, 'min', colIdx), 'max', colIdx), 'width', minWidth), 'customWidth', 1);
+        return (min < colIdx ? setAttr(tag, 'max', colIdx - 1) : '') + mine + (max > colIdx ? setAttr(tag, 'min', colIdx + 1) : '');
+    });
+    if (found) return xml;
+    if (/<cols>/.test(xml)) {
+        // Keep <col> entries in ascending order.
+        return xml.replace(/<cols>([\s\S]*?)<\/cols>/, (all, inner) => {
+            const cols = inner.match(/<col\b[^>]*\/>/g) || [];
+            const i = cols.findIndex(c => +(c.match(/\bmin="(\d+)"/) || [])[1] > colIdx);
+            cols.splice(i === -1 ? cols.length : i, 0, own);
+            return `<cols>${cols.join('')}</cols>`;
+        });
+    }
+    return xml.replace(/<sheetData/, `<cols>${own}</cols><sheetData`);
+}
 function xmlBuildDataRowXml(rowNum, values, colLetters, styles, htAttr) {
     let cells = '';
     colLetters.forEach((col, ci) => { cells += xmlBuildCell(col, rowNum, values[ci], styles[col]); });
@@ -9903,6 +9939,9 @@ async function exportCommissionsViaXmlSurgery() {
     const renewalTitleCell = xml.match(new RegExp(`<row r="${shiftedRenewalTitleRow}"[^>]*>(<c r="([A-Z]+)${shiftedRenewalTitleRow}"[^>]*t="s")`));
     if (renewalTitleCell) xml = xmlSetCellValue(xml, renewalTitleCell[2] + shiftedRenewalTitleRow, `RENEWALS   (${renewalRows.length})`);
 
+    // Move Out (K) at least as wide as Move In (I), so its dates don't
+    // show as ##### when the old file's K column was narrow.
+    xml = xmlEnsureColWidth(xml, 11, Math.max(xmlColWidth(xml, 9) || 0, 11.5));
     zip.file(sheetPath, xml);
     const blob = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(blob);
@@ -10757,16 +10796,15 @@ document.getElementById('commImportRenewalsInput').addEventListener('change', (e
 // comes out as plain (unstyled) data rather than with the yellow
 // header row / dark title bar from the original.
 function commExcelDate(inputVal) { return mmrExcelDateFromInput(inputVal); }
-// Export file name: the span of the Date column across Move-Ins and
-// Renewals, e.g. "9.5.2026_9.18.2026 Commissions.xlsx" (today's date
-// on both sides when no row has a Date yet).
+// Export file name: the Current pay period shown at the top of the
+// page, e.g. "9.5.2026_9.18.2026 Commissions.xlsx".
 function commExportFileName() {
-    const dates = [...Object.values(commMoveInController.getRows()), ...Object.values(commRenewalController.getRows())]
-        .filter(r => r && !r.deleted).map(r => mmrExcelDateFromInput(r.date))
-        .filter(d => d instanceof Date && !isNaN(d)).sort((a, b) => a - b);
+    const val = document.getElementById('ppCurrentStart').value;
+    if (!val) return 'Commissions.xlsx';
+    const start = new Date(val + 'T00:00:00');
+    const end = ppAddDays(start, 13);
     const fmt = d => `${d.getMonth() + 1}.${d.getDate()}.${d.getFullYear()}`;
-    const first = dates[0] || new Date(), last = dates[dates.length - 1] || first;
-    return `${fmt(first)}_${fmt(last)} Commissions.xlsx`;
+    return `${fmt(start)}_${fmt(end)} Commissions.xlsx`;
 }
 function commNumOrRaw(v) {
     // parseFloat alone chokes on a leading "$" (commission values are
@@ -11410,8 +11448,8 @@ document.getElementById('commExportBtn').addEventListener('click', async () => {
     // value and format are both correct).
     ws['!cols'] = [
         { wch: 9 }, { wch: 8 }, { wch: 10 }, { wch: 22 }, { wch: 11 },
-        { wch: 18.38 }, { wch: 9 }, { wch: 9 }, { wch: 11 }, { wch: 14 },
-        { wch: 11 }, { wch: 10 }, { wch: 16.13 }, { wch: 9 }
+        { wch: 18.38 }, { wch: 9 }, { wch: 9 }, { wch: 12 }, { wch: 14 },
+        { wch: 12 }, { wch: 10 }, { wch: 16.13 }, { wch: 9 }
     ];
     // Date-format every cell that actually holds a Date value.
     aoa.forEach((row, r) => {
