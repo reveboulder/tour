@@ -9904,12 +9904,12 @@ async function exportCommissionsViaXmlSurgery() {
 
     const newMoveInRowsXml = moveInRows.map((r, i) => xmlBuildDataRowXml(
         moveInHeaderRow + 1 + i,
-        [r.property || '01382', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].floorplan : '', r.resident || '', mmrExcelDateFromInput(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit), mmrExcelDateFromInput(r.moveIn), mmrExcelDateFromInput(r.leaseExpiration), mmrExcelDateFromInput(r.moveOut), commNumOrRaw(r.leaseTerm), r.agent || '', commNumOrRaw(r.bonus)],
+        [r.property || '01382', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].yardi : '', r.resident || '', mmrExcelDateFromInput(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit), mmrExcelDateFromInput(r.moveIn), mmrExcelDateFromInput(r.leaseExpiration), mmrExcelDateFromInput(r.moveOut), commNumOrRaw(r.leaseTerm), r.agent || '', commNumOrRaw(r.bonus)],
         moveInCols, moveInFmt.styles, moveInFmt.htAttr
     ));
     const newRenewalRowsXml = renewalRows.map((r, i) => xmlBuildDataRowXml(
         renewalHeaderRow + moveInShift + 1 + i,
-        [r.property || '01382', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].floorplan : '', r.resident || '', mmrExcelDateFromInput(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit), mmrExcelDateFromInput(r.moveIn), mmrExcelDateFromInput(r.leaseExpiration), mmrExcelDateFromInput(r.moveOut), commNumOrRaw(r.leaseTerm), mmrExcelDateFromInput(r.leaseStart)],
+        [r.property || '01382', r.unit || '', byUnit[r.unit] ? byUnit[r.unit].yardi : '', r.resident || '', mmrExcelDateFromInput(r.date), r.status || '', commNumOrRaw(r.rent), commNumOrRaw(r.deposit), mmrExcelDateFromInput(r.moveIn), mmrExcelDateFromInput(r.leaseExpiration), mmrExcelDateFromInput(r.moveOut), commNumOrRaw(r.leaseTerm), mmrExcelDateFromInput(r.leaseStart)],
         renewalCols, renewalFmt.styles, renewalFmt.htAttr
     ));
 
