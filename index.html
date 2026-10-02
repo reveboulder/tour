@@ -1343,6 +1343,81 @@
     .mmr-autofill { background: var(--line-soft); color: var(--ink-soft); font-weight: 600; font-size: 12px; white-space: nowrap; }
     .mmr-remove-cell { width: 34px; text-align: center; }
 
+    /* -- Admin › Blueprints -- */
+    .bp-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .bp-file-name { font-weight: 700; font-size: 13px; }
+    .bp-private { margin: 0; }
+    .bp-status { font-size: 12px; color: var(--ink-soft); margin-bottom: 8px; min-height: 16px; }
+    .bp-check { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 10px 12px; margin-bottom: 12px; font-size: 12.5px; }
+    .bp-check ul { margin: 6px 0 0; padding-left: 18px; }
+    .bp-check li { margin: 2px 0; }
+    .bp-ok { color: #2e7d4a; font-weight: 700; }
+    .bp-warn { color: #b26a00; font-weight: 700; }
+    .bp-bad { color: #c0392b; font-weight: 700; }
+    .bp-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 14px; align-items: start; }
+    .bp-side { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 10px; position: sticky; top: 8px; max-height: calc(100vh - 24px); overflow-y: auto; }
+    .bp-side-title { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); margin: 4px 0 6px; }
+    .bp-count { font-weight: 600; text-transform: none; letter-spacing: 0; }
+    input.bp-search { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font-size: 12.5px; font-family: var(--sans); }
+    .bp-results { margin: 6px 0 12px; max-height: 280px; overflow-y: auto; }
+    .bp-result, .bp-sheet { display: block; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 5px; padding: 5px 6px; font-size: 12px; cursor: pointer; color: inherit; font-family: var(--sans); }
+    .bp-result:hover, .bp-sheet:hover { background: var(--line-soft); }
+    .bp-sheet.active { border-color: var(--reve-orange); background: #fdf1ec; }
+    .bp-result small, .bp-sheet small { color: var(--ink-soft); }
+    .bp-result mark { background: #ffe58a; color: inherit; padding: 0 1px; }
+    .bp-main { min-width: 0; }
+    .bp-toolbar, .bp-scale-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+    .bp-btn { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 5px 10px; font-size: 12.5px; cursor: pointer; font-family: var(--sans); color: inherit; min-width: 30px; }
+    .bp-btn:hover { border-color: var(--reve-orange); }
+    .bp-btn.bp-small { padding: 3px 8px; font-size: 11.5px; }
+    .bp-sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+    .bp-page-label, .bp-zoom { font-size: 12.5px; font-weight: 600; min-width: 46px; text-align: center; }
+    .bp-tools { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+    .bp-tool { border: none; border-right: 1px solid var(--line); background: #fff; padding: 5px 10px; font-size: 12.5px; cursor: pointer; font-family: var(--sans); color: inherit; }
+    .bp-tool:last-child { border-right: none; }
+    .bp-tool.active { background: var(--reve-orange); color: #fff; }
+    .bp-snap { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; margin-left: 4px; }
+    .bp-overlay .bp-snap-mark { fill: none; stroke: #18a058; stroke-width: 2; }
+    .bp-scale-label { font-size: 12.5px; font-weight: 700; }
+    .bp-scale-label.none { color: #b26a00; }
+    #bpScaleSelect { width: auto; flex: none; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; font-size: 12px; font-family: var(--sans); }
+    .bp-hint { margin: 0; }
+    .bp-viewport { position: relative; height: 70vh; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #8a8781; cursor: grab; }
+    .bp-viewport.bp-dragging { cursor: grabbing; }
+    .bp-viewport.bp-crosshair { cursor: crosshair; }
+    .bp-stage { position: relative; margin: 12px; display: inline-block; box-shadow: 0 2px 10px rgba(0,0,0,0.35); background: #fff; }
+    .bp-stage canvas { display: block; }
+    .bp-overlay { position: absolute; left: 0; top: 0; overflow: visible; }
+    .bp-overlay .bp-m-line { stroke: #e0441b; stroke-width: 2; fill: none; }
+    .bp-overlay .bp-m-cal { stroke: #1f7ae0; stroke-width: 2; fill: none; stroke-dasharray: 6 3; }
+    .bp-overlay .bp-m-area { stroke: #e0441b; stroke-width: 2; fill: rgba(224, 68, 27, 0.15); }
+    .bp-overlay .bp-m-pt { fill: #fff; stroke: #e0441b; stroke-width: 2; }
+    .bp-overlay .bp-m-label { font: 700 12px var(--sans); fill: #fff; paint-order: stroke; stroke: #b0300e; stroke-width: 4px; stroke-linejoin: round; }
+    .bp-overlay .bp-hit { fill: rgba(255, 213, 0, 0.45); stroke: #d4a800; stroke-width: 1.5; }
+    .bp-overlay .bp-hit.bp-hit-dim { fill: rgba(31, 122, 224, 0.18); stroke: #1f7ae0; }
+    .bp-overlay .bp-hit.bp-hit-sel { fill: rgba(31, 122, 224, 0.4); }
+    .bp-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+    .bp-panel { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 8px 10px; min-width: 0; }
+    .bp-list { max-height: 260px; overflow-y: auto; font-size: 12.5px; }
+    .bp-row { display: flex; align-items: center; gap: 8px; padding: 4px 2px; border-bottom: 1px solid var(--line-soft); }
+    .bp-row:last-child { border-bottom: none; }
+    .bp-row .bp-val { font-weight: 700; margin-left: auto; white-space: nowrap; }
+    .bp-row .bp-dim-text { cursor: pointer; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bp-row .bp-dim-text:hover { color: var(--reve-orange); }
+    .bp-x { border: none; background: none; color: var(--ink-soft); cursor: pointer; font-size: 14px; padding: 0 4px; }
+    .bp-x:hover { color: #c0392b; }
+    .bp-dim-sum { font-size: 12px; margin-bottom: 4px; min-height: 16px; }
+    .bp-empty { font-size: 12px; color: var(--ink-soft); padding: 4px 2px; }
+    body.dark-mode .bp-check, body.dark-mode .bp-side, body.dark-mode .bp-panel, body.dark-mode .bp-btn, body.dark-mode .bp-tool, body.dark-mode input.bp-search, body.dark-mode #bpScaleSelect { background: var(--dm-card-alt); color: inherit; }
+    body.dark-mode .bp-tool.active { background: var(--reve-orange); color: #fff; }
+    body.dark-mode .bp-sheet.active { background: rgba(224, 68, 27, 0.18); }
+    @media (max-width: 900px) {
+        .bp-layout { grid-template-columns: minmax(0, 1fr); }
+        .bp-side { position: static; max-height: none; }
+        .bp-results, .bp-sheets { max-height: 200px; overflow-y: auto; }
+        .bp-panels { grid-template-columns: minmax(0, 1fr); }
+        .bp-viewport { height: 60vh; }
+    }
     /* -- Residents -- */
     .res-trackers {
         display: grid;
@@ -1367,7 +1442,7 @@
         text-overflow: ellipsis;
         cursor: default;
     }
-    .res-search-row { margin: 0 0 8px; }
+    .res-search-row { margin: 0 0 8px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     /* Sub-tabs keep their shape and scroll sideways if they don't fit. */
     .res-subtab-row { gap: 14px; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
     .res-subtab-row::-webkit-scrollbar { display: none; }
@@ -1983,6 +2058,19 @@
     }
     .res-table td, .res-table th { white-space: nowrap; }
     .res-table select.mmr-lease-field { padding: 3px 4px; }
+    /* Each control sized to what it holds (4-digit unit, short dropdowns,
+       dates) instead of the shared 90px minimum. */
+    #residentsTable .mmr-lease-field { min-width: 0; }
+    #residentsTable [data-field="unit"] { width: 54px; }
+    #residentsTable [data-field="first"] { width: 96px; }
+    #residentsTable [data-field="last"] { width: 110px; }
+    #residentsTable input[type="date"].mmr-lease-field { width: 116px; }
+    #residentsTable [data-field="leaseTerm"] { width: 46px; }
+    #residentsTable [data-field="rate"] { width: 80px; }
+    #residentsTable [data-field="promo"] { width: 72px; }
+    #residentsTable [data-field="lease"], #residentsTable [data-field="deposit"], #residentsTable [data-field="inventoryConditions"] { width: 48px; }
+    #residentsTable [data-field="pet"] { width: 72px; }
+    #residentsTable [data-field="parking"] { width: 58px; }
     /* Freeze the Unit column so it stays visible while scrolling
        horizontally. Sticky at left:0 (not Agent's width) so Unit
        becomes the leftmost visible column as soon as scrolling
@@ -2061,7 +2149,12 @@
     @media (min-width: 901px) {
         .res-top { flex-direction: row; align-items: flex-start; gap: 18px; margin-bottom: 4px; }
         .res-top-main { order: 1; flex: 1 1 auto; min-width: 0; }
-        .res-top > .res-cal-wrap { order: 2; flex: 0 1 460px; min-width: 340px; margin: 0; }
+        .res-top { align-items: stretch; margin-bottom: 8px; }
+        .res-top .res-search-row { margin-bottom: 0; }
+        /* Calendar stretches to the bottom of the search bar; its weeks
+           grow to fill the extra height. */
+        .res-top > .res-cal-wrap { order: 2; flex: 0 1 460px; min-width: 340px; margin: 0; display: flex; flex-direction: column; }
+        .res-top > .res-cal-wrap .res-cal-grid { flex: 1 1 auto; }
         .res-top .res-trackers { margin-bottom: 12px; }
     }
     @media (max-width: 900px) { .res-cal-wrap { max-width: none; margin-top: 0; } }
@@ -3095,13 +3188,12 @@
         <button type="button" class="btn" id="residentFilterClearBtn" style="width:auto;flex:none;padding:8px 16px;">Clear Filters</button>
         <button type="button" class="btn" id="residentRefreshBtn" style="width:auto;flex:none;padding:8px 16px;">Refresh to Update</button>
         <span class="empty-note" id="residentsSortNote" style="margin:0;">Sorted by Move-In Date (latest first)</span>
-        <span class="empty-note" id="residentSyncStatus" style="margin:0 0 0 auto;font-weight:600;"></span>
     </div>
-    </div>
-    </div>
-
     <div class="res-search-row">
         <input type="text" id="residentSearchBar" class="res-search-inline" placeholder="Search unit or resident name&hellip;">
+        <span class="empty-note" id="residentSyncStatus" style="margin:0;font-weight:600;"></span>
+    </div>
+    </div>
     </div>
     <div class="mmr-table-wrap res-table-wrap">
         <table class="mmr-table mmr-lease-table res-table" id="residentsTable">
@@ -3368,6 +3460,7 @@
             <button type="button" class="wl-subtab" data-admin-subtab="commissions">Commissions</button>
             <button type="button" class="wl-subtab" data-admin-subtab="pcard">PCard</button>
             <button type="button" class="wl-subtab" data-admin-subtab="deposit">Deposit Accounting</button>
+            <button type="button" class="wl-subtab" data-admin-subtab="blueprints">Blueprints</button>
         </div>
         <div id="adminPanel-mmr" class="admin-subpanel">
             <div class="mmr-io-bar">
@@ -3701,6 +3794,82 @@
                     </div>
                     <div class="dep-subject" id="depSubject"></div>
                     <div class="dep-preview" id="depPreview"></div>
+                </div>
+            </div>
+        </div>
+        <div id="adminPanel-blueprints" class="admin-subpanel" style="display:none;">
+            <div class="bp-bar">
+                <label class="file-label" for="bpFileInput">Open Blueprint PDF</label>
+                <input type="file" id="bpFileInput" accept=".pdf,application/pdf" style="display:none;">
+                <span class="bp-file-name" id="bpFileName">No file open</span>
+                <span class="empty-note bp-private">The PDF stays in this browser only &mdash; it is never uploaded or shared.</span>
+            </div>
+            <div class="bp-status" id="bpStatus"></div>
+            <div class="bp-check" id="bpCheck" style="display:none;"></div>
+            <div class="bp-layout" id="bpLayout" style="display:none;">
+                <aside class="bp-side">
+                    <div class="bp-side-title">Search text</div>
+                    <input type="text" id="bpSearch" class="bp-search" placeholder="e.g. 331, A5.1, 29'-6&hellip;" autocomplete="off">
+                    <div class="bp-results" id="bpResults"></div>
+                    <div class="bp-side-title">Sheets <span class="bp-count" id="bpSheetCount"></span></div>
+                    <div class="bp-sheets" id="bpSheets"></div>
+                </aside>
+                <div class="bp-main">
+                    <div class="bp-toolbar">
+                        <button type="button" class="bp-btn" id="bpPrev" title="Previous sheet">&lsaquo;</button>
+                        <span class="bp-page-label" id="bpPageLabel"></span>
+                        <button type="button" class="bp-btn" id="bpNext" title="Next sheet">&rsaquo;</button>
+                        <span class="bp-sep"></span>
+                        <button type="button" class="bp-btn" id="bpZoomOut" title="Zoom out">&minus;</button>
+                        <span class="bp-zoom" id="bpZoomLabel"></span>
+                        <button type="button" class="bp-btn" id="bpZoomIn" title="Zoom in">+</button>
+                        <button type="button" class="bp-btn" id="bpFit" title="Fit sheet to window">Fit</button>
+                        <span class="bp-sep"></span>
+                        <div class="bp-tools">
+                            <button type="button" class="bp-tool active" data-bp-tool="pan" title="Drag to move around the sheet">Pan</button>
+                            <button type="button" class="bp-tool" data-bp-tool="calibrate" title="Click both ends of a known dimension, then enter its length">Calibrate</button>
+                            <button type="button" class="bp-tool" data-bp-tool="length" title="Click two points">Length</button>
+                            <button type="button" class="bp-tool" data-bp-tool="area" title="Click each corner; click the first point (or press Enter) to close">Area</button>
+                        </div>
+                        <button type="button" class="bp-btn" id="bpClearMeasures" title="Remove this sheet's measurements">Clear</button>
+                        <label class="bp-snap" title="Clicks jump to the nearest corner or line end drawn on the sheet (hold Alt to click freely)"><input type="checkbox" id="bpSnap" checked> Snap to lines</label>
+                    </div>
+                    <div class="bp-scale-row">
+                        <span id="bpScaleLabel" class="bp-scale-label"></span>
+                        <select id="bpScaleSelect" title="Set the scale printed on the sheet">
+                            <option value="">Set printed scale&hellip;</option>
+                            <option value="0.0625">1/16" = 1'-0"</option>
+                            <option value="0.09375">3/32" = 1'-0"</option>
+                            <option value="0.125">1/8" = 1'-0"</option>
+                            <option value="0.1875">3/16" = 1'-0"</option>
+                            <option value="0.25">1/4" = 1'-0"</option>
+                            <option value="0.375">3/8" = 1'-0"</option>
+                            <option value="0.5">1/2" = 1'-0"</option>
+                            <option value="0.75">3/4" = 1'-0"</option>
+                            <option value="1">1" = 1'-0"</option>
+                            <option value="1.5">1 1/2" = 1'-0"</option>
+                            <option value="3">3" = 1'-0"</option>
+                        </select>
+                        <button type="button" class="bp-btn bp-small" id="bpScaleAll" title="Use this sheet's scale on every sheet that doesn't have one">Apply to all sheets</button>
+                        <span class="empty-note bp-hint" id="bpHint"></span>
+                    </div>
+                    <div class="bp-viewport" id="bpViewport">
+                        <div class="bp-stage" id="bpStage">
+                            <canvas id="bpCanvas"></canvas>
+                            <svg class="bp-overlay" id="bpOverlay"></svg>
+                        </div>
+                    </div>
+                    <div class="bp-panels">
+                        <div class="bp-panel">
+                            <div class="bp-side-title">Measurements</div>
+                            <div id="bpMeasureList" class="bp-list"></div>
+                        </div>
+                        <div class="bp-panel">
+                            <div class="bp-side-title">Dimensions on this sheet <span class="bp-count" id="bpDimCount"></span></div>
+                            <div class="bp-dim-sum" id="bpDimSum"></div>
+                            <div id="bpDimList" class="bp-list"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -8441,10 +8610,11 @@ let adminSubTab = 'mmr';
     btn.addEventListener('click', () => {
         adminSubTab = btn.getAttribute('data-admin-subtab');
         [...document.querySelectorAll('#adminTopSubtabs .wl-subtab')].forEach(b => b.classList.toggle('active', b === btn));
-        ['mmr', 'commissions', 'pcard', 'deposit'].forEach(name => {
+        ['mmr', 'commissions', 'pcard', 'deposit', 'blueprints'].forEach(name => {
             document.getElementById('adminPanel-' + name).style.display = (name === adminSubTab) ? 'block' : 'none';
         });
         if (adminSubTab === 'commissions' && typeof renderCommSuggested === 'function') renderCommSuggested();
+        if (adminSubTab === 'blueprints') bpOnShow();
     });
 });
 
@@ -11525,8 +11695,8 @@ const RESIDENT_FIELDS = [
     { key: 'dateApplied', label: 'Date Applied', type: 'date' },
     { key: 'moveInDate', label: 'Move-In', type: 'date' },
     { key: 'leaseTerm', label: 'Term', type: 'number', w: 52 },
-    { key: 'rate', label: 'Rate', type: 'text', w: 88, currency: true },
-    { key: 'promo', label: 'Promo', type: 'text', w: 88, currency: true },
+    { key: 'rate', label: 'Rate', type: 'text', currency: true },
+    { key: 'promo', label: 'Promo', type: 'text', currency: true },
     { key: 'screen', label: 'Screen', type: 'select', options: ['', 'Screening', 'Approved', '\u2191'], optionLabels: { '': 'Applied', 'Screening': 'Screening', 'Approved': 'Approved', '\u2191': '\u2191 Uploaded' }, w: 112 },
     { key: 'idCheck', label: 'ID', type: 'checkbox' },
     { key: 'welcomeLetter', label: 'WL', type: 'checkbox' },
@@ -12267,6 +12437,9 @@ function renderResidentCalendar() {
             `<div class="cal-unit-pill${r.movedIn ? ' done' : ''}" data-res-id="${escapeAttr(id)}" title="${escapeAttr(`${r.unit || ''} ${r.first || ''} ${r.last || ''}`.trim())} \u2014 click to jump to this row">${escapeHtml(r.unit || '?')}</div>`).join('')}</div>`;
     }
     grid.innerHTML = html;
+    // Day-name row stays compact; the week rows share any extra height.
+    const weeks = Math.ceil((new Date(y, m, 1).getDay() + daysInMonth) / 7);
+    grid.style.gridTemplateRows = `auto repeat(${weeks}, minmax(0, 1fr))`;
     [...grid.querySelectorAll('[data-res-id]')].forEach(el => el.addEventListener('click', () => residentJumpToRow(el.getAttribute('data-res-id'))));
 }
 // Scrolls the table to a resident's row (showing it first if the
@@ -16379,6 +16552,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-welcome-letter": {"title": "Prepare a Welcome Letter", "icon": "✉️", "category": "Welcome Letter", "steps": ["Open the WL tab and search for the resident by unit or name (they need to be on the Residents tab first).", "Unit details fill in automatically. Complete Monthly Charges, Security & Other Deposits, Fees, Fees Paid, Concessions and Utilities.", "Click \"Download WL PDF\" for the letter.", "Click \"Create Email Draft\", enter the resident's email, and a new draft opens in your mail app with the subject filled in — add the template and attachments there.", "For the move-in folder, click \"Download M/I Sticker\". \"Name on Sticker\" uses the resident's name unless you type a different one.", "Everything you enter here also fills the Lease tab."]},
     "builtin-new-lease": {"title": "Fill Out a New Lease", "icon": "🖊️", "category": "Lease", "steps": ["Complete the resident's Welcome Letter first — the Lease tab pulls from it and from Residents.", "Open the Lease tab and search for the resident by unit or name.", "Each section (Lease Terms, Cover Sheet, Animal, Buyout, Inventory, Parking, Rent Concession, Special Provisions) shows the values to enter.", "Click the copy button next to any value to copy it, then paste it into the lease.", "For a renewal, check \"Select if Renewal Lease\" — the new dates start the day after the current lease ends.", "Click × next to the search to clear the selection."]},
     "builtin-mmr-traffic": {"title": "Record Weekly Traffic for the MMR", "icon": "🚶", "category": "Admin", "steps": ["Go to Admin (enter the password) > MMR > Weekly Traffic Detail.", "For each reason, write one sentence per show, starting with the prospect's first and last name and ending with a period.", "Each sentence that starts with a name counts as one show; follow-up sentences about the same prospect don't add to the count.", "Download New MMR replaces last week's numbers in the uploaded file.", "Click \"Clear for New Week\" to start the next week fresh."]},
+    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points (hold Shift for straight lines). Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall."]},
     "builtin-commissions": {"title": "Run Commissions for the Pay Period", "icon": "💼", "category": "Admin", "steps": ["Go to Admin > Commissions and check the Current pay period (change its start date if needed).", "Review Suggested Move-Ins (residents moving in this pay period): + adds one officially, × rejects it.", "Add anything missing with \"+ Add Move-In\" or \"+ Add Renewal\", or use \"Import Renewals\" with the Resident Activity Detail export.", "Optional: upload last period's Commissions file to keep its formatting.", "Click \"Export to Excel\" — only officially added Move-Ins and Renewals are included."]},
     "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx)\". The file stays in your browser tab only and is never saved.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code (suggestions come from the file), To, Amount and For.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Check the summary under the table — it warns if the items won't fit in the sheet.", "Click \"Export to Excel\". Items go into the table, the approval date is set to today, and the rest of the file is unchanged.", "When asked, clear the exported items so they aren't added twice next time."]},
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
@@ -17775,6 +17949,822 @@ function addSearchClear(inp) {
 const SEARCH_CLEAR_INPUTS = [];
 ['unitSearch', 'renewalUnitSearch', 'renewalSearchBar', 'residentSearchBar', 'wlUnitSearch', 'fpSearch', 'howtoSearchBar', 'unitInfoSearch']
     .forEach(id => addSearchClear(document.getElementById(id)));
+
+/* ============================================================
+   Admin › Blueprints — opens a construction drawing set (PDF) right in
+   the browser with PDF.js and keeps it there: the file is saved to this
+   browser's IndexedDB so it reopens next time, and is never uploaded
+   to the repo or the shared backend.
+   - PDF check: is the set a vector CAD export with real (searchable)
+     text, or a scan? That decides what the other tools can do.
+   - Measure: calibrate each sheet (two clicks on a known dimension, or
+     the printed scale), then click lengths and room outlines (area).
+   - Search: every sheet's text is extracted once and cached; results
+     jump to the sheet and highlight the match.
+   - Dimensions: text that reads like 29'-6 1/4" is listed per sheet in
+     inches; tick several to add up a dimension chain.
+   ============================================================ */
+const BP_DB_NAME = 'reve-blueprints';
+const BP_LOCAL_KEY = 'reve-blueprints-state'; // per-file scales + measurements
+const BP = {
+    pdf: null, fileKey: '', fileName: '', pageNum: 1, zoom: 1, fitZoom: 1,
+    tool: 'pan', pending: [], viewport: null, renderTask: null,
+    pages: {},            // pageNum -> { lines, dims, label } once extracted
+    extractDone: false, highlight: null, dimSel: new Set(), state: { scales: {}, measures: {} },
+    loading: false, segs: {}, snapPt: null, hoverSeq: 0
+};
+
+// ---- Dimension text: "29'-6 1/4"" -> 354.25 inches ----
+const BP_UNICODE_FRAC = { '¼': '1/4', '½': '1/2', '¾': '3/4', '⅛': '1/8', '⅜': '3/8', '⅝': '5/8', '⅞': '7/8', '⅓': '1/3', '⅔': '2/3' };
+function bpNormalizeDimText(s) {
+    return String(s || '')
+        .replace(/[’′´`]/g, "'")
+        .replace(/[”″“]|''/g, '"')
+        .replace(/[‐-―−]/g, '-')
+        .replace(/[¼½¾⅛-⅞⅓⅔]/g, ch => ' ' + BP_UNICODE_FRAC[ch])
+        .replace(/⁄/g, '/')
+        .replace(/\s+/g, ' ');
+}
+// Feet-and-inches strings inside a piece of text: 29'-6 1/4", 5' - 7 3/4",
+// 43'-7", 12', 8 1/2", 3/4". Returns [{ text, inches, index }].
+const BP_DIM_RE = /(\d+(?:\.\d+)?)\s*'\s*(?:-?\s*(\d+(?:\.\d+)?)?(?:\s*-?\s*(\d+)\s*\/\s*(\d+))?\s*")?|(?:(\d+(?:\.\d+)?)(?:\s+|\s*-\s*))?(\d+)\s*\/\s*(\d+)\s*"|(\d+(?:\.\d+)?)\s*"/g;
+function bpFindDims(text) {
+    const s = bpNormalizeDimText(text);
+    const out = [];
+    let m;
+    BP_DIM_RE.lastIndex = 0;
+    while ((m = BP_DIM_RE.exec(s))) {
+        let inches;
+        if (m[1] !== undefined) {
+            inches = parseFloat(m[1]) * 12 + (m[2] ? parseFloat(m[2]) : 0) + (m[3] && +m[4] ? m[3] / m[4] : 0);
+        } else if (m[6] !== undefined) {
+            if (!+m[7]) continue;
+            inches = (m[5] ? parseFloat(m[5]) : 0) + m[6] / m[7];
+        } else {
+            inches = parseFloat(m[8]);
+        }
+        if (!isFinite(inches) || inches <= 0) continue;
+        out.push({ text: m[0].trim(), inches, index: m.index });
+    }
+    return out;
+}
+// Typed lengths for calibration: 43'-7", 43' 7 1/2", 523", 43.58', 43 ft 7 in, or a bare number (feet).
+function bpParseLength(str) {
+    const s = bpNormalizeDimText(str).trim().toLowerCase()
+        .replace(/\s*(feet|foot|ft)\b\.?/g, "'").replace(/\s*(inches|inch|in)\b\.?/g, '"');
+    if (!s) return null;
+    if (/^\d+(\.\d+)?$/.test(s)) return parseFloat(s) * 12;
+    const d = bpFindDims(s);
+    if (!d.length) return null;
+    // "43' 7"" can come back as one match; "43'" + "7"" as two.
+    if (d.length === 2 && /'/.test(d[0].text) && !/"/.test(d[0].text)) return d[0].inches + d[1].inches;
+    return d[0].inches;
+}
+function bpFmtFtIn(inches) {
+    if (!isFinite(inches)) return '';
+    const neg = inches < 0;
+    let total16 = Math.round(Math.abs(inches) * 16);
+    const ft = Math.floor(total16 / (12 * 16));
+    total16 -= ft * 12 * 16;
+    const whole = Math.floor(total16 / 16);
+    let num = total16 % 16, den = 16;
+    while (num && num % 2 === 0) { num /= 2; den /= 2; }
+    const frac = num ? ` ${num}/${den}` : '';
+    return `${neg ? '-' : ''}${ft}'-${whole}${frac}"`;
+}
+// Paper inches to the nearest 1/32, e.g. 0.25 -> 1/4", 1.5 -> 1 1/2".
+function bpFmtPaperIn(inches) {
+    const n32 = Math.round(inches * 32);
+    const whole = Math.floor(n32 / 32);
+    let num = n32 % 32, den = 32;
+    while (num && num % 2 === 0) { num /= 2; den /= 2; }
+    return (whole ? whole + (num ? ' ' : '') : '') + (num ? `${num}/${den}` : (whole ? '' : '0')) + '"';
+}
+function bpFmtSqFt(sqIn) { return `${(sqIn / 144).toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} sq ft`; }
+
+// ---- Saved state (scales + measurements per file) ----
+function bpLoadState() {
+    try {
+        const all = JSON.parse(localStorage.getItem(BP_LOCAL_KEY) || '{}');
+        BP.state = all[BP.fileKey] || { scales: {}, measures: {} };
+    } catch (e) { BP.state = { scales: {}, measures: {} }; }
+    BP.state.scales = BP.state.scales || {};
+    BP.state.measures = BP.state.measures || {};
+}
+function bpSaveState() {
+    try {
+        const all = JSON.parse(localStorage.getItem(BP_LOCAL_KEY) || '{}');
+        all[BP.fileKey] = BP.state;
+        localStorage.setItem(BP_LOCAL_KEY, JSON.stringify(all));
+    } catch (e) {}
+}
+// Inches of real length per PDF unit (1/72" of paper) on this sheet.
+function bpScale(pageNum) { const s = BP.state.scales[pageNum || BP.pageNum]; return s && s.inPerUnit > 0 ? s.inPerUnit : null; }
+
+// ---- IndexedDB: remember the last opened file in this browser only ----
+function bpDb() {
+    return new Promise((resolve, reject) => {
+        if (!window.indexedDB) return reject(new Error('no IndexedDB'));
+        const req = indexedDB.open(BP_DB_NAME, 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('files');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+async function bpDbPut(rec) {
+    const db = await bpDb();
+    await new Promise((resolve, reject) => {
+        const tx = db.transaction('files', 'readwrite');
+        tx.objectStore('files').put(rec, 'current');
+        tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+    });
+}
+async function bpDbGet() {
+    const db = await bpDb();
+    return new Promise((resolve, reject) => {
+        const req = db.transaction('files').objectStore('files').get('current');
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+function bpSetStatus(msg) { const el = document.getElementById('bpStatus'); if (el) el.textContent = msg || ''; }
+
+// ---- Open a file ----
+async function bpOpenBlob(blob, name, lastModified, remember) {
+    if (BP.loading) return;
+    BP.loading = true;
+    try {
+        bpSetStatus('Loading PDF.js…');
+        const pdfjsLib = await docsLoadPdfJs();
+        bpSetStatus(`Opening ${name}…`);
+        const data = new Uint8Array(await blob.arrayBuffer());
+        if (BP.pdf) { try { BP.pdf.destroy(); } catch (e) {} }
+        BP.pdf = await pdfjsLib.getDocument({ data }).promise;
+        BP.fileName = name;
+        BP.fileKey = `${name}|${blob.size}|${lastModified || ''}`;
+        BP.pages = {}; BP.segs = {}; BP.extractDone = false; BP.highlight = null; BP.dimSel = new Set(); BP.pending = [];
+        BP.pageNum = 1;
+        bpLoadState();
+        document.getElementById('bpFileName').textContent = `${name} · ${BP.pdf.numPages} sheet${BP.pdf.numPages === 1 ? '' : 's'} · ${(blob.size / 1048576).toFixed(1)} MB`;
+        document.getElementById('bpLayout').style.display = '';
+        document.getElementById('bpSearch').value = '';
+        document.getElementById('bpResults').innerHTML = '';
+        bpRenderSheetList();
+        await bpGoTo(1, { fit: true });
+        if (remember) bpDbPut({ name, lastModified: lastModified || 0, blob }).catch(() => {});
+        bpExtractAll();   // background: text for search, sheet labels, dimensions
+        bpRunCheck();     // background: vector / scan / text verdict
+    } catch (err) {
+        console.error(err);
+        bpSetStatus(`Couldn't open that file (${err.message}). Make sure it's a PDF.`);
+    } finally {
+        BP.loading = false;
+    }
+}
+
+// ---- Text extraction: each sheet once, merged into lines ----
+// Text items that sit on the same baseline (in their own rotation) and
+// nearly touch are joined into one line, so dimension pieces split
+// across items ("29'-6", "1/4"", "\"") read as one string.
+function bpBuildLines(items) {
+    const frags = [];
+    items.forEach(it => {
+        if (!it.str || !it.str.trim()) return;
+        const [a, b, c, d, e, f] = it.transform;
+        const size = Math.hypot(c, d) || it.height || 1;
+        let ang = Math.atan2(b, a);
+        const q = Math.round(ang / (Math.PI / 2));
+        if (Math.abs(ang - q * Math.PI / 2) < 0.03) ang = q * Math.PI / 2;
+        const ux = Math.cos(ang), uy = Math.sin(ang);
+        frags.push({
+            str: it.str, size, ang, ux, uy,
+            along: e * ux + f * uy, base: -e * uy + f * ux,
+            len: it.width || it.str.length * size * 0.5
+        });
+    });
+    // Group by angle, then baseline (within half a text height).
+    frags.sort((p, q) => (p.ang - q.ang) || (p.base - q.base) || (p.along - q.along));
+    const groups = [];
+    frags.forEach(fr => {
+        const g = groups.length && groups[groups.length - 1];
+        if (g && Math.abs(g.ang - fr.ang) < 0.01 && Math.abs(fr.base - g.base) <= Math.max(g.size, fr.size) * 0.55) g.items.push(fr);
+        else groups.push({ ang: fr.ang, base: fr.base, size: fr.size, items: [fr] });
+    });
+    const lines = [];
+    groups.forEach(g => {
+        g.items.sort((p, q) => p.along - q.along);
+        let cur = null;
+        g.items.forEach(fr => {
+            const gapLimit = Math.max(fr.size, cur ? cur.size : 0) * 0.6;
+            if (cur && fr.along - cur.end <= gapLimit) {
+                const gap = fr.along - cur.end;
+                cur.text += (gap > fr.size * 0.2 && !/[\s\-\/]$/.test(cur.text) && !/^[\s"'\/]/.test(fr.str) ? ' ' : '') + fr.str;
+                cur.end = Math.max(cur.end, fr.along + fr.len);
+                cur.baseMin = Math.min(cur.baseMin, fr.base); cur.baseMax = Math.max(cur.baseMax, fr.base + fr.size);
+                cur.size = Math.max(cur.size, fr.size);
+            } else {
+                if (cur) lines.push(cur);
+                cur = { text: fr.str, ang: fr.ang, ux: fr.ux, uy: fr.uy, start: fr.along, end: fr.along + fr.len, baseMin: fr.base, baseMax: fr.base + fr.size, size: fr.size };
+            }
+        });
+        if (cur) lines.push(cur);
+    });
+    lines.forEach(l => { l.text = l.text.replace(/\s+/g, ' ').trim(); });
+    return lines.filter(l => l.text);
+}
+// Corners of a line's box in PDF space (handles rotated text).
+function bpLineCorners(l, from, to) {
+    const s = from === undefined ? l.start : from, e = to === undefined ? l.end : to;
+    const pt = (al, bs) => [al * l.ux - bs * l.uy, al * l.uy + bs * l.ux];
+    const pad = l.size * 0.15;
+    return [pt(s - pad, l.baseMin - pad), pt(e + pad, l.baseMin - pad), pt(e + pad, l.baseMax + pad), pt(s - pad, l.baseMax + pad)];
+}
+// Sheet number such as A1-109, A3-101A, A5.1 or S2.03: the largest one
+// on the sheet (the title block's), not room or door tags.
+const BP_SHEET_RE = /^[A-Z]{1,2}\d{0,2}[-.]?\d{1,4}(?:\.\d{1,3})?[A-Z]?$/;
+function bpSheetLabel(lines) {
+    let best = null;
+    lines.forEach(l => { if (BP_SHEET_RE.test(l.text) && (!best || l.size > best.size)) best = l; });
+    return best ? best.text : '';
+}
+// Dimension strings on a sheet. Skips scale notes (1/8" = 1'-0"), sizes
+// mentioned inside notes ("PROVIDE 4' HIGH RAILING"), and graphic scale
+// bar labels (0' 4' 8' 16' 32').
+function bpSheetDims(lines) {
+    const dims = [];
+    lines.forEach((l, li) => {
+        if (/scale|=/i.test(l.text)) return;
+        const t = bpNormalizeDimText(l.text).trim();
+        bpFindDims(t).forEach(d => { if (d.text.length >= t.length * 0.6) dims.push({ ...d, line: li }); });
+    });
+    const bare = dims.filter(d => /^\d+\s*'$/.test(d.text));
+    const barVals = new Set(bare.map(d => d.inches / 12));
+    if ([2, 4, 8, 16, 32, 64].filter(v => barVals.has(v)).length >= 3) {
+        return dims.filter(d => !(/^\d+\s*'$/.test(d.text) && [2, 4, 8, 16, 32, 64].indexOf(d.inches / 12) !== -1));
+    }
+    return dims;
+}
+// Printed scales on a sheet, e.g. 1/8" = 1'-0" -> paper inches per foot.
+function bpFoundScales(lines) {
+    const found = {};
+    lines.forEach(l => {
+        const t = bpNormalizeDimText(l.text);
+        const re = /(?:^|[^\d\/])((?:(\d+)\s+)?(\d+)\s*\/\s*(\d+)|(\d+(?:\.\d+)?))\s*"\s*=\s*1\s*'\s*-?\s*0?\s*"?/g;
+        let m;
+        while ((m = re.exec(t))) {
+            const paperIn = m[5] !== undefined ? parseFloat(m[5]) : (m[2] ? +m[2] : 0) + m[3] / m[4];
+            if (paperIn > 0 && paperIn <= 12) found[paperIn] = (m[1].replace(/\s+/g, ' ')) + '" = 1\'-0"';
+        }
+    });
+    return Object.keys(found).map(Number).sort((a, b) => a - b).map(v => ({ paperIn: v, label: found[v] }));
+}
+async function bpExtractPage(n) {
+    if (BP.pages[n]) return BP.pages[n];
+    const page = await BP.pdf.getPage(n);
+    const tc = await page.getTextContent();
+    const lines = bpBuildLines(tc.items);
+    BP.pages[n] = { lines, dims: bpSheetDims(lines), label: bpSheetLabel(lines), scales: bpFoundScales(lines), itemCount: tc.items.length };
+    return BP.pages[n];
+}
+async function bpExtractAll() {
+    const pdf = BP.pdf;
+    for (let n = 1; n <= pdf.numPages; n++) {
+        if (BP.pdf !== pdf) return;   // another file was opened
+        bpSetStatus(`Reading sheet text ${n} of ${pdf.numPages}…`);
+        try { await bpExtractPage(n); } catch (e) { BP.pages[n] = { lines: [], dims: [], label: '', scales: [], itemCount: 0 }; }
+        if (n % 5 === 0 || n === pdf.numPages) bpRenderSheetList();
+        if (n === BP.pageNum) { bpRenderDims(); bpDrawOverlay(); }
+    }
+    BP.extractDone = true;
+    const totalLines = Object.values(BP.pages).reduce((t, p) => t + p.lines.length, 0);
+    bpSetStatus(totalLines ? `Text ready on ${pdf.numPages} sheet${pdf.numPages === 1 ? '' : 's'} — search is available.` : 'No searchable text found in this file — measuring still works.');
+    bpRenderSheetList();
+    bpRunSearch();
+}
+
+// ---- PDF check (the three tests: real text, vector lines, searchable) ----
+async function bpRunCheck() {
+    const pdf = BP.pdf, box = document.getElementById('bpCheck');
+    box.style.display = '';
+    box.innerHTML = '<b>Checking how this PDF was made…</b>';
+    const OPS = window.pdfjsLib.OPS;
+    const imageOps = new Set([OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageMaskXObject, OPS.paintJpegXObject].filter(v => v !== undefined));
+    const sample = [];
+    const n = pdf.numPages;
+    [1, 2, Math.ceil(n / 3), Math.ceil(n / 2), Math.ceil(2 * n / 3), n].forEach(p => { if (p >= 1 && p <= n && sample.indexOf(p) === -1) sample.push(p); });
+    let paths = 0, images = 0, textItems = 0, dimCount = 0;
+    for (const p of sample) {
+        if (BP.pdf !== pdf) return;
+        try {
+            const page = await pdf.getPage(p);
+            const ops = await page.getOperatorList();
+            ops.fnArray.forEach(fn => { if (fn === OPS.constructPath) paths++; else if (imageOps.has(fn)) images++; });
+            const info = await bpExtractPage(p);
+            textItems += info.itemCount;
+            dimCount += info.dims.length;
+        } catch (e) {}
+    }
+    if (BP.pdf !== pdf) return;
+    const per = k => Math.round(k / sample.length);
+    const vector = paths / sample.length > 200;
+    const scanned = !vector && images > 0;
+    const hasText = textItems / sample.length >= 5;
+    const items = [];
+    items.push(vector
+        ? `<li><span class="bp-ok">Vector drawing</span> &mdash; ~${per(paths).toLocaleString()} drawn paths per sheet, so lines stay sharp at any zoom (a CAD/Revit export).</li>`
+        : scanned ? `<li><span class="bp-bad">Looks scanned</span> &mdash; sheets are mostly images. Measuring works after calibrating; text search won't.</li>`
+            : `<li><span class="bp-warn">Few drawn lines found</span> &mdash; ~${per(paths)} paths per sheet.</li>`);
+    items.push(hasText
+        ? `<li><span class="bp-ok">Real text</span> &mdash; ~${per(textItems).toLocaleString()} text pieces per sheet, so search works.</li>`
+        : `<li><span class="bp-bad">Little or no real text</span> &mdash; ${vector ? 'letters are probably drawn as line strokes (common in AutoCAD exports), so search and dimension reading won\'t find much.' : 'search won\'t find much.'} Measuring still works.</li>`);
+    items.push(dimCount
+        ? `<li><span class="bp-ok">Dimension strings readable</span> &mdash; ${dimCount} found on the ${sample.length} sampled sheets (e.g. ${escapeHtml(bpFirstDimSample() || '')}).</li>`
+        : `<li><span class="bp-warn">No dimension strings recognized</span> on the sampled sheets.</li>`);
+    box.innerHTML = `<b>PDF check</b> <span class="empty-note" style="margin:0;">(sampled ${sample.length} of ${n} sheets)</span><ul>${items.join('')}</ul>`;
+}
+function bpFirstDimSample() {
+    for (const k of Object.keys(BP.pages)) { const d = BP.pages[k].dims.find(x => /'/.test(x.text)); if (d) return d.text; }
+    for (const k of Object.keys(BP.pages)) { if (BP.pages[k].dims[0]) return BP.pages[k].dims[0].text; }
+    return '';
+}
+
+// ---- Sheet list ----
+function bpRenderSheetList() {
+    if (!BP.pdf) return;
+    const n = BP.pdf.numPages;
+    document.getElementById('bpSheetCount').textContent = `(${n})`;
+    let html = '';
+    for (let p = 1; p <= n; p++) {
+        const info = BP.pages[p];
+        const label = info && info.label ? info.label : '';
+        const sc = bpScale(p) ? ' · scaled' : '';
+        html += `<button type="button" class="bp-sheet${p === BP.pageNum ? ' active' : ''}" data-bp-page="${p}">Sheet ${p}${label ? ` — <b>${escapeHtml(label)}</b>` : ''}<small>${sc}</small></button>`;
+    }
+    const el = document.getElementById('bpSheets');
+    el.innerHTML = html;
+    el.querySelectorAll('[data-bp-page]').forEach(b => b.addEventListener('click', () => bpGoTo(+b.getAttribute('data-bp-page'), { fit: true })));
+}
+
+// ---- Rendering ----
+const BP_MAX_CANVAS_PX = 36e6; // keep the canvas under browser limits
+async function bpGoTo(n, opts) {
+    if (!BP.pdf) return;
+    n = Math.max(1, Math.min(BP.pdf.numPages, n));
+    const changed = n !== BP.pageNum;
+    BP.pageNum = n;
+    if (changed) { BP.pending = []; BP.dimSel = new Set(); }
+    const page = await BP.pdf.getPage(n);
+    const base = page.getViewport({ scale: 1 });
+    const vp = document.getElementById('bpViewport');
+    BP.fitZoom = Math.max(0.05, Math.min((vp.clientWidth - 28) / base.width, (vp.clientHeight - 28) / base.height));
+    if (opts && opts.fit) BP.zoom = BP.fitZoom;
+    await bpRender(page);
+    document.getElementById('bpPageLabel').textContent = `${n} / ${BP.pdf.numPages}`;
+    document.querySelectorAll('#bpSheets .bp-sheet').forEach(b => b.classList.toggle('active', +b.getAttribute('data-bp-page') === n));
+    const act = document.querySelector('#bpSheets .bp-sheet.active');
+    if (act && changed) act.scrollIntoView({ block: 'nearest' });
+    bpUpdateScaleUi();
+    bpRenderMeasures();
+    bpExtractPage(n).then(() => { if (BP.pageNum === n) { bpRenderDims(); bpDrawOverlay(); bpUpdateScaleUi(); } }).catch(() => {});
+    bpLoadSegs(n).catch(() => {});
+}
+async function bpRender(page) {
+    page = page || await BP.pdf.getPage(BP.pageNum);
+    const base = page.getViewport({ scale: 1 });
+    const maxZoom = Math.sqrt(BP_MAX_CANVAS_PX / (base.width * base.height));
+    BP.zoom = Math.max(0.05, Math.min(BP.zoom, maxZoom));
+    const css = page.getViewport({ scale: BP.zoom });
+    const dpr = Math.min(window.devicePixelRatio || 1, Math.max(1, maxZoom / BP.zoom));
+    const dev = page.getViewport({ scale: BP.zoom * dpr });
+    BP.viewport = css;
+    const canvas = document.getElementById('bpCanvas');
+    if (BP.renderTask) { try { BP.renderTask.cancel(); } catch (e) {} }
+    canvas.width = Math.floor(dev.width); canvas.height = Math.floor(dev.height);
+    canvas.style.width = Math.floor(css.width) + 'px'; canvas.style.height = Math.floor(css.height) + 'px';
+    const svg = document.getElementById('bpOverlay');
+    svg.setAttribute('width', Math.floor(css.width)); svg.setAttribute('height', Math.floor(css.height));
+    document.getElementById('bpZoomLabel').textContent = Math.round(BP.zoom * 100) + '%';
+    bpDrawOverlay();
+    BP.renderTask = page.render({ canvasContext: canvas.getContext('2d'), viewport: dev });
+    try { await BP.renderTask.promise; } catch (e) { if (e && e.name !== 'RenderingCancelledException') console.error(e); }
+}
+// Zoom keeping the point under (cx, cy) of the viewport still.
+async function bpZoomBy(factor, cx, cy) {
+    if (!BP.pdf || !BP.viewport) return;
+    const vp = document.getElementById('bpViewport'), stage = document.getElementById('bpStage');
+    if (cx === undefined) { cx = vp.clientWidth / 2; cy = vp.clientHeight / 2; }
+    const sx = vp.scrollLeft + cx - stage.offsetLeft, sy = vp.scrollTop + cy - stage.offsetTop;
+    const pdfPt = BP.viewport.convertToPdfPoint(sx, sy);
+    BP.zoom *= factor;
+    await bpRender();
+    const [nx, ny] = BP.viewport.convertToViewportPoint(pdfPt[0], pdfPt[1]);
+    vp.scrollLeft = nx + stage.offsetLeft - cx;
+    vp.scrollTop = ny + stage.offsetTop - cy;
+}
+
+// ---- Overlay: measurements, in-progress clicks, search/dimension highlights ----
+function bpToCss(p) { return BP.viewport.convertToViewportPoint(p[0], p[1]); }
+function bpMeasureValue(m, pageNum) {
+    const sc = bpScale(pageNum);
+    if (m.type === 'length') {
+        const d = Math.hypot(m.pts[1][0] - m.pts[0][0], m.pts[1][1] - m.pts[0][1]);
+        return sc ? bpFmtFtIn(d * sc) : `${d.toFixed(1)} units (calibrate first)`;
+    }
+    let a = 0, per = 0;
+    m.pts.forEach((p, i) => {
+        const q = m.pts[(i + 1) % m.pts.length];
+        a += p[0] * q[1] - q[0] * p[1];
+        per += Math.hypot(q[0] - p[0], q[1] - p[1]);
+    });
+    a = Math.abs(a) / 2;
+    return sc ? `${bpFmtSqFt(a * sc * sc)} · perimeter ${bpFmtFtIn(per * sc)}` : `${a.toFixed(0)} sq units (calibrate first)`;
+}
+function bpDrawOverlay() {
+    const svg = document.getElementById('bpOverlay');
+    if (!svg || !BP.viewport) return;
+    const parts = [];
+    const poly = pts => pts.map(p => bpToCss(p).map(v => v.toFixed(1)).join(',')).join(' ');
+    const label = (p, text) => { const [x, y] = bpToCss(p); return `<text class="bp-m-label" x="${x + 6}" y="${y - 6}">${escapeHtml(text)}</text>`; };
+    const info = BP.pages[BP.pageNum];
+    if (info) {
+        // Dimension highlights (selected = darker) and the search hit.
+        info.dims.forEach((d, i) => {
+            if (!BP.dimSel.has(i)) return;
+            parts.push(`<polygon class="bp-hit bp-hit-dim bp-hit-sel" points="${poly(bpLineCorners(info.lines[d.line]))}"/>`);
+        });
+        if (BP.highlight && BP.highlight.page === BP.pageNum) {
+            const l = info.lines[BP.highlight.line];
+            if (l) parts.push(`<polygon class="bp-hit${BP.highlight.dim ? ' bp-hit-dim' : ''}" points="${poly(bpLineCorners(l))}"/>`);
+        }
+    }
+    (BP.state.measures[BP.pageNum] || []).forEach(m => {
+        const cls = m.type === 'area' ? 'bp-m-area' : 'bp-m-line';
+        parts.push(m.type === 'area' ? `<polygon class="${cls}" points="${poly(m.pts)}"/>` : `<polyline class="${cls}" points="${poly(m.pts)}"/>`);
+        m.pts.forEach(p => { const [x, y] = bpToCss(p); parts.push(`<circle class="bp-m-pt" cx="${x}" cy="${y}" r="3"/>`); });
+        parts.push(label(m.type === 'area' ? m.pts[0] : m.pts[1], bpMeasureValue(m, BP.pageNum).split(' · ')[0]));
+    });
+    const sc = BP.state.scales[BP.pageNum];
+    if (sc && sc.pts) {
+        parts.push(`<polyline class="bp-m-cal" points="${poly(sc.pts)}"/>`);
+        parts.push(label(sc.pts[1], `cal ${bpFmtFtIn(sc.known)}`));
+    }
+    if (BP.pending.length) {
+        const cls = BP.tool === 'calibrate' ? 'bp-m-cal' : 'bp-m-line';
+        const pts = BP.hover ? BP.pending.concat([BP.hover]) : BP.pending;
+        parts.push(`<polyline class="${cls}" points="${poly(pts)}"/>`);
+        BP.pending.forEach(p => { const [x, y] = bpToCss(p); parts.push(`<circle class="bp-m-pt" cx="${x}" cy="${y}" r="3.5"/>`); });
+        if (BP.hover && BP.tool === 'length' && BP.pending.length === 1) parts.push(label(BP.hover, bpMeasureValue({ type: 'length', pts: [BP.pending[0], BP.hover] }, BP.pageNum)));
+    }
+    if (BP.snapPt && BP.tool !== 'pan') {
+        const [x, y] = bpToCss(BP.snapPt);
+        parts.push(`<rect class="bp-snap-mark" x="${x - 6}" y="${y - 6}" width="12" height="12"/>`);
+    }
+    svg.innerHTML = parts.join('');
+}
+
+// ---- Snap: line endpoints drawn on the sheet ----
+// Walks the sheet's drawing operators (tracking save/restore/transform)
+// and buckets every line end into a 6pt grid for quick lookup.
+const BP_SNAP_CELL = 6;
+async function bpLoadSegs(n) {
+    if (BP.segs[n]) return BP.segs[n];
+    const pdf = BP.pdf;
+    const p = (async () => {
+        const page = await pdf.getPage(n);
+        const ops = await page.getOperatorList();
+        const O = window.pdfjsLib.OPS;
+        let m = [1, 0, 0, 1, 0, 0];
+        const stack = [], pts = new Map();
+        const mul = (a, b) => [a[0] * b[0] + a[2] * b[1], a[1] * b[0] + a[3] * b[1], a[0] * b[2] + a[2] * b[3], a[1] * b[2] + a[3] * b[3], a[0] * b[4] + a[2] * b[5] + a[4], a[1] * b[4] + a[3] * b[5] + a[5]];
+        // Count how many line ends meet at each point: corners and
+        // dimension ends are shared by several lines, tick tips aren't.
+        const add = (x, y) => {
+            const key = Math.round(x * 20) + ',' + Math.round(y * 20);
+            const e = pts.get(key);
+            if (e) e[2]++; else pts.set(key, [x, y, 1]);
+        };
+        for (let i = 0; i < ops.fnArray.length; i++) {
+            const fn = ops.fnArray[i], a = ops.argsArray[i];
+            if (fn === O.save) stack.push(m);
+            else if (fn === O.restore) m = stack.pop() || m;
+            else if (fn === O.transform) m = mul(m, a);
+            else if (fn === O.constructPath) {
+                const pops = a[0], c = a[1];
+                let k = 0;
+                const pt = (x, y) => add(m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]);
+                for (const op of pops) {
+                    if (op === O.moveTo || op === O.lineTo) { pt(c[k], c[k + 1]); k += 2; }
+                    else if (op === O.curveTo) { pt(c[k + 4], c[k + 5]); k += 6; }
+                    else if (op === O.curveTo2 || op === O.curveTo3) { pt(c[k + 2], c[k + 3]); k += 4; }
+                    else if (op === O.rectangle) {
+                        const [x, y, w, h] = [c[k], c[k + 1], c[k + 2], c[k + 3]];
+                        pt(x, y); pt(x + w, y); pt(x + w, y + h); pt(x, y + h); k += 4;
+                    }
+                }
+            }
+        }
+        const grid = new Map();
+        pts.forEach(([x, y, deg]) => {
+            const key = Math.floor(x / BP_SNAP_CELL) + ',' + Math.floor(y / BP_SNAP_CELL);
+            let b = grid.get(key);
+            if (!b) grid.set(key, b = []);
+            b.push(x, y, deg);
+        });
+        return grid;
+    })();
+    BP.segs[n] = p;
+    p.catch(() => { if (BP.segs[n] === p) delete BP.segs[n]; });
+    return p;
+}
+// Drawn point within ~10 screen pixels, or null. Points where three or
+// more lines meet win over a slightly nearer loose line end.
+async function bpSnap(p, e) {
+    if (!document.getElementById('bpSnap').checked || (e && e.altKey) || !BP.pdf) return null;
+    let grid;
+    try { grid = await bpLoadSegs(BP.pageNum); } catch (err) { return null; }
+    const r = 10 / BP.zoom;
+    let best = null, bestScore = Infinity;
+    const cx0 = Math.floor((p[0] - r) / BP_SNAP_CELL), cx1 = Math.floor((p[0] + r) / BP_SNAP_CELL);
+    const cy0 = Math.floor((p[1] - r) / BP_SNAP_CELL), cy1 = Math.floor((p[1] + r) / BP_SNAP_CELL);
+    for (let cx = cx0; cx <= cx1; cx++) for (let cy = cy0; cy <= cy1; cy++) {
+        const b = grid.get(cx + ',' + cy);
+        if (!b) continue;
+        for (let i = 0; i < b.length; i += 3) {
+            const d = Math.hypot(b[i] - p[0], b[i + 1] - p[1]);
+            if (d > r) continue;
+            const deg = b[i + 2];
+            const score = d - (deg >= 3 ? r * 0.6 : deg === 2 ? r * 0.25 : 0);
+            if (score < bestScore) { bestScore = score; best = [b[i], b[i + 1]]; }
+        }
+    }
+    return best;
+}
+
+// ---- Tools ----
+function bpSetTool(tool) {
+    BP.tool = tool; BP.pending = []; BP.hover = null; BP.snapPt = null;
+    document.querySelectorAll('[data-bp-tool]').forEach(b => b.classList.toggle('active', b.getAttribute('data-bp-tool') === tool));
+    const vp = document.getElementById('bpViewport');
+    vp.classList.toggle('bp-crosshair', tool !== 'pan');
+    const hints = {
+        pan: 'Drag to move around; Ctrl/⌘ + scroll to zoom.',
+        calibrate: 'Click both ends of a dimension you know (e.g. 43\'-7"), then type its length.',
+        length: 'Click two points. The green square shows a snap to a drawn corner/line end (Alt = no snap); Shift keeps the line straight.',
+        area: 'Click each corner of the room; click the first point (or press Enter) to finish. Esc cancels.'
+    };
+    document.getElementById('bpHint').textContent = hints[tool] || '';
+    bpDrawOverlay();
+}
+function bpEventPdfPoint(e) {
+    const stage = document.getElementById('bpStage');
+    const r = stage.getBoundingClientRect();
+    return BP.viewport.convertToPdfPoint(e.clientX - r.left, e.clientY - r.top);
+}
+// Shift keeps the segment horizontal or vertical on screen.
+function bpOrtho(prev, p, e) {
+    if (!e.shiftKey || !prev) return p;
+    const a = bpToCss(prev), b = bpToCss(p);
+    const snapped = Math.abs(b[0] - a[0]) > Math.abs(b[1] - a[1]) ? [b[0], a[1]] : [a[0], b[1]];
+    return BP.viewport.convertToPdfPoint(snapped[0], snapped[1]);
+}
+function bpAddMeasure(m) {
+    (BP.state.measures[BP.pageNum] = BP.state.measures[BP.pageNum] || []).push(m);
+    bpSaveState(); bpRenderMeasures(); bpDrawOverlay();
+}
+function bpFinishArea() {
+    if (BP.pending.length >= 3) bpAddMeasure({ type: 'area', pts: BP.pending.slice() });
+    BP.pending = []; BP.hover = null; bpDrawOverlay();
+}
+async function bpStageClick(e) {
+    if (!BP.viewport || BP.tool === 'pan') return;
+    let p = bpEventPdfPoint(e);
+    p = (await bpSnap(p, e)) || bpOrtho(BP.pending[BP.pending.length - 1], p, e);
+    if (BP.tool === 'area' && BP.pending.length >= 3) {
+        const a = bpToCss(BP.pending[0]), b = bpToCss(p);
+        if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 10) { bpFinishArea(); return; }
+    }
+    BP.pending.push(p);
+    if ((BP.tool === 'length' || BP.tool === 'calibrate') && BP.pending.length === 2) {
+        const pts = BP.pending.slice();
+        BP.pending = []; BP.hover = null;
+        if (BP.tool === 'length') bpAddMeasure({ type: 'length', pts });
+        else bpCalibrate(pts);
+        return;
+    }
+    bpDrawOverlay();
+}
+function bpCalibrate(pts) {
+    const units = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]);
+    bpDrawOverlay();
+    if (units < 1) return;
+    const typed = prompt('Real length between those two points (e.g. 43\'-7" or 523"):', '');
+    if (typed === null) return;
+    const inches = bpParseLength(typed);
+    if (!inches) { alert('Couldn\'t read that length. Try a format like 43\'-7" or 523".'); return; }
+    BP.state.scales[BP.pageNum] = { inPerUnit: inches / units, pts, known: inches, how: 'calibrated' };
+    bpSaveState(); bpUpdateScaleUi(); bpRenderMeasures(); bpDrawOverlay(); bpRenderSheetList();
+    bpSetTool('length');
+}
+function bpUpdateScaleUi() {
+    const el = document.getElementById('bpScaleLabel');
+    const s = BP.state.scales[BP.pageNum];
+    if (s && s.inPerUnit) {
+        // Equivalent printed scale, e.g. 1/4" = 1'-0".
+        const paperInPerFoot = 12 / (s.inPerUnit * 72);
+        el.textContent = `Scale: ${s.how === 'printed' ? s.label : `calibrated (≈ ${bpFmtPaperIn(paperInPerFoot)} = 1'-0")`}`;
+        el.classList.remove('none');
+    } else {
+        el.textContent = 'Not calibrated — use Calibrate or pick the printed scale:';
+        el.classList.add('none');
+    }
+    const sel = document.getElementById('bpScaleSelect');
+    const info = BP.pages[BP.pageNum];
+    const found = info && info.scales ? info.scales : [];
+    let grp = sel.querySelector('optgroup[data-bp-found]');
+    if (grp) grp.remove();
+    if (found.length) {
+        grp = document.createElement('optgroup');
+        grp.label = 'Printed on this sheet';
+        grp.setAttribute('data-bp-found', '1');
+        found.forEach(f => { const o = document.createElement('option'); o.value = 'f' + f.paperIn; o.textContent = f.label; grp.appendChild(o); });
+        sel.insertBefore(grp, sel.options[1]);
+    }
+    sel.value = s && s.how === 'printed' ? (found.some(f => f.paperIn === s.paperIn) ? 'f' + s.paperIn : String(s.paperIn)) : '';
+    if (sel.selectedIndex < 0) sel.value = '';
+}
+function bpRenderMeasures() {
+    const list = document.getElementById('bpMeasureList');
+    const ms = BP.state.measures[BP.pageNum] || [];
+    if (!ms.length) { list.innerHTML = '<div class="bp-empty">Use Length or Area on the sheet; results show here.</div>'; return; }
+    list.innerHTML = ms.map((m, i) => `<div class="bp-row"><span>${m.type === 'area' ? 'Area' : 'Length'} ${i + 1}</span><span class="bp-val">${escapeHtml(bpMeasureValue(m, BP.pageNum))}</span><button type="button" class="bp-x" data-bp-del="${i}" title="Remove">&times;</button></div>`).join('');
+    list.querySelectorAll('[data-bp-del]').forEach(b => b.addEventListener('click', () => {
+        ms.splice(+b.getAttribute('data-bp-del'), 1);
+        bpSaveState(); bpRenderMeasures(); bpDrawOverlay();
+    }));
+}
+
+// ---- Dimensions on the current sheet ----
+function bpRenderDims() {
+    const list = document.getElementById('bpDimList');
+    const info = BP.pages[BP.pageNum];
+    if (!info) { list.innerHTML = '<div class="bp-empty">Reading this sheet…</div>'; return; }
+    document.getElementById('bpDimCount').textContent = `(${info.dims.length})`;
+    if (!info.dims.length) { list.innerHTML = '<div class="bp-empty">No dimension strings found on this sheet.</div>'; bpRenderDimSum(); return; }
+    // Top-to-bottom, left-to-right as printed.
+    const order = info.dims.map((d, i) => i).sort((a, b) => {
+        const la = info.lines[info.dims[a].line], lb = info.lines[info.dims[b].line];
+        const pa = bpLineCorners(la)[0], pb = bpLineCorners(lb)[0];
+        return (pb[1] - pa[1]) || (pa[0] - pb[0]);
+    });
+    list.innerHTML = order.map(i => {
+        const d = info.dims[i];
+        return `<div class="bp-row"><input type="checkbox" data-bp-dim-sel="${i}"${BP.dimSel.has(i) ? ' checked' : ''} title="Add to the total"><span class="bp-dim-text" data-bp-dim="${i}" title="Show on sheet">${escapeHtml(d.text)}</span><span class="bp-val">${(+d.inches.toFixed(3))}"</span></div>`;
+    }).join('');
+    list.querySelectorAll('[data-bp-dim]').forEach(el => el.addEventListener('click', () => {
+        const i = +el.getAttribute('data-bp-dim');
+        BP.highlight = { page: BP.pageNum, line: info.dims[i].line, dim: true };
+        bpDrawOverlay(); bpScrollToLine(info.lines[info.dims[i].line]);
+    }));
+    list.querySelectorAll('[data-bp-dim-sel]').forEach(cb => cb.addEventListener('change', () => {
+        const i = +cb.getAttribute('data-bp-dim-sel');
+        if (cb.checked) BP.dimSel.add(i); else BP.dimSel.delete(i);
+        bpRenderDimSum(); bpDrawOverlay();
+    }));
+    bpRenderDimSum();
+}
+function bpRenderDimSum() {
+    const el = document.getElementById('bpDimSum');
+    const info = BP.pages[BP.pageNum];
+    if (!info || !BP.dimSel.size) { el.innerHTML = '<span class="empty-note" style="margin:0;">Tick dimensions to add up a chain.</span>'; return; }
+    const total = [...BP.dimSel].reduce((t, i) => t + (info.dims[i] ? info.dims[i].inches : 0), 0);
+    el.innerHTML = `<b>${BP.dimSel.size} selected: ${bpFmtFtIn(total)}</b> (${+total.toFixed(3)}") <button type="button" class="bp-btn bp-small" id="bpDimClear">Clear</button>`;
+    document.getElementById('bpDimClear').addEventListener('click', () => { BP.dimSel = new Set(); bpRenderDims(); bpDrawOverlay(); });
+}
+function bpScrollToLine(l) {
+    const vp = document.getElementById('bpViewport'), stage = document.getElementById('bpStage');
+    const c = bpLineCorners(l).map(bpToCss);
+    const cx = c.reduce((t, p) => t + p[0], 0) / 4, cy = c.reduce((t, p) => t + p[1], 0) / 4;
+    vp.scrollLeft = cx + stage.offsetLeft - vp.clientWidth / 2;
+    vp.scrollTop = cy + stage.offsetTop - vp.clientHeight / 2;
+}
+
+// ---- Search ----
+function bpRunSearch() {
+    const q = document.getElementById('bpSearch').value.trim();
+    const box = document.getElementById('bpResults');
+    if (!q || !BP.pdf) { box.innerHTML = ''; return; }
+    const norm = s => bpNormalizeDimText(s).toLowerCase();
+    const nq = norm(q);
+    const hits = [];
+    Object.keys(BP.pages).map(Number).sort((a, b) => a - b).forEach(p => {
+        BP.pages[p].lines.forEach((l, li) => { if (norm(l.text).indexOf(nq) !== -1) hits.push({ p, li, text: l.text, dim: BP.pages[p].dims.some(d => d.line === li) }); });
+    });
+    const pending = BP.extractDone ? '' : `<div class="bp-empty">Still reading sheets (${Object.keys(BP.pages).length} of ${BP.pdf.numPages})…</div>`;
+    if (!hits.length) { box.innerHTML = pending + '<div class="bp-empty">No matches.</div>'; return; }
+    const shown = hits.slice(0, 300);
+    const mark = t => { const i = norm(t).indexOf(nq); return i === -1 ? escapeHtml(t) : escapeHtml(t.slice(0, i)) + '<mark>' + escapeHtml(t.slice(i, i + q.length)) + '</mark>' + escapeHtml(t.slice(i + q.length)); };
+    box.innerHTML = pending + `<div class="bp-empty">${hits.length} match${hits.length === 1 ? '' : 'es'}${hits.length > shown.length ? ` (first ${shown.length} shown)` : ''}</div>` +
+        shown.map((h, i) => `<button type="button" class="bp-result" data-bp-hit="${i}"><small>Sheet ${h.p}${BP.pages[h.p].label ? ' · ' + escapeHtml(BP.pages[h.p].label) : ''}</small><br>${mark(h.text.length > 80 ? h.text.slice(0, 80) + '…' : h.text)}</button>`).join('');
+    box.querySelectorAll('[data-bp-hit]').forEach(b => b.addEventListener('click', async () => {
+        const h = shown[+b.getAttribute('data-bp-hit')];
+        BP.highlight = { page: h.p, line: h.li, dim: h.dim };
+        if (h.p !== BP.pageNum) await bpGoTo(h.p, { fit: true });
+        // Zoom in enough to read the text, centered on it.
+        const l = BP.pages[h.p].lines[h.li];
+        if (BP.zoom < BP.fitZoom * 3) { BP.zoom = BP.fitZoom * 3; await bpRender(); }
+        bpDrawOverlay(); bpScrollToLine(l);
+    }));
+}
+
+// ---- Wiring ----
+(function bpInit() {
+    const input = document.getElementById('bpFileInput');
+    if (!input) return;
+    input.addEventListener('change', () => {
+        const f = input.files && input.files[0];
+        input.value = '';
+        if (!f) return;
+        if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') { alert('Please choose a PDF file.'); return; }
+        bpOpenBlob(f, f.name, f.lastModified, true);
+    });
+    document.getElementById('bpPrev').addEventListener('click', () => bpGoTo(BP.pageNum - 1, { fit: true }));
+    document.getElementById('bpNext').addEventListener('click', () => bpGoTo(BP.pageNum + 1, { fit: true }));
+    document.getElementById('bpZoomIn').addEventListener('click', () => bpZoomBy(1.4));
+    document.getElementById('bpZoomOut').addEventListener('click', () => bpZoomBy(1 / 1.4));
+    document.getElementById('bpFit').addEventListener('click', async () => { BP.zoom = BP.fitZoom; await bpRender(); });
+    document.querySelectorAll('[data-bp-tool]').forEach(b => b.addEventListener('click', () => bpSetTool(b.getAttribute('data-bp-tool'))));
+    document.getElementById('bpClearMeasures').addEventListener('click', () => {
+        if (!(BP.state.measures[BP.pageNum] || []).length) return;
+        if (!confirm('Remove all measurements on this sheet?')) return;
+        BP.state.measures[BP.pageNum] = []; bpSaveState(); bpRenderMeasures(); bpDrawOverlay();
+    });
+    document.getElementById('bpScaleSelect').addEventListener('change', e => {
+        const paperIn = parseFloat(String(e.target.value).replace(/^f/, ''));
+        if (!paperIn) return;
+        // paperIn inches of paper = 12 real inches; 72 PDF units per paper inch.
+        BP.state.scales[BP.pageNum] = { inPerUnit: 12 / (paperIn * 72), how: 'printed', paperIn, label: e.target.options[e.target.selectedIndex].text };
+        bpSaveState(); bpUpdateScaleUi(); bpRenderMeasures(); bpDrawOverlay(); bpRenderSheetList();
+    });
+    document.getElementById('bpScaleAll').addEventListener('click', () => {
+        const s = BP.state.scales[BP.pageNum];
+        if (!s || !BP.pdf) { alert('Set this sheet\'s scale first.'); return; }
+        let n = 0;
+        for (let p = 1; p <= BP.pdf.numPages; p++) {
+            if (!BP.state.scales[p]) { BP.state.scales[p] = { inPerUnit: s.inPerUnit, how: s.how, paperIn: s.paperIn, label: s.label, known: s.known }; n++; }
+        }
+        bpSaveState(); bpRenderSheetList();
+        bpSetStatus(`Scale copied to ${n} sheet${n === 1 ? '' : 's'} that didn't have one. Check enlarged plans and details — they're usually drawn at a different scale.`);
+    });
+    const search = document.getElementById('bpSearch');
+    search.addEventListener('input', debounce(bpRunSearch, 200));
+    addSearchClear(search);
+
+    const vp = document.getElementById('bpViewport'), stage = document.getElementById('bpStage');
+    let drag = null;
+    vp.addEventListener('mousedown', e => {
+        if (BP.tool !== 'pan' || e.button !== 0) return;
+        drag = { x: e.clientX, y: e.clientY, sl: vp.scrollLeft, st: vp.scrollTop };
+        vp.classList.add('bp-dragging'); e.preventDefault();
+    });
+    window.addEventListener('mousemove', e => {
+        if (drag) { vp.scrollLeft = drag.sl - (e.clientX - drag.x); vp.scrollTop = drag.st - (e.clientY - drag.y); return; }
+        if (BP.tool !== 'pan' && BP.viewport && stage.contains(e.target)) {
+            const raw = bpEventPdfPoint(e), seq = ++BP.hoverSeq;
+            bpSnap(raw, e).then(sp => {
+                if (seq !== BP.hoverSeq) return;
+                BP.snapPt = sp;
+                BP.hover = BP.pending.length ? (sp || bpOrtho(BP.pending[BP.pending.length - 1], raw, e)) : null;
+                bpDrawOverlay();
+            });
+        }
+    });
+    window.addEventListener('mouseup', () => { drag = null; vp.classList.remove('bp-dragging'); });
+    stage.addEventListener('click', bpStageClick);
+    stage.addEventListener('dblclick', e => { if (BP.tool === 'area') { e.preventDefault(); bpFinishArea(); } });
+    vp.addEventListener('wheel', e => {
+        if (!(e.ctrlKey || e.metaKey) || !BP.pdf) return;
+        e.preventDefault();
+        const r = vp.getBoundingClientRect();
+        bpZoomBy(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - r.left, e.clientY - r.top);
+    }, { passive: false });
+    document.addEventListener('keydown', e => {
+        if (adminSubTab !== 'blueprints' || !BP.pdf) return;
+        if (e.key === 'Escape' && BP.pending.length) { BP.pending = []; BP.hover = null; bpDrawOverlay(); }
+        else if (e.key === 'Enter' && BP.tool === 'area' && BP.pending.length >= 3) bpFinishArea();
+    });
+    bpSetTool('pan');
+})();
+// Called when the Blueprints sub-tab is shown: reopen the last file.
+let bpRestoreTried = false;
+function bpOnShow() {
+    if (BP.pdf) { if (BP.viewport) bpGoTo(BP.pageNum); return; }
+    if (bpRestoreTried) return;
+    bpRestoreTried = true;
+    bpDbGet().then(rec => {
+        if (rec && rec.blob && !BP.pdf) bpOpenBlob(rec.blob, rec.name, rec.lastModified, false);
+    }).catch(() => {});
+}
 // Catch text set by the app itself (e.g. picking a result clears the box).
 setInterval(() => SEARCH_CLEAR_INPUTS.forEach(([, sync]) => sync()), 500);
 
