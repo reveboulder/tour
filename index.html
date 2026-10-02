@@ -1376,6 +1376,8 @@
     .bp-tool { border: none; border-right: 1px solid var(--line); background: #fff; padding: 5px 10px; font-size: 12.5px; cursor: pointer; font-family: var(--sans); color: inherit; }
     .bp-tool:last-child { border-right: none; }
     .bp-tool.active { background: var(--reve-orange); color: #fff; }
+    .bp-snap { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; margin-left: 4px; }
+    .bp-overlay .bp-snap-mark { fill: none; stroke: #18a058; stroke-width: 2; }
     .bp-scale-label { font-size: 12.5px; font-weight: 700; }
     .bp-scale-label.none { color: #b26a00; }
     #bpScaleSelect { width: auto; flex: none; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; font-size: 12px; font-family: var(--sans); }
@@ -3830,6 +3832,7 @@
                             <button type="button" class="bp-tool" data-bp-tool="area" title="Click each corner; click the first point (or press Enter) to close">Area</button>
                         </div>
                         <button type="button" class="bp-btn" id="bpClearMeasures" title="Remove this sheet's measurements">Clear</button>
+                        <label class="bp-snap" title="Clicks jump to the nearest corner or line end drawn on the sheet (hold Alt to click freely)"><input type="checkbox" id="bpSnap" checked> Snap to lines</label>
                     </div>
                     <div class="bp-scale-row">
                         <span id="bpScaleLabel" class="bp-scale-label"></span>
@@ -17968,7 +17971,7 @@ const BP = {
     tool: 'pan', pending: [], viewport: null, renderTask: null,
     pages: {},            // pageNum -> { lines, dims, label } once extracted
     extractDone: false, highlight: null, dimSel: new Set(), state: { scales: {}, measures: {} },
-    loading: false
+    loading: false, segs: {}, snapPt: null, hoverSeq: 0
 };
 
 // ---- Dimension text: "29'-6 1/4"" -> 354.25 inches ----
@@ -18100,7 +18103,7 @@ async function bpOpenBlob(blob, name, lastModified, remember) {
         BP.pdf = await pdfjsLib.getDocument({ data }).promise;
         BP.fileName = name;
         BP.fileKey = `${name}|${blob.size}|${lastModified || ''}`;
-        BP.pages = {}; BP.extractDone = false; BP.highlight = null; BP.dimSel = new Set(); BP.pending = [];
+        BP.pages = {}; BP.segs = {}; BP.extractDone = false; BP.highlight = null; BP.dimSel = new Set(); BP.pending = [];
         BP.pageNum = 1;
         bpLoadState();
         document.getElementById('bpFileName').textContent = `${name} · ${BP.pdf.numPages} sheet${BP.pdf.numPages === 1 ? '' : 's'} · ${(blob.size / 1048576).toFixed(1)} MB`;
@@ -18153,7 +18156,7 @@ function bpBuildLines(items) {
         g.items.sort((p, q) => p.along - q.along);
         let cur = null;
         g.items.forEach(fr => {
-            const gapLimit = Math.max(fr.size, cur ? cur.size : 0) * 1.2;
+            const gapLimit = Math.max(fr.size, cur ? cur.size : 0) * 0.6;
             if (cur && fr.along - cur.end <= gapLimit) {
                 const gap = fr.along - cur.end;
                 cur.text += (gap > fr.size * 0.2 && !/[\s\-\/]$/.test(cur.text) && !/^[\s"'\/]/.test(fr.str) ? ' ' : '') + fr.str;
@@ -18177,22 +18180,51 @@ function bpLineCorners(l, from, to) {
     const pad = l.size * 0.15;
     return [pt(s - pad, l.baseMin - pad), pt(e + pad, l.baseMin - pad), pt(e + pad, l.baseMax + pad), pt(s - pad, l.baseMax + pad)];
 }
-// Sheet number such as A5.1, A-101 or S2.03: the largest one on the sheet.
-const BP_SHEET_RE = /^[A-Z]{1,2}-?\d{1,3}(?:\.\d{1,3})?[A-Z]?$/;
+// Sheet number such as A1-109, A3-101A, A5.1 or S2.03: the largest one
+// on the sheet (the title block's), not room or door tags.
+const BP_SHEET_RE = /^[A-Z]{1,2}\d{0,2}[-.]?\d{1,4}(?:\.\d{1,3})?[A-Z]?$/;
 function bpSheetLabel(lines) {
     let best = null;
     lines.forEach(l => { if (BP_SHEET_RE.test(l.text) && (!best || l.size > best.size)) best = l; });
     return best ? best.text : '';
+}
+// Dimension strings on a sheet. Skips scale notes (1/8" = 1'-0"), sizes
+// mentioned inside notes ("PROVIDE 4' HIGH RAILING"), and graphic scale
+// bar labels (0' 4' 8' 16' 32').
+function bpSheetDims(lines) {
+    const dims = [];
+    lines.forEach((l, li) => {
+        if (/scale|=/i.test(l.text)) return;
+        const t = bpNormalizeDimText(l.text).trim();
+        bpFindDims(t).forEach(d => { if (d.text.length >= t.length * 0.6) dims.push({ ...d, line: li }); });
+    });
+    const bare = dims.filter(d => /^\d+\s*'$/.test(d.text));
+    const barVals = new Set(bare.map(d => d.inches / 12));
+    if ([2, 4, 8, 16, 32, 64].filter(v => barVals.has(v)).length >= 3) {
+        return dims.filter(d => !(/^\d+\s*'$/.test(d.text) && [2, 4, 8, 16, 32, 64].indexOf(d.inches / 12) !== -1));
+    }
+    return dims;
+}
+// Printed scales on a sheet, e.g. 1/8" = 1'-0" -> paper inches per foot.
+function bpFoundScales(lines) {
+    const found = {};
+    lines.forEach(l => {
+        const t = bpNormalizeDimText(l.text);
+        const re = /(?:^|[^\d\/])((?:(\d+)\s+)?(\d+)\s*\/\s*(\d+)|(\d+(?:\.\d+)?))\s*"\s*=\s*1\s*'\s*-?\s*0?\s*"?/g;
+        let m;
+        while ((m = re.exec(t))) {
+            const paperIn = m[5] !== undefined ? parseFloat(m[5]) : (m[2] ? +m[2] : 0) + m[3] / m[4];
+            if (paperIn > 0 && paperIn <= 12) found[paperIn] = (m[1].replace(/\s+/g, ' ')) + '" = 1\'-0"';
+        }
+    });
+    return Object.keys(found).map(Number).sort((a, b) => a - b).map(v => ({ paperIn: v, label: found[v] }));
 }
 async function bpExtractPage(n) {
     if (BP.pages[n]) return BP.pages[n];
     const page = await BP.pdf.getPage(n);
     const tc = await page.getTextContent();
     const lines = bpBuildLines(tc.items);
-    const dims = [];
-    // Scale notes ("SCALE: 1/4" = 1'-0"") aren't dimensions.
-    lines.forEach((l, li) => { if (!/scale|=/i.test(l.text)) bpFindDims(l.text).forEach(d => dims.push({ ...d, line: li })); });
-    BP.pages[n] = { lines, dims, label: bpSheetLabel(lines), itemCount: tc.items.length };
+    BP.pages[n] = { lines, dims: bpSheetDims(lines), label: bpSheetLabel(lines), scales: bpFoundScales(lines), itemCount: tc.items.length };
     return BP.pages[n];
 }
 async function bpExtractAll() {
@@ -18200,7 +18232,7 @@ async function bpExtractAll() {
     for (let n = 1; n <= pdf.numPages; n++) {
         if (BP.pdf !== pdf) return;   // another file was opened
         bpSetStatus(`Reading sheet text ${n} of ${pdf.numPages}…`);
-        try { await bpExtractPage(n); } catch (e) { BP.pages[n] = { lines: [], dims: [], label: '', itemCount: 0 }; }
+        try { await bpExtractPage(n); } catch (e) { BP.pages[n] = { lines: [], dims: [], label: '', scales: [], itemCount: 0 }; }
         if (n % 5 === 0 || n === pdf.numPages) bpRenderSheetList();
         if (n === BP.pageNum) { bpRenderDims(); bpDrawOverlay(); }
     }
@@ -18294,7 +18326,8 @@ async function bpGoTo(n, opts) {
     if (act && changed) act.scrollIntoView({ block: 'nearest' });
     bpUpdateScaleUi();
     bpRenderMeasures();
-    bpExtractPage(n).then(() => { if (BP.pageNum === n) { bpRenderDims(); bpDrawOverlay(); } }).catch(() => {});
+    bpExtractPage(n).then(() => { if (BP.pageNum === n) { bpRenderDims(); bpDrawOverlay(); bpUpdateScaleUi(); } }).catch(() => {});
+    bpLoadSegs(n).catch(() => {});
 }
 async function bpRender(page) {
     page = page || await BP.pdf.getPage(BP.pageNum);
@@ -18383,19 +18416,101 @@ function bpDrawOverlay() {
         BP.pending.forEach(p => { const [x, y] = bpToCss(p); parts.push(`<circle class="bp-m-pt" cx="${x}" cy="${y}" r="3.5"/>`); });
         if (BP.hover && BP.tool === 'length' && BP.pending.length === 1) parts.push(label(BP.hover, bpMeasureValue({ type: 'length', pts: [BP.pending[0], BP.hover] }, BP.pageNum)));
     }
+    if (BP.snapPt && BP.tool !== 'pan') {
+        const [x, y] = bpToCss(BP.snapPt);
+        parts.push(`<rect class="bp-snap-mark" x="${x - 6}" y="${y - 6}" width="12" height="12"/>`);
+    }
     svg.innerHTML = parts.join('');
+}
+
+// ---- Snap: line endpoints drawn on the sheet ----
+// Walks the sheet's drawing operators (tracking save/restore/transform)
+// and buckets every line end into a 6pt grid for quick lookup.
+const BP_SNAP_CELL = 6;
+async function bpLoadSegs(n) {
+    if (BP.segs[n]) return BP.segs[n];
+    const pdf = BP.pdf;
+    const p = (async () => {
+        const page = await pdf.getPage(n);
+        const ops = await page.getOperatorList();
+        const O = window.pdfjsLib.OPS;
+        let m = [1, 0, 0, 1, 0, 0];
+        const stack = [], pts = new Map();
+        const mul = (a, b) => [a[0] * b[0] + a[2] * b[1], a[1] * b[0] + a[3] * b[1], a[0] * b[2] + a[2] * b[3], a[1] * b[2] + a[3] * b[3], a[0] * b[4] + a[2] * b[5] + a[4], a[1] * b[4] + a[3] * b[5] + a[5]];
+        // Count how many line ends meet at each point: corners and
+        // dimension ends are shared by several lines, tick tips aren't.
+        const add = (x, y) => {
+            const key = Math.round(x * 20) + ',' + Math.round(y * 20);
+            const e = pts.get(key);
+            if (e) e[2]++; else pts.set(key, [x, y, 1]);
+        };
+        for (let i = 0; i < ops.fnArray.length; i++) {
+            const fn = ops.fnArray[i], a = ops.argsArray[i];
+            if (fn === O.save) stack.push(m);
+            else if (fn === O.restore) m = stack.pop() || m;
+            else if (fn === O.transform) m = mul(m, a);
+            else if (fn === O.constructPath) {
+                const pops = a[0], c = a[1];
+                let k = 0;
+                const pt = (x, y) => add(m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]);
+                for (const op of pops) {
+                    if (op === O.moveTo || op === O.lineTo) { pt(c[k], c[k + 1]); k += 2; }
+                    else if (op === O.curveTo) { pt(c[k + 4], c[k + 5]); k += 6; }
+                    else if (op === O.curveTo2 || op === O.curveTo3) { pt(c[k + 2], c[k + 3]); k += 4; }
+                    else if (op === O.rectangle) {
+                        const [x, y, w, h] = [c[k], c[k + 1], c[k + 2], c[k + 3]];
+                        pt(x, y); pt(x + w, y); pt(x + w, y + h); pt(x, y + h); k += 4;
+                    }
+                }
+            }
+        }
+        const grid = new Map();
+        pts.forEach(([x, y, deg]) => {
+            const key = Math.floor(x / BP_SNAP_CELL) + ',' + Math.floor(y / BP_SNAP_CELL);
+            let b = grid.get(key);
+            if (!b) grid.set(key, b = []);
+            b.push(x, y, deg);
+        });
+        return grid;
+    })();
+    BP.segs[n] = p;
+    p.catch(() => { if (BP.segs[n] === p) delete BP.segs[n]; });
+    return p;
+}
+// Drawn point within ~10 screen pixels, or null. Points where three or
+// more lines meet win over a slightly nearer loose line end.
+async function bpSnap(p, e) {
+    if (!document.getElementById('bpSnap').checked || (e && e.altKey) || !BP.pdf) return null;
+    let grid;
+    try { grid = await bpLoadSegs(BP.pageNum); } catch (err) { return null; }
+    const r = 10 / BP.zoom;
+    let best = null, bestScore = Infinity;
+    const cx0 = Math.floor((p[0] - r) / BP_SNAP_CELL), cx1 = Math.floor((p[0] + r) / BP_SNAP_CELL);
+    const cy0 = Math.floor((p[1] - r) / BP_SNAP_CELL), cy1 = Math.floor((p[1] + r) / BP_SNAP_CELL);
+    for (let cx = cx0; cx <= cx1; cx++) for (let cy = cy0; cy <= cy1; cy++) {
+        const b = grid.get(cx + ',' + cy);
+        if (!b) continue;
+        for (let i = 0; i < b.length; i += 3) {
+            const d = Math.hypot(b[i] - p[0], b[i + 1] - p[1]);
+            if (d > r) continue;
+            const deg = b[i + 2];
+            const score = d - (deg >= 3 ? r * 0.6 : deg === 2 ? r * 0.25 : 0);
+            if (score < bestScore) { bestScore = score; best = [b[i], b[i + 1]]; }
+        }
+    }
+    return best;
 }
 
 // ---- Tools ----
 function bpSetTool(tool) {
-    BP.tool = tool; BP.pending = []; BP.hover = null;
+    BP.tool = tool; BP.pending = []; BP.hover = null; BP.snapPt = null;
     document.querySelectorAll('[data-bp-tool]').forEach(b => b.classList.toggle('active', b.getAttribute('data-bp-tool') === tool));
     const vp = document.getElementById('bpViewport');
     vp.classList.toggle('bp-crosshair', tool !== 'pan');
     const hints = {
         pan: 'Drag to move around; Ctrl/⌘ + scroll to zoom.',
         calibrate: 'Click both ends of a dimension you know (e.g. 43\'-7"), then type its length.',
-        length: 'Click two points. Hold Shift to keep the line straight across or up/down.',
+        length: 'Click two points. The green square shows a snap to a drawn corner/line end (Alt = no snap); Shift keeps the line straight.',
         area: 'Click each corner of the room; click the first point (or press Enter) to finish. Esc cancels.'
     };
     document.getElementById('bpHint').textContent = hints[tool] || '';
@@ -18421,10 +18536,10 @@ function bpFinishArea() {
     if (BP.pending.length >= 3) bpAddMeasure({ type: 'area', pts: BP.pending.slice() });
     BP.pending = []; BP.hover = null; bpDrawOverlay();
 }
-function bpStageClick(e) {
+async function bpStageClick(e) {
     if (!BP.viewport || BP.tool === 'pan') return;
     let p = bpEventPdfPoint(e);
-    p = bpOrtho(BP.pending[BP.pending.length - 1], p, e);
+    p = (await bpSnap(p, e)) || bpOrtho(BP.pending[BP.pending.length - 1], p, e);
     if (BP.tool === 'area' && BP.pending.length >= 3) {
         const a = bpToCss(BP.pending[0]), b = bpToCss(p);
         if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 10) { bpFinishArea(); return; }
@@ -18463,7 +18578,20 @@ function bpUpdateScaleUi() {
         el.textContent = 'Not calibrated — use Calibrate or pick the printed scale:';
         el.classList.add('none');
     }
-    document.getElementById('bpScaleSelect').value = s && s.how === 'printed' ? String(s.paperIn) : '';
+    const sel = document.getElementById('bpScaleSelect');
+    const info = BP.pages[BP.pageNum];
+    const found = info && info.scales ? info.scales : [];
+    let grp = sel.querySelector('optgroup[data-bp-found]');
+    if (grp) grp.remove();
+    if (found.length) {
+        grp = document.createElement('optgroup');
+        grp.label = 'Printed on this sheet';
+        grp.setAttribute('data-bp-found', '1');
+        found.forEach(f => { const o = document.createElement('option'); o.value = 'f' + f.paperIn; o.textContent = f.label; grp.appendChild(o); });
+        sel.insertBefore(grp, sel.options[1]);
+    }
+    sel.value = s && s.how === 'printed' ? (found.some(f => f.paperIn === s.paperIn) ? 'f' + s.paperIn : String(s.paperIn)) : '';
+    if (sel.selectedIndex < 0) sel.value = '';
 }
 function bpRenderMeasures() {
     const list = document.getElementById('bpMeasureList');
@@ -18572,7 +18700,7 @@ function bpRunSearch() {
         BP.state.measures[BP.pageNum] = []; bpSaveState(); bpRenderMeasures(); bpDrawOverlay();
     });
     document.getElementById('bpScaleSelect').addEventListener('change', e => {
-        const paperIn = parseFloat(e.target.value);
+        const paperIn = parseFloat(String(e.target.value).replace(/^f/, ''));
         if (!paperIn) return;
         // paperIn inches of paper = 12 real inches; 72 PDF units per paper inch.
         BP.state.scales[BP.pageNum] = { inPerUnit: 12 / (paperIn * 72), how: 'printed', paperIn, label: e.target.options[e.target.selectedIndex].text };
@@ -18601,9 +18729,14 @@ function bpRunSearch() {
     });
     window.addEventListener('mousemove', e => {
         if (drag) { vp.scrollLeft = drag.sl - (e.clientX - drag.x); vp.scrollTop = drag.st - (e.clientY - drag.y); return; }
-        if (BP.tool !== 'pan' && BP.pending.length && BP.viewport && stage.contains(e.target)) {
-            BP.hover = bpOrtho(BP.pending[BP.pending.length - 1], bpEventPdfPoint(e), e);
-            bpDrawOverlay();
+        if (BP.tool !== 'pan' && BP.viewport && stage.contains(e.target)) {
+            const raw = bpEventPdfPoint(e), seq = ++BP.hoverSeq;
+            bpSnap(raw, e).then(sp => {
+                if (seq !== BP.hoverSeq) return;
+                BP.snapPt = sp;
+                BP.hover = BP.pending.length ? (sp || bpOrtho(BP.pending[BP.pending.length - 1], raw, e)) : null;
+                bpDrawOverlay();
+            });
         }
     });
     window.addEventListener('mouseup', () => { drag = null; vp.classList.remove('bp-dragging'); });
