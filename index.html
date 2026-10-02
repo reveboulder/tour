@@ -1408,6 +1408,12 @@
     .bp-dot-outer { background: #1f5fd1; } .bp-dot-inner { background: #18a058; }
     .btn.primary.bp-to-make { width: auto; flex: none; padding: 6px 14px; margin-left: auto; }
     .bp-to-results { font-size: 12.5px; }
+    .bp-lay { border-top: 1px solid var(--line-soft); margin-top: 10px; padding-top: 8px; }
+    .bp-to-row label.bp-inline { flex-direction: row; align-items: center; gap: 5px; font-weight: 600; color: inherit; font-size: 12px; padding-bottom: 6px; }
+    .bp-to-row label.bp-inline input[type="range"] { width: 90px; padding: 0; }
+    .bp-lay-name { font-size: 12.5px; font-weight: 700; padding-bottom: 7px; }
+    .bp-btn:disabled { opacity: 0.45; cursor: default; }
+    .bp-lay-canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; mix-blend-mode: multiply; }
     .bp-to-results table { border-collapse: collapse; width: 100%; max-width: 760px; }
     .bp-to-results td, .bp-to-results th { border-bottom: 1px solid var(--line-soft); padding: 4px 8px; text-align: left; }
     .bp-to-results th { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
@@ -3913,6 +3919,25 @@
                             <button type="button" class="btn primary bp-to-make" id="bpToImage">Create floorplan image</button>
                         </div>
                         <div class="bp-to-results" id="bpToResults"></div>
+                        <div class="bp-lay">
+                            <div class="bp-side-title">2D layout overlay <span class="bp-count">&mdash; line a floorplan layout up with the blueprint, then export that layout with these measurements</span></div>
+                            <div class="bp-to-row">
+                                <select id="bpLaySelect" class="bp-fp-select"><option value="">Choose a site floorplan&hellip;</option></select>
+                                <label class="file-label" for="bpLayFile">Upload layout</label>
+                                <input type="file" id="bpLayFile" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp" style="display:none;">
+                                <span class="bp-lay-name" id="bpLayName">No layout chosen</span>
+                            </div>
+                            <div class="bp-to-row">
+                                <button type="button" class="bp-btn" id="bpLayAlign" disabled>Align (match 2 corners)</button>
+                                <button type="button" class="bp-btn" id="bpLayAlign3" disabled title="Also fixes a mirrored or slightly stretched layout">Refine with a 3rd corner</button>
+                                <label class="bp-inline"><input type="checkbox" id="bpLayMirror"> Mirrored</label>
+                                <label class="bp-inline"><input type="checkbox" id="bpLayShow" checked> Show</label>
+                                <label class="bp-inline">Opacity <input type="range" id="bpLayOpacity" min="10" max="100" value="60"></label>
+                                <label class="bp-inline"><input type="checkbox" id="bpLayOuter"> Also dimension the outer boundary</label>
+                                <button type="button" class="btn primary bp-to-make" id="bpLayExport" disabled>Export layout with measurements</button>
+                            </div>
+                            <div class="bp-to-note" id="bpLayStatus"></div>
+                        </div>
                     </div>
                     <div class="bp-panels">
                         <div class="bp-panel">
@@ -18452,6 +18477,7 @@ async function bpRender(page) {
     const dpr = Math.min(window.devicePixelRatio || 1, Math.max(1, maxZoom / BP.zoom));
     const dev = page.getViewport({ scale: BP.zoom * dpr });
     BP.viewport = css;
+    BP.v1 = base;
     const canvas = document.getElementById('bpCanvas');
     if (BP.renderTask) { try { BP.renderTask.cancel(); } catch (e) {} }
     canvas.width = Math.floor(dev.width); canvas.height = Math.floor(dev.height);
@@ -18460,6 +18486,7 @@ async function bpRender(page) {
     svg.setAttribute('width', Math.floor(css.width)); svg.setAttribute('height', Math.floor(css.height));
     document.getElementById('bpZoomLabel').textContent = Math.round(BP.zoom * 100) + '%';
     bpDrawOverlay();
+    bpPlaceLayout();
     BP.renderTask = page.render({ canvasContext: canvas.getContext('2d'), viewport: dev });
     try { await BP.renderTask.promise; } catch (e) { if (e && e.name !== 'RenderingCancelledException') console.error(e); }
 }
@@ -18513,6 +18540,7 @@ function bpDrawOverlay() {
         }
     }
     bpDrawTakeoffs(parts, poly);
+    bpDrawAlignMarks(parts);
     (BP.state.measures[BP.pageNum] || []).forEach(m => {
         const cls = m.type === 'area' ? 'bp-m-area' : 'bp-m-line';
         parts.push(m.type === 'area' ? `<polygon class="${cls}" points="${poly(m.pts)}"/>` : `<polyline class="${cls}" points="${poly(m.pts)}"/>`);
@@ -18596,6 +18624,7 @@ async function bpLoadSegs(n) {
 // more lines meet win over a slightly nearer loose line end.
 async function bpSnap(p, e) {
     if (!document.getElementById('bpSnap').checked || (e && e.altKey) || !BP.pdf || BP.pdf.isImage) return null;
+    if (BP.align && BP.align.step === 'L') return null;
     let grid;
     try { grid = await bpLoadSegs(BP.pageNum); } catch (err) { return null; }
     const r = 10 / BP.zoom;
@@ -18619,6 +18648,7 @@ async function bpSnap(p, e) {
 // ---- Tools ----
 function bpSetTool(tool) {
     BP.tool = tool; BP.pending = []; BP.hover = null; BP.snapPt = null;
+    if (tool !== 'align' && BP.align) { BP.align = null; bpPlaceLayout(); }
     document.querySelectorAll('[data-bp-tool]').forEach(b => b.classList.toggle('active', b.getAttribute('data-bp-tool') === tool));
     const vp = document.getElementById('bpViewport');
     vp.classList.toggle('bp-crosshair', tool !== 'pan');
@@ -18627,6 +18657,7 @@ function bpSetTool(tool) {
         calibrate: 'Click both ends of a dimension you know (e.g. 43\'-7"), then type its length.',
         length: 'Click two points. The green square shows a snap to a drawn corner/line end (Alt = no snap); Shift keeps the line straight.',
         area: 'Click each corner of the room; click the first point (or press Enter) to finish. Esc cancels.',
+        align: '',
         outer: 'Outer boundary: click around the OUTSIDE of the unit\'s walls, corner by corner; click the first point (or press Enter) to close. Esc cancels.',
         inner: 'Inner boundary: click along the INSIDE face of the walls (in and out around kitchen/appliance alcoves as drawn); click the first point (or Enter) to close.'
     };
@@ -18669,6 +18700,7 @@ function bpFinishArea() {
 }
 async function bpStageClick(e) {
     if (!BP.viewport || BP.tool === 'pan') return;
+    if (BP.tool === 'align') { bpAlignClick(e); return; }
     let p = bpEventPdfPoint(e);
     p = (await bpSnap(p, e)) || bpOrtho(BP.pending[BP.pending.length - 1], p, e);
     if (BP_POLY_TOOLS.indexOf(BP.tool) !== -1 && BP.pending.length >= 3) {
@@ -18919,6 +18951,8 @@ function bpRenderTakeoff() {
     document.getElementById('bpToName').value = t ? t.name || '' : '';
     document.getElementById('bpToKnown').value = t ? t.known || '' : '';
     document.getElementById('bpToBasis').value = t ? t.basis || 'outer' : 'outer';
+    bpLoadLayout(t).then(bpRenderLayoutUi).catch(() => {});
+    bpRenderLayoutUi();
     const box = document.getElementById('bpToResults');
     if (!t || (!t.outer && !t.inner)) {
         box.innerHTML = `<div class="bp-to-note">Click <b>Trace outer boundary</b> and click around the outside of the unit's walls${BP.pdf.isImage ? '' : ', then <b>Trace inner boundary</b> along the inside face of the walls'}. Enter the known sq ft to size everything from it.</div>`;
@@ -19064,8 +19098,13 @@ async function bpFillFloorplanSelect() {
     const sel = document.getElementById('bpFpSelect');
     try { await fpLoadList(false); } catch (e) {}
     const files = (FP_FILES || []).slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    sel.innerHTML = `<option value="">${files.length ? 'Or open a site floorplan…' : 'No site floorplans found'}</option>` +
-        files.map(f => `<option value="${escapeAttr(f.name)}">${escapeHtml(f.name)}</option>`).join('');
+    const opts = files.map(f => `<option value="${escapeAttr(f.name)}">${escapeHtml(f.name)}</option>`).join('');
+    sel.innerHTML = `<option value="">${files.length ? 'Or open a site floorplan\u2026' : 'No site floorplans found'}</option>` + opts;
+    // Layout picker: 2D plans first.
+    const two = files.filter(f => /(^|[-_ ])2d([-_ .]|$)/i.test(f.name)), rest = files.filter(f => two.indexOf(f) === -1);
+    const o = list => list.map(f => `<option value="${escapeAttr(f.name)}">${escapeHtml(f.name)}</option>`).join('');
+    document.getElementById('bpLaySelect').innerHTML = `<option value="">${files.length ? 'Choose a site floorplan\u2026' : 'No site floorplans found'}</option>` +
+        (two.length ? `<optgroup label="2D plans">${o(two)}</optgroup>` : '') + (rest.length ? `<optgroup label="Other">${o(rest)}</optgroup>` : '');
 }
 function bpWireTakeoff() {
     const sel = document.getElementById('bpToSelect');
@@ -19123,6 +19162,361 @@ function bpWireTakeoff() {
             bpSetStatus(`Couldn't open ${name} (${err.message}).`);
         }
     });
+}
+
+// ---- 2D layout overlay: line a marketing floorplan up with the sheet ----
+// The layout (an image, or page 1 of a PDF) is drawn over the sheet with
+// an affine matrix M that maps layout pixels to sheet points at scale 1
+// (y down, like the screen). Two matched corners give position, size and
+// rotation (plus a mirror switch); a third corner also absorbs mirroring
+// and any stretch. The traced boundaries are measured on the true-scale
+// sheet, then mapped back through M onto the original layout for export.
+const BP_LAY_MAX = 2400;  // layout working size (longest side, PDFs)
+BP.lay = null;            // { key, name, canvas, W, H } for the loaded layout
+BP.align = null;          // { want, step: 'L' | 'S', pairs: [{ L, S }] }
+function bpMatApply(M, p) { return [M[0] * p[0] + M[2] * p[1] + M[4], M[1] * p[0] + M[3] * p[1] + M[5]]; }
+function bpMatInv(M) {
+    const det = M[0] * M[3] - M[1] * M[2];
+    if (!det) return null;
+    const a = M[3] / det, b = -M[1] / det, c = -M[2] / det, d = M[0] / det;
+    return [a, b, c, d, -(a * M[4] + c * M[5]), -(b * M[4] + d * M[5])];
+}
+// Sheet point (PDF units) <-> page point at scale 1 (y down).
+function bpSheetToP(p) { return BP.v1.convertToViewportPoint(p[0], p[1]); }
+function bpPToSheet(p) { return BP.v1.convertToPdfPoint(p[0], p[1]); }
+// Fit M from matched pairs (layout px -> page point).
+function bpFitLayout(pairs, mirror, W) {
+    if (pairs.length >= 3) {
+        // Affine through three points: solve for both rows.
+        const [p1, p2, p3] = pairs;
+        const A = [[p1.L[0], p1.L[1], 1], [p2.L[0], p2.L[1], 1], [p3.L[0], p3.L[1], 1]];
+        const solve = (r) => {
+            const det = m => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+            const D = det(A);
+            if (Math.abs(D) < 1e-9) return null;
+            return [0, 1, 2].map(k => det(A.map((row, i) => row.map((v, j) => j === k ? r[i] : v))) / D);
+        };
+        const X = solve([p1.S[0], p2.S[0], p3.S[0]]), Y = solve([p1.S[1], p2.S[1], p3.S[1]]);
+        if (X && Y) return [X[0], Y[0], X[1], Y[1], X[2], Y[2]];
+    }
+    if (pairs.length < 2) return null;
+    // Similarity (scale + rotation + move), on mirrored x when asked.
+    const f = p => mirror ? [W - p[0], p[1]] : p;
+    const l1 = f(pairs[0].L), l2 = f(pairs[1].L), s1 = pairs[0].S, s2 = pairs[1].S;
+    const dl = [l2[0] - l1[0], l2[1] - l1[1]], ds = [s2[0] - s1[0], s2[1] - s1[1]];
+    const den = dl[0] * dl[0] + dl[1] * dl[1];
+    if (!den) return null;
+    const ar = (ds[0] * dl[0] + ds[1] * dl[1]) / den, ai = (ds[1] * dl[0] - ds[0] * dl[1]) / den;
+    const S = [ar, ai, -ai, ar, s1[0] - (ar * l1[0] - ai * l1[1]), s1[1] - (ai * l1[0] + ar * l1[1])];
+    if (!mirror) return S;
+    // Compose with the flip x -> W - x.
+    return [-S[0], -S[1], S[2], S[3], S[0] * W + S[4], S[1] * W + S[5]];
+}
+// Initial placement: over the traced outline (or the middle of the view).
+function bpLayoutDefaultM(t) {
+    const pts = (t.inner || t.outer || []).map(bpSheetToP);
+    let x0, y0, w, h;
+    if (pts.length) {
+        x0 = Math.min(...pts.map(p => p[0])); y0 = Math.min(...pts.map(p => p[1]));
+        w = Math.max(...pts.map(p => p[0])) - x0; h = Math.max(...pts.map(p => p[1])) - y0;
+    } else {
+        const vp = document.getElementById('bpViewport'), st = document.getElementById('bpStage');
+        w = vp.clientWidth / 3 / BP.zoom; h = vp.clientHeight / 3 / BP.zoom;
+        x0 = (vp.scrollLeft - st.offsetLeft + vp.clientWidth / 3) / BP.zoom; y0 = (vp.scrollTop - st.offsetTop + vp.clientHeight / 3) / BP.zoom;
+    }
+    const s = Math.min(w / BP.lay.W, h / BP.lay.H);
+    return [s, 0, 0, s, x0 + (w - BP.lay.W * s) / 2, y0 + (h - BP.lay.H * s) / 2];
+}
+// Turns a layout file (image or PDF page 1) into a canvas of fixed size.
+async function bpLayoutCanvas(blob, name) {
+    const canvas = document.createElement('canvas');
+    if (/^image\//.test(blob.type || '') || BP_IMAGE_RE.test(name)) {
+        const url = URL.createObjectURL(blob);
+        try {
+            const img = new Image();
+            await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('not a readable image')); img.src = url; });
+            canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        } finally { URL.revokeObjectURL(url); }
+    } else {
+        const pdfjsLib = await docsLoadPdfJs();
+        const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
+        const page = await doc.getPage(1);
+        const v = page.getViewport({ scale: 1 });
+        const vp = page.getViewport({ scale: BP_LAY_MAX / Math.max(v.width, v.height) });
+        canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        doc.destroy();
+    }
+    return canvas;
+}
+async function bpLoadLayout(t) {
+    const L = t && t.layout;
+    if (!L) { BP.lay = null; bpPlaceLayout(); return; }
+    if (BP.lay && BP.lay.key === L.key) { bpPlaceLayout(); return; }
+    let blob = null;
+    try {
+        if (L.src === 'site') { const r = await fetch(fpUrl(L.name)); if (r.ok) blob = await r.blob(); }
+        else { const rec = await bpDbGetKey('layout:' + L.key); blob = rec && rec.blob; }
+    } catch (e) {}
+    if (!blob) { bpLayStatus(`Layout “${L.name}” isn't available in this browser — choose it again.`); BP.lay = null; bpPlaceLayout(); return; }
+    const canvas = await bpLayoutCanvas(blob, L.name);
+    BP.lay = { key: L.key, name: L.name, canvas, W: canvas.width, H: canvas.height };
+    bpPlaceLayout();
+}
+async function bpDbGetKey(key) {
+    const db = await bpDb();
+    return new Promise((resolve, reject) => {
+        const req = db.transaction('files').objectStore('files').get(key);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+    });
+}
+async function bpDbPutKey(key, rec) {
+    const db = await bpDb();
+    await new Promise((resolve, reject) => {
+        const tx = db.transaction('files', 'readwrite');
+        tx.objectStore('files').put(rec, key);
+        tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+    });
+}
+function bpLayStatus(msg) { const el = document.getElementById('bpLayStatus'); if (el) el.textContent = msg || ''; }
+// Choose a layout for the active unit.
+async function bpSetLayout(blob, name, src) {
+    if (!BP.pdf) return;
+    const t = bpActiveTakeoff(true);
+    bpLayStatus(`Loading ${name}…`);
+    try {
+        const canvas = await bpLayoutCanvas(blob, name);
+        const key = `${name}|${blob.size}`;
+        if (src !== 'site') await bpDbPutKey('layout:' + key, { name, blob }).catch(() => {});
+        BP.lay = { key, name, canvas, W: canvas.width, H: canvas.height };
+        t.layout = { key, name, src, pairs: [], mirror: false, opacity: 60, show: true, outer: false, M: null };
+        t.layout.M = bpLayoutDefaultM(t);
+        bpSaveState();
+        bpPlaceLayout(); bpRenderLayoutUi();
+        bpLayStatus('Now click “Align” and match two corners to line it up with the sheet.');
+    } catch (err) {
+        console.error(err);
+        bpLayStatus(`Couldn't open ${name} (${err.message}).`);
+    }
+}
+// Draws the overlay canvas over the sheet with the current matrix.
+function bpPlaceLayout() {
+    const stage = document.getElementById('bpStage');
+    let el = document.getElementById('bpLayCanvas');
+    const t = BP.pdf && bpActiveTakeoff(false);
+    const L = t && t.layout;
+    if (!BP.lay || !L || !L.M || !BP.viewport || !L.show) { if (el) el.style.display = 'none'; return; }
+    if (el !== BP.lay.canvas) {
+        if (el) el.remove();
+        el = BP.lay.canvas;
+        el.id = 'bpLayCanvas';
+        el.className = 'bp-lay-canvas';
+        el.style.width = BP.lay.W + 'px'; el.style.height = BP.lay.H + 'px';
+        stage.insertBefore(el, document.getElementById('bpOverlay'));
+    }
+    const z = BP.zoom, M = L.M;
+    el.style.display = 'block';
+    el.style.transform = `matrix(${M[0] * z}, ${M[1] * z}, ${M[2] * z}, ${M[3] * z}, ${M[4] * z}, ${M[5] * z})`;
+    let op = (L.opacity == null ? 60 : L.opacity) / 100;
+    if (BP.align) op = BP.align.step === 'L' ? 0.9 : 0.25;
+    el.style.opacity = op;
+}
+function bpRenderLayoutUi() {
+    const t = BP.pdf && bpActiveTakeoff(false);
+    const L = t && t.layout;
+    const has = !!(L && BP.lay);
+    document.getElementById('bpLayName').textContent = L ? L.name + (L.pairs && L.pairs.length >= 2 ? ` · aligned (${L.pairs.length} points)` : ' · not aligned yet') : 'No layout chosen';
+    ['bpLayAlign', 'bpLayAlign3', 'bpLayExport'].forEach(id => { document.getElementById(id).disabled = !has; });
+    document.getElementById('bpLayAlign3').disabled = !has || !(L.pairs && L.pairs.length >= 2);
+    document.getElementById('bpLayMirror').checked = !!(L && L.mirror);
+    document.getElementById('bpLayShow').checked = !L || L.show !== false;
+    document.getElementById('bpLayOuter').checked = !!(L && L.outer);
+    document.getElementById('bpLayOpacity').value = L && L.opacity != null ? L.opacity : 60;
+}
+// ---- Alignment clicks ----
+function bpStartAlign(want) {
+    const t = bpActiveTakeoff(false);
+    if (!t || !t.layout || !BP.lay) return;
+    if (!t.layout.show) { t.layout.show = true; document.getElementById('bpLayShow').checked = true; }
+    BP.align = { want, step: 'L', pairs: want === 3 ? (t.layout.pairs || []).slice(0, 2) : [] };
+    bpSetTool('align');
+    bpAlignHint();
+    bpPlaceLayout();
+}
+function bpAlignHint() {
+    const a = BP.align;
+    if (!a) return;
+    const n = a.pairs.length + 1;
+    const ord = ['', 'first', 'second', 'third'][n] || '';
+    document.getElementById('bpHint').textContent = a.step === 'L'
+        ? `Align step ${a.pairs.length * 2 + 1}: click the ${ord} corner on the LAYOUT (pick a sharp corner far from the others). Esc cancels.`
+        : `Align step ${a.pairs.length * 2 + 2}: click the SAME corner on the blueprint (snaps to the drawn lines).`;
+}
+async function bpAlignClick(e) {
+    const t = bpActiveTakeoff(false), a = BP.align;
+    if (!t || !t.layout || !a) return;
+    let sheetPt = bpEventPdfPoint(e);
+    if (a.step === 'L') {
+        const inv = bpMatInv(t.layout.M);
+        if (!inv) return;
+        a.cur = bpMatApply(inv, bpSheetToP(sheetPt));
+        a.step = 'S';
+    } else {
+        sheetPt = (await bpSnap(sheetPt, e)) || sheetPt;
+        a.pairs.push({ L: a.cur, S: bpSheetToP(sheetPt) });
+        a.step = 'L';
+        if (a.pairs.length >= a.want) {
+            const M = bpFitLayout(a.pairs, t.layout.mirror, BP.lay.W);
+            if (M) { t.layout.M = M; t.layout.pairs = a.pairs; bpSaveState(); }
+            BP.align = null;
+            bpSetTool('pan');
+            bpLayStatus(M ? `Aligned with ${a.pairs.length} points. Check the overlay, then trace the boundaries on the blueprint.` : 'Those points were too close together — try again with corners farther apart.');
+            bpRenderLayoutUi(); bpPlaceLayout(); bpDrawOverlay();
+            return;
+        }
+    }
+    bpAlignHint(); bpPlaceLayout(); bpDrawOverlay();
+}
+// Markers for the alignment clicks so far.
+function bpDrawAlignMarks(parts) {
+    const a = BP.align, t = BP.pdf && bpActiveTakeoff(false);
+    if (!a || !t || !t.layout) return;
+    const z = BP.zoom;
+    const mark = (P, color, label) => parts.push(`<circle cx="${P[0] * z}" cy="${P[1] * z}" r="6" fill="none" stroke="${color}" stroke-width="2.5"/><text class="bp-m-label" x="${P[0] * z + 8}" y="${P[1] * z - 8}">${label}</text>`);
+    a.pairs.forEach((p, i) => { mark(bpMatApply(t.layout.M, p.L), '#e0441b', `L${i + 1}`); mark(p.S, '#18a058', `B${i + 1}`); });
+    if (a.step === 'S' && a.cur) mark(bpMatApply(t.layout.M, a.cur), '#e0441b', `L${a.pairs.length + 1}`);
+}
+// ---- Export: the original layout with the measurements drawn on it ----
+async function bpExportLayout() {
+    const t = bpActiveTakeoff(false);
+    const L = t && t.layout;
+    if (!L || !BP.lay) { alert('Choose a layout first.'); return; }
+    if (!L.pairs || L.pairs.length < 2) { alert('Align the layout first (match two corners).'); return; }
+    if (!t.inner && !t.outer) { alert('Trace the inner boundary on the blueprint first.'); return; }
+    const S = bpTakeoffScale(t);
+    if (!S.inPerUnit) { alert('Enter the known sq ft (or set the sheet scale) first.'); return; }
+    const inv = bpMatInv(L.M);
+    const src = BP.lay.canvas;
+    // Work at >= 1800px wide so text stays crisp on small images.
+    const k = Math.max(1, 1800 / src.width);
+    const W = Math.round(src.width * k), H = Math.round(src.height * k);
+    const strip = Math.round(Math.max(70, W / 22));
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H + strip;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H + strip);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, 0, 0, W, H);
+    const toXY = p => { const q = bpMatApply(inv, bpSheetToP(p)); return [q[0] * k, q[1] * k]; };
+    const font = Math.round(Math.max(13, W / 95));
+    // Dimension line along each wall, offset into the room (or out, for
+    // the outer boundary), with end ticks and the length on a white tag.
+    const dims = (pts, color, outward) => {
+        const xy = pts.map(toXY);
+        const off = font * 1.3;
+        xy.forEach((a, i) => {
+            const b = xy[(i + 1) % xy.length];
+            const p0 = pts[i], p1 = pts[(i + 1) % pts.length];
+            const inches = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) * S.inPerUnit;
+            const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+            if (inches < 6 || len < font * 3.2) return;
+            let nx = -(b[1] - a[1]) / len, ny = (b[0] - a[0]) / len;
+            const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+            if (bpPointInPoly([mx + nx * 3, my + ny * 3], xy) === outward) { nx = -nx; ny = -ny; }
+            const ax = a[0] + nx * off, ay = a[1] + ny * off, bx = b[0] + nx * off, by = b[1] + ny * off;
+            const ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len, tick = font * 0.45;
+            ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.2, font / 11);
+            ctx.beginPath();
+            ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+            [[ax, ay], [bx, by]].forEach(([x, y]) => { ctx.moveTo(x - (ux - nx) * tick, y - (uy - ny) * tick); ctx.lineTo(x + (ux - nx) * tick, y + (uy - ny) * tick); });
+            ctx.stroke();
+            const text = bpFmtFtInQ(inches);
+            let ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+            if (ang > Math.PI / 2) ang -= Math.PI; else if (ang < -Math.PI / 2) ang += Math.PI;
+            ctx.save();
+            ctx.translate((ax + bx) / 2, (ay + by) / 2); ctx.rotate(ang);
+            ctx.font = `700 ${font}px Arial, sans-serif`;
+            const tw = ctx.measureText(text).width + font * 0.6;
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.fillRect(-tw / 2, -font * 0.7, tw, font * 1.4);
+            ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(text, 0, 1);
+            ctx.restore();
+        });
+    };
+    if (t.inner) dims(t.inner, '#c0392b', false);
+    if (t.outer && (L.outer || !t.inner)) dims(t.outer, '#1f5fd1', true);
+    // Bottom strip: unit, known sq ft and the measured areas.
+    const sq = pts => pts ? (bpPolyAreaUnits(pts) * S.inPerUnit * S.inPerUnit / 144).toLocaleString('en-US', { maximumFractionDigits: 0 }) : '';
+    ctx.fillStyle = '#f6f4f1'; ctx.fillRect(0, H, W, strip);
+    ctx.fillStyle = '#231f20'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    const fs = Math.round(strip * 0.3);
+    ctx.font = `700 ${fs}px Arial, sans-serif`;
+    const bits = [t.name || ''];
+    if (S.known) bits.push(`${S.known.toLocaleString('en-US')} sq ft`);
+    ctx.fillText(bits.filter(Boolean).join('  ·  '), fs, H + strip * 0.36);
+    ctx.font = `${Math.round(fs * 0.72)}px Arial, sans-serif`;
+    ctx.fillStyle = '#5f5a55';
+    const det = [];
+    if (t.inner) det.push(`Interior ${sq(t.inner)} sq ft (red, inside face of walls)`);
+    if (t.outer) det.push(`To outside of walls ${sq(t.outer)} sq ft`);
+    det.push('Dimensions measured from the construction drawings; approximate');
+    ctx.fillText(det.join('  ·  '), fs, H + strip * 0.74);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (BP.lastImage) URL.revokeObjectURL(BP.lastImage.url);
+    const url = URL.createObjectURL(blob);
+    const base = L.name.replace(/\.[a-z0-9]+$/i, '');
+    const safe = `${base} measured`.replace(/[‐-―]/g, '-').replace(/[\\/:*?"<>|]+/g, '-').replace(/[^\x20-\x7e]/g, '').trim();
+    BP.lastImage = { url, name: `${safe}.png` };
+    document.getElementById('bpModalTitle').textContent = `${L.name} — with measurements`;
+    document.getElementById('bpModalImg').src = url;
+    document.getElementById('bpModal').style.display = 'flex';
+}
+function bpWireLayout() {
+    document.getElementById('bpLaySelect').addEventListener('change', async e => {
+        const name = e.target.value;
+        e.target.value = '';
+        if (!name || !BP.pdf) return;
+        bpLayStatus(`Downloading ${name}…`);
+        try {
+            const r = await fetch(fpUrl(name));
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            await bpSetLayout(await r.blob(), name, 'site');
+        } catch (err) { bpLayStatus(`Couldn't open ${name} (${err.message}).`); }
+    });
+    const file = document.getElementById('bpLayFile');
+    file.addEventListener('change', () => {
+        const f = file.files && file.files[0];
+        file.value = '';
+        if (f && BP.pdf) bpSetLayout(f, f.name, 'upload');
+    });
+    document.getElementById('bpLayAlign').addEventListener('click', () => bpStartAlign(2));
+    document.getElementById('bpLayAlign3').addEventListener('click', () => bpStartAlign(3));
+    const L = () => { const t = BP.pdf && bpActiveTakeoff(false); return t && t.layout; };
+    document.getElementById('bpLayMirror').addEventListener('change', e => {
+        const l = L(); if (!l) return;
+        l.mirror = e.target.checked;
+        // Re-fit from the matched corners (2-point fits use the mirror switch).
+        if (l.pairs && l.pairs.length === 2 && BP.lay) { const M = bpFitLayout(l.pairs, l.mirror, BP.lay.W); if (M) l.M = M; }
+        else if (BP.lay && (!l.pairs || l.pairs.length < 2)) {
+            // Not aligned yet: flip in place around the layout's middle.
+            const c = bpMatApply(l.M, [BP.lay.W / 2, BP.lay.H / 2]);
+            l.M = [-l.M[0], -l.M[1], l.M[2], l.M[3], 0, 0];
+            const c2 = bpMatApply(l.M, [BP.lay.W / 2, BP.lay.H / 2]);
+            l.M[4] = c[0] - c2[0]; l.M[5] = c[1] - c2[1];
+        }
+        bpSaveState(); bpPlaceLayout();
+    });
+    document.getElementById('bpLayOpacity').addEventListener('input', e => { const l = L(); if (!l) return; l.opacity = +e.target.value; bpSaveState(); bpPlaceLayout(); });
+    document.getElementById('bpLayShow').addEventListener('change', e => { const l = L(); if (!l) return; l.show = e.target.checked; bpSaveState(); bpPlaceLayout(); });
+    document.getElementById('bpLayOuter').addEventListener('change', e => { const l = L(); if (!l) return; l.outer = e.target.checked; bpSaveState(); });
+    document.getElementById('bpLayExport').addEventListener('click', () => bpExportLayout().catch(err => { console.error(err); bpLayStatus('Couldn\'t build the image (' + err.message + ').'); }));
 }
 
 // ---- Wiring ----
@@ -19198,10 +19592,12 @@ function bpWireTakeoff() {
     }, { passive: false });
     document.addEventListener('keydown', e => {
         if (adminSubTab !== 'blueprints' || !BP.pdf) return;
-        if (e.key === 'Escape' && BP.pending.length) { BP.pending = []; BP.hover = null; bpDrawOverlay(); }
+        if (e.key === 'Escape' && BP.align) { bpSetTool('pan'); bpDrawOverlay(); }
+        else if (e.key === 'Escape' && BP.pending.length) { BP.pending = []; BP.hover = null; bpDrawOverlay(); }
         else if (e.key === 'Enter' && BP_POLY_TOOLS.indexOf(BP.tool) !== -1 && BP.pending.length >= 3) bpFinishArea();
     });
     bpWireTakeoff();
+    bpWireLayout();
     bpSetTool('pan');
 })();
 // Called when the Blueprints sub-tab is shown: reopen the last file.
