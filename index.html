@@ -1413,6 +1413,21 @@
     .bp-to-row label.bp-inline input[type="range"] { width: 90px; padding: 0; }
     .bp-lay-name { font-size: 12.5px; font-weight: 700; padding-bottom: 7px; }
     .bp-btn:disabled { opacity: 0.45; cursor: default; }
+    .bp-lay-adv summary { cursor: pointer; font-size: 12px; color: var(--ink-soft); margin: 2px 0 4px; }
+    .bp-place-card { width: min(1240px, 100%); }
+    .bp-place-head { flex-wrap: wrap; }
+    .bp-place-head label.bp-inline { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; }
+    .bp-place-info { font-size: 11.5px; color: var(--ink-soft); }
+    .bp-place-stage { position: relative; display: block; width: 100%; text-align: center; }
+    .bp-place-stage canvas { display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.2); background: #fff; }
+    .bp-place-svg { position: absolute; top: 0; left: 50%; overflow: visible; touch-action: none; }
+    .bp-place-svg .bp-pl-hit { fill: transparent; cursor: move; }
+    .bp-place-svg .bp-pl-inner { fill: rgba(192,57,43,0.08); stroke: #c0392b; stroke-width: 2.5; pointer-events: none; }
+    .bp-place-svg .bp-pl-outer { fill: rgba(31,95,209,0.06); stroke: #1f5fd1; stroke-width: 2.5; pointer-events: none; }
+    .bp-place-svg .bp-pl-handle { fill: #fff; stroke: #e0441b; stroke-width: 2.5; cursor: nwse-resize; }
+    .bp-place-svg .bp-edge-label { pointer-events: none; }
+    .bp-overlay .bp-edge-innerred, .bp-place-svg .bp-edge-innerred { fill: #c0392b; }
+    .bp-place-hint { font-size: 11.5px; color: var(--ink-soft); padding: 6px 12px 10px; }
     .bp-lay-canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; mix-blend-mode: multiply; }
     .bp-to-results table { border-collapse: collapse; width: 100%; max-width: 760px; }
     .bp-to-results td, .bp-to-results th { border-bottom: 1px solid var(--line-soft); padding: 4px 8px; text-align: left; }
@@ -3969,22 +3984,25 @@
                         </div>
                         <div class="bp-to-results" id="bpToResults"></div>
                         <div class="bp-lay">
-                            <div class="bp-side-title">2D layout overlay <span class="bp-count">&mdash; line a floorplan layout up with the blueprint, then export that layout with these measurements</span></div>
+                            <div class="bp-side-title">Floorplan image with measurements <span class="bp-count">&mdash; put the traced shape and its wall lengths on a 2D floorplan</span></div>
                             <div class="bp-to-row">
                                 <select id="bpLaySelect" class="bp-fp-select"><option value="">Choose a site floorplan&hellip;</option></select>
-                                <label class="file-label" for="bpLayFile">Upload layout</label>
+                                <label class="file-label" for="bpLayFile">Upload floorplan</label>
                                 <input type="file" id="bpLayFile" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp" style="display:none;">
-                                <span class="bp-lay-name" id="bpLayName">No layout chosen</span>
+                                <span class="bp-lay-name" id="bpLayName">No floorplan chosen</span>
+                                <button type="button" class="btn primary bp-to-make" id="bpPlaceBtn" disabled>Place traced shape on floorplan</button>
                             </div>
-                            <div class="bp-to-row">
+                            <details class="bp-lay-adv"><summary>Optional: line the floorplan up on the blueprint first (exact corner matching)</summary>
+                            <div class="bp-to-row" style="margin-top:8px;">
                                 <button type="button" class="bp-btn" id="bpLayAlign" disabled>Align (match 2 corners)</button>
                                 <button type="button" class="bp-btn" id="bpLayAlign3" disabled title="Also fixes a mirrored or slightly stretched layout">Refine with a 3rd corner</button>
                                 <label class="bp-inline"><input type="checkbox" id="bpLayMirror"> Mirrored</label>
                                 <label class="bp-inline"><input type="checkbox" id="bpLayShow" checked> Show</label>
                                 <label class="bp-inline">Opacity <input type="range" id="bpLayOpacity" min="10" max="100" value="60"></label>
                                 <label class="bp-inline"><input type="checkbox" id="bpLayOuter"> Also dimension the outer boundary</label>
-                                <button type="button" class="btn primary bp-to-make" id="bpLayExport" disabled>Export layout with measurements</button>
+                                <button type="button" class="bp-btn" id="bpLayExport" disabled>Export aligned layout</button>
                             </div>
+                            </details>
                             <div class="bp-to-note" id="bpLayStatus"></div>
                         </div>
                     </div>
@@ -3999,6 +4017,29 @@
                             <div id="bpDimList" class="bp-list"></div>
                         </div>
                     </div>
+                </div>
+            </div>
+            <div class="bp-modal" id="bpPlaceModal" style="display:none;">
+                <div class="bp-modal-card bp-place-card">
+                    <div class="bp-modal-head bp-place-head">
+                        <b id="bpPlaceTitle">Place traced shape</b>
+                        <button type="button" class="bp-btn bp-small" id="bpPlaceFit" title="Fit the shape to the drawing">Fit to drawing</button>
+                        <button type="button" class="bp-btn bp-small" id="bpPlaceRotL" title="Rotate 90° left">&#8634; 90&deg;</button>
+                        <button type="button" class="bp-btn bp-small" id="bpPlaceRotR" title="Rotate 90° right">&#8635; 90&deg;</button>
+                        <button type="button" class="bp-btn bp-small" id="bpPlaceRotL1" title="Rotate 1° left">&minus;1&deg;</button>
+                        <button type="button" class="bp-btn bp-small" id="bpPlaceRotR1" title="Rotate 1° right">+1&deg;</button>
+                        <button type="button" class="bp-btn bp-small" id="bpPlaceMirror" title="Flip left/right">Mirror</button>
+                        <label class="bp-inline"><input type="checkbox" id="bpPlaceInner"> <span class="bp-dot" style="background:#c0392b"></span>Inner</label>
+                        <label class="bp-inline"><input type="checkbox" id="bpPlaceOuter"> <span class="bp-dot bp-dot-outer"></span>Outer</label>
+                        <span class="bp-place-info" id="bpPlaceInfo"></span>
+                        <span style="margin-left:auto;"></span>
+                        <button type="button" class="btn primary" id="bpPlaceDownload" style="width:auto;flex:none;padding:7px 14px;">Download PNG</button>
+                        <button type="button" class="bp-btn" id="bpPlaceClose">Close</button>
+                    </div>
+                    <div class="bp-modal-body">
+                        <div class="bp-place-stage" id="bpPlaceStage"><canvas id="bpPlaceImg"></canvas><svg id="bpPlaceSvg" class="bp-place-svg"></svg></div>
+                    </div>
+                    <div class="bp-place-hint">Drag the shape onto the walls &middot; drag the corner square to resize &middot; arrow keys nudge (Shift = 10&times;) &middot; +/&minus; fine-resize &middot; Esc closes. Wall lengths always come from the blueprint.</div>
                 </div>
             </div>
             <div class="bp-modal" id="bpModal" style="display:none;">
@@ -16694,7 +16735,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-lease-questions": {"title": "Ask Questions About the Sample Lease", "icon": "\u2753", "category": "Lease", "steps": ["Open the Lease tab and click \"Upload sample lease\" to load the current lease PDF (only needed when a new version comes out).", "The lease text is shared with the team, so everyone can ask questions after one upload; the PDF itself stays in the browser that uploaded it.", "Type a question in the bar (e.g. \"What is the late fee?\", \"How long can guests stay?\") and press Enter, or click an example.", "The answer quotes the matching sentences with the section and page. \"Read the whole section\" shows the full paragraph, and \"Open page\" opens the PDF there.", "\"Also see\" lists other sections that mention the same thing \u2014 click one to see its answer."]},
     "builtin-new-lease": {"title": "Fill Out a New Lease", "icon": "🖊️", "category": "Lease", "steps": ["Complete the resident's Welcome Letter first — the Lease tab pulls from it and from Residents.", "Open the Lease tab and search for the resident by unit or name.", "Each section (Lease Terms, Cover Sheet, Animal, Buyout, Inventory, Parking, Rent Concession, Special Provisions) shows the values to enter.", "Click the copy button next to any value to copy it, then paste it into the lease.", "For a renewal, check \"Select if Renewal Lease\" — the new dates start the day after the current lease ends.", "Click × next to the search to clear the selection."]},
     "builtin-mmr-traffic": {"title": "Record Weekly Traffic for the MMR", "icon": "🚶", "category": "Admin", "steps": ["Go to Admin (enter the password) > MMR > Weekly Traffic Detail.", "For each reason, write one sentence per show, starting with the prospect's first and last name and ending with a period.", "Each sentence that starts with a name counts as one show; follow-up sentences about the same prospect don't add to the count.", "Download New MMR replaces last week's numbers in the uploaded file.", "Click \"Clear for New Week\" to start the next week fresh."]},
-    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points (hold Shift for straight lines). Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create floorplan image\" makes a PNG of the unit with every wall length labeled (sized from the known sq ft), ready to download.", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary."]},
+    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points (hold Shift for straight lines). Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create floorplan image\" makes a PNG of the unit with every wall length labeled (sized from the known sq ft), ready to download.", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary.", "To put the traced shape on a 2D floorplan: under \"Floorplan image with measurements\", choose a site floorplan or upload one, then click \"Place traced shape on floorplan\". Drag the shape onto the walls, resize from its corner square, rotate or mirror as needed, and click \"Download PNG\". Wall lengths always come from the blueprint."]},
     "builtin-commissions": {"title": "Run Commissions for the Pay Period", "icon": "💼", "category": "Admin", "steps": ["Go to Admin > Commissions and check the Current pay period (change its start date if needed).", "Review Suggested Move-Ins (residents moving in this pay period): + adds one officially, × rejects it.", "Add anything missing with \"+ Add Move-In\" or \"+ Add Renewal\", or use \"Import Renewals\" with the Resident Activity Detail export.", "Optional: upload last period's Commissions file to keep its formatting.", "Click \"Export to Excel\" — only officially added Move-Ins and Renewals are included."]},
     "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx)\". The file stays in your browser tab only and is never saved.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code (suggestions come from the file), To, Amount and For.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Check the summary under the table — it warns if the items won't fit in the sheet.", "Click \"Export to Excel\". Items go into the table, the approval date is set to today, and the rest of the file is unchanged.", "When asked, clear the exported items so they aren't added twice next time."]},
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
@@ -19629,7 +19670,7 @@ async function bpSetLayout(blob, name, src) {
         t.layout.M = bpLayoutDefaultM(t);
         bpSaveState();
         bpPlaceLayout(); bpRenderLayoutUi();
-        bpLayStatus('Now click “Align” and match two corners to line it up with the sheet.');
+        bpLayStatus('Now click \u201cPlace traced shape on floorplan\u201d.');
     } catch (err) {
         console.error(err);
         bpLayStatus(`Couldn't open ${name} (${err.message}).`);
@@ -19661,8 +19702,8 @@ function bpRenderLayoutUi() {
     const t = BP.pdf && bpActiveTakeoff(false);
     const L = t && t.layout;
     const has = !!(L && BP.lay);
-    document.getElementById('bpLayName').textContent = L ? L.name + (L.pairs && L.pairs.length >= 2 ? ` · aligned (${L.pairs.length} points)` : ' · not aligned yet') : 'No layout chosen';
-    ['bpLayAlign', 'bpLayAlign3', 'bpLayExport'].forEach(id => { document.getElementById(id).disabled = !has; });
+    document.getElementById('bpLayName').textContent = L ? L.name + (L.pairs && L.pairs.length >= 2 ? ` \u00b7 aligned on the blueprint (${L.pairs.length} points)` : '') : 'No floorplan chosen';
+    ['bpLayAlign', 'bpLayAlign3', 'bpLayExport', 'bpPlaceBtn'].forEach(id => { document.getElementById(id).disabled = !has; });
     document.getElementById('bpLayAlign3').disabled = !has || !(L.pairs && L.pairs.length >= 2);
     document.getElementById('bpLayMirror').checked = !!(L && L.mirror);
     document.getElementById('bpLayShow').checked = !L || L.show !== false;
@@ -19849,6 +19890,296 @@ function bpWireLayout() {
     document.getElementById('bpLayExport').addEventListener('click', () => bpExportLayout().catch(err => { console.error(err); bpLayStatus('Couldn\'t build the image (' + err.message + ').'); }));
 }
 
+// ---- Place the traced shape on the floorplan image ----
+// Opens the chosen floorplan full size with the unit's traced outline(s)
+// on top, drawn to true scale from the blueprint. The shape can be
+// dragged, resized from its corner handle, rotated and mirrored until
+// it sits on the floorplan's walls; the export is that floorplan with
+// the outline and every wall length drawn on it.
+// Placement: image px = R(rot) * F(mirror) * s * (P - c) + (tx, ty),
+// where P are page points (scale 1) and c the shape's center.
+const BP_PL = { open: false, t: null, k: 1, drag: null };
+function bpPlShapes(t) {
+    const out = [];
+    if (t.inner) out.push({ key: 'inner', pts: t.inner, P: t.inner.map(bpSheetToP) });
+    if (t.outer) out.push({ key: 'outer', pts: t.outer, P: t.outer.map(bpSheetToP) });
+    return out;
+}
+function bpPlCenter(shapes) {
+    const all = [].concat(...shapes.map(s => s.P));
+    const xs = all.map(p => p[0]), ys = all.map(p => p[1]);
+    return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+}
+function bpPlMap(pl, c) {
+    const a = pl.rot * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a);
+    return p => {
+        let x = (p[0] - c[0]) * pl.s, y = (p[1] - c[1]) * pl.s;
+        if (pl.mirror) x = -x;
+        return [x * cos - y * sin + pl.tx, x * sin + y * cos + pl.ty];
+    };
+}
+// Bounding box of the dark (drawn) pixels of the floorplan image.
+function bpPlContentBox(canvas) {
+    const k = Math.min(1, 500 / Math.max(canvas.width, canvas.height));
+    const w = Math.max(1, Math.round(canvas.width * k)), h = Math.max(1, Math.round(canvas.height * k));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.drawImage(canvas, 0, 0, w, h);
+    const d = g.getImageData(0, 0, w, h).data;
+    // Dark pixels only (wall lines), so color bands and light text don't count.
+    const dark = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) dark[i] = d[i * 4 + 3] > 30 && (d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3 < 125 ? 1 : 0;
+    // The biggest block of rows (then columns) with dark pixels, allowing
+    // small gaps: the plan itself, not a logo or a phone number off to the side.
+    const block = (n, count, gap) => {
+        let best = null, cur = null, miss = 0;
+        for (let i = 0; i < n; i++) {
+            const c = count(i);
+            if (c > 0) { if (!cur) cur = { a: i, b: i, sum: 0 }; cur.b = i; cur.sum += c; miss = 0; }
+            else if (cur && ++miss > gap) { if (!best || cur.sum > best.sum) best = cur; cur = null; miss = 0; }
+        }
+        if (cur && (!best || cur.sum > best.sum)) best = cur;
+        return best;
+    };
+    const rowCount = y => { let c = 0; for (let x = 0; x < w; x++) c += dark[y * w + x]; return c > w * 0.004 ? c : 0; };
+    const rows = block(h, rowCount, Math.round(h * 0.03));
+    if (!rows) return { x: 0, y: 0, w: canvas.width, h: canvas.height };
+    const colCount = x => { let c = 0; for (let y = rows.a; y <= rows.b; y++) c += dark[y * w + x]; return c > (rows.b - rows.a + 1) * 0.004 ? c : 0; };
+    const cols = block(w, colCount, Math.round(w * 0.03)) || { a: 0, b: w - 1 };
+    return { x: cols.a / k, y: rows.a / k, w: (cols.b - cols.a + 1) / k, h: (rows.b - rows.a + 1) / k };
+}
+// Fit the shape (at its current rotation/mirror) into the drawing.
+function bpPlFit(pl, shapes, c, canvas) {
+    const box = bpPlContentBox(canvas);
+    const unit = Object.assign({}, pl, { s: 1, tx: 0, ty: 0 });
+    const f = bpPlMap(unit, c);
+    const pts = [].concat(...shapes.map(s => s.P)).map(f);
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    const sw = Math.max(...xs) - Math.min(...xs), sh = Math.max(...ys) - Math.min(...ys);
+    pl.s = Math.min(box.w / sw, box.h / sh);
+    const cx = (Math.max(...xs) + Math.min(...xs)) / 2 * pl.s, cy = (Math.max(...ys) + Math.min(...ys)) / 2 * pl.s;
+    pl.tx = box.x + box.w / 2 - cx; pl.ty = box.y + box.h / 2 - cy;
+}
+// From a corner alignment done on the sheet (layout px -> page point M):
+// the matching similarity placement page point -> layout px.
+function bpPlFromAlign(M, c) {
+    const inv = bpMatInv(M);
+    if (!inv) return null;
+    const det = inv[0] * inv[3] - inv[1] * inv[2];
+    const mirror = det < 0;
+    const s = Math.sqrt(Math.abs(det));
+    // Column for page x: R*F*s*[1,0] = s*[-cos or cos, sin]
+    const rot = (mirror ? Math.atan2(-inv[1], -inv[0]) : Math.atan2(inv[1], inv[0])) * 180 / Math.PI;
+    const q = bpMatApply(inv, c);
+    return { s, rot, mirror, tx: q[0], ty: q[1] };
+}
+async function bpOpenPlace() {
+    const t = bpActiveTakeoff(false);
+    if (!t || (!t.inner && !t.outer)) { alert('Trace the unit\'s boundary on the blueprint first.'); return; }
+    if (!t.layout || !BP.lay) { alert('Choose the floorplan image first (site floorplan or upload).'); return; }
+    const S = bpTakeoffScale(t);
+    if (!S.inPerUnit) { alert('Enter the known sq ft (or set the sheet scale) first, so lengths can be worked out.'); return; }
+    const shapes = bpPlShapes(t), c = bpPlCenter(shapes);
+    const L = t.layout;
+    if (!L.place || L.place.key !== BP.lay.key) {
+        const fromAlign = L.pairs && L.pairs.length >= 2 && L.M ? bpPlFromAlign(L.M, c) : null;
+        L.place = Object.assign({ key: BP.lay.key, inner: true, outer: !t.inner }, fromAlign || { s: 1, rot: 0, mirror: false, tx: 0, ty: 0 });
+        if (!fromAlign) bpPlFit(L.place, shapes, c, BP.lay.canvas);
+        bpSaveState();
+    }
+    BP_PL.t = t; BP_PL.shapes = shapes; BP_PL.c = c; BP_PL.S = S;
+    const img = document.getElementById('bpPlaceImg'), src = BP.lay.canvas;
+    const modal = document.getElementById('bpPlaceModal');
+    modal.style.display = 'flex';
+    const stage = document.getElementById('bpPlaceStage');
+    BP_PL.k = Math.min((stage.clientWidth - 4) / src.width, (window.innerHeight * 0.72) / src.height, 1.5);
+    img.width = Math.round(src.width * BP_PL.k); img.height = Math.round(src.height * BP_PL.k);
+    const g = img.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, img.width, img.height);
+    g.drawImage(src, 0, 0, img.width, img.height);
+    const svg = document.getElementById('bpPlaceSvg');
+    svg.setAttribute('width', img.width); svg.setAttribute('height', img.height);
+    svg.style.marginLeft = (-img.width / 2) + 'px';
+    document.getElementById('bpPlaceInner').checked = L.place.inner !== false && !!t.inner;
+    document.getElementById('bpPlaceInner').disabled = !t.inner;
+    document.getElementById('bpPlaceOuter').checked = !!L.place.outer && !!t.outer;
+    document.getElementById('bpPlaceOuter').disabled = !t.outer;
+    document.getElementById('bpPlaceTitle').textContent = `${t.name || 'Unit'} on ${L.name}`;
+    BP_PL.open = true;
+    bpPlDraw();
+}
+function bpPlDraw() {
+    if (!BP_PL.open) return;
+    const t = BP_PL.t, pl = t.layout.place, k = BP_PL.k;
+    const f = bpPlMap(pl, BP_PL.c);
+    const toDisp = P => { const q = f(P); return [q[0] * k, q[1] * k]; };
+    const parts = [];
+    const pts = [];
+    BP_PL.shapes.forEach(sh => {
+        if (!pl[sh.key]) return;
+        const xy = sh.P.map(toDisp);
+        pts.push(...xy);
+        parts.push(`<polygon class="bp-pl-${sh.key}" points="${xy.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ')}"/>`);
+        // Labels: page points -> display, but lengths from the sheet.
+        const map = sheetPt => toDisp(bpSheetToP(sheetPt));
+        bpEdgeLabels(sh.pts, BP_PL.S.inPerUnit, map, sh.key === 'outer', 30).forEach(l => {
+            const off = 9, x = l.x + l.nx * off, y = l.y + l.ny * off;
+            parts.push(`<text class="bp-edge-label bp-edge-${sh.key === 'outer' ? 'outer' : 'innerred'}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${l.ang.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})">${escapeHtml(l.text)}</text>`);
+        });
+    });
+    if (pts.length) {
+        const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+        const x0 = Math.min(...xs), y0 = Math.min(...ys), x1 = Math.max(...xs), y1 = Math.max(...ys);
+        BP_PL.box = { x0, y0, x1, y1 };
+        parts.unshift(`<rect class="bp-pl-hit" x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}"/>`);
+        parts.push(`<rect class="bp-pl-handle" data-pl-handle="1" x="${x1 - 7}" y="${y1 - 7}" width="14" height="14"/>`);
+    }
+    document.getElementById('bpPlaceSvg').innerHTML = parts.join('');
+    const deg = ((pl.rot % 360) + 360) % 360;
+    document.getElementById('bpPlaceInfo').textContent = `Rotation ${deg.toFixed(1)}°${pl.mirror ? ' · mirrored' : ''}`;
+}
+function bpPlSave() { bpSaveState(); bpPlDraw(); }
+function bpPlRotate(deg) {
+    const pl = BP_PL.t.layout.place;
+    // Rotate about the shape's middle on the image.
+    const f = bpPlMap(pl, BP_PL.c), mid = f(BP_PL.c);
+    pl.rot += deg;
+    const f2 = bpPlMap(pl, BP_PL.c), mid2 = f2(BP_PL.c);
+    pl.tx += mid[0] - mid2[0]; pl.ty += mid[1] - mid2[1];
+    bpPlSave();
+}
+// Floorplan image with the outline and measurements, full resolution.
+async function bpPlExport() {
+    const t = BP_PL.t, L = t.layout, pl = L.place, S = BP_PL.S;
+    const src = BP.lay.canvas;
+    const k = Math.max(1, 1800 / src.width);
+    const W = Math.round(src.width * k), H = Math.round(src.height * k);
+    const strip = Math.round(Math.max(70, W / 22));
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H + strip;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H + strip);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, 0, 0, W, H);
+    const f = bpPlMap(pl, BP_PL.c);
+    const toXY = sheetPt => { const q = f(bpSheetToP(sheetPt)); return [q[0] * k, q[1] * k]; };
+    const font = Math.round(Math.max(13, W / 95));
+    const colors = { inner: '#c0392b', outer: '#1f5fd1' };
+    BP_PL.shapes.forEach(sh => {
+        if (!pl[sh.key]) return;
+        const xy = sh.pts.map(toXY);
+        ctx.beginPath();
+        xy.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+        ctx.closePath();
+        ctx.fillStyle = sh.key === 'inner' ? 'rgba(192,57,43,0.06)' : 'rgba(31,95,209,0.05)';
+        ctx.fill();
+        ctx.strokeStyle = colors[sh.key]; ctx.lineWidth = Math.max(2, font / 6); ctx.lineJoin = 'round';
+        ctx.stroke();
+        bpEdgeLabels(sh.pts, S.inPerUnit, toXY, sh.key === 'outer', font * 3).forEach(l => {
+            const off = font * 0.95, x = l.x + l.nx * off, y = l.y + l.ny * off;
+            ctx.save();
+            ctx.translate(x, y); ctx.rotate(l.ang * Math.PI / 180);
+            ctx.font = `700 ${font}px Arial, sans-serif`;
+            const tw = ctx.measureText(l.text).width + font * 0.6;
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.fillRect(-tw / 2, -font * 0.7, tw, font * 1.4);
+            ctx.fillStyle = colors[sh.key]; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(l.text, 0, 1);
+            ctx.restore();
+        });
+    });
+    const sq = pts => pts ? (bpPolyAreaUnits(pts) * S.inPerUnit * S.inPerUnit / 144).toLocaleString('en-US', { maximumFractionDigits: 0 }) : '';
+    ctx.fillStyle = '#f6f4f1'; ctx.fillRect(0, H, W, strip);
+    const fs = Math.round(strip * 0.3);
+    ctx.fillStyle = '#231f20'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.font = `700 ${fs}px Arial, sans-serif`;
+    ctx.fillText([t.name || '', S.known ? `${S.known.toLocaleString('en-US')} sq ft` : ''].filter(Boolean).join('  ·  '), fs, H + strip * 0.36);
+    ctx.font = `${Math.round(fs * 0.72)}px Arial, sans-serif`; ctx.fillStyle = '#5f5a55';
+    const det = [];
+    if (pl.inner && t.inner) det.push(`Interior (red) ${sq(t.inner)} sq ft`);
+    if (pl.outer && t.outer) det.push(`To outside of walls (blue) ${sq(t.outer)} sq ft`);
+    det.push('Measured from the construction drawings; approximate');
+    ctx.fillText(det.join('  ·  '), fs, H + strip * 0.74);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const base = `${L.name.replace(/\.[a-z0-9]+$/i, '')} ${t.name || ''} measured`;
+    a.download = base.replace(/[‐-―]/g, '-').replace(/[\\/:*?"<>|]+/g, '-').replace(/[^\x20-\x7e]/g, '').replace(/\s+/g, ' ').trim() + '.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+}
+function bpWirePlace() {
+    document.getElementById('bpPlaceBtn').addEventListener('click', () => bpOpenPlace().catch(err => { console.error(err); bpLayStatus('Couldn\'t open the floorplan (' + err.message + ').'); }));
+    const close = () => { BP_PL.open = false; document.getElementById('bpPlaceModal').style.display = 'none'; };
+    document.getElementById('bpPlaceClose').addEventListener('click', close);
+    document.getElementById('bpPlaceModal').addEventListener('click', e => { if (e.target.id === 'bpPlaceModal') close(); });
+    const pl = () => BP_PL.t.layout.place;
+    document.getElementById('bpPlaceFit').addEventListener('click', () => { bpPlFit(pl(), BP_PL.shapes, BP_PL.c, BP.lay.canvas); bpPlSave(); });
+    document.getElementById('bpPlaceRotL').addEventListener('click', () => bpPlRotate(-90));
+    document.getElementById('bpPlaceRotR').addEventListener('click', () => bpPlRotate(90));
+    document.getElementById('bpPlaceRotL1').addEventListener('click', () => bpPlRotate(-1));
+    document.getElementById('bpPlaceRotR1').addEventListener('click', () => bpPlRotate(1));
+    document.getElementById('bpPlaceMirror').addEventListener('click', () => {
+        const p = pl(), f = bpPlMap(p, BP_PL.c), mid = f(BP_PL.c);
+        p.mirror = !p.mirror;
+        const mid2 = bpPlMap(p, BP_PL.c)(BP_PL.c);
+        p.tx += mid[0] - mid2[0]; p.ty += mid[1] - mid2[1];
+        bpPlSave();
+    });
+    document.getElementById('bpPlaceInner').addEventListener('change', e => { pl().inner = e.target.checked; bpPlSave(); });
+    document.getElementById('bpPlaceOuter').addEventListener('change', e => { pl().outer = e.target.checked; bpPlSave(); });
+    document.getElementById('bpPlaceDownload').addEventListener('click', () => bpPlExport().catch(err => { console.error(err); alert('Couldn\'t build the image (' + err.message + ').'); }));
+    const svg = document.getElementById('bpPlaceSvg');
+    const pos = e => { const r = svg.getBoundingClientRect(); return [(e.clientX - r.left) / BP_PL.k, (e.clientY - r.top) / BP_PL.k]; };
+    svg.addEventListener('pointerdown', e => {
+        if (!BP_PL.open) return;
+        const p = pos(e), P = pl();
+        const mid = bpPlMap(P, BP_PL.c)(BP_PL.c);
+        if (e.target.getAttribute('data-pl-handle')) {
+            BP_PL.drag = { mode: 'scale', s0: P.s, d0: Math.hypot(p[0] - mid[0], p[1] - mid[1]) || 1, mid, t0: [P.tx, P.ty] };
+        } else if (BP_PL.box && p[0] * BP_PL.k >= BP_PL.box.x0 && p[0] * BP_PL.k <= BP_PL.box.x1 && p[1] * BP_PL.k >= BP_PL.box.y0 && p[1] * BP_PL.k <= BP_PL.box.y1) {
+            BP_PL.drag = { mode: 'move', p0: p, t0: [P.tx, P.ty] };
+        } else return;
+        svg.setPointerCapture(e.pointerId);
+        e.preventDefault();
+    });
+    svg.addEventListener('pointermove', e => {
+        const d = BP_PL.drag;
+        if (!d) return;
+        const p = pos(e), P = pl();
+        if (d.mode === 'move') { P.tx = d.t0[0] + p[0] - d.p0[0]; P.ty = d.t0[1] + p[1] - d.p0[1]; }
+        else {
+            // Resize about the shape's middle, which stays put.
+            const ratio = Math.max(0.05, Math.hypot(p[0] - d.mid[0], p[1] - d.mid[1]) / d.d0);
+            P.s = d.s0 * ratio;
+            const mid2 = bpPlMap(P, BP_PL.c)(BP_PL.c);
+            P.tx += d.mid[0] - mid2[0]; P.ty += d.mid[1] - mid2[1];
+        }
+        bpPlDraw();
+    });
+    const end = () => { if (BP_PL.drag) { BP_PL.drag = null; bpSaveState(); } };
+    svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
+    document.addEventListener('keydown', e => {
+        if (!BP_PL.open) return;
+        const step = (e.shiftKey ? 10 : 1) / BP_PL.k;
+        const P = pl();
+        if (e.key === 'ArrowLeft') P.tx -= step; else if (e.key === 'ArrowRight') P.tx += step;
+        else if (e.key === 'ArrowUp') P.ty -= step; else if (e.key === 'ArrowDown') P.ty += step;
+        else if (e.key === '+' || e.key === '=') { bpPlScaleBy(e.shiftKey ? 1.01 : 1.002); return; }
+        else if (e.key === '-' || e.key === '_') { bpPlScaleBy(e.shiftKey ? 1 / 1.01 : 1 / 1.002); return; }
+        else if (e.key === 'Escape') { close(); return; }
+        else return;
+        e.preventDefault(); bpPlSave();
+    });
+}
+function bpPlScaleBy(f) {
+    const P = BP_PL.t.layout.place, mid = bpPlMap(P, BP_PL.c)(BP_PL.c);
+    P.s *= f;
+    const mid2 = bpPlMap(P, BP_PL.c)(BP_PL.c);
+    P.tx += mid[0] - mid2[0]; P.ty += mid[1] - mid2[1];
+    bpPlSave();
+}
+
 // ---- Wiring ----
 (function bpInit() {
     const input = document.getElementById('bpFileInput');
@@ -19928,6 +20259,7 @@ function bpWireLayout() {
     });
     bpWireTakeoff();
     bpWireLayout();
+    bpWirePlace();
     bpSetTool('pan');
 })();
 // Called when the Blueprints sub-tab is shown: reopen the last file.
