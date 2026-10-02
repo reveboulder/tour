@@ -1453,6 +1453,30 @@
         .bp-panels { grid-template-columns: minmax(0, 1fr); }
         .bp-viewport { height: 60vh; }
     }
+    /* -- Lease › Sample lease questions -- */
+    .ls-card { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 12px 14px; margin: -8px 0 20px; max-width: 900px; }
+    .ls-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .ls-file { font-size: 12.5px; font-weight: 700; }
+    .ls-status { margin: 6px 0 0; min-height: 0; }
+    .ls-ask-bar { display: flex; gap: 8px; margin-top: 10px; position: relative; }
+    .ls-ask-bar input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font-size: 13.5px; font-family: var(--sans); }
+    .ls-ask-bar .btn { width: auto; flex: none; padding: 8px 18px; }
+    .ls-examples { font-size: 11.5px; color: var(--ink-soft); margin: 6px 0 4px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+    .ls-examples button, .ls-more-btn { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 3px 10px; font-size: 11.5px; cursor: pointer; font-family: var(--sans); color: inherit; }
+    .ls-examples button:hover, .ls-more-btn:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+    .ls-qa { border-top: 1px solid var(--line-soft); padding: 10px 0 8px; }
+    .ls-q { font-weight: 700; font-size: 13.5px; }
+    .ls-src { font-size: 11.5px; color: var(--reve-orange-dark); font-weight: 700; margin: 4px 0; }
+    .ls-open { margin-left: 8px; font-weight: 600; }
+    .ls-quote { margin: 4px 0 6px; padding: 8px 12px; border-left: 3px solid var(--reve-orange); background: #fbf6f2; font-size: 13px; line-height: 1.5; }
+    .ls-quote mark, .ls-full mark { background: #ffe58a; color: inherit; padding: 0 1px; }
+    .ls-full { font-size: 12.5px; margin: 2px 0 6px; }
+    .ls-full summary { cursor: pointer; color: var(--ink-soft); font-size: 12px; }
+    .ls-full div { margin-top: 6px; line-height: 1.5; max-height: 320px; overflow-y: auto; padding-right: 6px; }
+    .ls-more { font-size: 11.5px; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+    .ls-disclaimer { font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
+    body.dark-mode .ls-card, body.dark-mode .ls-ask-bar input, body.dark-mode .ls-examples button, body.dark-mode .ls-more-btn { background: var(--dm-card-alt); color: inherit; }
+    body.dark-mode .ls-quote { background: rgba(224, 68, 27, 0.12); }
     /* -- Residents -- */
     .res-trackers {
         display: grid;
@@ -3342,6 +3366,31 @@
         <div>
             <h1>New Lease</h1>
             <div class="tag">Auto-filled from Welcome Letter &mdash; shared across agents</div>
+        </div>
+    </div>
+
+    <div class="ls-card">
+        <div class="ls-head">
+            <div class="mmr-section-title" style="margin:0;">SAMPLE LEASE &mdash; QUESTIONS</div>
+            <label class="file-label" for="lsFileInput">Upload sample lease</label>
+            <input type="file" id="lsFileInput" accept=".pdf,application/pdf" style="display:none;">
+            <span class="ls-file" id="lsFileName">No sample lease uploaded</span>
+            <button type="button" class="res-danger-link" id="lsRemove" style="display:none;">Remove</button>
+        </div>
+        <div class="empty-note ls-status" id="lsStatus"></div>
+        <div class="ls-ask" id="lsAskRow" style="display:none;">
+            <div class="ls-ask-bar">
+                <input type="text" id="lsQuestion" placeholder="Ask about the lease, e.g. &ldquo;What is the late fee?&rdquo;" autocomplete="off">
+                <button type="button" class="btn primary" id="lsAskBtn">Ask</button>
+            </div>
+            <div class="ls-examples">Try:
+                <button type="button" data-ls-example>What is the late fee?</button>
+                <button type="button" data-ls-example>How do I break my lease early?</button>
+                <button type="button" data-ls-example>How much notice to move out?</button>
+                <button type="button" data-ls-example>How long can guests stay?</button>
+                <button type="button" data-ls-example>Is smoking allowed?</button>
+            </div>
+            <div id="lsAnswers"></div>
         </div>
     </div>
 
@@ -6150,6 +6199,7 @@ function switchTab(name) {
     if (name === 'expiring') renderExpiringList();
     if (name === 'residents') renderResidents();
     if (name === 'wl') wlEnsureFormVisible();
+    if (name === 'lease' && typeof lsOnShow === 'function') lsOnShow();
     if (name === 'media' && typeof renderSitemap === 'function') renderSitemap();
     if (name === 'howto' && typeof renderHowTo === 'function') renderHowTo();
     if (name === 'documents' && typeof renderDocuments === 'function') renderDocuments();
@@ -16641,6 +16691,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-residents-views": {"title": "Find Residents: Tabs, Calendar and Search", "icon": "📋", "category": "Residents", "steps": ["Active: everyone not yet moved out. Pending: not moved in yet. Notice Req.: a notice-needed date in the next 30 days. Move-Outs: past residents.", "The calendar at the top shows move-ins for the month — use ‹ › to change months, and click a unit to jump to its row.", "Type in \"Search unit or resident name…\" to find someone fast.", "Use the filter on each column header to narrow the table, and \"Clear Filters\" to reset.", "Click \"Refresh to Update\" to pull the latest changes from other agents."]},
     "builtin-residents-backup": {"title": "Back Up or Restore Residents Data", "icon": "💾", "category": "Residents", "steps": ["On the Residents tab, click \"Export data\" to download a backup of the whole table.", "To restore from a backup, click \"Upload data\" and enter the Admin password — this replaces the current data for everyone.", "\"Clear all data\" permanently removes every resident and also needs the Admin password. Export a backup first."]},
     "builtin-welcome-letter": {"title": "Prepare a Welcome Letter", "icon": "✉️", "category": "Welcome Letter", "steps": ["Open the WL tab and search for the resident by unit or name (they need to be on the Residents tab first).", "Unit details fill in automatically. Complete Monthly Charges, Security & Other Deposits, Fees, Fees Paid, Concessions and Utilities.", "Click \"Download WL PDF\" for the letter.", "Click \"Create Email Draft\", enter the resident's email, and a new draft opens in your mail app with the subject filled in — add the template and attachments there.", "For the move-in folder, click \"Download M/I Sticker\". \"Name on Sticker\" uses the resident's name unless you type a different one.", "Everything you enter here also fills the Lease tab."]},
+    "builtin-lease-questions": {"title": "Ask Questions About the Sample Lease", "icon": "\u2753", "category": "Lease", "steps": ["Open the Lease tab and click \"Upload sample lease\" to load the current lease PDF (only needed when a new version comes out).", "The lease text is shared with the team, so everyone can ask questions after one upload; the PDF itself stays in the browser that uploaded it.", "Type a question in the bar (e.g. \"What is the late fee?\", \"How long can guests stay?\") and press Enter, or click an example.", "The answer quotes the matching sentences with the section and page. \"Read the whole section\" shows the full paragraph, and \"Open page\" opens the PDF there.", "\"Also see\" lists other sections that mention the same thing \u2014 click one to see its answer."]},
     "builtin-new-lease": {"title": "Fill Out a New Lease", "icon": "🖊️", "category": "Lease", "steps": ["Complete the resident's Welcome Letter first — the Lease tab pulls from it and from Residents.", "Open the Lease tab and search for the resident by unit or name.", "Each section (Lease Terms, Cover Sheet, Animal, Buyout, Inventory, Parking, Rent Concession, Special Provisions) shows the values to enter.", "Click the copy button next to any value to copy it, then paste it into the lease.", "For a renewal, check \"Select if Renewal Lease\" — the new dates start the day after the current lease ends.", "Click × next to the search to clear the selection."]},
     "builtin-mmr-traffic": {"title": "Record Weekly Traffic for the MMR", "icon": "🚶", "category": "Admin", "steps": ["Go to Admin (enter the password) > MMR > Weekly Traffic Detail.", "For each reason, write one sentence per show, starting with the prospect's first and last name and ending with a period.", "Each sentence that starts with a name counts as one show; follow-up sentences about the same prospect don't add to the count.", "Download New MMR replaces last week's numbers in the uploaded file.", "Click \"Clear for New Week\" to start the next week fresh."]},
     "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points (hold Shift for straight lines). Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create floorplan image\" makes a PNG of the unit with every wall length labeled (sized from the known sq ft), ready to download.", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary."]},
@@ -18040,6 +18091,285 @@ function addSearchClear(inp) {
 const SEARCH_CLEAR_INPUTS = [];
 ['unitSearch', 'renewalUnitSearch', 'renewalSearchBar', 'residentSearchBar', 'wlUnitSearch', 'fpSearch', 'howtoSearchBar', 'unitInfoSearch']
     .forEach(id => addSearchClear(document.getElementById(id)));
+
+/* ============================================================
+   Lease › Sample lease Q&A — upload the current sample lease (PDF) and
+   ask questions about it. Runs entirely in the browser (no AI service):
+   the PDF's text is split into its numbered sections and addenda, and a
+   question is matched to the best sections by keyword relevance (with
+   lease-specific synonyms), then answered with the closest sentences,
+   quoted with the section and page. The PDF itself stays in this
+   browser (for "Open page"); the extracted text is shared through the
+   backend so every agent can ask questions after one upload. Nothing
+   from the lease is in this code.
+   ============================================================ */
+const LS_BACKEND_KEY = 'lease-sample';
+const LS_CACHE_KEY = 'lease-sample';      // IndexedDB key (text + PDF)
+let LS = { doc: null, index: null, pdfUrl: null, history: [] };
+
+const LS_STOP = new Set('a an and are as at be by can do does for from has have how i if in is it its me my of on or our the their them there they this to was we what when where which who why will with you your yours am any about after before should would could may must than then into out up down per also just get got shall being been us'.split(' '));
+const LS_SYNONYMS = {
+    pet: ['animal', 'dog', 'cat'], animal: ['pet'], dog: ['animal', 'pet'], cat: ['animal', 'pet'],
+    late: ['delinquent', 'late fee'], fee: ['charge', 'charges'], charge: ['fee'], cost: ['fee', 'charge', 'amount'],
+    break: ['early', 'termination', 'reletting', 'move-out'], terminate: ['termination', 'early', 'reletting'], termination: ['terminate', 'early'],
+    move: ['vacate', 'move-out', 'moving'], vacate: ['move-out', 'surrender'], leave: ['vacate', 'move-out'],
+    deposit: ['security'], refund: ['deposit', 'return'], guest: ['occupant', 'occupants', 'guests', 'stay', 'consecutive'], roommate: ['occupant', 'resident', 'replacement'],
+    park: ['parking', 'vehicle', 'tow'], car: ['vehicle', 'parking'], tow: ['towing', 'vehicle'], smoke: ['smoking', 'no-smoking'], smoking: ['smoke'],
+    insurance: ['liability', 'renters'], repair: ['repairs', 'maintenance', 'malfunction'], maintenance: ['repair', 'repairs'], fix: ['repair', 'repairs'],
+    enter: ['entry', 'access'], entry: ['enter'], sublet: ['sublease', 'assign', 'assignment'], sublease: ['sublet', 'assign'],
+    noise: ['conduct', 'disturb', 'quiet'], loud: ['noise', 'disturb'], bug: ['pest', 'bed', 'bugs'], pest: ['pests', 'bed bug', 'pest control'],
+    package: ['packages', 'delivery'], utility: ['utilities', 'water', 'electric', 'gas', 'trash', 'sewer'], utilities: ['utility', 'water', 'electric', 'trash'],
+    water: ['utilities', 'utility', 'sub-metering'], pay: ['payment', 'responsible'], key: ['keys', 'lockout', 'locks'], lock: ['locks', 'latches', 'rekey'], lockout: ['keys', 'lock'],
+    renew: ['renewal', 'month-to-month'], renewal: ['renew', 'month-to-month'], increase: ['increases', 'change'], notice: ['written', 'notify'],
+    check: ['returned', 'nsf'], bounce: ['returned', 'nsf'], mold: ['moisture'], washer: ['dryer', 'laundry'], military: ['deployment', 'orders', 'armed', 'forces'], deploy: ['deployment', 'military', 'orders'], deployed: ['deployment', 'military', 'orders'],
+    paint: ['alterations', 'nail'], wall: ['alterations'], grill: ['grills', 'barbecue', 'fire'], balcony: ['patio'], storage: ['locker']
+};
+function lsStem(w) {
+    if (w.length > 5 && w.endsWith('ing')) return w.slice(0, -3);
+    if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
+    if (w.length > 4 && w.endsWith('ed')) return w.slice(0, -2);
+    if (w.length > 3 && w.endsWith('es') && /(ch|sh|x|ss)es$/.test(w)) return w.slice(0, -2);
+    if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
+    return w;
+}
+function lsTokens(text) {
+    return (String(text).toLowerCase().replace(/[’']/g, '').match(/[a-z0-9$%]+/g) || []).filter(w => !LS_STOP.has(w)).map(lsStem);
+}
+// Splits the lease into sections: numbered paragraphs ("6. RENT AND
+// CHARGES.") and addenda ("PET ADDENDUM"), each with its first page.
+function lsBuildIndex(pages) {
+    const sections = [];
+    let addendum = 'Lease Contract', cur = null;
+    const push = () => { if (cur && cur.text.trim().length > 40) sections.push(cur); };
+    pages.forEach((txt, pi) => {
+        String(txt).split('\n').forEach(raw => {
+            const line = raw.replace(/\s+/g, ' ').trim();
+            if (!line) return;
+            if (/©|national apartment association|^page \d+ of \d+$/i.test(line) && line.length < 140) return;
+            const add = line.match(/^([A-Z][A-Z0-9 ,'’&\/\-]{3,70}ADDENDUM)\b/);
+            const num = line.match(/^(\d{1,2})\.\s+([A-Z][A-Z0-9 ,'’&\/\-()]{2,60}?)\.(?:\s|$)/);
+            if (add && !/THIS ADDENDUM|THE ADDENDUM/.test(add[1])) {
+                push();
+                addendum = add[1].replace(/\b([A-Z])([A-Z]+)\b/g, (m, a, b) => a + b.toLowerCase());
+                cur = { title: addendum, page: pi + 1, text: line + ' ' };
+            } else if (num) {
+                push();
+                const head = num[2].replace(/\b([A-Z])([A-Z]+)\b/g, (m, a, b) => a + b.toLowerCase());
+                cur = { title: (addendum === 'Lease Contract' ? '' : addendum + ' › ') + `${num[1]}. ${head}`, page: pi + 1, text: line + ' ' };
+            } else {
+                if (!cur) cur = { title: addendum, page: pi + 1, text: '' };
+                cur.text += line + (/[-‐]$/.test(line) ? '' : ' ');
+            }
+        });
+    });
+    push();
+    // Passages of about 900 characters (sentence boundaries) for ranking.
+    const passages = [];
+    sections.forEach((s, si) => {
+        s.text = s.text.replace(/\s+/g, ' ').trim();
+        const sents = lsSentences(s.text);
+        let buf = '';
+        sents.forEach(x => {
+            if (buf && (buf + ' ' + x).length > 900) { passages.push({ si, text: buf }); buf = ''; }
+            buf = buf ? buf + ' ' + x : x;
+        });
+        if (buf) passages.push({ si, text: buf });
+    });
+    // BM25 statistics (section titles count double).
+    const df = {};
+    passages.forEach(p => {
+        const toks = lsTokens(p.text).concat(lsTokens(sections[p.si].title), lsTokens(sections[p.si].title));
+        p.tf = {};
+        toks.forEach(t => { p.tf[t] = (p.tf[t] || 0) + 1; });
+        p.len = toks.length;
+        Object.keys(p.tf).forEach(t => { df[t] = (df[t] || 0) + 1; });
+    });
+    const avg = passages.reduce((t, p) => t + p.len, 0) / Math.max(1, passages.length);
+    return { sections, passages, df, avg, N: passages.length };
+}
+function lsSentences(text) {
+    return String(text).split(/(?<=[.;:!?])\s+(?=[A-Z(“"0-9])/).map(s => s.trim()).filter(Boolean);
+}
+function lsIdf(ix, t) { const n = ix.df[t] || 0; return Math.log(1 + (ix.N - n + 0.5) / (n + 0.5)); }
+function lsQueryTerms(q) {
+    const base = lsTokens(q);
+    const terms = {};
+    base.forEach(t => { terms[t] = Math.max(terms[t] || 0, 1); });
+    String(q).toLowerCase().match(/[a-z]+/g)?.forEach(w => {
+        (LS_SYNONYMS[w] || LS_SYNONYMS[lsStem(w)] || []).forEach(s => lsTokens(s).forEach(t => { terms[t] = Math.max(terms[t] || 0, 0.55); }));
+    });
+    return terms;
+}
+function lsSearch(q) {
+    const ix = LS.index;
+    if (!ix) return [];
+    const terms = lsQueryTerms(q), k1 = 1.2, b = 0.75;
+    const qWords = (String(q).toLowerCase().match(/[a-z0-9]+/g) || []).filter(w => !LS_STOP.has(w));
+    const scored = ix.passages.map((p, pi) => {
+        let s = 0;
+        Object.keys(terms).forEach(t => {
+            const f = p.tf[t];
+            if (!f) return;
+            s += terms[t] * lsIdf(ix, t) * (f * (k1 + 1)) / (f + k1 * (1 - b + b * p.len / ix.avg));
+        });
+        // Section titles that use the question's words count extra
+        // ("When can they enter?" -> "29. When We May Enter").
+        const titleToks = new Set(lsTokens(ix.sections[p.si].title));
+        Object.keys(terms).forEach(t => { if (titleToks.has(t)) s += terms[t] * lsIdf(ix, t) * 1.6; });
+        // Blank fill-in boilerplate ("dated as of ______") ranks lower.
+        if ((p.text.match(/_/g) || []).length > 25) s *= 0.5;
+        // Phrases from the question appearing verbatim score extra.
+        const low = p.text.toLowerCase();
+        for (let i = 0; i + 1 < qWords.length; i++) if (low.indexOf(qWords[i] + ' ' + qWords[i + 1]) !== -1) s += 1.5;
+        return { pi, s };
+    }).filter(x => x.s > 0).sort((a, c) => c.s - a.s);
+    return scored;
+}
+// The sentences of a passage that best answer the question.
+function lsAnswerSentences(q, text, max) {
+    const terms = lsQueryTerms(q);
+    const wantsNumber = /\b(how (much|many|long|soon|far)|when|amount|fee|cost|charge|days?|percent|deadline|limit|maximum|minimum)\b/i.test(q);
+    // Bare headings ("MONTHLY PET FEE.") aren't answers.
+    const sents = lsSentences(text).filter(s => s.length >= 25 && !(s.length < 70 && s === s.toUpperCase()));
+    const scored = sents.map((s, i) => {
+        const toks = new Set(lsTokens(s));
+        let sc = 0;
+        Object.keys(terms).forEach(t => { if (toks.has(t)) sc += terms[t] * lsIdf(LS.index, t); });
+        if (wantsNumber && /(\$|\d|percent|days?\b|hours?\b|months?\b)/i.test(s)) sc *= 1.35;
+        return { i, s, sc };
+    }).filter(x => x.sc > 0).sort((a, c) => c.sc - a.sc).slice(0, max || 2).sort((a, c) => a.i - c.i);
+    return scored.map(x => x.s);
+}
+function lsMark(text, q) {
+    const words = Object.keys(lsQueryTerms(q)).filter(t => t.length > 2).map(t => t.replace(/[^a-z0-9]/g, '')).filter(Boolean);
+    let html = escapeHtml(text);
+    if (!words.length) return html;
+    const re = new RegExp(`\\b(${words.join('|')})[a-z]*`, 'gi');
+    return html.replace(re, '<mark>$&</mark>');
+}
+function lsAsk(q, focusSection) {
+    q = String(q || '').trim();
+    if (!q) return;
+    const box = document.getElementById('lsAnswers');
+    if (!LS.index) { box.innerHTML = '<div class="empty-note">Upload the sample lease first.</div>'; return; }
+    const hits = lsSearch(q);
+    let html;
+    if (!hits.length) {
+        html = `<div class="ls-qa"><div class="ls-q">${escapeHtml(q)}</div><div class="empty-note" style="margin:6px 0 0;">Nothing in the sample lease matches that. Try other words (e.g. “pet fee”, “break lease”, “late rent”).</div></div>`;
+    } else {
+        // Best passage (or the section the user picked from "Also see").
+        const ix = LS.index;
+        let top = hits[0];
+        if (focusSection != null) top = hits.find(h => ix.passages[h.pi].si === focusSection) || { pi: ix.passages.findIndex(p => p.si === focusSection), s: 0 };
+        const p = ix.passages[top.pi], sec = ix.sections[p.si];
+        const sents = lsAnswerSentences(q, p.text, 3);
+        const quote = sents.length ? sents : lsSentences(p.text).filter(x => x.length >= 25 && x !== x.toUpperCase()).slice(0, 2);
+        const seen = new Set([p.si]), more = [];
+        hits.forEach(h => { const si = ix.passages[h.pi].si; if (!seen.has(si) && more.length < 4) { seen.add(si); more.push(si); } });
+        const openBtn = LS.pdfUrl ? ` <a href="${LS.pdfUrl}#page=${sec.page}" target="_blank" rel="noopener" class="ls-open">Open page ${sec.page}</a>` : '';
+        html = `<div class="ls-qa">
+            <div class="ls-q">${escapeHtml(q)}</div>
+            <div class="ls-src">${escapeHtml(sec.title)} · page ${sec.page}${openBtn}</div>
+            <blockquote class="ls-quote">${quote.map(s => lsMark(s, q)).join(' … ')}</blockquote>
+            <details class="ls-full"><summary>Read the whole section</summary><div>${lsMark(sec.text, q)}</div></details>
+            ${more.length ? `<div class="ls-more">Also see: ${more.map(si => `<button type="button" class="ls-more-btn" data-ls-sec="${si}" data-ls-q="${escapeAttr(q)}">${escapeHtml(ix.sections[si].title)} <small>p.${ix.sections[si].page}</small></button>`).join('')}</div>` : ''}
+        </div>`;
+    }
+    LS.history.unshift(html);
+    LS.history = LS.history.slice(0, 8);
+    box.innerHTML = LS.history.join('') + '<div class="ls-disclaimer">Answers quote the sample lease text word for word; read the full section before relying on it.</div>';
+    box.querySelectorAll('[data-ls-sec]').forEach(btn => btn.addEventListener('click', () => lsAsk(btn.getAttribute('data-ls-q'), +btn.getAttribute('data-ls-sec'))));
+}
+// ---- Loading / saving the sample lease ----
+function lsSetStatus(msg) { const el = document.getElementById('lsStatus'); if (el) el.innerHTML = msg || ''; }
+function lsUseDoc(doc, pdfBlob) {
+    LS.doc = doc;
+    LS.index = lsBuildIndex(doc.pages);
+    if (LS.pdfUrl) URL.revokeObjectURL(LS.pdfUrl);
+    LS.pdfUrl = pdfBlob ? URL.createObjectURL(pdfBlob) : null;
+    const when = doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString('en-US') : '';
+    document.getElementById('lsFileName').textContent = `${doc.name} · ${doc.pages.length} pages · ${LS.index.sections.length} sections${when ? ' · uploaded ' + when : ''}`;
+    document.getElementById('lsAskRow').style.display = '';
+    document.getElementById('lsRemove').style.display = '';
+}
+async function lsExtract(blob) {
+    const pdfjsLib = await docsLoadPdfJs();
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
+    const pages = [];
+    for (let n = 1; n <= pdf.numPages; n++) {
+        lsSetStatus(`Reading page ${n} of ${pdf.numPages}…`);
+        const tc = await (await pdf.getPage(n)).getTextContent();
+        pages.push(tc.items.map(i => i.str + (i.hasEOL ? '\n' : '')).join(''));
+    }
+    pdf.destroy();
+    return pages;
+}
+async function lsUpload(file) {
+    try {
+        const pages = await lsExtract(file);
+        const chars = pages.reduce((t, p) => t + p.trim().length, 0);
+        if (chars < 500) { lsSetStatus('That PDF has almost no readable text (it may be a scan), so questions can’t be answered from it.'); return; }
+        const doc = { name: file.name, uploadedAt: Date.now(), pages };
+        lsUseDoc(doc, file);
+        await bpDbPutKey('lease-sample', { doc, blob: file }).catch(() => {});
+        LS.history = [];
+        document.getElementById('lsAnswers').innerHTML = '';
+        if (BACKEND_URL && APP_MODE !== 'test') {
+            lsSetStatus('Sharing the lease text with the team…');
+            const ok = await backendPush(LS_BACKEND_KEY, doc, (i, n) => lsSetStatus(`Sharing the lease text with the team… ${Math.round(i / n * 100)}%`));
+            lsSetStatus(ok ? 'Ready — ask a question below. Shared with the team.' : 'Ready in this browser — sharing with the team failed; try uploading again later.');
+        } else {
+            lsSetStatus('Ready — ask a question below.');
+        }
+        document.getElementById('lsQuestion').focus();
+    } catch (err) {
+        console.error(err);
+        lsSetStatus(`Couldn’t read that file (${err.message}). Use the lease PDF.`);
+    }
+}
+let lsLoaded = false;
+async function lsOnShow() {
+    if (lsLoaded) return;
+    lsLoaded = true;
+    let local = null;
+    try { local = await bpDbGetKey('lease-sample'); } catch (e) {}
+    if (local && local.doc) { lsUseDoc(local.doc, local.blob); lsSetStatus(''); }
+    if (BACKEND_URL && APP_MODE !== 'test') {
+        const remote = await backendPullChecked(LS_BACKEND_KEY).catch(() => undefined);
+        if (remote && remote.pages && (!LS.doc || (remote.uploadedAt || 0) > (LS.doc.uploadedAt || 0))) {
+            const sameFile = local && local.doc && local.doc.name === remote.name && local.doc.uploadedAt === remote.uploadedAt;
+            lsUseDoc(remote, sameFile ? local.blob : null);
+            bpDbPutKey('lease-sample', { doc: remote, blob: sameFile ? local.blob : null }).catch(() => {});
+        }
+    }
+    if (!LS.doc) lsSetStatus('No sample lease yet — upload the current one to ask questions about it.');
+}
+(function lsInit() {
+    const input = document.getElementById('lsFileInput');
+    if (!input) return;
+    input.addEventListener('change', () => {
+        const f = input.files && input.files[0];
+        input.value = '';
+        if (!f) return;
+        if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') { alert('Please choose the lease PDF.'); return; }
+        lsUpload(f);
+    });
+    const ask = () => { const q = document.getElementById('lsQuestion'); lsAsk(q.value); q.select(); };
+    document.getElementById('lsAskBtn').addEventListener('click', ask);
+    document.getElementById('lsQuestion').addEventListener('keydown', e => { if (e.key === 'Enter') ask(); });
+    document.querySelectorAll('[data-ls-example]').forEach(b => b.addEventListener('click', () => { document.getElementById('lsQuestion').value = b.textContent; ask(); }));
+    document.getElementById('lsRemove').addEventListener('click', async () => {
+        if (!confirm('Remove the sample lease from this browser? (The shared copy stays until a new one is uploaded.)')) return;
+        try { await bpDbPutKey('lease-sample', null); } catch (e) {}
+        LS = { doc: null, index: null, pdfUrl: null, history: [] };
+        document.getElementById('lsFileName').textContent = 'No sample lease uploaded';
+        document.getElementById('lsAskRow').style.display = 'none';
+        document.getElementById('lsRemove').style.display = 'none';
+        document.getElementById('lsAnswers').innerHTML = '';
+        lsSetStatus('Removed from this browser.');
+    });
+    addSearchClear(document.getElementById('lsQuestion'));
+})();
 
 /* ============================================================
    Admin › Blueprints — opens a construction drawing set (PDF) right in
