@@ -1396,6 +1396,35 @@
     .bp-overlay .bp-hit { fill: rgba(255, 213, 0, 0.45); stroke: #d4a800; stroke-width: 1.5; }
     .bp-overlay .bp-hit.bp-hit-dim { fill: rgba(31, 122, 224, 0.18); stroke: #1f7ae0; }
     .bp-overlay .bp-hit.bp-hit-sel { fill: rgba(31, 122, 224, 0.4); }
+    .bp-fp-select { width: auto; flex: none; max-width: 260px; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; font-family: var(--sans); background: #fff; color: inherit; }
+    .bp-is-image #bpScaleSelect, .bp-is-image #bpScaleAll, .bp-is-image .bp-snap { display: none; }
+    .bp-takeoff { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 8px 10px; margin-top: 10px; }
+    .bp-to-row { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .bp-to-row label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+    .bp-to-row input, .bp-to-row select { width: auto; border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: 12.5px; font-family: var(--sans); background: #fff; color: var(--ink); font-weight: 400; }
+    #bpToName { width: 150px; } #bpToKnown { width: 90px; } #bpToSelect { min-width: 160px; }
+    .bp-btn.active { background: var(--reve-orange); border-color: var(--reve-orange); color: #fff; }
+    .bp-dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+    .bp-dot-outer { background: #1f5fd1; } .bp-dot-inner { background: #18a058; }
+    .btn.primary.bp-to-make { width: auto; flex: none; padding: 6px 14px; margin-left: auto; }
+    .bp-to-results { font-size: 12.5px; }
+    .bp-to-results table { border-collapse: collapse; width: 100%; max-width: 760px; }
+    .bp-to-results td, .bp-to-results th { border-bottom: 1px solid var(--line-soft); padding: 4px 8px; text-align: left; }
+    .bp-to-results th { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+    .bp-to-results td.num { text-align: right; font-weight: 700; white-space: nowrap; }
+    .bp-to-note { margin-top: 6px; color: var(--ink-soft); }
+    .bp-to-best { color: #2e7d4a; font-weight: 700; }
+    .bp-overlay .bp-to-outer { stroke: #1f5fd1; stroke-width: 2.5; fill: rgba(31, 95, 209, 0.08); }
+    .bp-overlay .bp-to-inner { stroke: #18a058; stroke-width: 2; fill: rgba(24, 160, 88, 0.10); }
+    .bp-overlay .bp-to-faint { stroke: #1f5fd1; stroke-width: 1; fill: none; stroke-dasharray: 4 3; opacity: 0.6; }
+    .bp-overlay .bp-edge-label { font: 700 11px var(--sans); paint-order: stroke; stroke: #fff; stroke-width: 3.5px; stroke-linejoin: round; }
+    .bp-overlay .bp-edge-outer { fill: #1f5fd1; } .bp-overlay .bp-edge-inner { fill: #12804a; }
+    .bp-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .bp-modal-card { background: #fff; border-radius: 10px; max-width: min(1200px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+    .bp-modal-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    .bp-modal-body { overflow: auto; padding: 10px; background: #f3f2ef; }
+    .bp-modal-body img { display: block; max-width: 100%; height: auto; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    body.dark-mode .bp-takeoff, body.dark-mode .bp-to-row input, body.dark-mode .bp-to-row select, body.dark-mode .bp-fp-select, body.dark-mode .bp-modal-card { background: var(--dm-card-alt); color: inherit; }
     .bp-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
     .bp-panel { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 8px 10px; min-width: 0; }
     .bp-list { max-height: 260px; overflow-y: auto; font-size: 12.5px; }
@@ -3799,8 +3828,9 @@
         </div>
         <div id="adminPanel-blueprints" class="admin-subpanel" style="display:none;">
             <div class="bp-bar">
-                <label class="file-label" for="bpFileInput">Open Blueprint PDF</label>
-                <input type="file" id="bpFileInput" accept=".pdf,application/pdf" style="display:none;">
+                <label class="file-label" for="bpFileInput">Open Blueprint PDF or Floorplan Image</label>
+                <input type="file" id="bpFileInput" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp,image/gif" style="display:none;">
+                <select id="bpFpSelect" class="bp-fp-select" title="Open a floorplan from Documents › Floorplans"><option value="">Or open a site floorplan&hellip;</option></select>
                 <span class="bp-file-name" id="bpFileName">No file open</span>
                 <span class="empty-note bp-private">The PDF stays in this browser only &mdash; it is never uploaded or shared.</span>
             </div>
@@ -3859,6 +3889,31 @@
                             <svg class="bp-overlay" id="bpOverlay"></svg>
                         </div>
                     </div>
+                    <div class="bp-takeoff" id="bpTakeoff">
+                        <div class="bp-side-title">Unit area takeoff <span class="bp-count">&mdash; trace a unit's boundaries and compare to its known sq ft</span></div>
+                        <div class="bp-to-row">
+                            <select id="bpToSelect" title="Units traced on this sheet"></select>
+                            <button type="button" class="bp-btn bp-small" id="bpToNew">+ New unit</button>
+                            <button type="button" class="bp-btn bp-small" id="bpToDelete">Delete</button>
+                        </div>
+                        <div class="bp-to-row">
+                            <label>Unit / name<input type="text" id="bpToName" placeholder="e.g. 331 — A3" autocomplete="off"></label>
+                            <label>Known sq ft<input type="text" id="bpToKnown" inputmode="decimal" placeholder="e.g. 741" autocomplete="off"></label>
+                            <label>Known sq ft is measured to
+                                <select id="bpToBasis">
+                                    <option value="outer">Outer boundary (outside of walls)</option>
+                                    <option value="mid">Wall centers (halfway, approx.)</option>
+                                    <option value="inner">Inner boundary (interior)</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="bp-to-row">
+                            <button type="button" class="bp-btn bp-to-trace" data-bp-tool="outer"><span class="bp-dot bp-dot-outer"></span>Trace outer boundary</button>
+                            <button type="button" class="bp-btn bp-to-trace" data-bp-tool="inner" id="bpToInnerBtn"><span class="bp-dot bp-dot-inner"></span>Trace inner boundary <small>(optional)</small></button>
+                            <button type="button" class="btn primary bp-to-make" id="bpToImage">Create floorplan image</button>
+                        </div>
+                        <div class="bp-to-results" id="bpToResults"></div>
+                    </div>
                     <div class="bp-panels">
                         <div class="bp-panel">
                             <div class="bp-side-title">Measurements</div>
@@ -3870,6 +3925,17 @@
                             <div id="bpDimList" class="bp-list"></div>
                         </div>
                     </div>
+                </div>
+            </div>
+            <div class="bp-modal" id="bpModal" style="display:none;">
+                <div class="bp-modal-card">
+                    <div class="bp-modal-head">
+                        <b id="bpModalTitle">Measured floorplan</b>
+                        <span style="margin-left:auto;"></span>
+                        <button type="button" class="btn primary" id="bpModalDownload" style="width:auto;flex:none;padding:7px 14px;">Download PNG</button>
+                        <button type="button" class="bp-btn" id="bpModalClose">Close</button>
+                    </div>
+                    <div class="bp-modal-body"><img id="bpModalImg" alt="Measured floorplan"></div>
                 </div>
             </div>
         </div>
@@ -16552,7 +16618,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-welcome-letter": {"title": "Prepare a Welcome Letter", "icon": "✉️", "category": "Welcome Letter", "steps": ["Open the WL tab and search for the resident by unit or name (they need to be on the Residents tab first).", "Unit details fill in automatically. Complete Monthly Charges, Security & Other Deposits, Fees, Fees Paid, Concessions and Utilities.", "Click \"Download WL PDF\" for the letter.", "Click \"Create Email Draft\", enter the resident's email, and a new draft opens in your mail app with the subject filled in — add the template and attachments there.", "For the move-in folder, click \"Download M/I Sticker\". \"Name on Sticker\" uses the resident's name unless you type a different one.", "Everything you enter here also fills the Lease tab."]},
     "builtin-new-lease": {"title": "Fill Out a New Lease", "icon": "🖊️", "category": "Lease", "steps": ["Complete the resident's Welcome Letter first — the Lease tab pulls from it and from Residents.", "Open the Lease tab and search for the resident by unit or name.", "Each section (Lease Terms, Cover Sheet, Animal, Buyout, Inventory, Parking, Rent Concession, Special Provisions) shows the values to enter.", "Click the copy button next to any value to copy it, then paste it into the lease.", "For a renewal, check \"Select if Renewal Lease\" — the new dates start the day after the current lease ends.", "Click × next to the search to clear the selection."]},
     "builtin-mmr-traffic": {"title": "Record Weekly Traffic for the MMR", "icon": "🚶", "category": "Admin", "steps": ["Go to Admin (enter the password) > MMR > Weekly Traffic Detail.", "For each reason, write one sentence per show, starting with the prospect's first and last name and ending with a period.", "Each sentence that starts with a name counts as one show; follow-up sentences about the same prospect don't add to the count.", "Download New MMR replaces last week's numbers in the uploaded file.", "Click \"Clear for New Week\" to start the next week fresh."]},
-    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points (hold Shift for straight lines). Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall."]},
+    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points (hold Shift for straight lines). Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create floorplan image\" makes a PNG of the unit with every wall length labeled (sized from the known sq ft), ready to download.", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary."]},
     "builtin-commissions": {"title": "Run Commissions for the Pay Period", "icon": "💼", "category": "Admin", "steps": ["Go to Admin > Commissions and check the Current pay period (change its start date if needed).", "Review Suggested Move-Ins (residents moving in this pay period): + adds one officially, × rejects it.", "Add anything missing with \"+ Add Move-In\" or \"+ Add Renewal\", or use \"Import Renewals\" with the Resident Activity Detail export.", "Optional: upload last period's Commissions file to keep its formatting.", "Click \"Export to Excel\" — only officially added Move-Ins and Renewals are included."]},
     "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx)\". The file stays in your browser tab only and is never saved.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code (suggestions come from the file), To, Amount and For.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Check the summary under the table — it warns if the items won't fit in the sheet.", "Click \"Export to Excel\". Items go into the table, the approval date is set to today, and the rest of the file is unchanged.", "When asked, clear the exported items so they aren't added twice next time."]},
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
@@ -18050,6 +18116,8 @@ function bpLoadState() {
     } catch (e) { BP.state = { scales: {}, measures: {} }; }
     BP.state.scales = BP.state.scales || {};
     BP.state.measures = BP.state.measures || {};
+    BP.state.takeoffs = BP.state.takeoffs || {};   // pageNum -> [{ name, known, basis, outer, inner }]
+    BP.toIdx = {};
 }
 function bpSaveState() {
     try {
@@ -18091,33 +18159,74 @@ async function bpDbGet() {
 function bpSetStatus(msg) { const el = document.getElementById('bpStatus'); if (el) el.textContent = msg || ''; }
 
 // ---- Open a file ----
+// A floorplan image opened like a one-sheet PDF: same viewer, tools and
+// takeoff. Its units are image pixels (y down), so it has no printed
+// scale; it's sized by calibrating or by a known sq ft.
+async function bpImageDoc(blob) {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    await new Promise((resolve, reject) => { img.onload = resolve; img.onerror = () => reject(new Error('not a readable image')); img.src = url; });
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const viewport = scale => ({
+        width: W * scale, height: H * scale, scale,
+        convertToViewportPoint: (x, y) => [x * scale, y * scale],
+        convertToPdfPoint: (x, y) => [x / scale, y / scale]
+    });
+    const page = {
+        getViewport: ({ scale }) => viewport(scale),
+        render: ({ canvasContext: ctx, viewport: vp, transform }) => {
+            ctx.save();
+            if (transform) ctx.transform(...transform);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, vp.width, vp.height);
+            ctx.drawImage(img, 0, 0, vp.width, vp.height);
+            ctx.restore();
+            return { promise: Promise.resolve(), cancel() {} };
+        },
+        getTextContent: async () => ({ items: [] }),
+        getOperatorList: async () => ({ fnArray: [], argsArray: [] })
+    };
+    return { numPages: 1, isImage: true, width: W, height: H, getPage: async () => page, destroy() { URL.revokeObjectURL(url); } };
+}
+const BP_IMAGE_RE = /\.(jpe?g|png|webp|gif)$/i;
 async function bpOpenBlob(blob, name, lastModified, remember) {
     if (BP.loading) return;
     BP.loading = true;
     try {
-        bpSetStatus('Loading PDF.js…');
-        const pdfjsLib = await docsLoadPdfJs();
-        bpSetStatus(`Opening ${name}…`);
-        const data = new Uint8Array(await blob.arrayBuffer());
+        const isImage = /^image\//.test(blob.type || '') || BP_IMAGE_RE.test(name);
+        bpSetStatus(`Opening ${name}\u2026`);
         if (BP.pdf) { try { BP.pdf.destroy(); } catch (e) {} }
-        BP.pdf = await pdfjsLib.getDocument({ data }).promise;
+        BP.pdf = null;
+        if (isImage) {
+            BP.pdf = await bpImageDoc(blob);
+        } else {
+            bpSetStatus('Loading PDF.js\u2026');
+            const pdfjsLib = await docsLoadPdfJs();
+            bpSetStatus(`Opening ${name}\u2026`);
+            const data = new Uint8Array(await blob.arrayBuffer());
+            BP.pdf = await pdfjsLib.getDocument({ data }).promise;
+        }
         BP.fileName = name;
         BP.fileKey = `${name}|${blob.size}|${lastModified || ''}`;
         BP.pages = {}; BP.segs = {}; BP.extractDone = false; BP.highlight = null; BP.dimSel = new Set(); BP.pending = [];
         BP.pageNum = 1;
         bpLoadState();
-        document.getElementById('bpFileName').textContent = `${name} · ${BP.pdf.numPages} sheet${BP.pdf.numPages === 1 ? '' : 's'} · ${(blob.size / 1048576).toFixed(1)} MB`;
+        document.getElementById('bpFileName').textContent = BP.pdf.isImage
+            ? `${name} \u00b7 floorplan image ${BP.pdf.width} \u00d7 ${BP.pdf.height} px`
+            : `${name} \u00b7 ${BP.pdf.numPages} sheet${BP.pdf.numPages === 1 ? '' : 's'} \u00b7 ${(blob.size / 1048576).toFixed(1)} MB`;
+        document.getElementById('bpLayout').classList.toggle('bp-is-image', !!BP.pdf.isImage);
         document.getElementById('bpLayout').style.display = '';
         document.getElementById('bpSearch').value = '';
         document.getElementById('bpResults').innerHTML = '';
         bpRenderSheetList();
         await bpGoTo(1, { fit: true });
         if (remember) bpDbPut({ name, lastModified: lastModified || 0, blob }).catch(() => {});
+        document.getElementById('bpFpSelect').value = '';
         bpExtractAll();   // background: text for search, sheet labels, dimensions
         bpRunCheck();     // background: vector / scan / text verdict
     } catch (err) {
         console.error(err);
-        bpSetStatus(`Couldn't open that file (${err.message}). Make sure it's a PDF.`);
+        bpSetStatus(`Couldn't open that file (${err.message}). Use a PDF or a JPG/PNG image.`);
     } finally {
         BP.loading = false;
     }
@@ -18247,6 +18356,10 @@ async function bpExtractAll() {
 async function bpRunCheck() {
     const pdf = BP.pdf, box = document.getElementById('bpCheck');
     box.style.display = '';
+    if (pdf.isImage) {
+        box.innerHTML = '<b>Floorplan image</b> &mdash; under \u201cUnit area takeoff\u201d, trace the unit\'s <b>outer boundary</b> and enter its known sq ft; every wall length is worked out from that. (Or Calibrate on a dimension you know.)';
+        return;
+    }
     box.innerHTML = '<b>Checking how this PDF was made…</b>';
     const OPS = window.pdfjsLib.OPS;
     const imageOps = new Set([OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageMaskXObject, OPS.paintJpegXObject].filter(v => v !== undefined));
@@ -18327,7 +18440,8 @@ async function bpGoTo(n, opts) {
     bpUpdateScaleUi();
     bpRenderMeasures();
     bpExtractPage(n).then(() => { if (BP.pageNum === n) { bpRenderDims(); bpDrawOverlay(); bpUpdateScaleUi(); } }).catch(() => {});
-    bpLoadSegs(n).catch(() => {});
+    if (!BP.pdf.isImage) bpLoadSegs(n).catch(() => {});
+    bpRenderTakeoff();
 }
 async function bpRender(page) {
     page = page || await BP.pdf.getPage(BP.pageNum);
@@ -18398,6 +18512,7 @@ function bpDrawOverlay() {
             if (l) parts.push(`<polygon class="bp-hit${BP.highlight.dim ? ' bp-hit-dim' : ''}" points="${poly(bpLineCorners(l))}"/>`);
         }
     }
+    bpDrawTakeoffs(parts, poly);
     (BP.state.measures[BP.pageNum] || []).forEach(m => {
         const cls = m.type === 'area' ? 'bp-m-area' : 'bp-m-line';
         parts.push(m.type === 'area' ? `<polygon class="${cls}" points="${poly(m.pts)}"/>` : `<polyline class="${cls}" points="${poly(m.pts)}"/>`);
@@ -18410,7 +18525,7 @@ function bpDrawOverlay() {
         parts.push(label(sc.pts[1], `cal ${bpFmtFtIn(sc.known)}`));
     }
     if (BP.pending.length) {
-        const cls = BP.tool === 'calibrate' ? 'bp-m-cal' : 'bp-m-line';
+        const cls = BP.tool === 'calibrate' ? 'bp-m-cal' : BP.tool === 'outer' ? 'bp-to-outer' : BP.tool === 'inner' ? 'bp-to-inner' : 'bp-m-line';
         const pts = BP.hover ? BP.pending.concat([BP.hover]) : BP.pending;
         parts.push(`<polyline class="${cls}" points="${poly(pts)}"/>`);
         BP.pending.forEach(p => { const [x, y] = bpToCss(p); parts.push(`<circle class="bp-m-pt" cx="${x}" cy="${y}" r="3.5"/>`); });
@@ -18480,7 +18595,7 @@ async function bpLoadSegs(n) {
 // Drawn point within ~10 screen pixels, or null. Points where three or
 // more lines meet win over a slightly nearer loose line end.
 async function bpSnap(p, e) {
-    if (!document.getElementById('bpSnap').checked || (e && e.altKey) || !BP.pdf) return null;
+    if (!document.getElementById('bpSnap').checked || (e && e.altKey) || !BP.pdf || BP.pdf.isImage) return null;
     let grid;
     try { grid = await bpLoadSegs(BP.pageNum); } catch (err) { return null; }
     const r = 10 / BP.zoom;
@@ -18511,7 +18626,9 @@ function bpSetTool(tool) {
         pan: 'Drag to move around; Ctrl/⌘ + scroll to zoom.',
         calibrate: 'Click both ends of a dimension you know (e.g. 43\'-7"), then type its length.',
         length: 'Click two points. The green square shows a snap to a drawn corner/line end (Alt = no snap); Shift keeps the line straight.',
-        area: 'Click each corner of the room; click the first point (or press Enter) to finish. Esc cancels.'
+        area: 'Click each corner of the room; click the first point (or press Enter) to finish. Esc cancels.',
+        outer: 'Outer boundary: click around the OUTSIDE of the unit\'s walls, corner by corner; click the first point (or press Enter) to close. Esc cancels.',
+        inner: 'Inner boundary: click along the INSIDE face of the walls (in and out around kitchen/appliance alcoves as drawn); click the first point (or Enter) to close.'
     };
     document.getElementById('bpHint').textContent = hints[tool] || '';
     bpDrawOverlay();
@@ -18532,15 +18649,29 @@ function bpAddMeasure(m) {
     (BP.state.measures[BP.pageNum] = BP.state.measures[BP.pageNum] || []).push(m);
     bpSaveState(); bpRenderMeasures(); bpDrawOverlay();
 }
+const BP_POLY_TOOLS = ['area', 'outer', 'inner'];
 function bpFinishArea() {
-    if (BP.pending.length >= 3) bpAddMeasure({ type: 'area', pts: BP.pending.slice() });
-    BP.pending = []; BP.hover = null; bpDrawOverlay();
+    const pts = BP.pending.slice();
+    BP.pending = []; BP.hover = null;
+    if (pts.length >= 3) {
+        if (BP.tool === 'outer' || BP.tool === 'inner') {
+            const t = bpActiveTakeoff(true);
+            t[BP.tool] = pts;
+            bpSaveState();
+            // Outer first, then straight on to the inner trace if it's still empty.
+            bpSetTool(BP.tool === 'outer' && !t.inner && !BP.pdf.isImage ? 'inner' : 'pan');
+            bpRenderTakeoff();
+        } else {
+            bpAddMeasure({ type: 'area', pts });
+        }
+    }
+    bpDrawOverlay();
 }
 async function bpStageClick(e) {
     if (!BP.viewport || BP.tool === 'pan') return;
     let p = bpEventPdfPoint(e);
     p = (await bpSnap(p, e)) || bpOrtho(BP.pending[BP.pending.length - 1], p, e);
-    if (BP.tool === 'area' && BP.pending.length >= 3) {
+    if (BP_POLY_TOOLS.indexOf(BP.tool) !== -1 && BP.pending.length >= 3) {
         const a = bpToCss(BP.pending[0]), b = bpToCss(p);
         if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 10) { bpFinishArea(); return; }
     }
@@ -18677,6 +18808,323 @@ function bpRunSearch() {
     }));
 }
 
+// ---- Unit area takeoff: outer + inner boundary vs. a known sq ft ----
+// The outer trace follows the outside of the unit's walls; the inner trace
+// follows the inside face (around kitchen and appliance alcoves). A known
+// sq ft (e.g. the marketing figure) can size the drawing on its own: the
+// boundary it's measured to gets exactly that area, and every wall length
+// follows. With a sheet scale too, the table shows which boundary the
+// known figure really matches.
+function bpPolyAreaUnits(pts) {
+    if (!pts || pts.length < 3) return 0;
+    let a = 0;
+    pts.forEach((p, i) => { const q = pts[(i + 1) % pts.length]; a += p[0] * q[1] - q[0] * p[1]; });
+    return Math.abs(a) / 2;
+}
+function bpPolyPerimUnits(pts) {
+    if (!pts || pts.length < 2) return 0;
+    return pts.reduce((t, p, i) => { const q = pts[(i + 1) % pts.length]; return t + Math.hypot(q[0] - p[0], q[1] - p[1]); }, 0);
+}
+function bpTakeoffs(pageNum) {
+    const k = pageNum || BP.pageNum;
+    return (BP.state.takeoffs[k] = BP.state.takeoffs[k] || []);
+}
+function bpActiveTakeoff(create) {
+    const list = bpTakeoffs();
+    let i = BP.toIdx[BP.pageNum];
+    if (i === undefined || !list[i]) i = list.length - 1;
+    if (i < 0 && create) { list.push({ name: '', known: '', basis: 'outer', outer: null, inner: null }); i = 0; bpSaveState(); }
+    BP.toIdx[BP.pageNum] = i;
+    return i >= 0 ? list[i] : null;
+}
+// Area (in PDF units²) of the boundary the known sq ft is measured to.
+function bpBasisUnits(t) {
+    const o = bpPolyAreaUnits(t.outer), n = bpPolyAreaUnits(t.inner);
+    if (t.basis === 'inner') return n;
+    if (t.basis === 'mid') return o && n ? (o + n) / 2 : 0;
+    return o;
+}
+// Real inches per PDF unit for this takeoff: from the known sq ft when
+// given (and its boundary is traced), otherwise the sheet's scale.
+function bpTakeoffScale(t) {
+    const known = parseFloat(String(t.known || '').replace(/[^0-9.]/g, ''));
+    const units = bpBasisUnits(t);
+    if (known > 0 && units > 0) return { inPerUnit: Math.sqrt(known * 144 / units), from: 'known', known };
+    const sc = bpScale();
+    return sc ? { inPerUnit: sc, from: 'sheet', known: known > 0 ? known : 0 } : { inPerUnit: 0, from: '', known: known > 0 ? known : 0 };
+}
+// Feet-inches rounded to 1/4" for labels.
+function bpFmtFtInQ(inches) { return bpFmtFtIn(Math.round(inches * 4) / 4); }
+function bpPointInPoly(pt, pts) {
+    let inside = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+        const [xi, yi] = pts[i], [xj, yj] = pts[j];
+        if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+}
+// Edge length labels for a traced boundary, in screen/canvas coordinates:
+// outer labels sit outside the outline, inner labels inside, rotated along
+// the wall and kept upright. `toXY` maps a PDF point to the target space.
+function bpEdgeLabels(pts, inPerUnit, toXY, outward, minPx) {
+    const out = [];
+    if (!pts || pts.length < 2 || !inPerUnit) return out;
+    const xy = pts.map(toXY);
+    xy.forEach((a, i) => {
+        const b = xy[(i + 1) % xy.length];
+        const p0 = pts[i], p1 = pts[(i + 1) % pts.length];
+        const inches = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) * inPerUnit;
+        const lenPx = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        if (inches < 6 || lenPx < (minPx || 18)) return;
+        const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+        let nx = -(b[1] - a[1]) / lenPx, ny = (b[0] - a[0]) / lenPx;
+        const probeIn = bpPointInPoly([mx + nx * 3, my + ny * 3], xy);
+        if (probeIn === outward) { nx = -nx; ny = -ny; }
+        let ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
+        if (ang > 90) ang -= 180; else if (ang < -90) ang += 180;
+        out.push({ x: mx, y: my, nx, ny, ang, text: bpFmtFtInQ(inches) });
+    });
+    return out;
+}
+function bpDrawTakeoffs(parts, poly) {
+    const list = BP.state.takeoffs && BP.state.takeoffs[BP.pageNum];
+    if (!list || !list.length) return;
+    const active = bpActiveTakeoff(false);
+    list.forEach(t => {
+        if (t === active) return;
+        if (t.outer) parts.push(`<polygon class="bp-to-faint" points="${poly(t.outer)}"/>`);
+    });
+    if (!active) return;
+    const sc = bpTakeoffScale(active).inPerUnit;
+    [['outer', true], ['inner', false]].forEach(([k, outward]) => {
+        const pts = active[k];
+        if (!pts) return;
+        parts.push(`<polygon class="bp-to-${k}" points="${poly(pts)}"/>`);
+        bpEdgeLabels(pts, sc, bpToCss, outward, 26).forEach(l => {
+            const off = outward ? 9 : 8;
+            const x = l.x + l.nx * off, y = l.y + l.ny * off;
+            parts.push(`<text class="bp-edge-label bp-edge-${k}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${l.ang.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})">${escapeHtml(l.text)}</text>`);
+        });
+    });
+}
+const BP_BASIS_LABEL = { outer: 'outer boundary', inner: 'inner boundary', mid: 'wall centers' };
+function bpRenderTakeoff() {
+    if (!BP.pdf) return;
+    const list = bpTakeoffs();
+    const t = bpActiveTakeoff(false);
+    const sel = document.getElementById('bpToSelect');
+    sel.innerHTML = list.length
+        ? list.map((x, i) => `<option value="${i}"${x === t ? ' selected' : ''}>${escapeHtml(x.name || `Unit ${i + 1}`)}</option>`).join('')
+        : '<option value="">No units traced on this sheet</option>';
+    document.getElementById('bpToName').value = t ? t.name || '' : '';
+    document.getElementById('bpToKnown').value = t ? t.known || '' : '';
+    document.getElementById('bpToBasis').value = t ? t.basis || 'outer' : 'outer';
+    const box = document.getElementById('bpToResults');
+    if (!t || (!t.outer && !t.inner)) {
+        box.innerHTML = `<div class="bp-to-note">Click <b>Trace outer boundary</b> and click around the outside of the unit's walls${BP.pdf.isImage ? '' : ', then <b>Trace inner boundary</b> along the inside face of the walls'}. Enter the known sq ft to size everything from it.</div>`;
+        return;
+    }
+    const sheet = bpScale();
+    const S = bpTakeoffScale(t);
+    const oU = bpPolyAreaUnits(t.outer), iU = bpPolyAreaUnits(t.inner);
+    const sqft = (units, sc) => units && sc ? units * sc * sc / 144 : 0;
+    const fmt = v => v ? v.toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 }) : '—';
+    const pct = (v, k) => v && k ? `${v >= k ? '+' : ''}${((v - k) / k * 100).toFixed(1)}%` : '';
+    const rows = [];
+    const head = `<tr><th></th>${sheet ? '<th>At sheet scale</th><th>vs. known</th>' : ''}${S.from === 'known' ? '<th>Sized from known sq ft</th>' : ''}</tr>`;
+    const row = (label, units, perimUnits, noPct) => {
+        const a = sqft(units, sheet), b = S.from === 'known' ? sqft(units, S.inPerUnit) : 0;
+        const per = perimUnits && (S.from === 'known' ? S.inPerUnit : sheet) ? ` <small>(perimeter ${bpFmtFtInQ(perimUnits * (S.from === 'known' ? S.inPerUnit : sheet))})</small>` : '';
+        rows.push(`<tr><td>${label}${per}</td>${sheet ? `<td class="num">${fmt(a)} sq ft</td><td class="num">${noPct ? '' : pct(a, S.known)}</td>` : ''}${S.from === 'known' ? `<td class="num">${fmt(b)} sq ft</td>` : ''}</tr>`);
+    };
+    if (t.outer) row('<span class="bp-dot bp-dot-outer"></span>Outer boundary', oU, bpPolyPerimUnits(t.outer));
+    if (t.outer && t.inner) row('Wall centers (approx.)', (oU + iU) / 2);
+    if (t.inner) row('<span class="bp-dot bp-dot-inner"></span>Inner boundary', iU, bpPolyPerimUnits(t.inner));
+    if (t.outer && t.inner) row('Walls (outer \u2212 inner)', oU - iU, 0, true);
+    const notes = [];
+    if (S.from === 'known') {
+        notes.push(`Sized so the <b>${BP_BASIS_LABEL[t.basis || 'outer']}</b> is exactly <b>${fmt(S.known)} sq ft</b>; wall lengths on the sheet and in the image use this.`);
+        if (sheet) {
+            const ratio = S.inPerUnit / sheet;
+            notes.push(`That is ${ratio >= 1 ? '+' : ''}${((ratio - 1) * 100).toFixed(1)}% in length vs. the sheet's scale${Math.abs(ratio - 1) > 0.02 ? ' — the known figure is probably measured to a different boundary (compare the vs. known column), or includes space outside the traced outline (e.g. a balcony or storage).' : ' — the two agree closely.'}`);
+            const cands = [['outer boundary', oU], ['wall centers', t.outer && t.inner ? (oU + iU) / 2 : 0], ['inner boundary', iU]].filter(c => c[1]);
+            if (cands.length > 1) {
+                const best = cands.map(c => [c[0], sqft(c[1], sheet)]).sort((x, y) => Math.abs(x[1] - S.known) - Math.abs(y[1] - S.known))[0];
+                notes.push(`At the sheet scale, the known ${fmt(S.known)} sq ft is closest to the <span class="bp-to-best">${best[0]}</span> (${fmt(best[1])} sq ft).`);
+            }
+        }
+    } else if (S.from === 'sheet') {
+        notes.push('Using the sheet scale. Enter the known sq ft to size from it instead and compare.');
+    } else {
+        notes.push('Enter the known sq ft (or set the sheet scale) to get areas and wall lengths.');
+    }
+    if (t.basis === 'inner' && !t.inner) notes.push('Trace the inner boundary to size from it.');
+    if (t.basis === 'mid' && !(t.outer && t.inner)) notes.push('Trace both boundaries to size from the wall centers.');
+    box.innerHTML = `<table>${head}${rows.join('')}</table><div class="bp-to-note">${notes.join(' ')}</div>`;
+}
+// Builds a PNG of the unit: the sheet (or image) cropped around the
+// traced outline, both boundaries drawn, every wall length labeled, and a
+// header with the unit, known sq ft and the measured areas.
+async function bpTakeoffImage() {
+    const t = bpActiveTakeoff(false);
+    const bound = t && (t.outer || t.inner);
+    if (!bound) { alert('Trace the unit\'s outer boundary first.'); return; }
+    const S = bpTakeoffScale(t);
+    if (!S.inPerUnit) { alert('Enter the known sq ft (or set the sheet scale) first, so lengths can be worked out.'); return; }
+    bpSetStatus('Building the floorplan image…');
+    const page = await BP.pdf.getPage(BP.pageNum);
+    const v1 = page.getViewport({ scale: 1 });
+    const all = [].concat(t.outer || [], t.inner || []).map(p => v1.convertToViewportPoint(p[0], p[1]));
+    let x0 = Math.min(...all.map(p => p[0])), x1 = Math.max(...all.map(p => p[0]));
+    let y0 = Math.min(...all.map(p => p[1])), y1 = Math.max(...all.map(p => p[1]));
+    const w = x1 - x0, h = y1 - y0;
+    const scale = Math.max(0.5, Math.min(12, 1800 / Math.max(w, h)));
+    const pad = Math.max(w, h) * scale * 0.12 + 40;
+    const header = 150, footer = 40;
+    const cw = Math.round(w * scale + pad * 2), ch = Math.round(h * scale + pad * 2 + header + footer);
+    const canvas = document.createElement('canvas');
+    canvas.width = cw; canvas.height = ch;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cw, ch);
+    // Sheet region under the unit.
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, header, cw, ch - header - footer); ctx.clip();
+    const vp = page.getViewport({ scale });
+    const tx = -(x0 * scale) + pad, ty = -(y0 * scale) + pad + header;
+    await page.render({ canvasContext: ctx, viewport: vp, transform: [1, 0, 0, 1, tx, ty] }).promise;
+    ctx.restore();
+    // Soften the drawing so the measurements stand out.
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.fillRect(0, header, cw, ch - header - footer);
+    const toXY = p => { const q = vp.convertToViewportPoint(p[0], p[1]); return [q[0] + tx, q[1] + ty]; };
+    const font = Math.round(Math.max(13, Math.min(22, Math.max(w, h) * scale / 60)));
+    const drawPoly = (pts, stroke, fill, width) => {
+        ctx.beginPath();
+        pts.map(toXY).forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+        ctx.closePath();
+        ctx.fillStyle = fill; ctx.fill();
+        ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.stroke();
+    };
+    if (t.outer) drawPoly(t.outer, '#1f5fd1', 'rgba(31,95,209,0.07)', 3);
+    if (t.inner) drawPoly(t.inner, '#18a058', 'rgba(24,160,88,0.08)', 2.5);
+    const label = (l, color, off) => {
+        const x = l.x + l.nx * off, y = l.y + l.ny * off;
+        ctx.save();
+        ctx.translate(x, y); ctx.rotate(l.ang * Math.PI / 180);
+        ctx.font = `700 ${font}px Arial, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.lineJoin = 'round';
+        ctx.strokeText(l.text, 0, 0);
+        ctx.fillStyle = color; ctx.fillText(l.text, 0, 0);
+        ctx.restore();
+    };
+    if (t.outer) bpEdgeLabels(t.outer, S.inPerUnit, toXY, true, font * 2.2).forEach(l => label(l, '#1f5fd1', font * 0.9));
+    if (t.inner) bpEdgeLabels(t.inner, S.inPerUnit, toXY, false, font * 2.2).forEach(l => label(l, '#12804a', font * 0.85));
+    // Header.
+    const sq = units => units ? (units * S.inPerUnit * S.inPerUnit / 144).toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 }) : '';
+    const oU = bpPolyAreaUnits(t.outer), iU = bpPolyAreaUnits(t.inner);
+    ctx.fillStyle = '#231f20';
+    ctx.font = '700 30px Arial, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText(t.name || 'Unit floorplan', 30, 48);
+    ctx.font = '16px Arial, sans-serif';
+    const line2 = S.from === 'known'
+        ? `Known: ${S.known.toLocaleString('en-US')} sq ft (measured to the ${BP_BASIS_LABEL[t.basis || 'outer']}) — lengths sized from it`
+        : 'Lengths from the sheet scale';
+    ctx.fillText(line2, 30, 80);
+    const parts = [];
+    if (oU) parts.push(`Outer boundary ${sq(oU)} sq ft`);
+    if (oU && iU) parts.push(`Wall centers ≈ ${sq((oU + iU) / 2)} sq ft`);
+    if (iU) parts.push(`Inner boundary ${sq(iU)} sq ft`);
+    if (oU && iU) parts.push(`Walls ${sq(oU - iU)} sq ft`);
+    ctx.fillText(parts.join('   ·   '), 30, 108);
+    ctx.fillStyle = '#7a7470'; ctx.font = '13px Arial, sans-serif';
+    const src = BP.pdf.isImage ? BP.fileName : `${BP.fileName} — sheet ${BP.pageNum}${BP.pages[BP.pageNum] && BP.pages[BP.pageNum].label ? ' (' + BP.pages[BP.pageNum].label + ')' : ''}`;
+    ctx.fillText(`${src} · ${new Date().toLocaleDateString('en-US')}`, 30, 134);
+    // Legend + footer note.
+    ctx.fillStyle = '#1f5fd1'; ctx.fillRect(cw - 300, 34, 14, 14);
+    ctx.fillStyle = '#231f20'; ctx.font = '14px Arial, sans-serif'; ctx.fillText('Outer boundary', cw - 278, 46);
+    if (t.inner) { ctx.fillStyle = '#18a058'; ctx.fillRect(cw - 300, 60, 14, 14); ctx.fillStyle = '#231f20'; ctx.fillText('Inner boundary', cw - 278, 72); }
+    ctx.fillStyle = '#7a7470'; ctx.font = '12px Arial, sans-serif';
+    ctx.fillText('Lengths are measured along the traced outlines, to the nearest 1/4". For reference only.', 30, ch - 15);
+    ctx.strokeStyle = '#e6e2dc'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, header - 0.5); ctx.lineTo(cw, header - 0.5); ctx.stroke();
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (BP.lastImage) URL.revokeObjectURL(BP.lastImage.url);
+    const url = URL.createObjectURL(blob);
+    // Plain ASCII file name (an em dash makes browsers fall back to "download").
+    const safe = (t.name || 'Unit').replace(/[\u2010-\u2015]/g, '-').replace(/[\\/:*?"<>|]+/g, '-').replace(/[^\x20-\x7e]/g, '').replace(/\s+/g, ' ').trim() || 'Unit';
+    BP.lastImage = { url, name: `${safe} measured floorplan.png` };
+    document.getElementById('bpModalTitle').textContent = t.name ? `${t.name} — measured floorplan` : 'Measured floorplan';
+    document.getElementById('bpModalImg').src = url;
+    document.getElementById('bpModal').style.display = 'flex';
+    bpSetStatus('');
+}
+// Floorplans already on the site (Documents › Floorplans) to open here.
+async function bpFillFloorplanSelect() {
+    const sel = document.getElementById('bpFpSelect');
+    try { await fpLoadList(false); } catch (e) {}
+    const files = (FP_FILES || []).slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    sel.innerHTML = `<option value="">${files.length ? 'Or open a site floorplan…' : 'No site floorplans found'}</option>` +
+        files.map(f => `<option value="${escapeAttr(f.name)}">${escapeHtml(f.name)}</option>`).join('');
+}
+function bpWireTakeoff() {
+    const sel = document.getElementById('bpToSelect');
+    sel.addEventListener('change', () => { BP.toIdx[BP.pageNum] = +sel.value; bpRenderTakeoff(); bpDrawOverlay(); });
+    document.getElementById('bpToNew').addEventListener('click', () => {
+        if (!BP.pdf) return;
+        const list = bpTakeoffs();
+        list.push({ name: '', known: '', basis: 'outer', outer: null, inner: null });
+        BP.toIdx[BP.pageNum] = list.length - 1;
+        bpSaveState(); bpRenderTakeoff(); bpDrawOverlay();
+        document.getElementById('bpToName').focus();
+    });
+    document.getElementById('bpToDelete').addEventListener('click', () => {
+        const list = bpTakeoffs(), t = bpActiveTakeoff(false);
+        if (!t || !confirm(`Delete ${t.name || 'this unit'}'s traced boundaries?`)) return;
+        list.splice(list.indexOf(t), 1);
+        BP.toIdx[BP.pageNum] = list.length - 1;
+        bpSaveState(); bpRenderTakeoff(); bpDrawOverlay();
+    });
+    const field = (id, key) => document.getElementById(id).addEventListener('input', e => {
+        if (!BP.pdf) return;
+        const t = bpActiveTakeoff(true);
+        t[key] = e.target.value;
+        bpSaveState();
+        if (key === 'name') { const o = sel.options[sel.selectedIndex]; if (o) o.textContent = t.name || 'Unit'; else bpRenderTakeoff(); }
+        else bpRenderTakeoff();
+        bpDrawOverlay();
+    });
+    field('bpToName', 'name'); field('bpToKnown', 'known');
+    document.getElementById('bpToBasis').addEventListener('change', e => {
+        if (!BP.pdf) return;
+        const t = bpActiveTakeoff(true);
+        t.basis = e.target.value;
+        bpSaveState(); bpRenderTakeoff(); bpDrawOverlay();
+    });
+    document.getElementById('bpToImage').addEventListener('click', () => { if (BP.pdf) bpTakeoffImage().catch(err => { console.error(err); bpSetStatus('Couldn\'t build the image (' + err.message + ').'); }); });
+    document.getElementById('bpModalClose').addEventListener('click', () => { document.getElementById('bpModal').style.display = 'none'; });
+    document.getElementById('bpModal').addEventListener('click', e => { if (e.target.id === 'bpModal') e.target.style.display = 'none'; });
+    document.getElementById('bpModalDownload').addEventListener('click', () => {
+        if (!BP.lastImage) return;
+        const a = document.createElement('a');
+        a.href = BP.lastImage.url; a.download = BP.lastImage.name;
+        document.body.appendChild(a); a.click(); a.remove();
+    });
+    document.getElementById('bpFpSelect').addEventListener('change', async e => {
+        const name = e.target.value;
+        if (!name) return;
+        bpSetStatus(`Downloading ${name}…`);
+        try {
+            const res = await fetch(fpUrl(name));
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const blob = await res.blob();
+            await bpOpenBlob(blob, name, 0, true);
+        } catch (err) {
+            bpSetStatus(`Couldn't open ${name} (${err.message}).`);
+        }
+    });
+}
+
 // ---- Wiring ----
 (function bpInit() {
     const input = document.getElementById('bpFileInput');
@@ -18741,7 +19189,7 @@ function bpRunSearch() {
     });
     window.addEventListener('mouseup', () => { drag = null; vp.classList.remove('bp-dragging'); });
     stage.addEventListener('click', bpStageClick);
-    stage.addEventListener('dblclick', e => { if (BP.tool === 'area') { e.preventDefault(); bpFinishArea(); } });
+    stage.addEventListener('dblclick', e => { if (BP_POLY_TOOLS.indexOf(BP.tool) !== -1) { e.preventDefault(); bpFinishArea(); } });
     vp.addEventListener('wheel', e => {
         if (!(e.ctrlKey || e.metaKey) || !BP.pdf) return;
         e.preventDefault();
@@ -18751,13 +19199,15 @@ function bpRunSearch() {
     document.addEventListener('keydown', e => {
         if (adminSubTab !== 'blueprints' || !BP.pdf) return;
         if (e.key === 'Escape' && BP.pending.length) { BP.pending = []; BP.hover = null; bpDrawOverlay(); }
-        else if (e.key === 'Enter' && BP.tool === 'area' && BP.pending.length >= 3) bpFinishArea();
+        else if (e.key === 'Enter' && BP_POLY_TOOLS.indexOf(BP.tool) !== -1 && BP.pending.length >= 3) bpFinishArea();
     });
+    bpWireTakeoff();
     bpSetTool('pan');
 })();
 // Called when the Blueprints sub-tab is shown: reopen the last file.
 let bpRestoreTried = false;
 function bpOnShow() {
+    bpFillFloorplanSelect();
     if (BP.pdf) { if (BP.viewport) bpGoTo(BP.pageNum); return; }
     if (bpRestoreTried) return;
     bpRestoreTried = true;
