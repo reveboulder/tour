@@ -1408,6 +1408,12 @@
     .bp-dot-outer { background: #1f5fd1; } .bp-dot-inner { background: #18a058; }
     .btn.primary.bp-to-make { width: auto; flex: none; padding: 6px 14px; margin-left: auto; }
     .bp-to-results { font-size: 12.5px; }
+    .bp-lay { border-top: 1px solid var(--line-soft); margin-top: 10px; padding-top: 8px; }
+    .bp-to-row label.bp-inline { flex-direction: row; align-items: center; gap: 5px; font-weight: 600; color: inherit; font-size: 12px; padding-bottom: 6px; }
+    .bp-to-row label.bp-inline input[type="range"] { width: 90px; padding: 0; }
+    .bp-lay-name { font-size: 12.5px; font-weight: 700; padding-bottom: 7px; }
+    .bp-btn:disabled { opacity: 0.45; cursor: default; }
+    .bp-lay-canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; mix-blend-mode: multiply; }
     .bp-to-results table { border-collapse: collapse; width: 100%; max-width: 760px; }
     .bp-to-results td, .bp-to-results th { border-bottom: 1px solid var(--line-soft); padding: 4px 8px; text-align: left; }
     .bp-to-results th { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
@@ -1447,6 +1453,30 @@
         .bp-panels { grid-template-columns: minmax(0, 1fr); }
         .bp-viewport { height: 60vh; }
     }
+    /* -- Lease › Sample lease questions -- */
+    .ls-card { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 12px 14px; margin: -8px 0 20px; max-width: 900px; }
+    .ls-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .ls-file { font-size: 12.5px; font-weight: 700; }
+    .ls-status { margin: 6px 0 0; min-height: 0; }
+    .ls-ask-bar { display: flex; gap: 8px; margin-top: 10px; position: relative; }
+    .ls-ask-bar input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font-size: 13.5px; font-family: var(--sans); }
+    .ls-ask-bar .btn { width: auto; flex: none; padding: 8px 18px; }
+    .ls-examples { font-size: 11.5px; color: var(--ink-soft); margin: 6px 0 4px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+    .ls-examples button, .ls-more-btn { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 3px 10px; font-size: 11.5px; cursor: pointer; font-family: var(--sans); color: inherit; }
+    .ls-examples button:hover, .ls-more-btn:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+    .ls-qa { border-top: 1px solid var(--line-soft); padding: 10px 0 8px; }
+    .ls-q { font-weight: 700; font-size: 13.5px; }
+    .ls-src { font-size: 11.5px; color: var(--reve-orange-dark); font-weight: 700; margin: 4px 0; }
+    .ls-open { margin-left: 8px; font-weight: 600; }
+    .ls-quote { margin: 4px 0 6px; padding: 8px 12px; border-left: 3px solid var(--reve-orange); background: #fbf6f2; font-size: 13px; line-height: 1.5; }
+    .ls-quote mark, .ls-full mark { background: #ffe58a; color: inherit; padding: 0 1px; }
+    .ls-full { font-size: 12.5px; margin: 2px 0 6px; }
+    .ls-full summary { cursor: pointer; color: var(--ink-soft); font-size: 12px; }
+    .ls-full div { margin-top: 6px; line-height: 1.5; max-height: 320px; overflow-y: auto; padding-right: 6px; }
+    .ls-more { font-size: 11.5px; color: var(--ink-soft); display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+    .ls-disclaimer { font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
+    body.dark-mode .ls-card, body.dark-mode .ls-ask-bar input, body.dark-mode .ls-examples button, body.dark-mode .ls-more-btn { background: var(--dm-card-alt); color: inherit; }
+    body.dark-mode .ls-quote { background: rgba(224, 68, 27, 0.12); }
     /* -- Residents -- */
     .res-trackers {
         display: grid;
@@ -3339,6 +3369,31 @@
         </div>
     </div>
 
+    <div class="ls-card">
+        <div class="ls-head">
+            <div class="mmr-section-title" style="margin:0;">SAMPLE LEASE &mdash; QUESTIONS</div>
+            <label class="file-label" for="lsFileInput">Upload sample lease</label>
+            <input type="file" id="lsFileInput" accept=".pdf,application/pdf" style="display:none;">
+            <span class="ls-file" id="lsFileName">No sample lease uploaded</span>
+            <button type="button" class="res-danger-link" id="lsRemove" style="display:none;">Remove</button>
+        </div>
+        <div class="empty-note ls-status" id="lsStatus"></div>
+        <div class="ls-ask" id="lsAskRow" style="display:none;">
+            <div class="ls-ask-bar">
+                <input type="text" id="lsQuestion" placeholder="Ask about the lease, e.g. &ldquo;What is the late fee?&rdquo;" autocomplete="off">
+                <button type="button" class="btn primary" id="lsAskBtn">Ask</button>
+            </div>
+            <div class="ls-examples">Try:
+                <button type="button" data-ls-example>What is the late fee?</button>
+                <button type="button" data-ls-example>How do I break my lease early?</button>
+                <button type="button" data-ls-example>How much notice to move out?</button>
+                <button type="button" data-ls-example>How long can guests stay?</button>
+                <button type="button" data-ls-example>Is smoking allowed?</button>
+            </div>
+            <div id="lsAnswers"></div>
+        </div>
+    </div>
+
     <div class="wl-picker-bar">
         <input type="text" id="leaseUnitSearch" placeholder="Search resident by unit or name&hellip;" autocomplete="off">
         <button type="button" class="lease-clear-btn" id="leaseClearBtn" title="Clear selection" aria-label="Clear selection" style="display:none;">&times;</button>
@@ -3913,6 +3968,25 @@
                             <button type="button" class="btn primary bp-to-make" id="bpToImage">Create floorplan image</button>
                         </div>
                         <div class="bp-to-results" id="bpToResults"></div>
+                        <div class="bp-lay">
+                            <div class="bp-side-title">2D layout overlay <span class="bp-count">&mdash; line a floorplan layout up with the blueprint, then export that layout with these measurements</span></div>
+                            <div class="bp-to-row">
+                                <select id="bpLaySelect" class="bp-fp-select"><option value="">Choose a site floorplan&hellip;</option></select>
+                                <label class="file-label" for="bpLayFile">Upload layout</label>
+                                <input type="file" id="bpLayFile" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp" style="display:none;">
+                                <span class="bp-lay-name" id="bpLayName">No layout chosen</span>
+                            </div>
+                            <div class="bp-to-row">
+                                <button type="button" class="bp-btn" id="bpLayAlign" disabled>Align (match 2 corners)</button>
+                                <button type="button" class="bp-btn" id="bpLayAlign3" disabled title="Also fixes a mirrored or slightly stretched layout">Refine with a 3rd corner</button>
+                                <label class="bp-inline"><input type="checkbox" id="bpLayMirror"> Mirrored</label>
+                                <label class="bp-inline"><input type="checkbox" id="bpLayShow" checked> Show</label>
+                                <label class="bp-inline">Opacity <input type="range" id="bpLayOpacity" min="10" max="100" value="60"></label>
+                                <label class="bp-inline"><input type="checkbox" id="bpLayOuter"> Also dimension the outer boundary</label>
+                                <button type="button" class="btn primary bp-to-make" id="bpLayExport" disabled>Export layout with measurements</button>
+                            </div>
+                            <div class="bp-to-note" id="bpLayStatus"></div>
+                        </div>
                     </div>
                     <div class="bp-panels">
                         <div class="bp-panel">
@@ -6125,6 +6199,7 @@ function switchTab(name) {
     if (name === 'expiring') renderExpiringList();
     if (name === 'residents') renderResidents();
     if (name === 'wl') wlEnsureFormVisible();
+    if (name === 'lease' && typeof lsOnShow === 'function') lsOnShow();
     if (name === 'media' && typeof renderSitemap === 'function') renderSitemap();
     if (name === 'howto' && typeof renderHowTo === 'function') renderHowTo();
     if (name === 'documents' && typeof renderDocuments === 'function') renderDocuments();
@@ -16616,6 +16691,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-residents-views": {"title": "Find Residents: Tabs, Calendar and Search", "icon": "📋", "category": "Residents", "steps": ["Active: everyone not yet moved out. Pending: not moved in yet. Notice Req.: a notice-needed date in the next 30 days. Move-Outs: past residents.", "The calendar at the top shows move-ins for the month — use ‹ › to change months, and click a unit to jump to its row.", "Type in \"Search unit or resident name…\" to find someone fast.", "Use the filter on each column header to narrow the table, and \"Clear Filters\" to reset.", "Click \"Refresh to Update\" to pull the latest changes from other agents."]},
     "builtin-residents-backup": {"title": "Back Up or Restore Residents Data", "icon": "💾", "category": "Residents", "steps": ["On the Residents tab, click \"Export data\" to download a backup of the whole table.", "To restore from a backup, click \"Upload data\" and enter the Admin password — this replaces the current data for everyone.", "\"Clear all data\" permanently removes every resident and also needs the Admin password. Export a backup first."]},
     "builtin-welcome-letter": {"title": "Prepare a Welcome Letter", "icon": "✉️", "category": "Welcome Letter", "steps": ["Open the WL tab and search for the resident by unit or name (they need to be on the Residents tab first).", "Unit details fill in automatically. Complete Monthly Charges, Security & Other Deposits, Fees, Fees Paid, Concessions and Utilities.", "Click \"Download WL PDF\" for the letter.", "Click \"Create Email Draft\", enter the resident's email, and a new draft opens in your mail app with the subject filled in — add the template and attachments there.", "For the move-in folder, click \"Download M/I Sticker\". \"Name on Sticker\" uses the resident's name unless you type a different one.", "Everything you enter here also fills the Lease tab."]},
+    "builtin-lease-questions": {"title": "Ask Questions About the Sample Lease", "icon": "\u2753", "category": "Lease", "steps": ["Open the Lease tab and click \"Upload sample lease\" to load the current lease PDF (only needed when a new version comes out).", "The lease text is shared with the team, so everyone can ask questions after one upload; the PDF itself stays in the browser that uploaded it.", "Type a question in the bar (e.g. \"What is the late fee?\", \"How long can guests stay?\") and press Enter, or click an example.", "The answer quotes the matching sentences with the section and page. \"Read the whole section\" shows the full paragraph, and \"Open page\" opens the PDF there.", "\"Also see\" lists other sections that mention the same thing \u2014 click one to see its answer."]},
     "builtin-new-lease": {"title": "Fill Out a New Lease", "icon": "🖊️", "category": "Lease", "steps": ["Complete the resident's Welcome Letter first — the Lease tab pulls from it and from Residents.", "Open the Lease tab and search for the resident by unit or name.", "Each section (Lease Terms, Cover Sheet, Animal, Buyout, Inventory, Parking, Rent Concession, Special Provisions) shows the values to enter.", "Click the copy button next to any value to copy it, then paste it into the lease.", "For a renewal, check \"Select if Renewal Lease\" — the new dates start the day after the current lease ends.", "Click × next to the search to clear the selection."]},
     "builtin-mmr-traffic": {"title": "Record Weekly Traffic for the MMR", "icon": "🚶", "category": "Admin", "steps": ["Go to Admin (enter the password) > MMR > Weekly Traffic Detail.", "For each reason, write one sentence per show, starting with the prospect's first and last name and ending with a period.", "Each sentence that starts with a name counts as one show; follow-up sentences about the same prospect don't add to the count.", "Download New MMR replaces last week's numbers in the uploaded file.", "Click \"Clear for New Week\" to start the next week fresh."]},
     "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points (hold Shift for straight lines). Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create floorplan image\" makes a PNG of the unit with every wall length labeled (sized from the known sq ft), ready to download.", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary."]},
@@ -18017,6 +18093,285 @@ const SEARCH_CLEAR_INPUTS = [];
     .forEach(id => addSearchClear(document.getElementById(id)));
 
 /* ============================================================
+   Lease › Sample lease Q&A — upload the current sample lease (PDF) and
+   ask questions about it. Runs entirely in the browser (no AI service):
+   the PDF's text is split into its numbered sections and addenda, and a
+   question is matched to the best sections by keyword relevance (with
+   lease-specific synonyms), then answered with the closest sentences,
+   quoted with the section and page. The PDF itself stays in this
+   browser (for "Open page"); the extracted text is shared through the
+   backend so every agent can ask questions after one upload. Nothing
+   from the lease is in this code.
+   ============================================================ */
+const LS_BACKEND_KEY = 'lease-sample';
+const LS_CACHE_KEY = 'lease-sample';      // IndexedDB key (text + PDF)
+let LS = { doc: null, index: null, pdfUrl: null, history: [] };
+
+const LS_STOP = new Set('a an and are as at be by can do does for from has have how i if in is it its me my of on or our the their them there they this to was we what when where which who why will with you your yours am any about after before should would could may must than then into out up down per also just get got shall being been us'.split(' '));
+const LS_SYNONYMS = {
+    pet: ['animal', 'dog', 'cat'], animal: ['pet'], dog: ['animal', 'pet'], cat: ['animal', 'pet'],
+    late: ['delinquent', 'late fee'], fee: ['charge', 'charges'], charge: ['fee'], cost: ['fee', 'charge', 'amount'],
+    break: ['early', 'termination', 'reletting', 'move-out'], terminate: ['termination', 'early', 'reletting'], termination: ['terminate', 'early'],
+    move: ['vacate', 'move-out', 'moving'], vacate: ['move-out', 'surrender'], leave: ['vacate', 'move-out'],
+    deposit: ['security'], refund: ['deposit', 'return'], guest: ['occupant', 'occupants', 'guests', 'stay', 'consecutive'], roommate: ['occupant', 'resident', 'replacement'],
+    park: ['parking', 'vehicle', 'tow'], car: ['vehicle', 'parking'], tow: ['towing', 'vehicle'], smoke: ['smoking', 'no-smoking'], smoking: ['smoke'],
+    insurance: ['liability', 'renters'], repair: ['repairs', 'maintenance', 'malfunction'], maintenance: ['repair', 'repairs'], fix: ['repair', 'repairs'],
+    enter: ['entry', 'access'], entry: ['enter'], sublet: ['sublease', 'assign', 'assignment'], sublease: ['sublet', 'assign'],
+    noise: ['conduct', 'disturb', 'quiet'], loud: ['noise', 'disturb'], bug: ['pest', 'bed', 'bugs'], pest: ['pests', 'bed bug', 'pest control'],
+    package: ['packages', 'delivery'], utility: ['utilities', 'water', 'electric', 'gas', 'trash', 'sewer'], utilities: ['utility', 'water', 'electric', 'trash'],
+    water: ['utilities', 'utility', 'sub-metering'], pay: ['payment', 'responsible'], key: ['keys', 'lockout', 'locks'], lock: ['locks', 'latches', 'rekey'], lockout: ['keys', 'lock'],
+    renew: ['renewal', 'month-to-month'], renewal: ['renew', 'month-to-month'], increase: ['increases', 'change'], notice: ['written', 'notify'],
+    check: ['returned', 'nsf'], bounce: ['returned', 'nsf'], mold: ['moisture'], washer: ['dryer', 'laundry'], military: ['deployment', 'orders', 'armed', 'forces'], deploy: ['deployment', 'military', 'orders'], deployed: ['deployment', 'military', 'orders'],
+    paint: ['alterations', 'nail'], wall: ['alterations'], grill: ['grills', 'barbecue', 'fire'], balcony: ['patio'], storage: ['locker']
+};
+function lsStem(w) {
+    if (w.length > 5 && w.endsWith('ing')) return w.slice(0, -3);
+    if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
+    if (w.length > 4 && w.endsWith('ed')) return w.slice(0, -2);
+    if (w.length > 3 && w.endsWith('es') && /(ch|sh|x|ss)es$/.test(w)) return w.slice(0, -2);
+    if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
+    return w;
+}
+function lsTokens(text) {
+    return (String(text).toLowerCase().replace(/[’']/g, '').match(/[a-z0-9$%]+/g) || []).filter(w => !LS_STOP.has(w)).map(lsStem);
+}
+// Splits the lease into sections: numbered paragraphs ("6. RENT AND
+// CHARGES.") and addenda ("PET ADDENDUM"), each with its first page.
+function lsBuildIndex(pages) {
+    const sections = [];
+    let addendum = 'Lease Contract', cur = null;
+    const push = () => { if (cur && cur.text.trim().length > 40) sections.push(cur); };
+    pages.forEach((txt, pi) => {
+        String(txt).split('\n').forEach(raw => {
+            const line = raw.replace(/\s+/g, ' ').trim();
+            if (!line) return;
+            if (/©|national apartment association|^page \d+ of \d+$/i.test(line) && line.length < 140) return;
+            const add = line.match(/^([A-Z][A-Z0-9 ,'’&\/\-]{3,70}ADDENDUM)\b/);
+            const num = line.match(/^(\d{1,2})\.\s+([A-Z][A-Z0-9 ,'’&\/\-()]{2,60}?)\.(?:\s|$)/);
+            if (add && !/THIS ADDENDUM|THE ADDENDUM/.test(add[1])) {
+                push();
+                addendum = add[1].replace(/\b([A-Z])([A-Z]+)\b/g, (m, a, b) => a + b.toLowerCase());
+                cur = { title: addendum, page: pi + 1, text: line + ' ' };
+            } else if (num) {
+                push();
+                const head = num[2].replace(/\b([A-Z])([A-Z]+)\b/g, (m, a, b) => a + b.toLowerCase());
+                cur = { title: (addendum === 'Lease Contract' ? '' : addendum + ' › ') + `${num[1]}. ${head}`, page: pi + 1, text: line + ' ' };
+            } else {
+                if (!cur) cur = { title: addendum, page: pi + 1, text: '' };
+                cur.text += line + (/[-‐]$/.test(line) ? '' : ' ');
+            }
+        });
+    });
+    push();
+    // Passages of about 900 characters (sentence boundaries) for ranking.
+    const passages = [];
+    sections.forEach((s, si) => {
+        s.text = s.text.replace(/\s+/g, ' ').trim();
+        const sents = lsSentences(s.text);
+        let buf = '';
+        sents.forEach(x => {
+            if (buf && (buf + ' ' + x).length > 900) { passages.push({ si, text: buf }); buf = ''; }
+            buf = buf ? buf + ' ' + x : x;
+        });
+        if (buf) passages.push({ si, text: buf });
+    });
+    // BM25 statistics (section titles count double).
+    const df = {};
+    passages.forEach(p => {
+        const toks = lsTokens(p.text).concat(lsTokens(sections[p.si].title), lsTokens(sections[p.si].title));
+        p.tf = {};
+        toks.forEach(t => { p.tf[t] = (p.tf[t] || 0) + 1; });
+        p.len = toks.length;
+        Object.keys(p.tf).forEach(t => { df[t] = (df[t] || 0) + 1; });
+    });
+    const avg = passages.reduce((t, p) => t + p.len, 0) / Math.max(1, passages.length);
+    return { sections, passages, df, avg, N: passages.length };
+}
+function lsSentences(text) {
+    return String(text).split(/(?<=[.;:!?])\s+(?=[A-Z(“"0-9])/).map(s => s.trim()).filter(Boolean);
+}
+function lsIdf(ix, t) { const n = ix.df[t] || 0; return Math.log(1 + (ix.N - n + 0.5) / (n + 0.5)); }
+function lsQueryTerms(q) {
+    const base = lsTokens(q);
+    const terms = {};
+    base.forEach(t => { terms[t] = Math.max(terms[t] || 0, 1); });
+    String(q).toLowerCase().match(/[a-z]+/g)?.forEach(w => {
+        (LS_SYNONYMS[w] || LS_SYNONYMS[lsStem(w)] || []).forEach(s => lsTokens(s).forEach(t => { terms[t] = Math.max(terms[t] || 0, 0.55); }));
+    });
+    return terms;
+}
+function lsSearch(q) {
+    const ix = LS.index;
+    if (!ix) return [];
+    const terms = lsQueryTerms(q), k1 = 1.2, b = 0.75;
+    const qWords = (String(q).toLowerCase().match(/[a-z0-9]+/g) || []).filter(w => !LS_STOP.has(w));
+    const scored = ix.passages.map((p, pi) => {
+        let s = 0;
+        Object.keys(terms).forEach(t => {
+            const f = p.tf[t];
+            if (!f) return;
+            s += terms[t] * lsIdf(ix, t) * (f * (k1 + 1)) / (f + k1 * (1 - b + b * p.len / ix.avg));
+        });
+        // Section titles that use the question's words count extra
+        // ("When can they enter?" -> "29. When We May Enter").
+        const titleToks = new Set(lsTokens(ix.sections[p.si].title));
+        Object.keys(terms).forEach(t => { if (titleToks.has(t)) s += terms[t] * lsIdf(ix, t) * 1.6; });
+        // Blank fill-in boilerplate ("dated as of ______") ranks lower.
+        if ((p.text.match(/_/g) || []).length > 25) s *= 0.5;
+        // Phrases from the question appearing verbatim score extra.
+        const low = p.text.toLowerCase();
+        for (let i = 0; i + 1 < qWords.length; i++) if (low.indexOf(qWords[i] + ' ' + qWords[i + 1]) !== -1) s += 1.5;
+        return { pi, s };
+    }).filter(x => x.s > 0).sort((a, c) => c.s - a.s);
+    return scored;
+}
+// The sentences of a passage that best answer the question.
+function lsAnswerSentences(q, text, max) {
+    const terms = lsQueryTerms(q);
+    const wantsNumber = /\b(how (much|many|long|soon|far)|when|amount|fee|cost|charge|days?|percent|deadline|limit|maximum|minimum)\b/i.test(q);
+    // Bare headings ("MONTHLY PET FEE.") aren't answers.
+    const sents = lsSentences(text).filter(s => s.length >= 25 && !(s.length < 70 && s === s.toUpperCase()));
+    const scored = sents.map((s, i) => {
+        const toks = new Set(lsTokens(s));
+        let sc = 0;
+        Object.keys(terms).forEach(t => { if (toks.has(t)) sc += terms[t] * lsIdf(LS.index, t); });
+        if (wantsNumber && /(\$|\d|percent|days?\b|hours?\b|months?\b)/i.test(s)) sc *= 1.35;
+        return { i, s, sc };
+    }).filter(x => x.sc > 0).sort((a, c) => c.sc - a.sc).slice(0, max || 2).sort((a, c) => a.i - c.i);
+    return scored.map(x => x.s);
+}
+function lsMark(text, q) {
+    const words = Object.keys(lsQueryTerms(q)).filter(t => t.length > 2).map(t => t.replace(/[^a-z0-9]/g, '')).filter(Boolean);
+    let html = escapeHtml(text);
+    if (!words.length) return html;
+    const re = new RegExp(`\\b(${words.join('|')})[a-z]*`, 'gi');
+    return html.replace(re, '<mark>$&</mark>');
+}
+function lsAsk(q, focusSection) {
+    q = String(q || '').trim();
+    if (!q) return;
+    const box = document.getElementById('lsAnswers');
+    if (!LS.index) { box.innerHTML = '<div class="empty-note">Upload the sample lease first.</div>'; return; }
+    const hits = lsSearch(q);
+    let html;
+    if (!hits.length) {
+        html = `<div class="ls-qa"><div class="ls-q">${escapeHtml(q)}</div><div class="empty-note" style="margin:6px 0 0;">Nothing in the sample lease matches that. Try other words (e.g. “pet fee”, “break lease”, “late rent”).</div></div>`;
+    } else {
+        // Best passage (or the section the user picked from "Also see").
+        const ix = LS.index;
+        let top = hits[0];
+        if (focusSection != null) top = hits.find(h => ix.passages[h.pi].si === focusSection) || { pi: ix.passages.findIndex(p => p.si === focusSection), s: 0 };
+        const p = ix.passages[top.pi], sec = ix.sections[p.si];
+        const sents = lsAnswerSentences(q, p.text, 3);
+        const quote = sents.length ? sents : lsSentences(p.text).filter(x => x.length >= 25 && x !== x.toUpperCase()).slice(0, 2);
+        const seen = new Set([p.si]), more = [];
+        hits.forEach(h => { const si = ix.passages[h.pi].si; if (!seen.has(si) && more.length < 4) { seen.add(si); more.push(si); } });
+        const openBtn = LS.pdfUrl ? ` <a href="${LS.pdfUrl}#page=${sec.page}" target="_blank" rel="noopener" class="ls-open">Open page ${sec.page}</a>` : '';
+        html = `<div class="ls-qa">
+            <div class="ls-q">${escapeHtml(q)}</div>
+            <div class="ls-src">${escapeHtml(sec.title)} · page ${sec.page}${openBtn}</div>
+            <blockquote class="ls-quote">${quote.map(s => lsMark(s, q)).join(' … ')}</blockquote>
+            <details class="ls-full"><summary>Read the whole section</summary><div>${lsMark(sec.text, q)}</div></details>
+            ${more.length ? `<div class="ls-more">Also see: ${more.map(si => `<button type="button" class="ls-more-btn" data-ls-sec="${si}" data-ls-q="${escapeAttr(q)}">${escapeHtml(ix.sections[si].title)} <small>p.${ix.sections[si].page}</small></button>`).join('')}</div>` : ''}
+        </div>`;
+    }
+    LS.history.unshift(html);
+    LS.history = LS.history.slice(0, 8);
+    box.innerHTML = LS.history.join('') + '<div class="ls-disclaimer">Answers quote the sample lease text word for word; read the full section before relying on it.</div>';
+    box.querySelectorAll('[data-ls-sec]').forEach(btn => btn.addEventListener('click', () => lsAsk(btn.getAttribute('data-ls-q'), +btn.getAttribute('data-ls-sec'))));
+}
+// ---- Loading / saving the sample lease ----
+function lsSetStatus(msg) { const el = document.getElementById('lsStatus'); if (el) el.innerHTML = msg || ''; }
+function lsUseDoc(doc, pdfBlob) {
+    LS.doc = doc;
+    LS.index = lsBuildIndex(doc.pages);
+    if (LS.pdfUrl) URL.revokeObjectURL(LS.pdfUrl);
+    LS.pdfUrl = pdfBlob ? URL.createObjectURL(pdfBlob) : null;
+    const when = doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString('en-US') : '';
+    document.getElementById('lsFileName').textContent = `${doc.name} · ${doc.pages.length} pages · ${LS.index.sections.length} sections${when ? ' · uploaded ' + when : ''}`;
+    document.getElementById('lsAskRow').style.display = '';
+    document.getElementById('lsRemove').style.display = '';
+}
+async function lsExtract(blob) {
+    const pdfjsLib = await docsLoadPdfJs();
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
+    const pages = [];
+    for (let n = 1; n <= pdf.numPages; n++) {
+        lsSetStatus(`Reading page ${n} of ${pdf.numPages}…`);
+        const tc = await (await pdf.getPage(n)).getTextContent();
+        pages.push(tc.items.map(i => i.str + (i.hasEOL ? '\n' : '')).join(''));
+    }
+    pdf.destroy();
+    return pages;
+}
+async function lsUpload(file) {
+    try {
+        const pages = await lsExtract(file);
+        const chars = pages.reduce((t, p) => t + p.trim().length, 0);
+        if (chars < 500) { lsSetStatus('That PDF has almost no readable text (it may be a scan), so questions can’t be answered from it.'); return; }
+        const doc = { name: file.name, uploadedAt: Date.now(), pages };
+        lsUseDoc(doc, file);
+        await bpDbPutKey('lease-sample', { doc, blob: file }).catch(() => {});
+        LS.history = [];
+        document.getElementById('lsAnswers').innerHTML = '';
+        if (BACKEND_URL && APP_MODE !== 'test') {
+            lsSetStatus('Sharing the lease text with the team…');
+            const ok = await backendPush(LS_BACKEND_KEY, doc, (i, n) => lsSetStatus(`Sharing the lease text with the team… ${Math.round(i / n * 100)}%`));
+            lsSetStatus(ok ? 'Ready — ask a question below. Shared with the team.' : 'Ready in this browser — sharing with the team failed; try uploading again later.');
+        } else {
+            lsSetStatus('Ready — ask a question below.');
+        }
+        document.getElementById('lsQuestion').focus();
+    } catch (err) {
+        console.error(err);
+        lsSetStatus(`Couldn’t read that file (${err.message}). Use the lease PDF.`);
+    }
+}
+let lsLoaded = false;
+async function lsOnShow() {
+    if (lsLoaded) return;
+    lsLoaded = true;
+    let local = null;
+    try { local = await bpDbGetKey('lease-sample'); } catch (e) {}
+    if (local && local.doc) { lsUseDoc(local.doc, local.blob); lsSetStatus(''); }
+    if (BACKEND_URL && APP_MODE !== 'test') {
+        const remote = await backendPullChecked(LS_BACKEND_KEY).catch(() => undefined);
+        if (remote && remote.pages && (!LS.doc || (remote.uploadedAt || 0) > (LS.doc.uploadedAt || 0))) {
+            const sameFile = local && local.doc && local.doc.name === remote.name && local.doc.uploadedAt === remote.uploadedAt;
+            lsUseDoc(remote, sameFile ? local.blob : null);
+            bpDbPutKey('lease-sample', { doc: remote, blob: sameFile ? local.blob : null }).catch(() => {});
+        }
+    }
+    if (!LS.doc) lsSetStatus('No sample lease yet — upload the current one to ask questions about it.');
+}
+(function lsInit() {
+    const input = document.getElementById('lsFileInput');
+    if (!input) return;
+    input.addEventListener('change', () => {
+        const f = input.files && input.files[0];
+        input.value = '';
+        if (!f) return;
+        if (!/\.pdf$/i.test(f.name) && f.type !== 'application/pdf') { alert('Please choose the lease PDF.'); return; }
+        lsUpload(f);
+    });
+    const ask = () => { const q = document.getElementById('lsQuestion'); lsAsk(q.value); q.select(); };
+    document.getElementById('lsAskBtn').addEventListener('click', ask);
+    document.getElementById('lsQuestion').addEventListener('keydown', e => { if (e.key === 'Enter') ask(); });
+    document.querySelectorAll('[data-ls-example]').forEach(b => b.addEventListener('click', () => { document.getElementById('lsQuestion').value = b.textContent; ask(); }));
+    document.getElementById('lsRemove').addEventListener('click', async () => {
+        if (!confirm('Remove the sample lease from this browser? (The shared copy stays until a new one is uploaded.)')) return;
+        try { await bpDbPutKey('lease-sample', null); } catch (e) {}
+        LS = { doc: null, index: null, pdfUrl: null, history: [] };
+        document.getElementById('lsFileName').textContent = 'No sample lease uploaded';
+        document.getElementById('lsAskRow').style.display = 'none';
+        document.getElementById('lsRemove').style.display = 'none';
+        document.getElementById('lsAnswers').innerHTML = '';
+        lsSetStatus('Removed from this browser.');
+    });
+    addSearchClear(document.getElementById('lsQuestion'));
+})();
+
+/* ============================================================
    Admin › Blueprints — opens a construction drawing set (PDF) right in
    the browser with PDF.js and keeps it there: the file is saved to this
    browser's IndexedDB so it reopens next time, and is never uploaded
@@ -18452,6 +18807,7 @@ async function bpRender(page) {
     const dpr = Math.min(window.devicePixelRatio || 1, Math.max(1, maxZoom / BP.zoom));
     const dev = page.getViewport({ scale: BP.zoom * dpr });
     BP.viewport = css;
+    BP.v1 = base;
     const canvas = document.getElementById('bpCanvas');
     if (BP.renderTask) { try { BP.renderTask.cancel(); } catch (e) {} }
     canvas.width = Math.floor(dev.width); canvas.height = Math.floor(dev.height);
@@ -18460,6 +18816,7 @@ async function bpRender(page) {
     svg.setAttribute('width', Math.floor(css.width)); svg.setAttribute('height', Math.floor(css.height));
     document.getElementById('bpZoomLabel').textContent = Math.round(BP.zoom * 100) + '%';
     bpDrawOverlay();
+    bpPlaceLayout();
     BP.renderTask = page.render({ canvasContext: canvas.getContext('2d'), viewport: dev });
     try { await BP.renderTask.promise; } catch (e) { if (e && e.name !== 'RenderingCancelledException') console.error(e); }
 }
@@ -18513,6 +18870,7 @@ function bpDrawOverlay() {
         }
     }
     bpDrawTakeoffs(parts, poly);
+    bpDrawAlignMarks(parts);
     (BP.state.measures[BP.pageNum] || []).forEach(m => {
         const cls = m.type === 'area' ? 'bp-m-area' : 'bp-m-line';
         parts.push(m.type === 'area' ? `<polygon class="${cls}" points="${poly(m.pts)}"/>` : `<polyline class="${cls}" points="${poly(m.pts)}"/>`);
@@ -18596,6 +18954,7 @@ async function bpLoadSegs(n) {
 // more lines meet win over a slightly nearer loose line end.
 async function bpSnap(p, e) {
     if (!document.getElementById('bpSnap').checked || (e && e.altKey) || !BP.pdf || BP.pdf.isImage) return null;
+    if (BP.align && BP.align.step === 'L') return null;
     let grid;
     try { grid = await bpLoadSegs(BP.pageNum); } catch (err) { return null; }
     const r = 10 / BP.zoom;
@@ -18619,6 +18978,7 @@ async function bpSnap(p, e) {
 // ---- Tools ----
 function bpSetTool(tool) {
     BP.tool = tool; BP.pending = []; BP.hover = null; BP.snapPt = null;
+    if (tool !== 'align' && BP.align) { BP.align = null; bpPlaceLayout(); }
     document.querySelectorAll('[data-bp-tool]').forEach(b => b.classList.toggle('active', b.getAttribute('data-bp-tool') === tool));
     const vp = document.getElementById('bpViewport');
     vp.classList.toggle('bp-crosshair', tool !== 'pan');
@@ -18627,6 +18987,7 @@ function bpSetTool(tool) {
         calibrate: 'Click both ends of a dimension you know (e.g. 43\'-7"), then type its length.',
         length: 'Click two points. The green square shows a snap to a drawn corner/line end (Alt = no snap); Shift keeps the line straight.',
         area: 'Click each corner of the room; click the first point (or press Enter) to finish. Esc cancels.',
+        align: '',
         outer: 'Outer boundary: click around the OUTSIDE of the unit\'s walls, corner by corner; click the first point (or press Enter) to close. Esc cancels.',
         inner: 'Inner boundary: click along the INSIDE face of the walls (in and out around kitchen/appliance alcoves as drawn); click the first point (or Enter) to close.'
     };
@@ -18669,6 +19030,7 @@ function bpFinishArea() {
 }
 async function bpStageClick(e) {
     if (!BP.viewport || BP.tool === 'pan') return;
+    if (BP.tool === 'align') { bpAlignClick(e); return; }
     let p = bpEventPdfPoint(e);
     p = (await bpSnap(p, e)) || bpOrtho(BP.pending[BP.pending.length - 1], p, e);
     if (BP_POLY_TOOLS.indexOf(BP.tool) !== -1 && BP.pending.length >= 3) {
@@ -18919,6 +19281,8 @@ function bpRenderTakeoff() {
     document.getElementById('bpToName').value = t ? t.name || '' : '';
     document.getElementById('bpToKnown').value = t ? t.known || '' : '';
     document.getElementById('bpToBasis').value = t ? t.basis || 'outer' : 'outer';
+    bpLoadLayout(t).then(bpRenderLayoutUi).catch(() => {});
+    bpRenderLayoutUi();
     const box = document.getElementById('bpToResults');
     if (!t || (!t.outer && !t.inner)) {
         box.innerHTML = `<div class="bp-to-note">Click <b>Trace outer boundary</b> and click around the outside of the unit's walls${BP.pdf.isImage ? '' : ', then <b>Trace inner boundary</b> along the inside face of the walls'}. Enter the known sq ft to size everything from it.</div>`;
@@ -19064,8 +19428,13 @@ async function bpFillFloorplanSelect() {
     const sel = document.getElementById('bpFpSelect');
     try { await fpLoadList(false); } catch (e) {}
     const files = (FP_FILES || []).slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    sel.innerHTML = `<option value="">${files.length ? 'Or open a site floorplan…' : 'No site floorplans found'}</option>` +
-        files.map(f => `<option value="${escapeAttr(f.name)}">${escapeHtml(f.name)}</option>`).join('');
+    const opts = files.map(f => `<option value="${escapeAttr(f.name)}">${escapeHtml(f.name)}</option>`).join('');
+    sel.innerHTML = `<option value="">${files.length ? 'Or open a site floorplan\u2026' : 'No site floorplans found'}</option>` + opts;
+    // Layout picker: 2D plans first.
+    const two = files.filter(f => /(^|[-_ ])2d([-_ .]|$)/i.test(f.name)), rest = files.filter(f => two.indexOf(f) === -1);
+    const o = list => list.map(f => `<option value="${escapeAttr(f.name)}">${escapeHtml(f.name)}</option>`).join('');
+    document.getElementById('bpLaySelect').innerHTML = `<option value="">${files.length ? 'Choose a site floorplan\u2026' : 'No site floorplans found'}</option>` +
+        (two.length ? `<optgroup label="2D plans">${o(two)}</optgroup>` : '') + (rest.length ? `<optgroup label="Other">${o(rest)}</optgroup>` : '');
 }
 function bpWireTakeoff() {
     const sel = document.getElementById('bpToSelect');
@@ -19123,6 +19492,361 @@ function bpWireTakeoff() {
             bpSetStatus(`Couldn't open ${name} (${err.message}).`);
         }
     });
+}
+
+// ---- 2D layout overlay: line a marketing floorplan up with the sheet ----
+// The layout (an image, or page 1 of a PDF) is drawn over the sheet with
+// an affine matrix M that maps layout pixels to sheet points at scale 1
+// (y down, like the screen). Two matched corners give position, size and
+// rotation (plus a mirror switch); a third corner also absorbs mirroring
+// and any stretch. The traced boundaries are measured on the true-scale
+// sheet, then mapped back through M onto the original layout for export.
+const BP_LAY_MAX = 2400;  // layout working size (longest side, PDFs)
+BP.lay = null;            // { key, name, canvas, W, H } for the loaded layout
+BP.align = null;          // { want, step: 'L' | 'S', pairs: [{ L, S }] }
+function bpMatApply(M, p) { return [M[0] * p[0] + M[2] * p[1] + M[4], M[1] * p[0] + M[3] * p[1] + M[5]]; }
+function bpMatInv(M) {
+    const det = M[0] * M[3] - M[1] * M[2];
+    if (!det) return null;
+    const a = M[3] / det, b = -M[1] / det, c = -M[2] / det, d = M[0] / det;
+    return [a, b, c, d, -(a * M[4] + c * M[5]), -(b * M[4] + d * M[5])];
+}
+// Sheet point (PDF units) <-> page point at scale 1 (y down).
+function bpSheetToP(p) { return BP.v1.convertToViewportPoint(p[0], p[1]); }
+function bpPToSheet(p) { return BP.v1.convertToPdfPoint(p[0], p[1]); }
+// Fit M from matched pairs (layout px -> page point).
+function bpFitLayout(pairs, mirror, W) {
+    if (pairs.length >= 3) {
+        // Affine through three points: solve for both rows.
+        const [p1, p2, p3] = pairs;
+        const A = [[p1.L[0], p1.L[1], 1], [p2.L[0], p2.L[1], 1], [p3.L[0], p3.L[1], 1]];
+        const solve = (r) => {
+            const det = m => m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+            const D = det(A);
+            if (Math.abs(D) < 1e-9) return null;
+            return [0, 1, 2].map(k => det(A.map((row, i) => row.map((v, j) => j === k ? r[i] : v))) / D);
+        };
+        const X = solve([p1.S[0], p2.S[0], p3.S[0]]), Y = solve([p1.S[1], p2.S[1], p3.S[1]]);
+        if (X && Y) return [X[0], Y[0], X[1], Y[1], X[2], Y[2]];
+    }
+    if (pairs.length < 2) return null;
+    // Similarity (scale + rotation + move), on mirrored x when asked.
+    const f = p => mirror ? [W - p[0], p[1]] : p;
+    const l1 = f(pairs[0].L), l2 = f(pairs[1].L), s1 = pairs[0].S, s2 = pairs[1].S;
+    const dl = [l2[0] - l1[0], l2[1] - l1[1]], ds = [s2[0] - s1[0], s2[1] - s1[1]];
+    const den = dl[0] * dl[0] + dl[1] * dl[1];
+    if (!den) return null;
+    const ar = (ds[0] * dl[0] + ds[1] * dl[1]) / den, ai = (ds[1] * dl[0] - ds[0] * dl[1]) / den;
+    const S = [ar, ai, -ai, ar, s1[0] - (ar * l1[0] - ai * l1[1]), s1[1] - (ai * l1[0] + ar * l1[1])];
+    if (!mirror) return S;
+    // Compose with the flip x -> W - x.
+    return [-S[0], -S[1], S[2], S[3], S[0] * W + S[4], S[1] * W + S[5]];
+}
+// Initial placement: over the traced outline (or the middle of the view).
+function bpLayoutDefaultM(t) {
+    const pts = (t.inner || t.outer || []).map(bpSheetToP);
+    let x0, y0, w, h;
+    if (pts.length) {
+        x0 = Math.min(...pts.map(p => p[0])); y0 = Math.min(...pts.map(p => p[1]));
+        w = Math.max(...pts.map(p => p[0])) - x0; h = Math.max(...pts.map(p => p[1])) - y0;
+    } else {
+        const vp = document.getElementById('bpViewport'), st = document.getElementById('bpStage');
+        w = vp.clientWidth / 3 / BP.zoom; h = vp.clientHeight / 3 / BP.zoom;
+        x0 = (vp.scrollLeft - st.offsetLeft + vp.clientWidth / 3) / BP.zoom; y0 = (vp.scrollTop - st.offsetTop + vp.clientHeight / 3) / BP.zoom;
+    }
+    const s = Math.min(w / BP.lay.W, h / BP.lay.H);
+    return [s, 0, 0, s, x0 + (w - BP.lay.W * s) / 2, y0 + (h - BP.lay.H * s) / 2];
+}
+// Turns a layout file (image or PDF page 1) into a canvas of fixed size.
+async function bpLayoutCanvas(blob, name) {
+    const canvas = document.createElement('canvas');
+    if (/^image\//.test(blob.type || '') || BP_IMAGE_RE.test(name)) {
+        const url = URL.createObjectURL(blob);
+        try {
+            const img = new Image();
+            await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('not a readable image')); img.src = url; });
+            canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        } finally { URL.revokeObjectURL(url); }
+    } else {
+        const pdfjsLib = await docsLoadPdfJs();
+        const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
+        const page = await doc.getPage(1);
+        const v = page.getViewport({ scale: 1 });
+        const vp = page.getViewport({ scale: BP_LAY_MAX / Math.max(v.width, v.height) });
+        canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        doc.destroy();
+    }
+    return canvas;
+}
+async function bpLoadLayout(t) {
+    const L = t && t.layout;
+    if (!L) { BP.lay = null; bpPlaceLayout(); return; }
+    if (BP.lay && BP.lay.key === L.key) { bpPlaceLayout(); return; }
+    let blob = null;
+    try {
+        if (L.src === 'site') { const r = await fetch(fpUrl(L.name)); if (r.ok) blob = await r.blob(); }
+        else { const rec = await bpDbGetKey('layout:' + L.key); blob = rec && rec.blob; }
+    } catch (e) {}
+    if (!blob) { bpLayStatus(`Layout “${L.name}” isn't available in this browser — choose it again.`); BP.lay = null; bpPlaceLayout(); return; }
+    const canvas = await bpLayoutCanvas(blob, L.name);
+    BP.lay = { key: L.key, name: L.name, canvas, W: canvas.width, H: canvas.height };
+    bpPlaceLayout();
+}
+async function bpDbGetKey(key) {
+    const db = await bpDb();
+    return new Promise((resolve, reject) => {
+        const req = db.transaction('files').objectStore('files').get(key);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+    });
+}
+async function bpDbPutKey(key, rec) {
+    const db = await bpDb();
+    await new Promise((resolve, reject) => {
+        const tx = db.transaction('files', 'readwrite');
+        tx.objectStore('files').put(rec, key);
+        tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+    });
+}
+function bpLayStatus(msg) { const el = document.getElementById('bpLayStatus'); if (el) el.textContent = msg || ''; }
+// Choose a layout for the active unit.
+async function bpSetLayout(blob, name, src) {
+    if (!BP.pdf) return;
+    const t = bpActiveTakeoff(true);
+    bpLayStatus(`Loading ${name}…`);
+    try {
+        const canvas = await bpLayoutCanvas(blob, name);
+        const key = `${name}|${blob.size}`;
+        if (src !== 'site') await bpDbPutKey('layout:' + key, { name, blob }).catch(() => {});
+        BP.lay = { key, name, canvas, W: canvas.width, H: canvas.height };
+        t.layout = { key, name, src, pairs: [], mirror: false, opacity: 60, show: true, outer: false, M: null };
+        t.layout.M = bpLayoutDefaultM(t);
+        bpSaveState();
+        bpPlaceLayout(); bpRenderLayoutUi();
+        bpLayStatus('Now click “Align” and match two corners to line it up with the sheet.');
+    } catch (err) {
+        console.error(err);
+        bpLayStatus(`Couldn't open ${name} (${err.message}).`);
+    }
+}
+// Draws the overlay canvas over the sheet with the current matrix.
+function bpPlaceLayout() {
+    const stage = document.getElementById('bpStage');
+    let el = document.getElementById('bpLayCanvas');
+    const t = BP.pdf && bpActiveTakeoff(false);
+    const L = t && t.layout;
+    if (!BP.lay || !L || !L.M || !BP.viewport || !L.show) { if (el) el.style.display = 'none'; return; }
+    if (el !== BP.lay.canvas) {
+        if (el) el.remove();
+        el = BP.lay.canvas;
+        el.id = 'bpLayCanvas';
+        el.className = 'bp-lay-canvas';
+        el.style.width = BP.lay.W + 'px'; el.style.height = BP.lay.H + 'px';
+        stage.insertBefore(el, document.getElementById('bpOverlay'));
+    }
+    const z = BP.zoom, M = L.M;
+    el.style.display = 'block';
+    el.style.transform = `matrix(${M[0] * z}, ${M[1] * z}, ${M[2] * z}, ${M[3] * z}, ${M[4] * z}, ${M[5] * z})`;
+    let op = (L.opacity == null ? 60 : L.opacity) / 100;
+    if (BP.align) op = BP.align.step === 'L' ? 0.9 : 0.25;
+    el.style.opacity = op;
+}
+function bpRenderLayoutUi() {
+    const t = BP.pdf && bpActiveTakeoff(false);
+    const L = t && t.layout;
+    const has = !!(L && BP.lay);
+    document.getElementById('bpLayName').textContent = L ? L.name + (L.pairs && L.pairs.length >= 2 ? ` · aligned (${L.pairs.length} points)` : ' · not aligned yet') : 'No layout chosen';
+    ['bpLayAlign', 'bpLayAlign3', 'bpLayExport'].forEach(id => { document.getElementById(id).disabled = !has; });
+    document.getElementById('bpLayAlign3').disabled = !has || !(L.pairs && L.pairs.length >= 2);
+    document.getElementById('bpLayMirror').checked = !!(L && L.mirror);
+    document.getElementById('bpLayShow').checked = !L || L.show !== false;
+    document.getElementById('bpLayOuter').checked = !!(L && L.outer);
+    document.getElementById('bpLayOpacity').value = L && L.opacity != null ? L.opacity : 60;
+}
+// ---- Alignment clicks ----
+function bpStartAlign(want) {
+    const t = bpActiveTakeoff(false);
+    if (!t || !t.layout || !BP.lay) return;
+    if (!t.layout.show) { t.layout.show = true; document.getElementById('bpLayShow').checked = true; }
+    BP.align = { want, step: 'L', pairs: want === 3 ? (t.layout.pairs || []).slice(0, 2) : [] };
+    bpSetTool('align');
+    bpAlignHint();
+    bpPlaceLayout();
+}
+function bpAlignHint() {
+    const a = BP.align;
+    if (!a) return;
+    const n = a.pairs.length + 1;
+    const ord = ['', 'first', 'second', 'third'][n] || '';
+    document.getElementById('bpHint').textContent = a.step === 'L'
+        ? `Align step ${a.pairs.length * 2 + 1}: click the ${ord} corner on the LAYOUT (pick a sharp corner far from the others). Esc cancels.`
+        : `Align step ${a.pairs.length * 2 + 2}: click the SAME corner on the blueprint (snaps to the drawn lines).`;
+}
+async function bpAlignClick(e) {
+    const t = bpActiveTakeoff(false), a = BP.align;
+    if (!t || !t.layout || !a) return;
+    let sheetPt = bpEventPdfPoint(e);
+    if (a.step === 'L') {
+        const inv = bpMatInv(t.layout.M);
+        if (!inv) return;
+        a.cur = bpMatApply(inv, bpSheetToP(sheetPt));
+        a.step = 'S';
+    } else {
+        sheetPt = (await bpSnap(sheetPt, e)) || sheetPt;
+        a.pairs.push({ L: a.cur, S: bpSheetToP(sheetPt) });
+        a.step = 'L';
+        if (a.pairs.length >= a.want) {
+            const M = bpFitLayout(a.pairs, t.layout.mirror, BP.lay.W);
+            if (M) { t.layout.M = M; t.layout.pairs = a.pairs; bpSaveState(); }
+            BP.align = null;
+            bpSetTool('pan');
+            bpLayStatus(M ? `Aligned with ${a.pairs.length} points. Check the overlay, then trace the boundaries on the blueprint.` : 'Those points were too close together — try again with corners farther apart.');
+            bpRenderLayoutUi(); bpPlaceLayout(); bpDrawOverlay();
+            return;
+        }
+    }
+    bpAlignHint(); bpPlaceLayout(); bpDrawOverlay();
+}
+// Markers for the alignment clicks so far.
+function bpDrawAlignMarks(parts) {
+    const a = BP.align, t = BP.pdf && bpActiveTakeoff(false);
+    if (!a || !t || !t.layout) return;
+    const z = BP.zoom;
+    const mark = (P, color, label) => parts.push(`<circle cx="${P[0] * z}" cy="${P[1] * z}" r="6" fill="none" stroke="${color}" stroke-width="2.5"/><text class="bp-m-label" x="${P[0] * z + 8}" y="${P[1] * z - 8}">${label}</text>`);
+    a.pairs.forEach((p, i) => { mark(bpMatApply(t.layout.M, p.L), '#e0441b', `L${i + 1}`); mark(p.S, '#18a058', `B${i + 1}`); });
+    if (a.step === 'S' && a.cur) mark(bpMatApply(t.layout.M, a.cur), '#e0441b', `L${a.pairs.length + 1}`);
+}
+// ---- Export: the original layout with the measurements drawn on it ----
+async function bpExportLayout() {
+    const t = bpActiveTakeoff(false);
+    const L = t && t.layout;
+    if (!L || !BP.lay) { alert('Choose a layout first.'); return; }
+    if (!L.pairs || L.pairs.length < 2) { alert('Align the layout first (match two corners).'); return; }
+    if (!t.inner && !t.outer) { alert('Trace the inner boundary on the blueprint first.'); return; }
+    const S = bpTakeoffScale(t);
+    if (!S.inPerUnit) { alert('Enter the known sq ft (or set the sheet scale) first.'); return; }
+    const inv = bpMatInv(L.M);
+    const src = BP.lay.canvas;
+    // Work at >= 1800px wide so text stays crisp on small images.
+    const k = Math.max(1, 1800 / src.width);
+    const W = Math.round(src.width * k), H = Math.round(src.height * k);
+    const strip = Math.round(Math.max(70, W / 22));
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H + strip;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H + strip);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(src, 0, 0, W, H);
+    const toXY = p => { const q = bpMatApply(inv, bpSheetToP(p)); return [q[0] * k, q[1] * k]; };
+    const font = Math.round(Math.max(13, W / 95));
+    // Dimension line along each wall, offset into the room (or out, for
+    // the outer boundary), with end ticks and the length on a white tag.
+    const dims = (pts, color, outward) => {
+        const xy = pts.map(toXY);
+        const off = font * 1.3;
+        xy.forEach((a, i) => {
+            const b = xy[(i + 1) % xy.length];
+            const p0 = pts[i], p1 = pts[(i + 1) % pts.length];
+            const inches = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) * S.inPerUnit;
+            const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+            if (inches < 6 || len < font * 3.2) return;
+            let nx = -(b[1] - a[1]) / len, ny = (b[0] - a[0]) / len;
+            const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+            if (bpPointInPoly([mx + nx * 3, my + ny * 3], xy) === outward) { nx = -nx; ny = -ny; }
+            const ax = a[0] + nx * off, ay = a[1] + ny * off, bx = b[0] + nx * off, by = b[1] + ny * off;
+            const ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len, tick = font * 0.45;
+            ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.2, font / 11);
+            ctx.beginPath();
+            ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+            [[ax, ay], [bx, by]].forEach(([x, y]) => { ctx.moveTo(x - (ux - nx) * tick, y - (uy - ny) * tick); ctx.lineTo(x + (ux - nx) * tick, y + (uy - ny) * tick); });
+            ctx.stroke();
+            const text = bpFmtFtInQ(inches);
+            let ang = Math.atan2(b[1] - a[1], b[0] - a[0]);
+            if (ang > Math.PI / 2) ang -= Math.PI; else if (ang < -Math.PI / 2) ang += Math.PI;
+            ctx.save();
+            ctx.translate((ax + bx) / 2, (ay + by) / 2); ctx.rotate(ang);
+            ctx.font = `700 ${font}px Arial, sans-serif`;
+            const tw = ctx.measureText(text).width + font * 0.6;
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.fillRect(-tw / 2, -font * 0.7, tw, font * 1.4);
+            ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(text, 0, 1);
+            ctx.restore();
+        });
+    };
+    if (t.inner) dims(t.inner, '#c0392b', false);
+    if (t.outer && (L.outer || !t.inner)) dims(t.outer, '#1f5fd1', true);
+    // Bottom strip: unit, known sq ft and the measured areas.
+    const sq = pts => pts ? (bpPolyAreaUnits(pts) * S.inPerUnit * S.inPerUnit / 144).toLocaleString('en-US', { maximumFractionDigits: 0 }) : '';
+    ctx.fillStyle = '#f6f4f1'; ctx.fillRect(0, H, W, strip);
+    ctx.fillStyle = '#231f20'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    const fs = Math.round(strip * 0.3);
+    ctx.font = `700 ${fs}px Arial, sans-serif`;
+    const bits = [t.name || ''];
+    if (S.known) bits.push(`${S.known.toLocaleString('en-US')} sq ft`);
+    ctx.fillText(bits.filter(Boolean).join('  ·  '), fs, H + strip * 0.36);
+    ctx.font = `${Math.round(fs * 0.72)}px Arial, sans-serif`;
+    ctx.fillStyle = '#5f5a55';
+    const det = [];
+    if (t.inner) det.push(`Interior ${sq(t.inner)} sq ft (red, inside face of walls)`);
+    if (t.outer) det.push(`To outside of walls ${sq(t.outer)} sq ft`);
+    det.push('Dimensions measured from the construction drawings; approximate');
+    ctx.fillText(det.join('  ·  '), fs, H + strip * 0.74);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (BP.lastImage) URL.revokeObjectURL(BP.lastImage.url);
+    const url = URL.createObjectURL(blob);
+    const base = L.name.replace(/\.[a-z0-9]+$/i, '');
+    const safe = `${base} measured`.replace(/[‐-―]/g, '-').replace(/[\\/:*?"<>|]+/g, '-').replace(/[^\x20-\x7e]/g, '').trim();
+    BP.lastImage = { url, name: `${safe}.png` };
+    document.getElementById('bpModalTitle').textContent = `${L.name} — with measurements`;
+    document.getElementById('bpModalImg').src = url;
+    document.getElementById('bpModal').style.display = 'flex';
+}
+function bpWireLayout() {
+    document.getElementById('bpLaySelect').addEventListener('change', async e => {
+        const name = e.target.value;
+        e.target.value = '';
+        if (!name || !BP.pdf) return;
+        bpLayStatus(`Downloading ${name}…`);
+        try {
+            const r = await fetch(fpUrl(name));
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            await bpSetLayout(await r.blob(), name, 'site');
+        } catch (err) { bpLayStatus(`Couldn't open ${name} (${err.message}).`); }
+    });
+    const file = document.getElementById('bpLayFile');
+    file.addEventListener('change', () => {
+        const f = file.files && file.files[0];
+        file.value = '';
+        if (f && BP.pdf) bpSetLayout(f, f.name, 'upload');
+    });
+    document.getElementById('bpLayAlign').addEventListener('click', () => bpStartAlign(2));
+    document.getElementById('bpLayAlign3').addEventListener('click', () => bpStartAlign(3));
+    const L = () => { const t = BP.pdf && bpActiveTakeoff(false); return t && t.layout; };
+    document.getElementById('bpLayMirror').addEventListener('change', e => {
+        const l = L(); if (!l) return;
+        l.mirror = e.target.checked;
+        // Re-fit from the matched corners (2-point fits use the mirror switch).
+        if (l.pairs && l.pairs.length === 2 && BP.lay) { const M = bpFitLayout(l.pairs, l.mirror, BP.lay.W); if (M) l.M = M; }
+        else if (BP.lay && (!l.pairs || l.pairs.length < 2)) {
+            // Not aligned yet: flip in place around the layout's middle.
+            const c = bpMatApply(l.M, [BP.lay.W / 2, BP.lay.H / 2]);
+            l.M = [-l.M[0], -l.M[1], l.M[2], l.M[3], 0, 0];
+            const c2 = bpMatApply(l.M, [BP.lay.W / 2, BP.lay.H / 2]);
+            l.M[4] = c[0] - c2[0]; l.M[5] = c[1] - c2[1];
+        }
+        bpSaveState(); bpPlaceLayout();
+    });
+    document.getElementById('bpLayOpacity').addEventListener('input', e => { const l = L(); if (!l) return; l.opacity = +e.target.value; bpSaveState(); bpPlaceLayout(); });
+    document.getElementById('bpLayShow').addEventListener('change', e => { const l = L(); if (!l) return; l.show = e.target.checked; bpSaveState(); bpPlaceLayout(); });
+    document.getElementById('bpLayOuter').addEventListener('change', e => { const l = L(); if (!l) return; l.outer = e.target.checked; bpSaveState(); });
+    document.getElementById('bpLayExport').addEventListener('click', () => bpExportLayout().catch(err => { console.error(err); bpLayStatus('Couldn\'t build the image (' + err.message + ').'); }));
 }
 
 // ---- Wiring ----
@@ -19198,10 +19922,12 @@ function bpWireTakeoff() {
     }, { passive: false });
     document.addEventListener('keydown', e => {
         if (adminSubTab !== 'blueprints' || !BP.pdf) return;
-        if (e.key === 'Escape' && BP.pending.length) { BP.pending = []; BP.hover = null; bpDrawOverlay(); }
+        if (e.key === 'Escape' && BP.align) { bpSetTool('pan'); bpDrawOverlay(); }
+        else if (e.key === 'Escape' && BP.pending.length) { BP.pending = []; BP.hover = null; bpDrawOverlay(); }
         else if (e.key === 'Enter' && BP_POLY_TOOLS.indexOf(BP.tool) !== -1 && BP.pending.length >= 3) bpFinishArea();
     });
     bpWireTakeoff();
+    bpWireLayout();
     bpSetTool('pan');
 })();
 // Called when the Blueprints sub-tab is shown: reopen the last file.
