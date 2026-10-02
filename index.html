@@ -1377,6 +1377,8 @@
     .bp-tool:last-child { border-right: none; }
     .bp-tool.active { background: var(--reve-orange); color: #fff; }
     .bp-snap { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; margin-left: 4px; }
+    .bp-overlay .bp-v-handle { fill: #fff; stroke: #e0441b; stroke-width: 2; }
+    .bp-overlay .bp-v-handle.sel { fill: #e0441b; stroke: #fff; }
     .bp-overlay .bp-snap-mark { fill: none; stroke: #18a058; stroke-width: 2; }
     .bp-scale-label { font-size: 12.5px; font-weight: 700; }
     .bp-scale-label.none { color: #b26a00; }
@@ -3930,6 +3932,7 @@
                             <button type="button" class="bp-tool" data-bp-tool="calibrate" title="Click both ends of a known dimension, then enter its length">Calibrate</button>
                             <button type="button" class="bp-tool" data-bp-tool="length" title="Click two points">Length</button>
                             <button type="button" class="bp-tool" data-bp-tool="area" title="Click each corner; click the first point (or press Enter) to close">Area</button>
+                            <button type="button" class="bp-tool" data-bp-tool="edit" title="Move corners of traced outlines and measurements, or redraw a stretch between two corners">Edit</button>
                         </div>
                         <button type="button" class="bp-btn" id="bpClearMeasures" title="Remove this sheet's measurements">Clear</button>
                         <label class="bp-snap" title="Clicks jump to the nearest corner or line end drawn on the sheet (hold Alt to click freely)"><input type="checkbox" id="bpSnap" checked> Snap to lines</label>
@@ -16735,7 +16738,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-lease-questions": {"title": "Ask Questions About the Sample Lease", "icon": "\u2753", "category": "Lease", "steps": ["Open the Lease tab and click \"Upload sample lease\" to load the current lease PDF (only needed when a new version comes out).", "The lease text is shared with the team, so everyone can ask questions after one upload; the PDF itself stays in the browser that uploaded it.", "Type a question in the bar (e.g. \"What is the late fee?\", \"How long can guests stay?\") and press Enter, or click an example.", "The answer quotes the matching sentences with the section and page. \"Read the whole section\" shows the full paragraph, and \"Open page\" opens the PDF there.", "\"Also see\" lists other sections that mention the same thing \u2014 click one to see its answer."]},
     "builtin-new-lease": {"title": "Fill Out a New Lease", "icon": "🖊️", "category": "Lease", "steps": ["Complete the resident's Welcome Letter first — the Lease tab pulls from it and from Residents.", "Open the Lease tab and search for the resident by unit or name.", "Each section (Lease Terms, Cover Sheet, Animal, Buyout, Inventory, Parking, Rent Concession, Special Provisions) shows the values to enter.", "Click the copy button next to any value to copy it, then paste it into the lease.", "For a renewal, check \"Select if Renewal Lease\" — the new dates start the day after the current lease ends.", "Click × next to the search to clear the selection."]},
     "builtin-mmr-traffic": {"title": "Record Weekly Traffic for the MMR", "icon": "🚶", "category": "Admin", "steps": ["Go to Admin (enter the password) > MMR > Weekly Traffic Detail.", "For each reason, write one sentence per show, starting with the prospect's first and last name and ending with a period.", "Each sentence that starts with a name counts as one show; follow-up sentences about the same prospect don't add to the count.", "Download New MMR replaces last week's numbers in the uploaded file.", "Click \"Clear for New Week\" to start the next week fresh."]},
-    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points (hold Shift for straight lines). Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create floorplan image\" makes a PNG of the unit with every wall length labeled (sized from the known sq ft), ready to download.", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary.", "To put the traced shape on a 2D floorplan: under \"Floorplan image with measurements\", choose a site floorplan or upload one, then click \"Place traced shape on floorplan\". Drag the shape onto the walls, resize from its corner square, rotate or mirror as needed, and click \"Download PNG\". Wall lengths always come from the blueprint."]},
+    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points. Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Clicks snap to the drawn corners (green square). Hold Ctrl to move freely without snapping, Shift to keep the line perfectly straight across or up/down (snapping then only sets the length), or Ctrl+Shift for both.", "Edit: drag any orange corner of a traced outline or measurement to move it, or click one corner, then a second corner on the same outline, click the new corners and finish on the second one to redraw that stretch. Delete removes a selected corner.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create floorplan image\" makes a PNG of the unit with every wall length labeled (sized from the known sq ft), ready to download.", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary.", "To put the traced shape on a 2D floorplan: under \"Floorplan image with measurements\", choose a site floorplan or upload one, then click \"Place traced shape on floorplan\". Drag the shape onto the walls, resize from its corner square, rotate or mirror as needed, and click \"Download PNG\". Wall lengths always come from the blueprint."]},
     "builtin-commissions": {"title": "Run Commissions for the Pay Period", "icon": "💼", "category": "Admin", "steps": ["Go to Admin > Commissions and check the Current pay period (change its start date if needed).", "Review Suggested Move-Ins (residents moving in this pay period): + adds one officially, × rejects it.", "Add anything missing with \"+ Add Move-In\" or \"+ Add Renewal\", or use \"Import Renewals\" with the Resident Activity Detail export.", "Optional: upload last period's Commissions file to keep its formatting.", "Click \"Export to Excel\" — only officially added Move-Ins and Renewals are included."]},
     "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx)\". The file stays in your browser tab only and is never saved.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code (suggestions come from the file), To, Amount and For.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Check the summary under the table — it warns if the items won't fit in the sheet.", "Click \"Export to Excel\". Items go into the table, the approval date is set to today, and the rest of the file is unchanged.", "When asked, clear the exported items so they aren't added twice next time."]},
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
@@ -18930,6 +18933,7 @@ function bpDrawOverlay() {
         BP.pending.forEach(p => { const [x, y] = bpToCss(p); parts.push(`<circle class="bp-m-pt" cx="${x}" cy="${y}" r="3.5"/>`); });
         if (BP.hover && BP.tool === 'length' && BP.pending.length === 1) parts.push(label(BP.hover, bpMeasureValue({ type: 'length', pts: [BP.pending[0], BP.hover] }, BP.pageNum)));
     }
+    bpDrawEditHandles(parts);
     if (BP.snapPt && BP.tool !== 'pan') {
         const [x, y] = bpToCss(BP.snapPt);
         parts.push(`<rect class="bp-snap-mark" x="${x - 6}" y="${y - 6}" width="12" height="12"/>`);
@@ -18994,7 +18998,7 @@ async function bpLoadSegs(n) {
 // Drawn point within ~10 screen pixels, or null. Points where three or
 // more lines meet win over a slightly nearer loose line end.
 async function bpSnap(p, e) {
-    if (!document.getElementById('bpSnap').checked || (e && e.altKey) || !BP.pdf || BP.pdf.isImage) return null;
+    if (!document.getElementById('bpSnap').checked || bpNoSnapKey(e) || !BP.pdf || BP.pdf.isImage) return null;
     if (BP.align && BP.align.step === 'L') return null;
     let grid;
     try { grid = await bpLoadSegs(BP.pageNum); } catch (err) { return null; }
@@ -19016,36 +19020,50 @@ async function bpSnap(p, e) {
     return best;
 }
 
+// Preview of the next point (snapped / straightened) and the snap marker.
+function bpHoverUpdate(ev) {
+    if (BP.tool === 'pan' || !BP.viewport) return;
+    const vp = document.getElementById('bpViewport');
+    if (BP.tool === 'edit' && !BP.redraw) {
+        vp.style.cursor = bpHitVertex(ev) ? 'move' : '';
+        if (BP.snapPt || BP.hover) { BP.snapPt = null; BP.hover = null; bpDrawOverlay(); }
+        return;
+    }
+    vp.style.cursor = '';
+    const raw = bpEventPdfPoint(ev), seq = ++BP.hoverSeq;
+    const prev = BP.pending.length ? BP.pending[BP.pending.length - 1] : null;
+    bpConstrain(raw, prev, ev).then(r => {
+        if (seq !== BP.hoverSeq) return;
+        BP.snapPt = r.snap;
+        BP.hover = BP.pending.length ? r.p : null;
+        bpDrawOverlay();
+    });
+}
 // ---- Tools ----
 function bpSetTool(tool) {
     BP.tool = tool; BP.pending = []; BP.hover = null; BP.snapPt = null;
     if (tool !== 'align' && BP.align) { BP.align = null; bpPlaceLayout(); }
+    BP.vsel = null; BP.redraw = null; BP.vdrag = null;
     document.querySelectorAll('[data-bp-tool]').forEach(b => b.classList.toggle('active', b.getAttribute('data-bp-tool') === tool));
     const vp = document.getElementById('bpViewport');
     vp.classList.toggle('bp-crosshair', tool !== 'pan');
     const hints = {
         pan: 'Drag to move around; Ctrl/⌘ + scroll to zoom.',
         calibrate: 'Click both ends of a dimension you know (e.g. 43\'-7"), then type its length.',
-        length: 'Click two points. The green square shows a snap to a drawn corner/line end (Alt = no snap); Shift keeps the line straight.',
-        area: 'Click each corner of the room; click the first point (or press Enter) to finish. Esc cancels.',
+        length: 'Click two points. The green square shows a snap to a drawn corner or line end. Hold Ctrl to move freely (no snap); hold Shift for a perfectly straight line; Ctrl+Shift for both.',
+        area: 'Click each corner of the room; click the first point (or press Enter) to finish. Ctrl = no snap, Shift = straight line. Esc cancels.',
         align: '',
         outer: 'Outer boundary: click around the OUTSIDE of the unit\'s walls, corner by corner; click the first point (or press Enter) to close. Esc cancels.',
         inner: 'Inner boundary: click along the INSIDE face of the walls (in and out around kitchen/appliance alcoves as drawn); click the first point (or Enter) to close.'
     };
     document.getElementById('bpHint').textContent = hints[tool] || '';
+    bpEditHint();
     bpDrawOverlay();
 }
 function bpEventPdfPoint(e) {
     const stage = document.getElementById('bpStage');
     const r = stage.getBoundingClientRect();
     return BP.viewport.convertToPdfPoint(e.clientX - r.left, e.clientY - r.top);
-}
-// Shift keeps the segment horizontal or vertical on screen.
-function bpOrtho(prev, p, e) {
-    if (!e.shiftKey || !prev) return p;
-    const a = bpToCss(prev), b = bpToCss(p);
-    const snapped = Math.abs(b[0] - a[0]) > Math.abs(b[1] - a[1]) ? [b[0], a[1]] : [a[0], b[1]];
-    return BP.viewport.convertToPdfPoint(snapped[0], snapped[1]);
 }
 function bpAddMeasure(m) {
     (BP.state.measures[BP.pageNum] = BP.state.measures[BP.pageNum] || []).push(m);
@@ -19072,8 +19090,8 @@ function bpFinishArea() {
 async function bpStageClick(e) {
     if (!BP.viewport || BP.tool === 'pan') return;
     if (BP.tool === 'align') { bpAlignClick(e); return; }
-    let p = bpEventPdfPoint(e);
-    p = (await bpSnap(p, e)) || bpOrtho(BP.pending[BP.pending.length - 1], p, e);
+    if (BP.tool === 'edit') { bpEditClick(e); return; }
+    const p = (await bpConstrain(bpEventPdfPoint(e), BP.pending[BP.pending.length - 1], e)).p;
     if (BP_POLY_TOOLS.indexOf(BP.tool) !== -1 && BP.pending.length >= 3) {
         const a = bpToCss(BP.pending[0]), b = bpToCss(p);
         if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 10) { bpFinishArea(); return; }
@@ -20180,6 +20198,158 @@ function bpPlScaleBy(f) {
     bpPlSave();
 }
 
+// ---- Precise drawing: snapping, straight lines, free movement ----
+// Snapping is on by default. Ctrl (or Alt / ⌘) = free movement, no snap.
+// Shift = straight line (exactly across or up/down from the previous
+// point); with snapping it only sets the length, from the snapped point.
+// Ctrl+Shift = free movement on a straight line.
+function bpNoSnapKey(e) { return !!(e && (e.ctrlKey || e.altKey || e.metaKey)); }
+async function bpConstrain(raw, prev, e) {
+    const sp = bpNoSnapKey(e) ? null : await bpSnap(raw, e);
+    let p = sp || raw;
+    if (e && e.shiftKey && prev) {
+        const a = bpToCss(prev), r = bpToCss(raw), q = bpToCss(p);
+        // Direction from where the pointer is; length from the (snapped) point.
+        const horiz = Math.abs(r[0] - a[0]) >= Math.abs(r[1] - a[1]);
+        p = BP.viewport.convertToPdfPoint(horiz ? q[0] : a[0], horiz ? a[1] : q[1]);
+    }
+    return { p, snap: sp };
+}
+// ---- Edit tool: drag corners, or redraw a stretch between two corners ----
+// Shapes that can be edited on this sheet: the active unit's traced
+// boundaries and the sheet's length/area measurements.
+function bpEditables() {
+    const out = [];
+    const t = BP.state.takeoffs && BP.state.takeoffs[BP.pageNum] ? bpActiveTakeoff(false) : null;
+    if (t && t.outer) out.push({ id: 'to-outer', pts: t.outer, closed: true });
+    if (t && t.inner) out.push({ id: 'to-inner', pts: t.inner, closed: true });
+    (BP.state.measures[BP.pageNum] || []).forEach((m, i) => out.push({ id: 'm' + i, pts: m.pts, closed: m.type === 'area' }));
+    return out;
+}
+function bpEditFind(id) { return bpEditables().find(s => s.id === id) || null; }
+// Nearest corner within 9 screen pixels. Where corners overlap, the
+// outline already picked wins, then closed outlines over lengths.
+function bpHitVertex(e) {
+    const stage = document.getElementById('bpStage').getBoundingClientRect();
+    const x = e.clientX - stage.left, y = e.clientY - stage.top;
+    let best = null, bs = Infinity;
+    bpEditables().forEach(s => s.pts.forEach((p, i) => {
+        const c = bpToCss(p), d = Math.hypot(c[0] - x, c[1] - y);
+        if (d >= 9) return;
+        const score = d - (BP.vsel && BP.vsel.id === s.id ? 4 : 0) - (s.closed ? 2 : 0) - (/^to-/.test(s.id) ? 1 : 0);
+        if (score < bs) { bs = score; best = { id: s.id, idx: i }; }
+    }));
+    return best;
+}
+function bpEditChanged() {
+    bpSaveState(); bpRenderMeasures(); bpRenderTakeoff(); bpDrawOverlay();
+}
+// Replaces the stretch of a closed outline between corners a and b with
+// the newly clicked points (the shorter way round, by length).
+function bpReplaceArc(pts, a, b, mid) {
+    const n = pts.length;
+    const arcLen = dir => { let L = 0; for (let i = a; i !== b; i = (i + dir + n) % n) { const j = (i + dir + n) % n; L += Math.hypot(pts[j][0] - pts[i][0], pts[j][1] - pts[i][1]); } return L; };
+    const dir = arcLen(1) <= arcLen(-1) ? 1 : -1;
+    const out = [pts[a]].concat(mid);
+    for (let i = b; ; i = (i + dir + n) % n) { if (i === a) break; out.push(pts[i]); }
+    return out;
+}
+function bpEditMouseDown(e) {
+    if (BP.tool !== 'edit' || e.button !== 0 || BP.redraw) return false;
+    const hit = bpHitVertex(e);
+    if (!hit) return false;
+    BP.vdrag = { id: hit.id, idx: hit.idx, x: e.clientX, y: e.clientY, moved: false };
+    e.preventDefault();
+    return true;
+}
+async function bpEditMouseMove(e) {
+    const d = BP.vdrag;
+    if (!d) return false;
+    if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 4) return true;
+    d.moved = true;
+    const s = bpEditFind(d.id);
+    if (!s) return true;
+    const n = s.pts.length;
+    const prev = s.closed ? s.pts[(d.idx - 1 + n) % n] : s.pts[d.idx === 0 ? 1 : d.idx - 1];
+    const seq = ++BP.hoverSeq;
+    const r = await bpConstrain(bpEventPdfPoint(e), prev, e);
+    if (seq !== BP.hoverSeq || !BP.vdrag) return true;
+    s.pts[d.idx] = r.p;
+    BP.snapPt = r.snap;
+    bpDrawOverlay();
+    return true;
+}
+function bpEditMouseUp(e) {
+    const d = BP.vdrag;
+    if (!d) return;
+    BP.vdrag = null;
+    // Skip the click that follows this mouseup (if the browser sends one;
+    // it may not, since the overlay is redrawn under the pointer).
+    BP.ignoreClick = { t: Date.now(), x: e.clientX, y: e.clientY };
+    if (d.moved) { BP.snapPt = null; bpEditChanged(); return; }
+    // A click on a corner: pick it, then a second corner on the same
+    // closed outline starts redrawing the stretch between them.
+    const sel = BP.vsel, s = bpEditFind(d.id);
+    if (sel && sel.id === d.id && sel.idx === d.idx) { BP.vsel = null; }
+    else if (sel && sel.id === d.id && s && s.closed) {
+        BP.redraw = { id: d.id, a: sel.idx, b: d.idx };
+        BP.vsel = null;
+        BP.pending = [s.pts[sel.idx]];
+        bpEditHint();
+    } else BP.vsel = { id: d.id, idx: d.idx };
+    bpDrawOverlay();
+}
+// Clicks while redrawing: add corners; clicking the end corner finishes.
+async function bpEditClick(e) {
+    const ig = BP.ignoreClick;
+    BP.ignoreClick = null;
+    if (ig && Date.now() - ig.t < 500 && Math.hypot(e.clientX - ig.x, e.clientY - ig.y) < 6) return;
+    const R = BP.redraw;
+    if (!R) { if (BP.vsel) { BP.vsel = null; bpDrawOverlay(); } return; }
+    const s = bpEditFind(R.id);
+    if (!s) { BP.redraw = null; BP.pending = []; return; }
+    const end = bpToCss(s.pts[R.b]);
+    const st = document.getElementById('bpStage').getBoundingClientRect();
+    if (Math.hypot(end[0] - (e.clientX - st.left), end[1] - (e.clientY - st.top)) < 10) {
+        const mid = BP.pending.slice(1);
+        const next = bpReplaceArc(s.pts, R.a, R.b, mid);
+        s.pts.splice(0, s.pts.length, ...next);
+        BP.redraw = null; BP.pending = []; BP.hover = null; BP.snapPt = null;
+        bpEditHint();
+        bpEditChanged();
+        return;
+    }
+    const r = await bpConstrain(bpEventPdfPoint(e), BP.pending[BP.pending.length - 1], e);
+    BP.pending.push(r.p);
+    bpDrawOverlay();
+}
+function bpEditHint() {
+    if (BP.tool !== 'edit') return;
+    document.getElementById('bpHint').textContent = BP.redraw
+        ? 'Redrawing: click the new corners, then click the 2nd orange point to finish. Esc cancels.'
+        : 'Drag an orange point to move it (snaps; hold Ctrl for free, Shift for straight). Or click one point, then another on the same outline, and redraw the stretch between them. Delete removes a selected point.';
+}
+function bpEditKey(e) {
+    if (BP.tool !== 'edit') return false;
+    if (e.key === 'Escape' && (BP.redraw || BP.vsel)) { BP.redraw = null; BP.vsel = null; BP.pending = []; BP.hover = null; bpEditHint(); bpDrawOverlay(); return true; }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && BP.vsel && !/input|textarea|select/i.test((document.activeElement || {}).tagName || '')) {
+        const s = bpEditFind(BP.vsel.id);
+        if (s && s.pts.length > (s.closed ? 3 : 2)) { s.pts.splice(BP.vsel.idx, 1); BP.vsel = null; bpEditChanged(); }
+        e.preventDefault();
+        return true;
+    }
+    return false;
+}
+// Orange corner handles while editing.
+function bpDrawEditHandles(parts) {
+    if (BP.tool !== 'edit') return;
+    bpEditables().forEach(s => s.pts.forEach((p, i) => {
+        const [x, y] = bpToCss(p);
+        const selected = (BP.vsel && BP.vsel.id === s.id && BP.vsel.idx === i) || (BP.redraw && BP.redraw.id === s.id && (BP.redraw.a === i || BP.redraw.b === i));
+        parts.push(`<circle class="bp-v-handle${selected ? ' sel' : ''}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${selected ? 6.5 : 5}"/>`);
+    }));
+}
+
 // ---- Wiring ----
 (function bpInit() {
     const input = document.getElementById('bpFileInput');
@@ -20226,23 +20396,33 @@ function bpPlScaleBy(f) {
     const vp = document.getElementById('bpViewport'), stage = document.getElementById('bpStage');
     let drag = null;
     vp.addEventListener('mousedown', e => {
+        if (bpEditMouseDown(e)) return;
         if (BP.tool !== 'pan' || e.button !== 0) return;
         drag = { x: e.clientX, y: e.clientY, sl: vp.scrollLeft, st: vp.scrollTop };
         vp.classList.add('bp-dragging'); e.preventDefault();
     });
     window.addEventListener('mousemove', e => {
         if (drag) { vp.scrollLeft = drag.sl - (e.clientX - drag.x); vp.scrollTop = drag.st - (e.clientY - drag.y); return; }
-        if (BP.tool !== 'pan' && BP.viewport && stage.contains(e.target)) {
-            const raw = bpEventPdfPoint(e), seq = ++BP.hoverSeq;
-            bpSnap(raw, e).then(sp => {
-                if (seq !== BP.hoverSeq) return;
-                BP.snapPt = sp;
-                BP.hover = BP.pending.length ? (sp || bpOrtho(BP.pending[BP.pending.length - 1], raw, e)) : null;
-                bpDrawOverlay();
-            });
-        }
+        BP.lastMouse = { clientX: e.clientX, clientY: e.clientY, inside: stage.contains(e.target) };
+        if (BP.vdrag) { bpEditMouseMove(e); return; }
+        if (BP.lastMouse.inside) bpHoverUpdate(e);
     });
-    window.addEventListener('mouseup', () => { drag = null; vp.classList.remove('bp-dragging'); });
+    window.addEventListener('mouseup', e => { drag = null; vp.classList.remove('bp-dragging'); bpEditMouseUp(e); });
+    // Pressing or releasing Ctrl/Shift updates the preview right away.
+    const modKey = e => {
+        if (!/^(Shift|Control|Alt|Meta)$/.test(e.key) || !BP.lastMouse || !BP.lastMouse.inside || adminSubTab !== 'blueprints') return;
+        const ev = { clientX: BP.lastMouse.clientX, clientY: BP.lastMouse.clientY, shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, metaKey: e.metaKey };
+        if (BP.vdrag && BP.vdrag.moved) bpEditMouseMove(ev); else bpHoverUpdate(ev);
+    };
+    document.addEventListener('keydown', modKey);
+    document.addEventListener('keyup', modKey);
+    // On a Mac, Ctrl+click opens the context menu instead of clicking:
+    // treat it as a (no-snap) click while drawing.
+    stage.addEventListener('contextmenu', e => {
+        if (BP.tool === 'pan') return;
+        e.preventDefault();
+        if (e.ctrlKey) bpStageClick(e);
+    });
     stage.addEventListener('click', bpStageClick);
     stage.addEventListener('dblclick', e => { if (BP_POLY_TOOLS.indexOf(BP.tool) !== -1) { e.preventDefault(); bpFinishArea(); } });
     vp.addEventListener('wheel', e => {
@@ -20253,6 +20433,7 @@ function bpPlScaleBy(f) {
     }, { passive: false });
     document.addEventListener('keydown', e => {
         if (adminSubTab !== 'blueprints' || !BP.pdf) return;
+        if (bpEditKey(e)) return;
         if (e.key === 'Escape' && BP.align) { bpSetTool('pan'); bpDrawOverlay(); }
         else if (e.key === 'Escape' && BP.pending.length) { BP.pending = []; BP.hover = null; bpDrawOverlay(); }
         else if (e.key === 'Enter' && BP_POLY_TOOLS.indexOf(BP.tool) !== -1 && BP.pending.length >= 3) bpFinishArea();
