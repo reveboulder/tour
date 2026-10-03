@@ -1421,9 +1421,13 @@
     .bp-place-head { flex-wrap: wrap; }
     .bp-place-head label.bp-inline { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; }
     .bp-place-info { font-size: 11.5px; color: var(--ink-soft); }
-    .bp-place-stage { position: relative; display: block; width: 100%; text-align: center; }
-    .bp-place-stage canvas { display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.2); background: #fff; }
-    .bp-place-svg { position: absolute; top: 0; left: 50%; overflow: visible; touch-action: none; }
+    .bp-place-card { height: calc(100vh - 32px); }
+    .bp-place-body { flex: 1 1 auto; min-height: 0; text-align: center; }
+    .bp-place-stage { position: relative; display: inline-block; vertical-align: top; text-align: left; }
+    .bp-place-stage canvas { display: block; box-shadow: 0 2px 8px rgba(0,0,0,0.2); background: #fff; }
+    .bp-place-svg { position: absolute; top: 0; left: 0; overflow: visible; touch-action: none; }
+    .bp-place-zoomctl { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; }
+    .bp-place-zoomctl #bpPlaceZoom { min-width: 40px; text-align: center; }
     .bp-place-svg .bp-pl-hit { fill: transparent; cursor: move; }
     .bp-place-svg .bp-pl-inner { fill: rgba(192,57,43,0.08); stroke: #c0392b; stroke-width: 2.5; pointer-events: none; }
     .bp-place-svg .bp-pl-outer { fill: rgba(31,95,209,0.06); stroke: #1f5fd1; stroke-width: 2.5; pointer-events: none; }
@@ -4040,15 +4044,16 @@
                         <label class="bp-inline"><input type="checkbox" id="bpPlaceInner"> <span class="bp-dot" style="background:#c0392b"></span>Inner</label>
                         <label class="bp-inline"><input type="checkbox" id="bpPlaceOuter"> <span class="bp-dot bp-dot-outer"></span>Outer</label>
                         <button type="button" class="bp-btn bp-small bp-round-btn" data-bp-round aria-pressed="false" title="Round every length down to the whole inch">Round measurements</button>
+                        <span class="bp-place-zoomctl"><button type="button" class="bp-btn bp-small" id="bpPlaceZoomOut" title="Zoom out">&minus;</button><span id="bpPlaceZoom">100%</span><button type="button" class="bp-btn bp-small" id="bpPlaceZoomIn" title="Zoom in">+</button><button type="button" class="bp-btn bp-small" id="bpPlaceZoomFit" title="Fit the floorplan in the window">Fit</button></span>
                         <span class="bp-place-info" id="bpPlaceInfo"></span>
                         <span style="margin-left:auto;"></span>
                         <button type="button" class="btn primary" id="bpPlaceDownload" style="width:auto;flex:none;padding:7px 14px;">Download PNG</button>
                         <button type="button" class="bp-btn" id="bpPlaceClose">Close</button>
                     </div>
-                    <div class="bp-modal-body">
+                    <div class="bp-modal-body bp-place-body" id="bpPlaceBody">
                         <div class="bp-place-stage" id="bpPlaceStage"><canvas id="bpPlaceImg"></canvas><svg id="bpPlaceSvg" class="bp-place-svg"></svg></div>
                     </div>
-                    <div class="bp-place-hint">Drag the shape onto the walls &middot; drag the corner square to resize &middot; click a length to hide it (gray) or show it again &middot; arrow keys nudge (Shift = 10&times;) &middot; +/&minus; fine-resize &middot; Esc closes. Wall lengths always come from the blueprint.</div>
+                    <div class="bp-place-hint">Drag the shape onto the walls &middot; drag the corner square to resize &middot; Ctrl/&#8984; + scroll or &minus;/+ to zoom &middot; click a length to hide it (gray) or show it again &middot; arrow keys nudge (Shift = 10&times;) &middot; +/&minus; fine-resize &middot; Esc closes. Wall lengths always come from the blueprint.</div>
                 </div>
             </div>
             <div class="bp-modal" id="bpModal" style="display:none;">
@@ -20068,15 +20073,10 @@ async function bpOpenPlace() {
     const img = document.getElementById('bpPlaceImg'), src = BP.lay.canvas;
     const modal = document.getElementById('bpPlaceModal');
     modal.style.display = 'flex';
-    const stage = document.getElementById('bpPlaceStage');
-    BP_PL.k = Math.min((stage.clientWidth - 4) / src.width, (window.innerHeight * 0.72) / src.height, 1.5);
-    img.width = Math.round(src.width * BP_PL.k); img.height = Math.round(src.height * BP_PL.k);
-    const g = img.getContext('2d');
-    g.fillStyle = '#fff'; g.fillRect(0, 0, img.width, img.height);
-    g.drawImage(src, 0, 0, img.width, img.height);
-    const svg = document.getElementById('bpPlaceSvg');
-    svg.setAttribute('width', img.width); svg.setAttribute('height', img.height);
-    svg.style.marginLeft = (-img.width / 2) + 'px';
+    const body = document.getElementById('bpPlaceBody');
+    BP_PL.fitK = Math.min((body.clientWidth - 24) / src.width, (body.clientHeight - 24) / src.height, 1.5);
+    BP_PL.zoom = 1;
+    bpPlSize();
     document.getElementById('bpPlaceInner').checked = L.place.inner !== false && !!t.inner;
     document.getElementById('bpPlaceInner').disabled = !t.inner;
     document.getElementById('bpPlaceOuter').checked = !!L.place.outer && !!t.outer;
@@ -20100,7 +20100,7 @@ function bpPlDraw() {
         // Labels: page points -> display, but lengths from the sheet.
         const map = sheetPt => toDisp(bpSheetToP(sheetPt));
         const hidden = bpPlHidden(pl, sh.key, sh.pts.length);
-        bpEdgeLabels(sh.pts, BP_PL.S.inPerUnit, map, sh.key === 'outer', 30).forEach(l => {
+        bpEdgeLabels(sh.pts, BP_PL.S.inPerUnit, map, sh.key === 'outer', bpPlLabelMinPx()).forEach(l => {
             const off = 9, x = l.x + l.nx * off, y = l.y + l.ny * off;
             const off2 = hidden.has(l.i);
             parts.push(`<text class="bp-edge-label bp-pl-edge bp-edge-${sh.key === 'outer' ? 'outer' : 'innerred'}${off2 ? ' bp-pl-off' : ''}" data-pl-edge="${sh.key}:${l.i}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${l.ang.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"><title>${off2 ? 'Hidden \u2014 click to show in the download' : 'Click to hide from the download'}</title>${escapeHtml(l.text)}</text>`);
@@ -20118,6 +20118,45 @@ function bpPlDraw() {
     document.getElementById('bpPlaceInfo').textContent = `Rotation ${deg.toFixed(1)}°${pl.mirror ? ' · mirrored' : ''}`;
 }
 function bpPlSave() { bpSaveState(); bpPlDraw(); }
+// Sizes the floorplan for the current zoom (fit x zoom). The bitmap is
+// capped at 1.5x the floorplan's own pixels; past that it's scaled up.
+function bpPlSize() {
+    const src = BP.lay.canvas, img = document.getElementById('bpPlaceImg');
+    BP_PL.k = BP_PL.fitK * BP_PL.zoom;
+    const W = Math.round(src.width * BP_PL.k), H = Math.round(src.height * BP_PL.k);
+    const pk = Math.min(BP_PL.k, 1.5) * Math.min(window.devicePixelRatio || 1, 2);
+    const pw = Math.round(src.width * pk), ph = Math.round(src.height * pk);
+    if (img.width !== pw || img.height !== ph) {
+        img.width = pw; img.height = ph;
+        const g = img.getContext('2d');
+        g.fillStyle = '#fff'; g.fillRect(0, 0, pw, ph);
+        g.imageSmoothingQuality = 'high';
+        g.drawImage(src, 0, 0, pw, ph);
+    }
+    img.style.width = W + 'px'; img.style.height = H + 'px';
+    const svg = document.getElementById('bpPlaceSvg');
+    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    document.getElementById('bpPlaceZoom').textContent = Math.round(BP_PL.zoom * 100) + '%';
+    bpPlDraw();
+}
+// Zoom keeping the point under (cx, cy) of the window still.
+function bpPlZoomBy(f, cx, cy) {
+    const body = document.getElementById('bpPlaceBody'), stage = document.getElementById('bpPlaceStage');
+    if (cx === undefined) { cx = body.clientWidth / 2; cy = body.clientHeight / 2; }
+    const ox = stage.offsetLeft - body.scrollLeft, oy = stage.offsetTop - body.scrollTop;
+    const ix = (cx - ox) / BP_PL.k, iy = (cy - oy) / BP_PL.k;   // floorplan px under the pointer
+    BP_PL.zoom = Math.max(0.5, Math.min(12, BP_PL.zoom * f));
+    bpPlSize();
+    body.scrollLeft = stage.offsetLeft + ix * BP_PL.k - cx;
+    body.scrollTop = stage.offsetTop + iy * BP_PL.k - cy;
+}
+// The same "wall long enough to label" test the download uses, so the
+// window shows exactly the lengths that will be exported.
+function bpPlLabelMinPx() {
+    const src = BP.lay.canvas, ke = Math.max(1, 1800 / src.width);
+    const font = Math.round(Math.max(13, src.width * ke / 95));
+    return font * 3 / ke * BP_PL.k;
+}
 // Wall lengths hidden from the download, per outline (by wall number;
 // reset if the outline's corners change).
 function bpPlHidden(pl, key, n) {
@@ -20211,6 +20250,16 @@ function bpWirePlace() {
     document.getElementById('bpPlaceModal').addEventListener('click', e => { if (e.target.id === 'bpPlaceModal') close(); });
     const pl = () => BP_PL.t.layout.place;
     document.getElementById('bpPlaceFit').addEventListener('click', () => { bpPlFit(pl(), BP_PL.shapes, BP_PL.c, BP.lay.canvas); bpPlSave(); });
+    document.getElementById('bpPlaceZoomIn').addEventListener('click', () => bpPlZoomBy(1.4));
+    document.getElementById('bpPlaceZoomOut').addEventListener('click', () => bpPlZoomBy(1 / 1.4));
+    document.getElementById('bpPlaceZoomFit').addEventListener('click', () => { BP_PL.zoom = 1; bpPlSize(); });
+    // Ctrl/⌘ + scroll (or a trackpad pinch) zooms the floorplan, not the page.
+    document.getElementById('bpPlaceBody').addEventListener('wheel', e => {
+        if (!BP_PL.open || !(e.ctrlKey || e.metaKey)) return;
+        e.preventDefault();
+        const r = e.currentTarget.getBoundingClientRect();
+        bpPlZoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top);
+    }, { passive: false });
     document.getElementById('bpPlaceRotL').addEventListener('click', () => bpPlRotate(-90));
     document.getElementById('bpPlaceRotR').addEventListener('click', () => bpPlRotate(90));
     document.getElementById('bpPlaceRotL1').addEventListener('click', () => bpPlRotate(-1));
