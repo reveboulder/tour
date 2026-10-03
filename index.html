@@ -1429,6 +1429,9 @@
     .bp-place-svg .bp-pl-outer { fill: rgba(31,95,209,0.06); stroke: #1f5fd1; stroke-width: 2.5; pointer-events: none; }
     .bp-place-svg .bp-pl-handle { fill: #fff; stroke: #e0441b; stroke-width: 2.5; cursor: nwse-resize; }
     .bp-place-svg .bp-edge-label { pointer-events: none; }
+    .bp-place-svg .bp-pl-edge { pointer-events: bounding-box; cursor: pointer; }
+    .bp-place-svg .bp-pl-edge:hover { text-decoration: underline; }
+    .bp-place-svg .bp-pl-edge.bp-pl-off { fill: #a3a09b; text-decoration: line-through; opacity: 0.85; }
     .bp-overlay .bp-edge-innerred, .bp-place-svg .bp-edge-innerred { fill: #c0392b; }
     .bp-place-hint { font-size: 11.5px; color: var(--ink-soft); padding: 6px 12px 10px; }
     .bp-lay-canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; mix-blend-mode: multiply; }
@@ -4045,7 +4048,7 @@
                     <div class="bp-modal-body">
                         <div class="bp-place-stage" id="bpPlaceStage"><canvas id="bpPlaceImg"></canvas><svg id="bpPlaceSvg" class="bp-place-svg"></svg></div>
                     </div>
-                    <div class="bp-place-hint">Drag the shape onto the walls &middot; drag the corner square to resize &middot; arrow keys nudge (Shift = 10&times;) &middot; +/&minus; fine-resize &middot; Esc closes. Wall lengths always come from the blueprint.</div>
+                    <div class="bp-place-hint">Drag the shape onto the walls &middot; drag the corner square to resize &middot; click a length to hide it (gray) or show it again &middot; arrow keys nudge (Shift = 10&times;) &middot; +/&minus; fine-resize &middot; Esc closes. Wall lengths always come from the blueprint.</div>
                 </div>
             </div>
             <div class="bp-modal" id="bpModal" style="display:none;">
@@ -19359,7 +19362,7 @@ function bpEdgeLabels(pts, inPerUnit, toXY, outward, minPx) {
         if (probeIn === outward) { nx = -nx; ny = -ny; }
         let ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
         if (ang > 90) ang -= 180; else if (ang < -90) ang += 180;
-        out.push({ x: mx, y: my, nx, ny, ang, text: bpFmtFtInQ(inches) });
+        out.push({ x: mx, y: my, nx, ny, ang, i, text: bpFmtFtInQ(inches) });
     });
     return out;
 }
@@ -20096,9 +20099,11 @@ function bpPlDraw() {
         parts.push(`<polygon class="bp-pl-${sh.key}" points="${xy.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ')}"/>`);
         // Labels: page points -> display, but lengths from the sheet.
         const map = sheetPt => toDisp(bpSheetToP(sheetPt));
+        const hidden = bpPlHidden(pl, sh.key, sh.pts.length);
         bpEdgeLabels(sh.pts, BP_PL.S.inPerUnit, map, sh.key === 'outer', 30).forEach(l => {
             const off = 9, x = l.x + l.nx * off, y = l.y + l.ny * off;
-            parts.push(`<text class="bp-edge-label bp-edge-${sh.key === 'outer' ? 'outer' : 'innerred'}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${l.ang.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})">${escapeHtml(l.text)}</text>`);
+            const off2 = hidden.has(l.i);
+            parts.push(`<text class="bp-edge-label bp-pl-edge bp-edge-${sh.key === 'outer' ? 'outer' : 'innerred'}${off2 ? ' bp-pl-off' : ''}" data-pl-edge="${sh.key}:${l.i}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${l.ang.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"><title>${off2 ? 'Hidden \u2014 click to show in the download' : 'Click to hide from the download'}</title>${escapeHtml(l.text)}</text>`);
         });
     });
     if (pts.length) {
@@ -20113,6 +20118,21 @@ function bpPlDraw() {
     document.getElementById('bpPlaceInfo').textContent = `Rotation ${deg.toFixed(1)}°${pl.mirror ? ' · mirrored' : ''}`;
 }
 function bpPlSave() { bpSaveState(); bpPlDraw(); }
+// Wall lengths hidden from the download, per outline (by wall number;
+// reset if the outline's corners change).
+function bpPlHidden(pl, key, n) {
+    const h = pl.hide && pl.hide[key];
+    return new Set(h && h.n === n ? h.idx : []);
+}
+function bpPlToggleEdge(ref) {
+    const [key, i] = ref.split(':'), P = BP_PL.t.layout.place, sh = BP_PL.shapes.find(s => s.key === key);
+    if (!sh) return;
+    const set = bpPlHidden(P, key, sh.pts.length), idx = +i;
+    if (set.has(idx)) set.delete(idx); else set.add(idx);
+    P.hide = P.hide || {};
+    P.hide[key] = { n: sh.pts.length, idx: [...set] };
+    bpPlSave();
+}
 function bpPlRotate(deg) {
     const pl = BP_PL.t.layout.place;
     // Rotate about the shape's middle on the image.
@@ -20149,7 +20169,9 @@ async function bpPlExport() {
         ctx.fill();
         ctx.strokeStyle = colors[sh.key]; ctx.lineWidth = Math.max(2, font / 6); ctx.lineJoin = 'round';
         ctx.stroke();
+        const hidden = bpPlHidden(pl, sh.key, sh.pts.length);
         bpEdgeLabels(sh.pts, S.inPerUnit, toXY, sh.key === 'outer', font * 3).forEach(l => {
+            if (hidden.has(l.i)) return;   // hidden in the placement window
             const off = font * 0.95, x = l.x + l.nx * off, y = l.y + l.ny * off;
             ctx.save();
             ctx.translate(x, y); ctx.rotate(l.ang * Math.PI / 180);
@@ -20209,8 +20231,12 @@ function bpWirePlace() {
         if (!BP_PL.open) return;
         const p = pos(e), P = pl();
         const mid = bpPlMap(P, BP_PL.c)(BP_PL.c);
+        const edge = e.target.closest && e.target.closest('[data-pl-edge]');
         if (e.target.getAttribute('data-pl-handle')) {
             BP_PL.drag = { mode: 'scale', s0: P.s, d0: Math.hypot(p[0] - mid[0], p[1] - mid[1]) || 1, mid, t0: [P.tx, P.ty] };
+        } else if (edge) {
+            // A click on a length hides/shows it; dragging from it still moves the shape.
+            BP_PL.drag = { mode: 'move', p0: p, t0: [P.tx, P.ty], edge: edge.getAttribute('data-pl-edge'), x: e.clientX, y: e.clientY };
         } else if (BP_PL.box && p[0] * BP_PL.k >= BP_PL.box.x0 && p[0] * BP_PL.k <= BP_PL.box.x1 && p[1] * BP_PL.k >= BP_PL.box.y0 && p[1] * BP_PL.k <= BP_PL.box.y1) {
             BP_PL.drag = { mode: 'move', p0: p, t0: [P.tx, P.ty] };
         } else return;
@@ -20221,6 +20247,7 @@ function bpWirePlace() {
         const d = BP_PL.drag;
         if (!d) return;
         const p = pos(e), P = pl();
+        if (d.edge && !d.moved) { if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 4) return; d.moved = true; }
         if (d.mode === 'move') { P.tx = d.t0[0] + p[0] - d.p0[0]; P.ty = d.t0[1] + p[1] - d.p0[1]; }
         else {
             // Resize about the shape's middle, which stays put.
@@ -20231,7 +20258,13 @@ function bpWirePlace() {
         }
         bpPlDraw();
     });
-    const end = () => { if (BP_PL.drag) { BP_PL.drag = null; bpSaveState(); } };
+    const end = () => {
+        const d = BP_PL.drag;
+        if (!d) return;
+        BP_PL.drag = null;
+        if (d.edge && !d.moved) { bpPlToggleEdge(d.edge); return; }
+        bpSaveState();
+    };
     svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
     document.addEventListener('keydown', e => {
         if (!BP_PL.open) return;
