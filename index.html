@@ -1388,8 +1388,8 @@
     .bp-viewport { position: relative; height: 70vh; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #8a8781; cursor: grab; }
     .bp-viewport.bp-dragging { cursor: grabbing; }
     .bp-viewport.bp-crosshair { cursor: crosshair; }
-    .bp-stage { position: relative; margin: 12px; display: inline-block; box-shadow: 0 2px 10px rgba(0,0,0,0.35); background: #fff; }
-    .bp-stage canvas { display: block; }
+    .bp-stage { position: relative; margin: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.35); background: #fff; overflow: hidden; user-select: none; -webkit-user-select: none; }
+    .bp-stage #bpCanvas { position: absolute; left: 0; top: 0; display: block; }
     .bp-overlay { position: absolute; left: 0; top: 0; overflow: visible; }
     .bp-overlay .bp-m-line { stroke: #e0441b; stroke-width: 2; fill: none; }
     .bp-overlay .bp-m-cal { stroke: #1f7ae0; stroke-width: 2; fill: none; stroke-dasharray: 6 3; }
@@ -18827,7 +18827,10 @@ function bpRenderSheetList() {
 }
 
 // ---- Rendering ----
-const BP_MAX_CANVAS_PX = 36e6; // keep the canvas under browser limits
+// Only the part of the sheet in view (plus a margin) is drawn, at screen
+// resolution, so zoom isn't limited by the browser's canvas size.
+const BP_MAX_ZOOM = 32;          // 3200%
+const BP_MAX_CANVAS_PX = 20e6;   // pixels in the drawn window
 async function bpGoTo(n, opts) {
     if (!BP.pdf) return;
     n = Math.max(1, Math.min(BP.pdf.numPages, n));
@@ -18850,27 +18853,71 @@ async function bpGoTo(n, opts) {
     if (!BP.pdf.isImage) bpLoadSegs(n).catch(() => {});
     bpRenderTakeoff();
 }
-async function bpRender(page) {
+// Sizes the sheet for the current zoom, then draws the visible part.
+// `beforeDraw` runs after sizing (e.g. to set the scroll position).
+async function bpRender(page, beforeDraw) {
     page = page || await BP.pdf.getPage(BP.pageNum);
     const base = page.getViewport({ scale: 1 });
-    const maxZoom = Math.sqrt(BP_MAX_CANVAS_PX / (base.width * base.height));
-    BP.zoom = Math.max(0.05, Math.min(BP.zoom, maxZoom));
+    BP.zoom = Math.max(0.05, Math.min(BP.zoom, BP_MAX_ZOOM));
     const css = page.getViewport({ scale: BP.zoom });
-    const dpr = Math.min(window.devicePixelRatio || 1, Math.max(1, maxZoom / BP.zoom));
-    const dev = page.getViewport({ scale: BP.zoom * dpr });
     BP.viewport = css;
     BP.v1 = base;
-    const canvas = document.getElementById('bpCanvas');
-    if (BP.renderTask) { try { BP.renderTask.cancel(); } catch (e) {} }
-    canvas.width = Math.floor(dev.width); canvas.height = Math.floor(dev.height);
-    canvas.style.width = Math.floor(css.width) + 'px'; canvas.style.height = Math.floor(css.height) + 'px';
+    BP.page = page;
+    const stage = document.getElementById('bpStage');
+    stage.style.width = Math.floor(css.width) + 'px'; stage.style.height = Math.floor(css.height) + 'px';
     const svg = document.getElementById('bpOverlay');
     svg.setAttribute('width', Math.floor(css.width)); svg.setAttribute('height', Math.floor(css.height));
     document.getElementById('bpZoomLabel').textContent = Math.round(BP.zoom * 100) + '%';
+    // Until the sharp version is drawn, stretch the current drawing to the
+    // new zoom so the view never goes blank.
+    const R = BP.rendered, old = document.getElementById('bpCanvas');
+    if (R && R.page === page && R.zoom !== BP.zoom) {
+        const f = BP.zoom / R.zoom;
+        old.style.left = (R.x0 * f) + 'px'; old.style.top = (R.y0 * f) + 'px';
+        old.style.width = ((R.x1 - R.x0) * f) + 'px'; old.style.height = ((R.y1 - R.y0) * f) + 'px';
+    } else if (!R || R.page !== page) {
+        old.style.width = '0px'; old.style.height = '0px';
+    }
     bpDrawOverlay();
     bpPlaceLayout();
-    BP.renderTask = page.render({ canvasContext: canvas.getContext('2d'), viewport: dev });
-    try { await BP.renderTask.promise; } catch (e) { if (e && e.name !== 'RenderingCancelledException') console.error(e); }
+    if (beforeDraw) beforeDraw();
+    await bpRenderVisible(true);
+}
+// Draws the part of the sheet that's on screen (plus a margin), at
+// device resolution. Called again when scrolling leaves that area.
+async function bpRenderVisible(force) {
+    if (!BP.page || !BP.viewport) return;
+    const vp = document.getElementById('bpViewport'), stage = document.getElementById('bpStage');
+    const W = BP.viewport.width, H = BP.viewport.height;
+    const vx0 = vp.scrollLeft - stage.offsetLeft, vy0 = vp.scrollTop - stage.offsetTop;
+    const vx1 = vx0 + vp.clientWidth, vy1 = vy0 + vp.clientHeight;
+    const R = BP.rendered;
+    if (!force && R && R.zoom === BP.zoom && R.page === BP.page && vx0 >= R.x0 - 1 && vy0 >= R.y0 - 1 && Math.min(vx1, W) <= R.x1 + 1 && Math.min(vy1, H) <= R.y1 + 1) return;
+    const mx = vp.clientWidth * 0.35, my = vp.clientHeight * 0.35;
+    const x0 = Math.max(0, Math.floor(vx0 - mx)), y0 = Math.max(0, Math.floor(vy0 - my));
+    const x1 = Math.min(W, Math.ceil(vx1 + mx)), y1 = Math.min(H, Math.ceil(vy1 + my));
+    if (x1 <= x0 || y1 <= y0) return;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = Math.max(0.5, Math.min(dpr, Math.sqrt(BP_MAX_CANVAS_PX / ((x1 - x0) * (y1 - y0)))));
+    if (BP.renderTask) { try { BP.renderTask.cancel(); } catch (e) {} }
+    // Draw into a fresh canvas and swap it in when done, so the old view
+    // stays up (no white flash) while the new one renders.
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round((x1 - x0) * dpr); canvas.height = Math.round((y1 - y0) * dpr);
+    const page = BP.page, zoom = BP.zoom;
+    const dev = page.getViewport({ scale: zoom * dpr });
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const task = page.render({ canvasContext: ctx, viewport: dev, transform: [1, 0, 0, 1, -x0 * dpr, -y0 * dpr] });
+    BP.renderTask = task;
+    try { await task.promise; } catch (e) { if (e && e.name !== 'RenderingCancelledException') console.error(e); return; }
+    if (BP.renderTask !== task || BP.zoom !== zoom || BP.page !== page) return;
+    const old = document.getElementById('bpCanvas');
+    canvas.id = 'bpCanvas';
+    canvas.style.left = x0 + 'px'; canvas.style.top = y0 + 'px';
+    canvas.style.width = (x1 - x0) + 'px'; canvas.style.height = (y1 - y0) + 'px';
+    old.replaceWith(canvas);
+    BP.rendered = { x0, y0, x1, y1, zoom, page };
 }
 // Zoom keeping the point under (cx, cy) of the viewport still.
 async function bpZoomBy(factor, cx, cy) {
@@ -18880,10 +18927,11 @@ async function bpZoomBy(factor, cx, cy) {
     const sx = vp.scrollLeft + cx - stage.offsetLeft, sy = vp.scrollTop + cy - stage.offsetTop;
     const pdfPt = BP.viewport.convertToPdfPoint(sx, sy);
     BP.zoom *= factor;
-    await bpRender();
-    const [nx, ny] = BP.viewport.convertToViewportPoint(pdfPt[0], pdfPt[1]);
-    vp.scrollLeft = nx + stage.offsetLeft - cx;
-    vp.scrollTop = ny + stage.offsetTop - cy;
+    await bpRender(null, () => {
+        const [nx, ny] = BP.viewport.convertToViewportPoint(pdfPt[0], pdfPt[1]);
+        vp.scrollLeft = nx + stage.offsetLeft - cx;
+        vp.scrollTop = ny + stage.offsetTop - cy;
+    });
 }
 
 // ---- Overlay: measurements, in-progress clicks, search/dimension highlights ----
@@ -20291,9 +20339,6 @@ function bpEditMouseUp(e) {
     const d = BP.vdrag;
     if (!d) return;
     BP.vdrag = null;
-    // Skip the click that follows this mouseup (if the browser sends one;
-    // it may not, since the overlay is redrawn under the pointer).
-    BP.ignoreClick = { t: Date.now(), x: e.clientX, y: e.clientY };
     if (d.moved) { BP.snapPt = null; bpEditChanged(); return; }
     // A click on a corner: pick it, then a second corner on the same
     // closed outline starts redrawing the stretch between them.
@@ -20309,9 +20354,6 @@ function bpEditMouseUp(e) {
 }
 // Clicks while redrawing: add corners; clicking the end corner finishes.
 async function bpEditClick(e) {
-    const ig = BP.ignoreClick;
-    BP.ignoreClick = null;
-    if (ig && Date.now() - ig.t < 500 && Math.hypot(e.clientX - ig.x, e.clientY - ig.y) < 6) return;
     const R = BP.redraw;
     if (!R) { if (BP.vsel) { BP.vsel = null; bpDrawOverlay(); } return; }
     const s = bpEditFind(R.id);
@@ -20405,7 +20447,8 @@ function bpDrawEditHandles(parts) {
     let drag = null;
     vp.addEventListener('mousedown', e => {
         if (bpEditMouseDown(e)) return;
-        if (BP.tool !== 'pan' || e.button !== 0) return;
+        if (BP.tool !== 'pan') { if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) e.preventDefault(); return; }
+        if (e.button !== 0) return;
         drag = { x: e.clientX, y: e.clientY, sl: vp.scrollLeft, st: vp.scrollTop };
         vp.classList.add('bp-dragging'); e.preventDefault();
     });
@@ -20426,12 +20469,23 @@ function bpDrawEditHandles(parts) {
     document.addEventListener('keyup', modKey);
     // On a Mac, Ctrl+click opens the context menu instead of clicking:
     // treat it as a (no-snap) click while drawing.
-    stage.addEventListener('contextmenu', e => {
-        if (BP.tool === 'pan') return;
-        e.preventDefault();
-        if (e.ctrlKey) bpStageClick(e);
+    stage.addEventListener('contextmenu', e => { if (BP.tool !== 'pan') e.preventDefault(); });
+    // Points are placed on mouse release (not "click"), so Ctrl/Shift/
+    // Ctrl+Shift clicks work the same in every browser: a Mac turns
+    // Ctrl+click into a right-click and sends no click event.
+    let downAt = null;
+    stage.addEventListener('pointerdown', e => { downAt = { x: e.clientX, y: e.clientY }; });
+    stage.addEventListener('pointerup', e => {
+        const d = downAt; downAt = null;
+        if (!d || BP.tool === 'pan' || BP.vdrag) return;
+        if (!(e.button === 0 || (e.button === 2 && e.ctrlKey))) return;
+        if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return;
+        bpStageClick(e);
     });
-    stage.addEventListener('click', bpStageClick);
+    // Redraw as the view scrolls into parts of the sheet not drawn yet.
+    let scrollTimer = null;
+    vp.addEventListener('scroll', () => { clearTimeout(scrollTimer); scrollTimer = setTimeout(() => bpRenderVisible(false), 90); });
+    window.addEventListener('resize', () => { clearTimeout(scrollTimer); scrollTimer = setTimeout(() => bpRenderVisible(false), 150); });
     stage.addEventListener('dblclick', e => { if (BP_POLY_TOOLS.indexOf(BP.tool) !== -1) { e.preventDefault(); bpFinishArea(); } });
     vp.addEventListener('wheel', e => {
         if (!(e.ctrlKey || e.metaKey) || !BP.pdf) return;
