@@ -1377,6 +1377,7 @@
     .bp-tool:last-child { border-right: none; }
     .bp-tool.active { background: var(--reve-orange); color: #fff; }
     .bp-snap { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; margin-left: 4px; }
+    .bp-btn.bp-round-btn[aria-pressed="true"] { background: var(--reve-orange); border-color: var(--reve-orange); color: #fff; }
     .bp-overlay .bp-v-handle { fill: #fff; stroke: #e0441b; stroke-width: 2; }
     .bp-overlay .bp-v-handle.sel { fill: #e0441b; stroke: #fff; }
     .bp-overlay .bp-snap-mark { fill: none; stroke: #18a058; stroke-width: 2; }
@@ -3935,7 +3936,8 @@
                             <button type="button" class="bp-tool" data-bp-tool="edit" title="Move corners of traced outlines and measurements, or redraw a stretch between two corners">Edit</button>
                         </div>
                         <button type="button" class="bp-btn" id="bpClearMeasures" title="Remove this sheet's measurements">Clear</button>
-                        <label class="bp-snap" title="Clicks jump to the nearest corner or line end drawn on the sheet (hold Alt to click freely)"><input type="checkbox" id="bpSnap" checked> Snap to lines</label>
+                        <label class="bp-snap" title="Clicks jump to the nearest corner or line end drawn on the sheet (hold Ctrl to click freely)"><input type="checkbox" id="bpSnap" checked> Snap to lines</label>
+                        <button type="button" class="bp-btn bp-round-btn" data-bp-round aria-pressed="false" title="Show every length rounded down to the whole inch (drops 1/4&quot;-type details that may be small tracing errors)">Round measurements</button>
                     </div>
                     <div class="bp-scale-row">
                         <span id="bpScaleLabel" class="bp-scale-label"></span>
@@ -4034,6 +4036,7 @@
                         <button type="button" class="bp-btn bp-small" id="bpPlaceMirror" title="Flip left/right">Mirror</button>
                         <label class="bp-inline"><input type="checkbox" id="bpPlaceInner"> <span class="bp-dot" style="background:#c0392b"></span>Inner</label>
                         <label class="bp-inline"><input type="checkbox" id="bpPlaceOuter"> <span class="bp-dot bp-dot-outer"></span>Outer</label>
+                        <button type="button" class="bp-btn bp-small bp-round-btn" data-bp-round aria-pressed="false" title="Round every length down to the whole inch">Round measurements</button>
                         <span class="bp-place-info" id="bpPlaceInfo"></span>
                         <span style="margin-left:auto;"></span>
                         <button type="button" class="btn primary" id="bpPlaceDownload" style="width:auto;flex:none;padding:7px 14px;">Download PNG</button>
@@ -18485,8 +18488,13 @@ function bpParseLength(str) {
     if (d.length === 2 && /'/.test(d[0].text) && !/"/.test(d[0].text)) return d[0].inches + d[1].inches;
     return d[0].inches;
 }
+// "Round measurements" (saved in this browser): lengths shown rounded
+// down to the whole inch, so 43'-3 3/16" reads 43'-3".
+let BP_ROUND = false;
+try { BP_ROUND = localStorage.getItem('reve-bp-round') === '1'; } catch (e) {}
 function bpFmtFtIn(inches) {
     if (!isFinite(inches)) return '';
+    if (BP_ROUND) inches = Math.sign(inches) * Math.floor(Math.abs(inches) + 1 / 32);
     const neg = inches < 0;
     let total16 = Math.round(Math.abs(inches) * 16);
     const ft = Math.floor(total16 / (12 * 16));
@@ -19275,7 +19283,7 @@ function bpTakeoffScale(t) {
     return sc ? { inPerUnit: sc, from: 'sheet', known: known > 0 ? known : 0 } : { inPerUnit: 0, from: '', known: known > 0 ? known : 0 };
 }
 // Feet-inches rounded to 1/4" for labels.
-function bpFmtFtInQ(inches) { return bpFmtFtIn(Math.round(inches * 4) / 4); }
+function bpFmtFtInQ(inches) { return BP_ROUND ? bpFmtFtIn(inches) : bpFmtFtIn(Math.round(inches * 4) / 4); }
 function bpPointInPoly(pt, pts) {
     let inside = false;
     for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
@@ -20441,6 +20449,16 @@ function bpDrawEditHandles(parts) {
     bpWireTakeoff();
     bpWireLayout();
     bpWirePlace();
+    const syncRound = () => document.querySelectorAll('[data-bp-round]').forEach(b => b.setAttribute('aria-pressed', BP_ROUND ? 'true' : 'false'));
+    document.querySelectorAll('[data-bp-round]').forEach(btn => btn.addEventListener('click', () => {
+        BP_ROUND = !BP_ROUND;
+        try { localStorage.setItem('reve-bp-round', BP_ROUND ? '1' : '0'); } catch (e) {}
+        syncRound();
+        if (!BP.pdf) return;
+        bpRenderMeasures(); bpRenderTakeoff(); bpRenderDimSum(); bpUpdateScaleUi(); bpDrawOverlay();
+        if (BP_PL.open) bpPlDraw();
+    }));
+    syncRound();
     bpSetTool('pan');
 })();
 // Called when the Blueprints sub-tab is shown: reopen the last file.
