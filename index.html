@@ -16807,7 +16807,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-review-renewals": {"title": "Review Monthly Renewals", "icon": "🔁", "category": "Renewals", "steps": ["Export the Renewal Offer Analysis report and upload it on the Renewals tab (\"Upload file\").", "The cards at the top show each month's Pending, Renewed and Notice counts.", "The list defaults to Status: Pending. Use the Month dropdown to focus on one month.", "For each unit, check \"Renewed?\" when the resident renews or \"Notice?\" when they give notice — only one can be checked.", "Add notes in the Notes column. Tip: start typing \"leas\" and press Tab to fill in \"lease is out for signature\".", "A 🚩 flag means the lease ends within 30 days (or has already ended) with no decision recorded — follow up on those first.", "To look up any unit regardless of status or month, type it in \"Search any unit (any status)…\".", "Re-uploading a newer report keeps all your checkboxes and notes; only dates and rates refresh.", "Renewed units also show as Renewed on the Expiring tab and stop being suggested on the Waitlist."]},
     "builtin-waitlist": {"title": "Add and Follow Up with Waitlist Prospects", "icon": "📝", "category": "Waitlist", "steps": ["Open the Waitlist tab and click \"+ Add Prospect\".", "Fill in Agent, Prospect name, Beds, Move-In Date, Phone and Email (Rent is optional).", "Use \"Prospect Details & Notes\" for preferences, and \"Agent Follow-Up Notes\" for each contact — include the date (e.g. \"Notified of 4420 on 7/2\").", "\"Possible upcoming units\" lists units from the Expiring tab that match the prospect's Beds and end before their Move-In Date.", "Check Cancel or Leased when they drop off or sign — they move to the Cancelled or Leased tab.", "Filter by Agent, Beds or Move-In Month; \"Clear filters\" resets them. The × button removes a prospect."]},
     "builtin-storage": {"title": "Track Storage Locker Interest", "icon": "📦", "category": "Waitlist", "steps": ["On the Waitlist tab, click the Storage tab on the right.", "Click \"+ Add Entry\" and fill in Name, Unit, and Email or phone.", "Check \"Contacted\" once you've reached out.", "Drag the ≡ handle at the left of a row to move it up or down (or focus it and use the arrow keys) — the order is shared with the team.", "Use the × button to remove an entry permanently."]},
-    "builtin-site-map": {"title": "Use the Interactive Site Map", "icon": "🗺️", "category": "Sitemap", "steps": ["Open the Sitemap tab and pick a floor: 1st, 2nd, 3rd or 4th.", "Orange units are available now (from today's pricing sheet); gray units aren't currently available.", "Hover (or tap) a unit for options: \"Load in Tour\" opens it in the Tour tab, and \"Watch Video\" plays its video tour when one is on file.", "Retail suites and the Leasing Office are clickable when they have a website — they open it in a new tab.", "\"E\" boxes mark elevators; light corridors show the interior hallways.", "On the 2nd floor, gray outlined numbers mark the upper floor of the two-story townhomes below."]},
+    "builtin-site-map": {"title": "Use the Interactive Site Map", "icon": "🗺️", "category": "Sitemap", "steps": ["Open the Sitemap tab and pick a floor: 1st, 2nd, 3rd or 4th.", "Orange units are available now (from today's pricing sheet); gray units aren't currently available.", "Hover (or tap) a unit for options: \"Load in Tour\" opens it in the Tour tab, \"Watch Video\" plays its video tour when one is on file, and \"See Floorplan\" opens its floorplan from Documents \u203a Floorplans (a Measurements version first, otherwise any matching floorplan).", "Retail suites and the Leasing Office are clickable when they have a website — they open it in a new tab.", "\"E\" boxes mark elevators; light corridors show the interior hallways.", "On the 2nd floor, gray outlined numbers mark the upper floor of the two-story townhomes below."]},
     "builtin-print-docs": {"title": "Print Move-in Documents and Signs", "icon": "🖨️", "category": "Documents", "steps": ["Open the Documents tab and pick a section: Move-in Docs, Building Signs, Forms or Bulletin.", "Click Print on a document. Most print two half-sheets per page, ready to cut; each card says \"Prints 2 per page\" or \"Prints full sheet\".", "Open shows the document in a new tab; Download saves the original file.", "Use Details (top right) for a compact list that fits everything on one screen, or Preview for page thumbnails."]},
     "builtin-floorplan-files": {"title": "Find and Download Floorplan Images", "icon": "📐", "category": "Documents", "steps": ["Open Documents and click the Floorplans sub-tab.", "Narrow the list with the bubbles at the top: Beds, Level, Building and Floorplan (pick several in a row to include any of them).", "Or type a floorplan (e.g. B5) or a unit number (e.g. 4334) in the search box to find the plan for that unit.", "Click Open to view a floorplan in a new tab, or Download to save it.", "Tags in the file name show as labels and get their own filters: Style (2D / 3D), Floors (Upper / Lower / Combined) and Tags (Mirror, Measurements, Balcony).", "To add or update floorplans, upload files to the MEDIA_Floorplans folder on GitHub, named floorplan-sqft-tags in any tag order (e.g. \"B5-1211-3D.jpg\", \"LW1-1732-upper-mirror-2D.jpg\"), then click \"Refresh list\"."]},
     "builtin-manage-docs": {"title": "Upload, Replace or Reorder Documents", "icon": "📤", "category": "Documents", "steps": ["Open the section the document belongs in, then click \"+ Upload\" and pick a PDF, JPG or PNG (up to 10 MB).", "Give it a title, then choose OK for two half-sheets per page or Cancel for a full sheet.", "To update a document, click Replace under it and pick the new file — it keeps its title, spot and print setting.", "Drag the ≡ handle at the bottom right of any card to move it to a new spot (or focus it and use the arrow keys).", "Remove deletes an uploaded document, and Revert restores a built-in one — both need the Admin password.", "Uploads, order and replacements are shared with the whole team."]},
@@ -17033,7 +17033,7 @@ const QA_GLOSSARY = [
     ['Lease tab', 'Lease shows the values to enter into the lease (Lease Terms, Cover Sheet, Animal, Buyout, Inventory, Parking, Rent Concession, Special Provisions), auto-filled from the Welcome Letter, with copy buttons.', 'lease', 'lease contract copy renewal'],
     ['Waitlist tab', 'Waitlist tracks prospects (Prospects, Transfers, Cancelled, Leased, All). "Possible Upcoming Units" matches each prospect’s Beds and Move-In Date against the Expiring report. The Storage button holds the storage locker waitlist and Rented Lockers.', 'waitlist', 'prospect lead transfer cancelled leased'],
     ['Storage locker waitlist', 'Waitlist > Storage: "+ Add Entry" for each request, check Contacted once reached (the row is struck through), drag the ≡ handle to reorder, and × to delete. Rented Lockers is listed below it.', 'waitlist', 'storage locker reorder drag contacted'],
-    ['Sitemap tab / site map', 'Sitemap has the interactive site map by floor: orange = available now, gray = not available. Hover or tap a unit for "Load in Tour" and "Watch Video". Retail suites and the Leasing Office link to their websites; "E" marks elevators.', 'media', 'map sitemap floor plan video elevator'],
+    ['Sitemap tab / site map', 'Sitemap has the interactive site map by floor: orange = available now, gray = not available. Hover or tap a unit for "Load in Tour", "Watch Video" and "See Floorplan". Retail suites and the Leasing Office link to their websites; "E" marks elevators.', 'media', 'map sitemap floor plan video elevator'],
     ['Documents tab', 'Documents holds printables in Move-in Docs, Building Signs, Forms and Bulletin. Print makes 2 half-sheets per page (some print full sheet). + Upload adds a PDF/JPG/PNG; drag ≡ to reorder; Replace/Remove/Revert under each card.', 'documents', 'print printable upload sign form bulletin'],
     ['Admin tab', 'Admin is password-protected and holds MMR (weekly report), Commissions (pay-period export), PCard (reconciliation) and Deposit Accounting (move-out proration + email).', 'admin', 'mmr commission pcard password deposit accounting'],
     ['MMR', 'MMR is the weekly Management/Marketing Report in Admin: enter Weekly Stats, New Leases, Unit Renewals and Weekly Traffic, upload last week’s file and click Download New MMR.', 'admin', 'weekly report traffic stats'],
@@ -18026,7 +18026,7 @@ function sitemapEnsureHoverMenu() {
     if (sitemapHoverMenu) return sitemapHoverMenu;
     const el = document.createElement('div');
     el.className = 'sitemap-hover-menu';
-    el.innerHTML = `<button type="button" class="sitemap-hover-btn" data-action="tour">Load in Tour</button><button type="button" class="sitemap-hover-btn" data-action="video">Watch Video</button>`;
+    el.innerHTML = `<button type="button" class="sitemap-hover-btn" data-action="tour">Load in Tour</button><button type="button" class="sitemap-hover-btn" data-action="video">Watch Video</button><button type="button" class="sitemap-hover-btn" data-action="floorplan">See Floorplan</button>`;
     document.body.appendChild(el);
     el.addEventListener('mouseenter', () => clearTimeout(sitemapHoverHideTimer));
     el.addEventListener('mouseleave', sitemapHideHoverMenuSoon);
@@ -18046,6 +18046,33 @@ function sitemapVideoUrl(unit) {
     if (!link) return '';
     return /^[a-z][a-z0-9+.-]*:/i.test(link) ? link : 'https://' + link.replace(/^\/+/, '');
 }
+// Best floorplan on file (Documents › Floorplans: the MEDIA_Floorplans
+// folder plus uploads) for a unit: files naming the unit number, or
+// matching its floorplan code and square footage. A "Measurements"
+// version comes first; otherwise any match (unit number in the name,
+// then exact sq ft, then 2D). Worked out at hover time, so new files
+// are picked up as soon as they're on the list.
+function sitemapFloorplanFor(unit) {
+    if (typeof fpAllFiles !== 'function') return null;
+    const u = byUnit[unit];
+    const sq = u ? String(u.sqft || '') : '';
+    let best = null, bestScore = -1;
+    fpAllFiles().forEach(f => {
+        if (DOC_META[fpMetaKey(f)] && DOC_META[fpMetaKey(f)].hidden) return;
+        const d = fpDescribe(f);
+        const words = d.base.split(/[-_\s]+/);
+        const named = words.includes(String(unit));
+        if (!named && !d.units.includes(String(unit))) return;
+        let score = 0;
+        if (d.tags.includes('Measurements')) score += 1000;
+        if (named) score += 100;
+        if (sq && words.includes(sq)) score += 20;
+        if (d.tags.includes('2D')) score += 5;
+        if (d.tags.includes('Combined')) score += 2;
+        if (score > bestScore) { bestScore = score; best = { file: f, d }; }
+    });
+    return best;
+}
 function sitemapShowHoverMenu(groupEl, unit) {
     const menu = sitemapEnsureHoverMenu();
     const rect = groupEl.querySelector('.sitemap-unit-box').getBoundingClientRect();
@@ -18055,6 +18082,20 @@ function sitemapShowHoverMenu(groupEl, unit) {
     videoBtn.style.display = videoUrl ? 'block' : 'none';
     videoBtn.title = (byUnit[unit] && byUnit[unit].videoName) || `Apt ${unit} video`;
     videoBtn.onclick = () => { window.open(videoUrl, '_blank', 'noopener'); sitemapHideHoverMenuNow(); };
+    const fp = sitemapFloorplanFor(unit);
+    const fpBtn = menu.querySelector('[data-action="floorplan"]');
+    fpBtn.style.display = fp ? 'block' : 'none';
+    fpBtn.title = fp ? fp.d.name : '';
+    fpBtn.onclick = async () => {
+        sitemapHideHoverMenuNow();
+        if (!fp) return;
+        if (!fp.file.upload) { window.open(fpUrl(fp.file.name), '_blank', 'noopener'); return; }
+        // Uploaded floorplans load from the backend: open the tab now (inside
+        // the click, so it isn't popup-blocked), then point it at the file.
+        const win = window.open('', '_blank');
+        const url = await docsUrlFor({ uploadId: fp.file.upload.id, fileId: fp.file.upload.fileId, mime: fp.file.upload.mime });
+        if (url && win) win.location.href = url; else if (win) win.close();
+    };
     menu.style.display = 'block';
     menu.style.left = (rect.left + window.scrollX + rect.width / 2) + 'px';
     menu.style.top = (rect.top + window.scrollY - 6) + 'px';
@@ -18086,6 +18127,7 @@ const SITEMAP_AMENITY_LINKS = {
     'Lounge / Work Room': 'https://www.reveboulder.com/tours#:~:text=Pool%2C%20Spa%20Deck%20%26%20Clubhouse'
 };
 function renderSitemap() {
+    if (typeof fpLoadList === 'function') fpLoadList(false).catch(() => {});
     const wrap = document.getElementById('sitemapSvgWrap');
     const note = document.getElementById('sitemapCoverageNote');
     if (!wrap) return;
