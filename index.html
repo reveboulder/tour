@@ -1426,6 +1426,9 @@
     .bp-place-stage { position: relative; display: inline-block; vertical-align: top; text-align: left; }
     .bp-place-stage canvas { display: block; box-shadow: 0 2px 8px rgba(0,0,0,0.2); background: #fff; }
     .bp-place-svg { position: absolute; top: 0; left: 0; overflow: visible; touch-action: none; }
+    .bp-place-svg .bp-pl-rot { fill: #fff; stroke: #e0441b; stroke-width: 2.5; cursor: grab; }
+    .bp-place-svg .bp-pl-rotline { stroke: #e0441b; stroke-width: 1.5; stroke-dasharray: 3 2; pointer-events: none; }
+    .bp-place-rot input { width: 64px; border: 1px solid var(--line); border-radius: 5px; padding: 3px 5px; font-size: 12px; }
     .bp-place-zoomctl { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; }
     .bp-place-zoomctl #bpPlaceZoom { min-width: 40px; text-align: center; }
     .bp-place-svg .bp-pl-hit { fill: transparent; cursor: move; }
@@ -3993,6 +3996,10 @@
                         <div class="bp-to-row">
                             <button type="button" class="bp-btn bp-to-trace" data-bp-tool="outer"><span class="bp-dot bp-dot-outer"></span>Trace outer boundary</button>
                             <button type="button" class="bp-btn bp-to-trace" data-bp-tool="inner" id="bpToInnerBtn"><span class="bp-dot bp-dot-inner"></span>Trace inner boundary <small>(optional)</small></button>
+                            <select id="bpToLoad" class="bp-fp-select" title="Copy a unit you traced (on any sheet) onto this sheet"><option value="">Load a trace&hellip;</option></select>
+                            <button type="button" class="bp-btn bp-to-trace" data-bp-tool="move" title="Drag the selected unit's outlines into place">Move unit</button>
+                            <button type="button" class="bp-btn bp-small" id="bpToRot" title="Rotate the selected unit 90\u00b0">&#8635; 90&deg;</button>
+                            <button type="button" class="bp-btn bp-small" id="bpToMirror" title="Flip the selected unit left/right">Mirror</button>
                             <button type="button" class="btn primary bp-to-make" id="bpToImage">Create floorplan image</button>
                         </div>
                         <div class="bp-to-results" id="bpToResults"></div>
@@ -4046,6 +4053,7 @@
                         <label class="bp-inline"><input type="checkbox" id="bpPlaceOuter"> <span class="bp-dot bp-dot-outer"></span>Outer</label>
                         <button type="button" class="bp-btn bp-small bp-round-btn" data-bp-round aria-pressed="false" title="Round every length down to the whole inch">Round measurements</button>
                         <span class="bp-place-zoomctl"><button type="button" class="bp-btn bp-small" id="bpPlaceZoomOut" title="Zoom out">&minus;</button><span id="bpPlaceZoom">100%</span><button type="button" class="bp-btn bp-small" id="bpPlaceZoomIn" title="Zoom in">+</button><button type="button" class="bp-btn bp-small" id="bpPlaceZoomFit" title="Fit the floorplan in the window">Fit</button></span>
+                        <label class="bp-inline bp-place-rot" title="Rotation in degrees (or drag the round handle above the shape)">Rotate <input type="number" id="bpPlaceRotInput" step="0.5" value="0">&deg;</label>
                         <span class="bp-place-info" id="bpPlaceInfo"></span>
                         <span style="margin-left:auto;"></span>
                         <button type="button" class="btn primary" id="bpPlaceDownload" style="width:auto;flex:none;padding:7px 14px;">Download PNG</button>
@@ -4054,7 +4062,7 @@
                     <div class="bp-modal-body bp-place-body" id="bpPlaceBody">
                         <div class="bp-place-stage" id="bpPlaceStage"><canvas id="bpPlaceImg"></canvas><svg id="bpPlaceSvg" class="bp-place-svg"></svg></div>
                     </div>
-                    <div class="bp-place-hint">Drag the shape onto the walls &middot; drag the corner square to resize &middot; Ctrl/&#8984; + scroll or &minus;/+ to zoom &middot; click a length to hide it (gray) or show it again &middot; arrow keys nudge (Shift = 10&times;) &middot; +/&minus; fine-resize &middot; Esc closes. Wall lengths always come from the blueprint.</div>
+                    <div class="bp-place-hint">Drag the shape onto the walls &middot; drag the corner square to resize &middot; drag the round handle to rotate (Shift = 15&deg; steps) or type an angle &middot; Ctrl/&#8984; + scroll or &minus;/+ to zoom &middot; click a length to hide it (gray) or show it again &middot; arrow keys nudge (Shift = 10&times;) &middot; +/&minus; fine-resize &middot; Esc closes. Wall lengths always come from the blueprint.</div>
                 </div>
             </div>
             <div class="bp-modal" id="bpModal" style="display:none;">
@@ -15064,8 +15072,10 @@ function openDocsEdit(ctx) {
     // is the GitHub folder, so files can be moved out of it but not in).
     const moveSel = document.getElementById('docsEditMove');
     const here = DOC_SECTIONS.find(x => x.id === ctx.section);
+    const dests = DOC_SECTIONS.filter(x => x.id !== ctx.section).map(x => ({ id: x.id, label: x.label }));
+    if (ctx.section !== 'floorplans') dests.splice(Math.max(0, DOC_SECTIONS.findIndex(x => x.list)), 0, { id: 'floorplans', label: 'Floorplans' });
     moveSel.innerHTML = `<option value="">\u2014 Keep in ${escapeHtml(here ? here.label : 'Floorplans')} \u2014</option>`
-        + DOC_SECTIONS.filter(x => x.id !== ctx.section).map(x => `<option value="${escapeAttr(x.id)}">${escapeHtml(x.label)}</option>`).join('');
+        + dests.map(x => `<option value="${escapeAttr(x.id)}">${escapeHtml(x.label)}</option>`).join('');
     document.getElementById('docsEditMoveRow').style.display = ctx.onMove ? '' : 'none';
     document.getElementById('docsEditOverlay').style.display = 'flex';
     const first = document.getElementById(ctx.noTitle ? 'docsEditFile' : 'docsEditTitle');
@@ -15163,8 +15173,12 @@ document.getElementById('docsZipBtn').addEventListener('click', async () => {
     const sec = docsCurrentSection;
     const label = docsSectionName(sec);
     const items = sec === 'floorplans'
-        ? (FP_FILES || []).filter(f => !(DOC_META['fp:' + f.name] && DOC_META['fp:' + f.name].hidden))
-            .map(f => ({ name: fpEffectiveName(f), get: () => fetch(fpUrl(f.name)).then(r => { if (!r.ok) throw 0; return r.blob(); }) }))
+        ? fpAllFiles().filter(f => !(DOC_META[fpMetaKey(f)] && DOC_META[fpMetaKey(f)].hidden))
+            .map(f => ({ name: fpEffectiveName(f), get: async () => {
+                const u = f.upload ? await docsUrlFor({ uploadId: f.upload.id, fileId: f.upload.fileId, mime: f.upload.mime }) : fpUrl(f.name);
+                if (!u) throw 0;
+                const r = await fetch(u); if (!r.ok) throw 0; return r.blob();
+            } }))
         : docsForSection(sec).map(d => ({ name: d.filename || (d.title + '.pdf'), get: async () => { const u = await docsUrlFor(d); if (!u) throw 0; return (await fetch(u)).blob(); } }));
     if (!items.length) { docsSetSync('error', `Nothing to download in ${label}`, 'This tab has no documents yet.'); return; }
     if (!window.JSZip) { docsSetSync('error', 'ZIP isn\u2019t available', 'Refresh the page and try again.'); return; }
@@ -15388,7 +15402,7 @@ function renderDocuments() {
     const view = docsViewFor(docsCurrentSection);
     document.querySelectorAll('#docsViewToggle [data-docs-view]').forEach(b => b.classList.toggle('active', b.getAttribute('data-docs-view') === view));
     document.getElementById('docsViewToggle').style.display = '';
-    document.getElementById('docsUploadBtn').style.display = isFp ? 'none' : '';
+    document.getElementById('docsUploadBtn').style.display = '';
     document.getElementById('fpPanel').style.display = isFp ? '' : 'none';
     document.getElementById('docsGrid').style.display = !isFp && view === 'preview' ? '' : 'none';
     document.getElementById('otherPanel').style.display = !isFp && view === 'details' ? '' : 'none';
@@ -15529,7 +15543,37 @@ function fpParseTags(base) {
     return { tags: FP_TAGS.map(t => t[0]).filter(t => tags.includes(t)), core: rest.join('-') };
 }
 // A floorplan's name as edited in the app (pencil), else its real file name.
-function fpEffectiveName(file) { const m = DOC_META['fp:' + file.name]; return (m && m.filename) || file.name; }
+// Floorplans = files in the MEDIA_Floorplans folder plus floorplans
+// uploaded (or moved) in the app, which are stored with the other
+// Documents uploads in the shared backend. Uploaded ones get the key
+// "up:<id>" as their file "name" so they never clash with folder files.
+function fpMetaKey(file) { return file.upload ? 'up:' + file.upload.id : 'fp:' + file.name; }
+function fpEffectiveName(file) { const m = DOC_META[fpMetaKey(file)]; return (m && m.filename) || (file.upload ? file.upload.name : file.name); }
+function fpAllFiles() {
+    const up = DOC_UPLOADS.filter(u => u.section === 'floorplans').map(u => ({ name: 'up:' + u.id, size: u.size, upload: u }));
+    return (FP_FILES || []).concat(up);
+}
+// Blob URLs for uploaded floorplans, loaded on demand (then re-render).
+const FP_UP_URLS = {};
+let fpUpLoading = false;
+function fpFileUrl(file) {
+    if (!file.upload) return fpUrl(file.name);
+    if (FP_UP_URLS[file.upload.id]) return FP_UP_URLS[file.upload.id];
+    if (!fpUpLoading) {
+        fpUpLoading = true;
+        setTimeout(async () => {
+            const todo = fpAllFiles().filter(f => f.upload && !FP_UP_URLS[f.upload.id]);
+            for (const f of todo) {
+                try { const u = await docsUrlFor({ uploadId: f.upload.id, fileId: f.upload.fileId, mime: f.upload.mime }); if (u) FP_UP_URLS[f.upload.id] = u; } catch (e) {}
+            }
+            fpUpLoading = false;
+            if (todo.some(f => FP_UP_URLS[f.upload.id]) && docsCurrentSection === 'floorplans') renderFloorplanDocs();
+        }, 0);
+    }
+    return '';
+}
+function fpIsImage(file) { return file.upload ? /^image\//.test(file.upload.mime || '') : /\.(jpe?g|png|webp|gif)$/i.test(file.name); }
+function fpIsPdf(file) { return file.upload ? (file.upload.mime || '') === 'application/pdf' : /\.pdf$/i.test(file.name); }
 function fpDescribe(file) {
     const effName = fpEffectiveName(file);
     const full = effName.replace(/\.[^.]+$/, '');
@@ -15559,7 +15603,7 @@ function fpDescribe(file) {
         bldgs: uniq(units.map(u => String(u.bldg || '').replace(/\D/g, ''))).sort(),
         tags: parsed.tags,
         name: effName,
-        title: (DOC_META['fp:' + file.name] || {}).title || ''
+        title: (DOC_META[fpMetaKey(file)] || {}).title || (file.upload ? file.upload.title || '' : '')
     };
 }
 function fpNaturalCode(a, b) {
@@ -15570,7 +15614,7 @@ function fpNaturalCode(a, b) {
 function renderFloorplanDocs() {
     const list = document.getElementById('fpList');
     const note = document.getElementById('fpNote');
-    const all = (FP_FILES || []).filter(f => !(DOC_META['fp:' + f.name] && DOC_META['fp:' + f.name].hidden)).map(fpDescribe).sort((a, b) => fpNaturalCode(a.code, b.code) || a.sqSort - b.sqSort || a.base.localeCompare(b.base) || a.file.name.localeCompare(b.file.name));
+    const all = fpAllFiles().filter(f => !(DOC_META[fpMetaKey(f)] && DOC_META[fpMetaKey(f)].hidden)).map(fpDescribe).sort((a, b) => fpNaturalCode(a.code, b.code) || a.sqSort - b.sqSort || a.base.localeCompare(b.base) || a.file.name.localeCompare(b.file.name));
     // Filter chips, built from what the files actually cover.
     const opts = {
         type: FP_TYPE_ORDER.filter(t => all.some(d => d.types.includes(t))),
@@ -15614,14 +15658,14 @@ function renderFloorplanDocs() {
     FP_SHOWN = all;
     const head = `<div class="fp-row fp-head"><span>Floorplan</span><span>Beds</span><span>Bed/Bath</span><span>Sq Ft</span><span>Building</span><span>Level</span><span>Units</span><span></span></div>`;
     list.innerHTML = shown.length ? head + shown.map(d => {
-        const url = fpUrl(d.file.name);
+        const url = fpFileUrl(d.file) || '#';
         const bldg = d.bldgs.map(b => 'Bldg ' + b).join(', ');
         const lvl = d.levels.join(', ');
         const sub = [d.tags.join(', '), d.types.join('/'), d.bedBath.join(' or '), d.sqft && d.sqft + ' sf', bldg, lvl && 'Lvl ' + lvl, d.units.length && d.units.length + ' units'].filter(Boolean).join(' \u00b7 ');
         const cls = (d.dupOf.length ? ' fp-dup' : '') + (d.file.name === fpSelected ? ' fp-selected' : '');
         const dupTitle = d.dupOf.length ? ` title="Duplicate name \u2014 same as ${escapeAttr(d.dupOf.join(', '))}"` : '';
         return `<div class="fp-row${cls}" data-fp-file="${escapeAttr(d.file.name)}"${dupTitle}>
-            <span class="fp-name"><b>${escapeHtml(d.title || d.code || d.base)}</b><span class="fp-file" title="${escapeAttr(d.name)}${d.name !== d.file.name ? ' (file in GitHub: ' + escapeAttr(d.file.name) + ')' : ''}">${escapeHtml(d.name)}</span>${d.tags.map(t => `<span class="fp-tag">${escapeHtml(t)}</span>`).join('')}</span>
+            <span class="fp-name"><b>${escapeHtml(d.title || d.code || d.base)}</b><span class="fp-file" title="${escapeAttr(d.name)}${d.file.upload ? ' (uploaded in the app)' : d.name !== d.file.name ? ' (file in GitHub: ' + escapeAttr(d.file.name) + ')' : ''}">${escapeHtml(d.name)}</span>${d.tags.map(t => `<span class="fp-tag">${escapeHtml(t)}</span>`).join('')}</span>
             <span class="fp-c">${escapeHtml(d.types.join('/') || '\u2014')}</span>
             <span class="fp-c">${escapeHtml(d.bedBath.join(', ') || '\u2014')}</span>
             <span class="fp-c">${escapeHtml(d.sqft || '\u2014')}</span>
@@ -15637,8 +15681,8 @@ function renderFloorplanDocs() {
     if (gridMode) {
         const pdfIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
         grid.innerHTML = shown.map(d => {
-            const url = fpUrl(d.file.name);
-            const isImg = /\.(jpe?g|png|webp|gif)$/i.test(d.file.name);
+            const url = fpFileUrl(d.file) || '#';
+            const isImg = fpIsImage(d.file) && url !== '#';
             const meta = [d.types.join('/'), d.bedBath.join(' or '), d.sqft && d.sqft + ' sf'].filter(Boolean).join(' \u00b7 ');
             return `<div class="docs-card fp-card${d.dupOf.length ? ' fp-dup' : ''}" data-fp-card="${escapeAttr(d.file.name)}"${d.dupOf.length ? ` title="Duplicate name \u2014 same as ${escapeAttr(d.dupOf.join(', '))}"` : ''}>
                 <a class="docs-thumb" href="${escapeAttr(url)}" target="_blank" rel="noopener" title="Open ${escapeAttr(d.name)}">${isImg ? `<img src="${escapeAttr(url)}" alt="" loading="lazy">` : `<span class="docs-thumb-placeholder">${pdfIcon}PDF</span>`}</a>
@@ -15676,10 +15720,11 @@ function renderFpPreview() {
     const box = document.getElementById('fpPreview');
     const d = docsViewFor('floorplans') === 'details' && fpSelected && FP_SHOWN.find(x => x.file.name === fpSelected);
     if (!d) { box.style.display = 'none'; box.innerHTML = ''; box.dataset.file = ''; return; }
-    const url = fpUrl(d.file.name);
+    const url = fpFileUrl(d.file);
+    if (!url) { box.style.display = ''; box.innerHTML = '<div class="empty-note">Loading\u2026</div>'; box.dataset.file = ''; return; }
     if (box.dataset.file === d.file.name + '|' + d.name + '|' + d.title && box.style.display !== 'none') return;   // already showing
     box.dataset.file = d.file.name + '|' + d.name + '|' + d.title;
-    const isPdf = /\.pdf$/i.test(d.file.name);
+    const isPdf = fpIsPdf(d.file);
     const meta = [d.types.join('/'), d.bedBath.join(' or ') && d.bedBath.join(' or ') + ' bed/bath', d.sqft && d.sqft + ' sq ft',
         d.bldgs.length && 'Bldg ' + d.bldgs.join(', '), d.levels.length && 'Level ' + d.levels.join(', ')].filter(Boolean).join(' \u00b7 ');
     box.innerHTML = `<div class="fp-pv-head"><b>${escapeHtml(d.title || d.code || d.base)}</b><span class="fp-pv-name" title="${escapeAttr(d.name)}">${escapeHtml(d.name)}</span><button type="button" class="fp-pv-close" id="fpPvClose" title="Close preview" aria-label="Close preview">&times;</button></div>
@@ -15695,6 +15740,29 @@ document.getElementById('fpGrid').addEventListener('click', e => {
 document.getElementById('fpList').addEventListener('click', e => fpListClick(e));
 async function fpListClick(e) {
     const hide = e.target.closest('[data-fp-hide]');
+    const upD = (hide || e.target.closest('[data-fp-edit]')) && FP_SHOWN.find(x => x.file.name === (hide || e.target.closest('[data-fp-edit]')).getAttribute(hide ? 'data-fp-hide' : 'data-fp-edit'));
+    if (upD && upD.file.upload) {
+        // Floorplans uploaded in the app: remove for everyone, or edit/move
+        // like any other uploaded document.
+        const u = upD.file.upload;
+        if (hide) {
+            if (!promptAdminPassword('', `Enter Admin Password to remove \u201c${upD.name}\u201d for everyone:`)) return;
+            if (fpSelected === upD.file.name) fpSelected = null;
+            DOC_UPLOADS = DOC_UPLOADS.filter(x => x.id !== u.id);
+            docsPersistLocal();
+            docsForgetFile(u.fileId || u.id);
+            renderDocuments();
+            const remote = await backendPull(DOCS_UPLOADS_BACKEND_KEY);
+            if (Array.isArray(remote)) await backendPush(DOCS_UPLOADS_BACKEND_KEY, remote.filter(x => x.id !== u.id));
+            backendPush(`document-file-${u.fileId || u.id}`, null);
+            return;
+        }
+        openDocsEdit({ key: 'up:' + u.id, title: upD.title || upD.code || upD.base, filename: upD.name, origTitle: u.title || upD.base, origFilename: u.name,
+            note: 'Changes the name shown here and used for filters and downloads.',
+            done: () => { if (docsCurrentSection === 'floorplans') renderFloorplanDocs(); },
+            section: 'floorplans', onMove: (to, title, filename) => docsMoveDoc({ uploadId: u.id, fileId: u.fileId, title, print: u.print }, to, title, filename) });
+        return;
+    }
     if (hide) {
         const real = hide.getAttribute('data-fp-hide');
         const d = FP_SHOWN.find(x => x.file.name === real);
@@ -16227,8 +16295,8 @@ document.getElementById('docsUploadInput').addEventListener('change', async e =>
     if (!file) return;
     const mime = docsCheckFile(file);
     if (!mime) return;
-    const section = DOC_SECTIONS.find(s => s.id === docsCurrentSection);
-    const title = prompt(`Title for this document (in ${section.label}):`, file.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim());
+    const section = DOC_SECTIONS.find(s => s.id === docsCurrentSection) || { id: 'floorplans', label: 'Floorplans', list: true };
+    const title = prompt(section.id === 'floorplans' ? 'Name for this floorplan (e.g. "B5 1211 3D" \u2014 the floorplan code and sq ft drive the filters):' : `Title for this document (in ${section.label}):`, file.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim());
     if (title === null || !title.trim()) return;
     const half = section.list || !docsCanPreview({ mime }) ? false : confirm('Print this as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
     docsSetSync('working', `Uploading \u201c${title.trim()}\u201d`, 'Reading the file\u2026', 0.01);
@@ -16750,7 +16818,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-lease-questions": {"title": "Ask Questions About the Sample Lease", "icon": "\u2753", "category": "Lease", "steps": ["Open the Lease tab and click \"Upload sample lease\" to load the current lease PDF (only needed when a new version comes out).", "The lease text is shared with the team, so everyone can ask questions after one upload; the PDF itself stays in the browser that uploaded it.", "Type a question in the bar (e.g. \"What is the late fee?\", \"How long can guests stay?\") and press Enter, or click an example.", "The answer quotes the matching sentences with the section and page. \"Read the whole section\" shows the full paragraph, and \"Open page\" opens the PDF there.", "\"Also see\" lists other sections that mention the same thing \u2014 click one to see its answer."]},
     "builtin-new-lease": {"title": "Fill Out a New Lease", "icon": "🖊️", "category": "Lease", "steps": ["Complete the resident's Welcome Letter first — the Lease tab pulls from it and from Residents.", "Open the Lease tab and search for the resident by unit or name.", "Each section (Lease Terms, Cover Sheet, Animal, Buyout, Inventory, Parking, Rent Concession, Special Provisions) shows the values to enter.", "Click the copy button next to any value to copy it, then paste it into the lease.", "For a renewal, check \"Select if Renewal Lease\" — the new dates start the day after the current lease ends.", "Click × next to the search to clear the selection."]},
     "builtin-mmr-traffic": {"title": "Record Weekly Traffic for the MMR", "icon": "🚶", "category": "Admin", "steps": ["Go to Admin (enter the password) > MMR > Weekly Traffic Detail.", "For each reason, write one sentence per show, starting with the prospect's first and last name and ending with a period.", "Each sentence that starts with a name counts as one show; follow-up sentences about the same prospect don't add to the count.", "Download New MMR replaces last week's numbers in the uploaded file.", "Click \"Clear for New Week\" to start the next week fresh."]},
-    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Traced units, sheet scales and measurements are shared with the team through the backend: anyone who opens the same PDF file (same name and size) sees them, and changes sync about every 25 seconds.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points. Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Clicks snap to the drawn corners (green square). Hold Ctrl to move freely without snapping, Shift to keep the line perfectly straight across or up/down (snapping then only sets the length), or Ctrl+Shift for both.", "Edit: drag any orange corner of a traced outline or measurement to move it, or click one corner, then a second corner on the same outline, click the new corners and finish on the second one to redraw that stretch. Delete removes a selected corner.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create floorplan image\" makes a PNG of the unit with every wall length labeled (sized from the known sq ft), ready to download.", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary.", "To put the traced shape on a 2D floorplan: under \"Floorplan image with measurements\", choose a site floorplan or upload one, then click \"Place traced shape on floorplan\". Drag the shape onto the walls, resize from its corner square, rotate or mirror as needed, and click \"Download PNG\". Wall lengths always come from the blueprint."]},
+    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Traced units, sheet scales and measurements are shared with the team through the backend: anyone who opens the same PDF file (same name and size) sees them, and changes sync about every 25 seconds.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points. Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Clicks snap to the drawn corners (green square). Hold Ctrl to move freely without snapping, Shift to keep the line perfectly straight across or up/down (snapping then only sets the length), or Ctrl+Shift for both.", "Edit: drag any orange corner of a traced outline or measurement to move it, or click one corner, then a second corner on the same outline, click the new corners and finish on the second one to redraw that stretch. Delete removes a selected corner.", "Load a trace: pick a unit you traced (on any sheet) from \"Load a trace\u2026\" to copy it onto this sheet under a new name, then drag it into place with Move unit (its nearest corner snaps to the drawn lines). Rotate 90\u00b0 and Mirror handle mirrored units.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create floorplan image\" makes a PNG of the unit with every wall length labeled (sized from the known sq ft), ready to download.", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary.", "To put the traced shape on a 2D floorplan: under \"Floorplan image with measurements\", choose a site floorplan or upload one, then click \"Place traced shape on floorplan\". Drag the shape onto the walls, resize from its corner square, rotate or mirror as needed, and click \"Download PNG\". Wall lengths always come from the blueprint."]},
     "builtin-commissions": {"title": "Run Commissions for the Pay Period", "icon": "💼", "category": "Admin", "steps": ["Go to Admin > Commissions and check the Current pay period (change its start date if needed).", "Review Suggested Move-Ins (residents moving in this pay period): + adds one officially, × rejects it.", "Add anything missing with \"+ Add Move-In\" or \"+ Add Renewal\", or use \"Import Renewals\" with the Resident Activity Detail export.", "Optional: upload last period's Commissions file to keep its formatting.", "Click \"Export to Excel\" — only officially added Move-Ins and Renewals are included."]},
     "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx)\". The file stays in your browser tab only and is never saved.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code (suggestions come from the file), To, Amount and For.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Check the summary under the table — it warns if the items won't fit in the sheet.", "Click \"Export to Excel\". Items go into the table, the approval date is set to today, and the rest of the file is unchanged.", "When asked, clear the exported items so they aren't added twice next time."]},
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
@@ -19095,6 +19163,7 @@ async function bpSnap(p, e) {
 function bpHoverUpdate(ev) {
     if (BP.tool === 'pan' || !BP.viewport) return;
     const vp = document.getElementById('bpViewport');
+    if (BP.tool === 'move') { vp.style.cursor = 'move'; return; }
     if (BP.tool === 'edit' && !BP.redraw) {
         vp.style.cursor = bpHitVertex(ev) ? 'move' : '';
         if (BP.snapPt || BP.hover) { BP.snapPt = null; BP.hover = null; bpDrawOverlay(); }
@@ -19124,6 +19193,7 @@ function bpSetTool(tool) {
         length: 'Click two points. The green square shows a snap to a drawn corner or line end. Hold Ctrl to move freely (no snap); hold Shift for a perfectly straight line; Ctrl+Shift for both.',
         area: 'Click each corner of the room; click the first point (or press Enter) to finish. Ctrl = no snap, Shift = straight line. Esc cancels.',
         align: '',
+        move: 'Move unit: drag the unit into place \u2014 its nearest corner snaps to the drawn lines (hold Ctrl for no snap). Arrow keys nudge (Shift = 10\u00d7).',
         outer: 'Outer boundary: click around the OUTSIDE of the unit\'s walls, corner by corner; click the first point (or press Enter) to close. Esc cancels.',
         inner: 'Inner boundary: click along the INSIDE face of the walls (in and out around kitchen/appliance alcoves as drawn); click the first point (or Enter) to close.'
     };
@@ -19402,6 +19472,7 @@ function bpDrawTakeoffs(parts, poly) {
 const BP_BASIS_LABEL = { outer: 'outer boundary', inner: 'inner boundary', mid: 'wall centers' };
 function bpRenderTakeoff() {
     if (!BP.pdf) return;
+    bpFillLoadSelect();
     const list = bpTakeoffs();
     const t = bpActiveTakeoff(false);
     const sel = document.getElementById('bpToSelect');
@@ -19554,15 +19625,32 @@ async function bpTakeoffImage() {
     bpSetStatus('');
 }
 // Floorplans already on the site (Documents › Floorplans) to open here.
+// Site floorplans: the MEDIA_Floorplans folder plus ones uploaded in
+// Documents › Floorplans ("up:<id>"). Fetched as a Blob.
+async function bpSiteFetch(ref) {
+    let url = null;
+    if (/^up:/.test(ref)) {
+        const u = DOC_UPLOADS.find(x => 'up:' + x.id === ref);
+        if (u) url = await docsUrlFor({ uploadId: u.id, fileId: u.fileId, mime: u.mime });
+    } else url = fpUrl(ref);
+    if (!url) throw new Error('not available');
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const blob = await r.blob();
+    const u = /^up:/.test(ref) && DOC_UPLOADS.find(x => 'up:' + x.id === ref);
+    return u && !blob.type && u.mime ? new Blob([blob], { type: u.mime }) : blob;
+}
+function bpSiteLabel(ref) { const f = fpAllFiles().find(x => x.name === ref); return f ? fpEffectiveName(f) : ref; }
 async function bpFillFloorplanSelect() {
     const sel = document.getElementById('bpFpSelect');
     try { await fpLoadList(false); } catch (e) {}
-    const files = (FP_FILES || []).slice().sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    const opts = files.map(f => `<option value="${escapeAttr(f.name)}">${escapeHtml(f.name)}</option>`).join('');
+    const files = fpAllFiles().filter(f => !(DOC_META[fpMetaKey(f)] && DOC_META[fpMetaKey(f)].hidden)).map(f => ({ name: f.name, label: fpEffectiveName(f) }))
+        .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+    const opts = files.map(f => `<option value="${escapeAttr(f.name)}">${escapeHtml(f.label)}</option>`).join('');
     sel.innerHTML = `<option value="">${files.length ? 'Or open a site floorplan\u2026' : 'No site floorplans found'}</option>` + opts;
     // Layout picker: 2D plans first.
-    const two = files.filter(f => /(^|[-_ ])2d([-_ .]|$)/i.test(f.name)), rest = files.filter(f => two.indexOf(f) === -1);
-    const o = list => list.map(f => `<option value="${escapeAttr(f.name)}">${escapeHtml(f.name)}</option>`).join('');
+    const two = files.filter(f => /(^|[-_ ])2d([-_ .]|$)/i.test(f.label)), rest = files.filter(f => two.indexOf(f) === -1);
+    const o = list => list.map(f => `<option value="${escapeAttr(f.name)}">${escapeHtml(f.label)}</option>`).join('');
     document.getElementById('bpLaySelect').innerHTML = `<option value="">${files.length ? 'Choose a site floorplan\u2026' : 'No site floorplans found'}</option>` +
         (two.length ? `<optgroup label="2D plans">${o(two)}</optgroup>` : '') + (rest.length ? `<optgroup label="Other">${o(rest)}</optgroup>` : '');
 }
@@ -19610,13 +19698,12 @@ function bpWireTakeoff() {
         document.body.appendChild(a); a.click(); a.remove();
     });
     document.getElementById('bpFpSelect').addEventListener('change', async e => {
-        const name = e.target.value;
-        if (!name) return;
-        bpSetStatus(`Downloading ${name}…`);
+        const ref = e.target.value;
+        if (!ref) return;
+        const name = bpSiteLabel(ref);
+        bpSetStatus(`Downloading ${name}\u2026`);
         try {
-            const res = await fetch(fpUrl(name));
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const blob = await res.blob();
+            const blob = await bpSiteFetch(ref);
             await bpOpenBlob(blob, name, 0, true);
         } catch (err) {
             bpSetStatus(`Couldn't open ${name} (${err.message}).`);
@@ -19720,7 +19807,7 @@ async function bpLoadLayout(t) {
     if (BP.lay && BP.lay.key === L.key) { bpPlaceLayout(); return; }
     let blob = null;
     try {
-        if (L.src === 'site') { const r = await fetch(fpUrl(L.name)); if (r.ok) blob = await r.blob(); }
+        if (L.src === 'site') blob = await bpSiteFetch(L.ref || L.name);
         else { const rec = await bpDbGetKey('layout:' + L.key); blob = rec && rec.blob; }
     } catch (e) {}
     if (!blob) { bpLayStatus(`Layout “${L.name}” isn't available in this browser — choose it again.`); BP.lay = null; bpPlaceLayout(); return; }
@@ -19746,7 +19833,7 @@ async function bpDbPutKey(key, rec) {
 }
 function bpLayStatus(msg) { const el = document.getElementById('bpLayStatus'); if (el) el.textContent = msg || ''; }
 // Choose a layout for the active unit.
-async function bpSetLayout(blob, name, src) {
+async function bpSetLayout(blob, name, src, ref) {
     if (!BP.pdf) return;
     const t = bpActiveTakeoff(true);
     bpLayStatus(`Loading ${name}…`);
@@ -19755,7 +19842,7 @@ async function bpSetLayout(blob, name, src) {
         const key = `${name}|${blob.size}`;
         if (src !== 'site') await bpDbPutKey('layout:' + key, { name, blob }).catch(() => {});
         BP.lay = { key, name, canvas, W: canvas.width, H: canvas.height };
-        t.layout = { key, name, src, pairs: [], mirror: false, opacity: 60, show: true, outer: false, M: null };
+        t.layout = { key, name, src, ref: ref || name, pairs: [], mirror: false, opacity: 60, show: true, outer: false, M: null };
         t.layout.M = bpLayoutDefaultM(t);
         bpSaveState();
         bpPlaceLayout(); bpRenderLayoutUi();
@@ -19940,14 +20027,13 @@ async function bpExportLayout() {
 }
 function bpWireLayout() {
     document.getElementById('bpLaySelect').addEventListener('change', async e => {
-        const name = e.target.value;
+        const ref = e.target.value;
         e.target.value = '';
-        if (!name || !BP.pdf) return;
-        bpLayStatus(`Downloading ${name}…`);
+        if (!ref || !BP.pdf) return;
+        const name = bpSiteLabel(ref);
+        bpLayStatus(`Downloading ${name}\u2026`);
         try {
-            const r = await fetch(fpUrl(name));
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            await bpSetLayout(await r.blob(), name, 'site');
+            await bpSetLayout(await bpSiteFetch(ref), name, 'site', ref);
         } catch (err) { bpLayStatus(`Couldn't open ${name} (${err.message}).`); }
     });
     const file = document.getElementById('bpLayFile');
@@ -20119,10 +20205,15 @@ function bpPlDraw() {
         BP_PL.box = { x0, y0, x1, y1 };
         parts.unshift(`<rect class="bp-pl-hit" x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}"/>`);
         parts.push(`<rect class="bp-pl-handle" data-pl-handle="1" x="${x1 - 7}" y="${y1 - 7}" width="14" height="14"/>`);
+        // Rotation handle above the middle of the shape.
+        const rx = (x0 + x1) / 2, ry = y0 - 28;
+        parts.push(`<line class="bp-pl-rotline" x1="${rx}" y1="${y0}" x2="${rx}" y2="${ry + 8}"/><circle class="bp-pl-rot" data-pl-rot="1" cx="${rx}" cy="${ry}" r="8"><title>Drag to rotate (Shift = 15\u00b0 steps)</title></circle>`);
     }
     document.getElementById('bpPlaceSvg').innerHTML = parts.join('');
     const deg = ((pl.rot % 360) + 360) % 360;
-    document.getElementById('bpPlaceInfo').textContent = `Rotation ${deg.toFixed(1)}°${pl.mirror ? ' · mirrored' : ''}`;
+    const ri = document.getElementById('bpPlaceRotInput');
+    if (document.activeElement !== ri) ri.value = (deg > 180 ? deg - 360 : deg).toFixed(1);
+    document.getElementById('bpPlaceInfo').textContent = pl.mirror ? 'mirrored' : '';
 }
 function bpPlSave() { bpSaveState(); bpPlDraw(); }
 // Sizes the floorplan for the current zoom (fit x zoom). The bitmap is
@@ -20257,6 +20348,12 @@ function bpWirePlace() {
     document.getElementById('bpPlaceModal').addEventListener('click', e => { if (e.target.id === 'bpPlaceModal') close(); });
     const pl = () => BP_PL.t.layout.place;
     document.getElementById('bpPlaceFit').addEventListener('click', () => { bpPlFit(pl(), BP_PL.shapes, BP_PL.c, BP.lay.canvas); bpPlSave(); });
+    document.getElementById('bpPlaceRotInput').addEventListener('change', e => {
+        const v = parseFloat(e.target.value);
+        if (isNaN(v)) return;
+        const P = pl();
+        bpPlRotate(v - P.rot);
+    });
     document.getElementById('bpPlaceZoomIn').addEventListener('click', () => bpPlZoomBy(1.4));
     document.getElementById('bpPlaceZoomOut').addEventListener('click', () => bpPlZoomBy(1 / 1.4));
     document.getElementById('bpPlaceZoomFit').addEventListener('click', () => { BP_PL.zoom = 1; bpPlSize(); });
@@ -20288,7 +20385,10 @@ function bpWirePlace() {
         const p = pos(e), P = pl();
         const mid = bpPlMap(P, BP_PL.c)(BP_PL.c);
         const edge = e.target.closest && e.target.closest('[data-pl-edge]');
-        if (e.target.getAttribute('data-pl-handle')) {
+        if (document.activeElement && document.activeElement.id === 'bpPlaceRotInput') document.activeElement.blur();
+        if (e.target.getAttribute('data-pl-rot')) {
+            BP_PL.drag = { mode: 'rotate', mid, a0: Math.atan2(p[1] - mid[1], p[0] - mid[0]), rot0: P.rot };
+        } else if (e.target.getAttribute('data-pl-handle')) {
             BP_PL.drag = { mode: 'scale', s0: P.s, d0: Math.hypot(p[0] - mid[0], p[1] - mid[1]) || 1, mid, t0: [P.tx, P.ty] };
         } else if (edge) {
             // A click on a length hides/shows it; dragging from it still moves the shape.
@@ -20304,7 +20404,14 @@ function bpWirePlace() {
         if (!d) return;
         const p = pos(e), P = pl();
         if (d.edge && !d.moved) { if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 4) return; d.moved = true; }
-        if (d.mode === 'move') { P.tx = d.t0[0] + p[0] - d.p0[0]; P.ty = d.t0[1] + p[1] - d.p0[1]; }
+        if (d.mode === 'rotate') {
+            let rot = d.rot0 + (Math.atan2(p[1] - d.mid[1], p[0] - d.mid[0]) - d.a0) * 180 / Math.PI;
+            if (e.shiftKey) rot = Math.round(rot / 15) * 15;
+            P.rot = rot;
+            // Turn about the shape's middle, which stays put.
+            const mid2 = bpPlMap(P, BP_PL.c)(BP_PL.c);
+            P.tx += d.mid[0] - mid2[0]; P.ty += d.mid[1] - mid2[1];
+        } else if (d.mode === 'move') { P.tx = d.t0[0] + p[0] - d.p0[0]; P.ty = d.t0[1] + p[1] - d.p0[1]; }
         else {
             // Resize about the shape's middle, which stays put.
             const ratio = Math.max(0.05, Math.hypot(p[0] - d.mid[0], p[1] - d.mid[1]) / d.d0);
@@ -20560,7 +20667,7 @@ function bpSyncSoon(ms) {
 }
 // Mid-drawing/dragging/placing, wait: replacing the shapes underneath
 // would lose the edit in progress.
-function bpSyncBusyEditing() { return !!(BP.pending.length || BP.vdrag || BP.align || (typeof BP_PL !== 'undefined' && BP_PL.open)); }
+function bpSyncBusyEditing() { return !!(BP.pending.length || BP.vdrag || BP.mdrag || BP.align || (typeof BP_PL !== 'undefined' && BP_PL.open)); }
 async function bpSyncNow() {
     if (!BACKEND_URL || APP_MODE === 'test' || !BP.syncKey || !BP.state) return;
     if (BP_SYNC.busy) { BP_SYNC.again = true; return; }
@@ -20616,6 +20723,129 @@ setInterval(() => {
     if (typeof adminSubTab !== 'undefined' && adminSubTab === 'blueprints' && BP.pdf && document.visibilityState !== 'hidden') bpSyncNow();
 }, 25000);
 
+// ---- Load a trace: copy a traced unit onto this sheet, then move it ----
+// Lists every unit traced in this file (any sheet). Loading one makes a
+// new unit on the current sheet with the same outlines (and known sq ft,
+// floorplan and hidden lengths), centered in the view; the Move tool then
+// drags it into place, snapping its nearest corner to the drawn lines.
+function bpAllTraces() {
+    const out = [];
+    Object.keys(BP.state.takeoffs || {}).forEach(pg => (BP.state.takeoffs[pg] || []).forEach(t => {
+        if (t.outer || t.inner) out.push({ pg: +pg, t, label: `${t.name || 'Unnamed unit'} — sheet ${pg}${BP.pages[pg] && BP.pages[pg].label ? ' (' + BP.pages[pg].label + ')' : ''}` });
+    }));
+    return out.sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+}
+function bpFillLoadSelect() {
+    const sel = document.getElementById('bpToLoad');
+    if (!sel) return;
+    const all = bpAllTraces();
+    sel.innerHTML = `<option value="">${all.length ? 'Load a trace…' : 'No traces yet'}</option>` +
+        all.map((x, i) => `<option value="${i}">${escapeHtml(x.label)}</option>`).join('');
+    sel._list = all;
+}
+// Applies f (page point -> page point, y down) to the active unit's outlines.
+function bpTransformActive(f) {
+    const t = bpActiveTakeoff(false);
+    if (!t) return;
+    ['outer', 'inner'].forEach(k => { if (t[k]) t[k] = t[k].map(p => bpPToSheet(f(bpSheetToP(p)))); });
+}
+function bpActiveCenterP() {
+    const t = bpActiveTakeoff(false);
+    const pts = [].concat(t.outer || [], t.inner || []).map(bpSheetToP);
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
+}
+async function bpLoadTrace(x) {
+    const src = x.t, srcPg = x.pg;
+    const copy = JSON.parse(JSON.stringify(src));
+    delete copy.id; delete copy.created;
+    copy.name = prompt('Name for the loaded unit (e.g. the unit number it’s going on):', src.name ? src.name + ' copy' : '') ;
+    if (copy.name === null) return;
+    // Keep the real size if the two sheets are drawn at different scales.
+    const sSrc = bpScale(srcPg), sDst = bpScale(BP.pageNum);
+    const k = sSrc && sDst ? sSrc / sDst : 1;
+    // Positions relative to the source shape's middle (in source page points).
+    const pts = [].concat(copy.outer || [], copy.inner || []);
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    // Center of the current view, in this sheet's PDF units.
+    const vp = document.getElementById('bpViewport'), stage = document.getElementById('bpStage');
+    const mid = BP.viewport.convertToPdfPoint(vp.scrollLeft - stage.offsetLeft + vp.clientWidth / 2, vp.scrollTop - stage.offsetTop + vp.clientHeight / 2);
+    ['outer', 'inner'].forEach(key => { if (copy[key]) copy[key] = copy[key].map(p => [mid[0] + (p[0] - cx) * k, mid[1] + (p[1] - cy) * k]); });
+    if (copy.layout) { delete copy.layout.pairs; delete copy.layout.M; }   // sheet-specific alignment
+    const list = bpTakeoffs();
+    list.push(copy);
+    BP.toIdx[BP.pageNum] = list.length - 1;
+    bpSaveState(); bpRenderTakeoff(); bpFillLoadSelect();
+    bpSetTool('move');
+    bpDrawOverlay();
+}
+// Move tool: drag the active unit; its nearest corner snaps to drawn lines.
+async function bpMoveDown(e) {
+    if (BP.tool !== 'move' || e.button !== 0) return false;
+    const t = bpActiveTakeoff(false);
+    if (!t || (!t.outer && !t.inner)) return false;
+    BP.mdrag = { start: bpEventPdfPoint(e), outer: t.outer && t.outer.map(p => p.slice()), inner: t.inner && t.inner.map(p => p.slice()) };
+    e.preventDefault();
+    return true;
+}
+async function bpMoveMove(e) {
+    const d = BP.mdrag;
+    if (!d) return false;
+    const t = bpActiveTakeoff(false);
+    const cur = bpEventPdfPoint(e);
+    let dx = cur[0] - d.start[0], dy = cur[1] - d.start[1];
+    const seq = ++BP.hoverSeq;
+    BP.snapPt = null;
+    if (!bpNoSnapKey(e)) {
+        // Snap whichever moved corner lands nearest a drawn point.
+        let best = null;
+        for (const p of [].concat(d.outer || [], d.inner || [])) {
+            const q = [p[0] + dx, p[1] + dy];
+            const s = await bpSnap(q, e);
+            if (seq !== BP.hoverSeq) return true;
+            if (s) { const dd = Math.hypot(s[0] - q[0], s[1] - q[1]); if (!best || dd < best.d) best = { d: dd, s, q }; }
+        }
+        if (best) { dx += best.s[0] - best.q[0]; dy += best.s[1] - best.q[1]; BP.snapPt = best.s; }
+    }
+    if (seq !== BP.hoverSeq || !BP.mdrag) return true;
+    if (d.outer) t.outer = d.outer.map(p => [p[0] + dx, p[1] + dy]);
+    if (d.inner) t.inner = d.inner.map(p => [p[0] + dx, p[1] + dy]);
+    bpDrawOverlay();
+    return true;
+}
+function bpMoveUp() {
+    if (!BP.mdrag) return;
+    BP.mdrag = null; BP.snapPt = null;
+    bpSaveState(); bpRenderTakeoff(); bpDrawOverlay();
+}
+function bpMoveKey(e) {
+    if (BP.tool !== 'move' || /input|textarea|select/i.test((document.activeElement || {}).tagName || '')) return false;
+    const step = (e.shiftKey ? 10 : 1);
+    const map = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    const m = map[e.key];
+    if (!m) return false;
+    // Screen pixels -> page points at this zoom.
+    bpTransformActive(p => [p[0] + m[0] / BP.zoom, p[1] + m[1] / BP.zoom]);
+    bpSaveState(); bpRenderTakeoff(); bpDrawOverlay();
+    e.preventDefault();
+    return true;
+}
+function bpRotateActive(deg) {
+    const t = bpActiveTakeoff(false);
+    if (!t || (!t.outer && !t.inner)) return;
+    const c = bpActiveCenterP(), a = deg * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a);
+    bpTransformActive(p => { const x = p[0] - c[0], y = p[1] - c[1]; return [c[0] + x * cos - y * sin, c[1] + x * sin + y * cos]; });
+    bpSaveState(); bpRenderTakeoff(); bpDrawOverlay();
+}
+function bpMirrorActive() {
+    const t = bpActiveTakeoff(false);
+    if (!t || (!t.outer && !t.inner)) return;
+    const c = bpActiveCenterP();
+    bpTransformActive(p => [2 * c[0] - p[0], p[1]]);
+    bpSaveState(); bpRenderTakeoff(); bpDrawOverlay();
+}
+
 // ---- Wiring ----
 (function bpInit() {
     const input = document.getElementById('bpFileInput');
@@ -20662,6 +20892,7 @@ setInterval(() => {
     const vp = document.getElementById('bpViewport'), stage = document.getElementById('bpStage');
     let drag = null;
     vp.addEventListener('mousedown', e => {
+        if (BP.tool === 'move') { bpMoveDown(e); return; }
         if (bpEditMouseDown(e)) return;
         if (BP.tool !== 'pan') { if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) e.preventDefault(); return; }
         if (e.button !== 0) return;
@@ -20671,10 +20902,11 @@ setInterval(() => {
     window.addEventListener('mousemove', e => {
         if (drag) { vp.scrollLeft = drag.sl - (e.clientX - drag.x); vp.scrollTop = drag.st - (e.clientY - drag.y); return; }
         BP.lastMouse = { clientX: e.clientX, clientY: e.clientY, inside: stage.contains(e.target) };
+        if (BP.mdrag) { bpMoveMove(e); return; }
         if (BP.vdrag) { bpEditMouseMove(e); return; }
         if (BP.lastMouse.inside) bpHoverUpdate(e);
     });
-    window.addEventListener('mouseup', e => { drag = null; vp.classList.remove('bp-dragging'); bpEditMouseUp(e); });
+    window.addEventListener('mouseup', e => { drag = null; vp.classList.remove('bp-dragging'); bpEditMouseUp(e); bpMoveUp(); });
     // Pressing or releasing Ctrl/Shift updates the preview right away.
     const modKey = e => {
         if (!/^(Shift|Control|Alt|Meta)$/.test(e.key) || !BP.lastMouse || !BP.lastMouse.inside || adminSubTab !== 'blueprints') return;
@@ -20693,7 +20925,7 @@ setInterval(() => {
     stage.addEventListener('pointerdown', e => { downAt = { x: e.clientX, y: e.clientY }; });
     stage.addEventListener('pointerup', e => {
         const d = downAt; downAt = null;
-        if (!d || BP.tool === 'pan' || BP.vdrag) return;
+        if (!d || BP.tool === 'pan' || BP.tool === 'move' || BP.vdrag) return;
         if (!(e.button === 0 || (e.button === 2 && e.ctrlKey))) return;
         if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return;
         bpStageClick(e);
@@ -20712,11 +20944,19 @@ setInterval(() => {
     document.addEventListener('keydown', e => {
         if (adminSubTab !== 'blueprints' || !BP.pdf) return;
         if (bpEditKey(e)) return;
+        if (bpMoveKey(e)) return;
         if (e.key === 'Escape' && BP.align) { bpSetTool('pan'); bpDrawOverlay(); }
         else if (e.key === 'Escape' && BP.pending.length) { BP.pending = []; BP.hover = null; bpDrawOverlay(); }
         else if (e.key === 'Enter' && BP_POLY_TOOLS.indexOf(BP.tool) !== -1 && BP.pending.length >= 3) bpFinishArea();
     });
     bpWireTakeoff();
+    document.getElementById('bpToLoad').addEventListener('change', e => {
+        const sel = e.target, x = sel._list && sel._list[+sel.value];
+        sel.value = '';
+        if (x && BP.pdf) bpLoadTrace(x);
+    });
+    document.getElementById('bpToRot').addEventListener('click', () => bpRotateActive(90));
+    document.getElementById('bpToMirror').addEventListener('click', () => bpMirrorActive());
     bpWireLayout();
     bpWirePlace();
     const syncRound = () => document.querySelectorAll('[data-bp-round]').forEach(b => b.setAttribute('aria-pressed', BP_ROUND ? 'true' : 'false'));
