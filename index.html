@@ -3912,6 +3912,7 @@
                 <input type="file" id="bpFileInput" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp,image/gif" style="display:none;">
                 <select id="bpFpSelect" class="bp-fp-select" title="Open a floorplan from Documents › Floorplans"><option value="">Or open a site floorplan&hellip;</option></select>
                 <span class="bp-file-name" id="bpFileName">No file open</span>
+                <span class="empty-note" id="bpSyncStatus" style="margin:0;font-weight:600;"></span>
                 <span class="empty-note bp-private">The PDF stays in this browser only &mdash; it is never uploaded or shared.</span>
             </div>
             <div class="bp-status" id="bpStatus"></div>
@@ -16749,7 +16750,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-lease-questions": {"title": "Ask Questions About the Sample Lease", "icon": "\u2753", "category": "Lease", "steps": ["Open the Lease tab and click \"Upload sample lease\" to load the current lease PDF (only needed when a new version comes out).", "The lease text is shared with the team, so everyone can ask questions after one upload; the PDF itself stays in the browser that uploaded it.", "Type a question in the bar (e.g. \"What is the late fee?\", \"How long can guests stay?\") and press Enter, or click an example.", "The answer quotes the matching sentences with the section and page. \"Read the whole section\" shows the full paragraph, and \"Open page\" opens the PDF there.", "\"Also see\" lists other sections that mention the same thing \u2014 click one to see its answer."]},
     "builtin-new-lease": {"title": "Fill Out a New Lease", "icon": "🖊️", "category": "Lease", "steps": ["Complete the resident's Welcome Letter first — the Lease tab pulls from it and from Residents.", "Open the Lease tab and search for the resident by unit or name.", "Each section (Lease Terms, Cover Sheet, Animal, Buyout, Inventory, Parking, Rent Concession, Special Provisions) shows the values to enter.", "Click the copy button next to any value to copy it, then paste it into the lease.", "For a renewal, check \"Select if Renewal Lease\" — the new dates start the day after the current lease ends.", "Click × next to the search to clear the selection."]},
     "builtin-mmr-traffic": {"title": "Record Weekly Traffic for the MMR", "icon": "🚶", "category": "Admin", "steps": ["Go to Admin (enter the password) > MMR > Weekly Traffic Detail.", "For each reason, write one sentence per show, starting with the prospect's first and last name and ending with a period.", "Each sentence that starts with a name counts as one show; follow-up sentences about the same prospect don't add to the count.", "Download New MMR replaces last week's numbers in the uploaded file.", "Click \"Clear for New Week\" to start the next week fresh."]},
-    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points. Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Clicks snap to the drawn corners (green square). Hold Ctrl to move freely without snapping, Shift to keep the line perfectly straight across or up/down (snapping then only sets the length), or Ctrl+Shift for both.", "Edit: drag any orange corner of a traced outline or measurement to move it, or click one corner, then a second corner on the same outline, click the new corners and finish on the second one to redraw that stretch. Delete removes a selected corner.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create floorplan image\" makes a PNG of the unit with every wall length labeled (sized from the known sq ft), ready to download.", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary.", "To put the traced shape on a 2D floorplan: under \"Floorplan image with measurements\", choose a site floorplan or upload one, then click \"Place traced shape on floorplan\". Drag the shape onto the walls, resize from its corner square, rotate or mirror as needed, and click \"Download PNG\". Wall lengths always come from the blueprint."]},
+    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Traced units, sheet scales and measurements are shared with the team through the backend: anyone who opens the same PDF file (same name and size) sees them, and changes sync about every 25 seconds.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points. Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Clicks snap to the drawn corners (green square). Hold Ctrl to move freely without snapping, Shift to keep the line perfectly straight across or up/down (snapping then only sets the length), or Ctrl+Shift for both.", "Edit: drag any orange corner of a traced outline or measurement to move it, or click one corner, then a second corner on the same outline, click the new corners and finish on the second one to redraw that stretch. Delete removes a selected corner.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create floorplan image\" makes a PNG of the unit with every wall length labeled (sized from the known sq ft), ready to download.", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary.", "To put the traced shape on a 2D floorplan: under \"Floorplan image with measurements\", choose a site floorplan or upload one, then click \"Place traced shape on floorplan\". Drag the shape onto the walls, resize from its corner square, rotate or mirror as needed, and click \"Download PNG\". Wall lengths always come from the blueprint."]},
     "builtin-commissions": {"title": "Run Commissions for the Pay Period", "icon": "💼", "category": "Admin", "steps": ["Go to Admin > Commissions and check the Current pay period (change its start date if needed).", "Review Suggested Move-Ins (residents moving in this pay period): + adds one officially, × rejects it.", "Add anything missing with \"+ Add Move-In\" or \"+ Add Renewal\", or use \"Import Renewals\" with the Resident Activity Detail export.", "Optional: upload last period's Commissions file to keep its formatting.", "Click \"Export to Excel\" — only officially added Move-Ins and Renewals are included."]},
     "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx)\". The file stays in your browser tab only and is never saved.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code (suggestions come from the file), To, Amount and For.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Check the summary under the table — it warns if the items won't fit in the sheet.", "Click \"Export to Excel\". Items go into the table, the approval date is set to today, and the rest of the file is unchanged.", "When asked, clear the exported items so they aren't added twice next time."]},
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
@@ -18535,6 +18536,9 @@ function bpLoadState() {
     BP.toIdx = {};
 }
 function bpSaveState() {
+    // Stamp what changed for the shared backend (not when applying a sync).
+    const changed = !BP.syncApplying && typeof bpSyncMark === 'function' && bpSyncMark();
+    if (changed) bpSyncSoon();
     try {
         const all = JSON.parse(localStorage.getItem(BP_LOCAL_KEY) || '{}');
         all[BP.fileKey] = BP.state;
@@ -18623,6 +18627,8 @@ async function bpOpenBlob(blob, name, lastModified, remember) {
         }
         BP.fileName = name;
         BP.fileKey = `${name}|${blob.size}|${lastModified || ''}`;
+        // Shared record for this file: same name + size on every computer.
+        BP.syncKey = 'bp-' + bpHash(`${name}|${blob.size}`);
         BP.pages = {}; BP.segs = {}; BP.extractDone = false; BP.highlight = null; BP.dimSel = new Set(); BP.pending = [];
         BP.pageNum = 1;
         bpLoadState();
@@ -18637,6 +18643,7 @@ async function bpOpenBlob(blob, name, lastModified, remember) {
         await bpGoTo(1, { fit: true });
         if (remember) bpDbPut({ name, lastModified: lastModified || 0, blob }).catch(() => {});
         document.getElementById('bpFpSelect').value = '';
+        bpSyncSoon(300);  // teammates' traces for this file
         bpExtractAll();   // background: text for search, sheet labels, dimensions
         bpRunCheck();     // background: vector / scan / text verdict
     } catch (err) {
@@ -20481,6 +20488,133 @@ function bpDrawEditHandles(parts) {
         parts.push(`<circle class="bp-v-handle${selected ? ' sel' : ''}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${selected ? 6.5 : 5}"/>`);
     }));
 }
+
+// ---- Shared backend sync of traced units, scales and measurements ----
+// Each blueprint file (matched by name + size, so every agent's copy of
+// the same PDF lines up) has one backend record holding items:
+//   s:<sheet>          that sheet's scale / calibration
+//   m:<sheet>          that sheet's Length/Area measurements
+//   t:<sheet>:<id>     one traced unit (outlines, known sq ft, placement)
+// Every item carries the time it was last changed; merging keeps the
+// newer copy of each item, so agents working on different units never
+// overwrite each other, and a deleted item leaves a dated tombstone.
+// The PDF itself is never synced.
+const BP_SYNC = { busy: false, again: false, timer: null, retry: null };
+function bpHash(s) {
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+    return (h >>> 0).toString(36);
+}
+function bpSyncMeta() {
+    const m = BP.state.sync = BP.state.sync || {};
+    m.ts = m.ts || {}; m.h = m.h || {}; m.gone = m.gone || {};
+    return m;
+}
+// The state as items (assigning ids/creation times to new units).
+function bpSyncItems() {
+    const items = {}, st = BP.state;
+    Object.keys(st.scales || {}).forEach(pg => { if (st.scales[pg]) items['s:' + pg] = st.scales[pg]; });
+    Object.keys(st.measures || {}).forEach(pg => { if ((st.measures[pg] || []).length) items['m:' + pg] = st.measures[pg]; });
+    Object.keys(st.takeoffs || {}).forEach(pg => (st.takeoffs[pg] || []).forEach(t => {
+        if (!t.id) t.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        if (!t.created) t.created = Date.now();
+        items['t:' + pg + ':' + t.id] = t;
+    }));
+    return items;
+}
+// Stamps every item that changed (or disappeared) since the last look.
+function bpSyncMark() {
+    if (!BP.state) return false;
+    const meta = bpSyncMeta(), items = bpSyncItems(), now = Date.now();
+    let changed = false;
+    Object.keys(items).forEach(k => {
+        const h = bpHash(JSON.stringify(items[k]));
+        if (meta.h[k] !== h || meta.gone[k]) { meta.h[k] = h; meta.ts[k] = now; delete meta.gone[k]; changed = true; }
+    });
+    Object.keys(meta.h).forEach(k => {
+        if (!items[k]) { delete meta.h[k]; meta.gone[k] = true; meta.ts[k] = now; changed = true; }
+    });
+    return changed;
+}
+// Rebuilds sheets' scales, measurements and units from items.
+function bpSyncApply(items) {
+    const keepActive = {};
+    Object.keys(BP.state.takeoffs || {}).forEach(pg => { const t = (BP.state.takeoffs[pg] || [])[BP.toIdx[pg]]; if (t && t.id) keepActive[pg] = t.id; });
+    const st = { scales: {}, measures: {}, takeoffs: {}, sync: BP.state.sync };
+    Object.keys(items).forEach(k => {
+        const [kind, pg] = k.split(':');
+        if (kind === 's') st.scales[pg] = items[k];
+        else if (kind === 'm') st.measures[pg] = items[k];
+        else if (kind === 't') (st.takeoffs[pg] = st.takeoffs[pg] || []).push(items[k]);
+    });
+    Object.keys(st.takeoffs).forEach(pg => st.takeoffs[pg].sort((a, b) => (a.created || 0) - (b.created || 0)));
+    BP.state = st;
+    BP.toIdx = {};
+    Object.keys(keepActive).forEach(pg => { const i = (st.takeoffs[pg] || []).findIndex(t => t.id === keepActive[pg]); if (i >= 0) BP.toIdx[pg] = i; });
+}
+function bpSyncStatus(msg) { const el = document.getElementById('bpSyncStatus'); if (el) el.textContent = msg || ''; }
+function bpSyncSoon(ms) {
+    if (!BACKEND_URL || APP_MODE === 'test' || !BP.syncKey) return;
+    clearTimeout(BP_SYNC.timer);
+    BP_SYNC.timer = setTimeout(bpSyncNow, ms == null ? 1500 : ms);
+}
+// Mid-drawing/dragging/placing, wait: replacing the shapes underneath
+// would lose the edit in progress.
+function bpSyncBusyEditing() { return !!(BP.pending.length || BP.vdrag || BP.align || (typeof BP_PL !== 'undefined' && BP_PL.open)); }
+async function bpSyncNow() {
+    if (!BACKEND_URL || APP_MODE === 'test' || !BP.syncKey || !BP.state) return;
+    if (BP_SYNC.busy) { BP_SYNC.again = true; return; }
+    if (bpSyncBusyEditing()) { bpSyncSoon(3000); return; }
+    BP_SYNC.busy = true;
+    const key = BP.syncKey;
+    try {
+        bpSyncMark();
+        bpSyncStatus('Syncing…');
+        const remote = await backendPullChecked(key);
+        if (remote === undefined) { bpSyncStatus('Couldn’t reach the shared backend — will retry.'); clearTimeout(BP_SYNC.retry); BP_SYNC.retry = setTimeout(bpSyncNow, 15000); return; }
+        if (key !== BP.syncKey || bpSyncBusyEditing()) { bpSyncSoon(3000); return; }
+        const R = (remote && remote.items) || {};
+        const meta = bpSyncMeta(), items = bpSyncItems();
+        let adopted = false, needPush = false;
+        new Set(Object.keys(R).concat(Object.keys(meta.ts))).forEach(k => {
+            const r = R[k], lts = meta.ts[k] || 0;
+            if (r && r.ts > lts) {
+                if (r.deleted) { delete items[k]; delete meta.h[k]; meta.gone[k] = true; }
+                else { items[k] = r.data; meta.h[k] = bpHash(JSON.stringify(r.data)); delete meta.gone[k]; }
+                meta.ts[k] = r.ts;
+                adopted = true;
+            } else if (lts && (!r || lts > r.ts)) needPush = true;
+        });
+        if (adopted) {
+            bpSyncApply(items);
+            BP.syncApplying = true;
+            try { bpSaveState(); } finally { BP.syncApplying = false; }
+            bpUpdateScaleUi(); bpRenderMeasures(); bpRenderTakeoff(); bpRenderSheetList(); bpDrawOverlay();
+        }
+        if (needPush) {
+            const out = {};
+            Object.keys(meta.ts).forEach(k => {
+                out[k] = meta.gone[k] ? { ts: meta.ts[k], deleted: true } : { ts: meta.ts[k], data: items[k] };
+            });
+            const ok = await backendPush(key, { v: 1, file: BP.fileName, items: out });
+            bpSyncStatus(ok ? 'All traces saved to the shared backend.' : 'Saving to the shared backend failed — will retry.');
+            if (!ok) { clearTimeout(BP_SYNC.retry); BP_SYNC.retry = setTimeout(bpSyncNow, 15000); }
+        } else {
+            bpSyncStatus(Object.keys(meta.ts).length ? 'All traces saved to the shared backend.' : '');
+        }
+    } catch (err) {
+        console.error(err);
+        bpSyncStatus('Sync error — will retry.');
+        clearTimeout(BP_SYNC.retry); BP_SYNC.retry = setTimeout(bpSyncNow, 15000);
+    } finally {
+        BP_SYNC.busy = false;
+        if (BP_SYNC.again) { BP_SYNC.again = false; bpSyncSoon(500); }
+    }
+}
+// Check for teammates' changes while the Blueprints tab is open.
+setInterval(() => {
+    if (typeof adminSubTab !== 'undefined' && adminSubTab === 'blueprints' && BP.pdf && document.visibilityState !== 'hidden') bpSyncNow();
+}, 25000);
 
 // ---- Wiring ----
 (function bpInit() {
