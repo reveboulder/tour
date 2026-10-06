@@ -1430,7 +1430,7 @@
     .bp-place-svg .bp-pl-rotline { stroke: #e0441b; stroke-width: 1.5; stroke-dasharray: 3 2; pointer-events: none; }
     .bp-place-rot input { width: 64px; border: 1px solid var(--line); border-radius: 5px; padding: 3px 5px; font-size: 12px; }
     .bp-place-zoomctl { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; }
-    .bp-place-zoomctl #bpPlaceZoom { min-width: 40px; text-align: center; }
+    .bp-place-zoomctl #bpPlaceZoom, #bpBlankZoom { min-width: 40px; text-align: center; }
     .bp-place-svg .bp-pl-hit { fill: transparent; cursor: move; }
     .bp-place-svg .bp-pl-inner { fill: rgba(192,57,43,0.08); stroke: #c0392b; stroke-width: 2.5; pointer-events: none; }
     .bp-place-svg .bp-pl-outer { fill: rgba(31,95,209,0.06); stroke: #1f5fd1; stroke-width: 2.5; pointer-events: none; }
@@ -1463,7 +1463,10 @@
     #bpModalCanvas, .bp-blank-side { display: none; }
     .bp-blank-mode .bp-modal-card { width: min(1400px, 100%); }
     .bp-blank-mode #bpModalImg { display: none; }
-    .bp-blank-mode #bpModalCanvas { display: block; max-width: 100%; max-height: calc(100vh - 110px); width: auto; height: auto; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.2); touch-action: none; }
+    .bp-blank-mode #bpModalCanvas { display: block; height: auto; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.2); touch-action: none; }
+    .bp-blank-mode .bp-modal-stage { overflow: auto; max-height: calc(100vh - 110px); align-self: stretch; }
+    .bp-blank-zoomctl { display: none; }
+    .bp-blank-mode .bp-blank-zoomctl { display: inline-flex; }
     .bp-blank-mode .bp-blank-side { display: flex; flex-direction: column; gap: 6px; width: 230px; flex: none; max-height: calc(100vh - 110px); overflow-y: auto; font-size: 13px; }
     .bp-blank-h { font-weight: 700; margin-top: 4px; }
     .bp-blank-list { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -1488,7 +1491,7 @@
         .bp-modal-main { flex-direction: column; }
         #bpModal .bp-modal-head { flex-wrap: wrap; }
         .bp-blank-mode .bp-blank-side { width: 100%; max-height: none; }
-        .bp-blank-mode #bpModalCanvas { max-height: 60vh; }
+        .bp-blank-mode .bp-modal-stage { max-height: 60vh; }
     }
     body.dark-mode .bp-takeoff, body.dark-mode .bp-to-row input, body.dark-mode .bp-to-row select, body.dark-mode .bp-fp-select, body.dark-mode .bp-modal-card { background: var(--dm-card-alt); color: inherit; }
     .bp-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
@@ -4102,6 +4105,7 @@
                     <div class="bp-modal-head">
                         <b id="bpModalTitle">Measured floorplan</b>
                         <span style="margin-left:auto;"></span>
+                        <span class="bp-place-zoomctl bp-blank-zoomctl"><button type="button" class="bp-btn bp-small" id="bpBlankZoomOut" title="Zoom out">&minus;</button><span id="bpBlankZoom">100%</span><button type="button" class="bp-btn bp-small" id="bpBlankZoomIn" title="Zoom in">+</button><button type="button" class="bp-btn bp-small" id="bpBlankZoomFit" title="Fit the floorplan in the window">Fit</button></span>
                         <button type="button" class="btn primary" id="bpModalUse" style="width:auto;flex:none;padding:7px 14px;display:none;" title="Save it to Documents › Floorplans and set it as this unit's floorplan, with the traced shape placed exactly on it">Use as this unit’s floorplan</button>
                         <button type="button" class="btn primary" id="bpModalDownload" style="width:auto;flex:none;padding:7px 14px;">Download PNG</button>
                         <button type="button" class="bp-btn" id="bpModalClose">Close</button>
@@ -4133,9 +4137,9 @@
                                 <button type="button" class="bp-blank-item" data-appl="toilet" title="Toilet, 20″ × 28″"><svg viewBox="0 0 30 30"><rect x="8" y="2" width="14" height="6" rx="1"/><ellipse cx="15" cy="17.5" rx="5.5" ry="9"/></svg>Toilet</button>
                                 <button type="button" class="bp-blank-item" data-appl="sink" title="Sink, 2′ × 1′8″"><svg viewBox="0 0 30 30"><rect x="3" y="6" width="24" height="20"/><ellipse cx="15" cy="16.5" rx="9" ry="6.5"/><circle cx="15" cy="16.5" r="1"/></svg>Sink</button>
                                 <button type="button" class="bp-blank-item" data-appl="counter" title="Countertop (gray) — drag a corner to set its width and length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a"><rect x="2" y="10" width="26" height="10"/></svg>Countertop <small>resizable</small></button>
-                                <button type="button" class="bp-blank-item" data-appl="closet" title="Closet (gray dashed) — drag a corner to set its width and length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2"><rect x="2" y="8" width="26" height="14"/></svg>Closet <small>dashed, resizable</small></button>
+                                <button type="button" class="bp-blank-item" data-appl="closet" title="Closet (gray dashed line) — drag an end to set its length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2;stroke-width:2"><path d="M2 15H28"/></svg>Closet <small>dashed line, resizable</small></button>
                             </div>
-                            <div class="bp-blank-tip">Click an item to add it, then drag it into place. Select one to rotate (R), resize or delete it; arrow keys nudge. Countertops and closets: drag a corner square to set the width and length. Labels and additions are saved with this unit.</div>
+                            <div class="bp-blank-tip">Click an item to add it, then drag it into place. Select one to rotate (R), resize or delete it; arrow keys nudge. Countertops: drag a corner square to set the width and length; closets: drag an end to set the length. Ctrl/&#8984; + scroll or &minus;/+ zooms; drag the background to pan when zoomed in. Labels and additions are saved with this unit.</div>
                         </div>
                     </div>
                 </div>
@@ -19713,13 +19717,13 @@ const BP_BLANK_APPL = {
     sink:   { label: 'Sink', w: 24, h: 20 },
     // Gray add-ons whose width and length are set by dragging a corner.
     counter: { label: 'Countertop', w: 96, h: 25, resize: true },
-    closet:  { label: 'Closet', w: 72, h: 24, resize: true }
+    closet:  { label: 'Closet', w: 72, h: 8, resize: 'len' }      // a dashed line; h is just its grab area
 };
 const BP_BLANK_GRAY = '#8a8a8a';
 // Size of an item in image pixels, unrotated.
 function bpBlankItemSize(ctx, it, ppi) {
     const A = BP_BLANK_APPL[it.kind];
-    if (A) return A.resize ? [(it.w || A.w) * ppi, (it.h || A.h) * ppi] : [A.w * ppi, A.h * ppi];
+    if (A) return A.resize ? [(it.w || A.w) * ppi, (A.resize === 'len' ? A.h : it.h || A.h) * ppi] : [A.w * ppi, A.h * ppi];
     const fs = BP_BLANK_FONT * (it.k || 1);
     ctx.font = `${fs}px Arial, sans-serif`;
     return [ctx.measureText(it.text || '').width + fs * 0.3, fs * 1.25];
@@ -19800,7 +19804,7 @@ function bpBlankDrawItem(ctx, it, B) {
     } else if (it.kind === 'closet') {
         ctx.strokeStyle = BP_BLANK_GRAY; ctx.lineWidth = Math.max(2, lw * 0.8);
         ctx.setLineDash([Math.max(8, 4 * ppi), Math.max(6, 3 * ppi)]);
-        ctx.strokeRect(-w / 2, -h / 2, w, h);
+        ctx.beginPath(); ctx.moveTo(-w / 2, 0); ctx.lineTo(w / 2, 0); ctx.stroke();
     }
     ctx.restore();
 }
@@ -19825,12 +19829,14 @@ function bpBlankPaint(ctx, B, items, sel) {
         ctx.strokeRect(-w / 2 - 8, -h / 2 - 8, w + 16, h + 16);
         if (bpBlankResizable(it)) {
             ctx.setLineDash([]); ctx.fillStyle = '#fff'; ctx.lineWidth = 3;
-            [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sy]) => { ctx.fillRect(sx * w / 2 - 9, sy * h / 2 - 9, 18, 18); ctx.strokeRect(sx * w / 2 - 9, sy * h / 2 - 9, 18, 18); });
+            bpBlankHandles(it).forEach(([sx, sy]) => { ctx.fillRect(sx * w / 2 - 9, sy * h / 2 - 9, 18, 18); ctx.strokeRect(sx * w / 2 - 9, sy * h / 2 - 9, 18, 18); });
         }
         ctx.restore();
     }
 }
 function bpBlankResizable(it) { const A = it && BP_BLANK_APPL[it.kind]; return !!(A && A.resize); }
+// Resize handles: the corners, or just the two ends of a line.
+function bpBlankHandles(it) { return BP_BLANK_APPL[it.kind].resize === 'len' ? [[-1, 0], [1, 0]] : [[-1, -1], [1, -1], [1, 1], [-1, 1]]; }
 // The corner handle of the selected resizable item under an image point.
 function bpBlankHitHandle(q) {
     const it = bpBlankSelected();
@@ -19838,7 +19844,7 @@ function bpBlankHitHandle(q) {
     const ctx = document.getElementById('bpModalCanvas').getContext('2d');
     const c = BP_BL.B.toImg([it.x, it.y]), [w, h] = bpBlankItemSize(ctx, it, BP_BL.B.ppi);
     const a = (it.rot || 0) * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a);
-    for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+    for (const [sx, sy] of bpBlankHandles(it)) {
         const lx = sx * w / 2, ly = sy * h / 2;
         const hx = c[0] + lx * cos - ly * sin, hy = c[1] + lx * sin + ly * cos;
         if (Math.abs(q[0] - hx) <= 16 && Math.abs(q[1] - hy) <= 16) {
@@ -19855,7 +19861,30 @@ async function bpMakeBlank(t) {
     return { blob, place: B.place };
 }
 // ---- The editor (in the blank floorplan window) ----
-const BP_BL = { open: false, t: null, B: null, sel: null, drag: null };
+const BP_BL = { open: false, t: null, B: null, sel: null, drag: null, zoom: 1 };
+// Zoom: 1 = the whole floorplan fits the window.
+function bpBlankFitWidth() {
+    const st = document.querySelector('#bpModal .bp-modal-stage'), cv = document.getElementById('bpModalCanvas');
+    const availW = st.clientWidth - 2, availH = parseFloat(getComputedStyle(st).maxHeight) || st.clientHeight || 600;
+    return Math.max(50, Math.min(availW / cv.width, (availH - 4) / cv.height) * cv.width);
+}
+function bpBlankApplyZoom() {
+    const cv = document.getElementById('bpModalCanvas');
+    cv.style.width = (bpBlankFitWidth() * BP_BL.zoom).toFixed(1) + 'px';
+    document.getElementById('bpBlankZoom').textContent = Math.round(BP_BL.zoom * 100) + '%';
+}
+// Zooms keeping the image point under (cx, cy) — client coords, default the stage middle — in place.
+function bpBlankZoomBy(f, cx, cy) {
+    const st = document.querySelector('#bpModal .bp-modal-stage'), cv = document.getElementById('bpModalCanvas');
+    const sr = st.getBoundingClientRect();
+    if (cx == null) { cx = sr.left + st.clientWidth / 2; cy = sr.top + st.clientHeight / 2; }
+    const r0 = cv.getBoundingClientRect(), fx = (cx - r0.left) / r0.width, fy = (cy - r0.top) / r0.height;
+    BP_BL.zoom = Math.max(1, Math.min(8, BP_BL.zoom * f));
+    bpBlankApplyZoom();
+    const r1 = cv.getBoundingClientRect();
+    st.scrollLeft += (r1.left + fx * r1.width) - cx;
+    st.scrollTop += (r1.top + fy * r1.height) - cy;
+}
 function bpBlankItems() { const t = BP_BL.t; return t ? (t.blankItems = t.blankItems || []) : []; }
 function bpBlankRedraw() {
     const cv = document.getElementById('bpModalCanvas');
@@ -19866,7 +19895,8 @@ function bpBlankRedraw() {
     document.getElementById('bpBlankSelTools').style.display = it ? '' : 'none';
     document.getElementById('bpBlankSelName').textContent = it ? (it.kind === 'label' ? `“${it.text}”` : BP_BLANK_APPL[it.kind].label) : '';
     const A = it && BP_BLANK_APPL[it.kind];
-    document.getElementById('bpBlankSelSize').textContent = A && A.resize ? `${bpFmtFtIn(it.w || A.w)} × ${bpFmtFtIn(it.h || A.h)} — drag a corner square to resize` : '';
+    document.getElementById('bpBlankSelSize').textContent = !(A && A.resize) ? '' : A.resize === 'len'
+        ? `${bpFmtFtIn(it.w || A.w)} long — drag an end square to resize` : `${bpFmtFtIn(it.w || A.w)} × ${bpFmtFtIn(it.h || A.h)} — drag a corner square to resize`;
     document.querySelectorAll('#bpBlankSelTools [data-label-only]').forEach(b => { b.style.display = it && it.kind === 'label' ? '' : 'none'; });
 }
 // Saves the items with the unit (synced like the rest of the trace).
@@ -19964,6 +19994,7 @@ async function bpTakeoffImage() {
     document.getElementById('bpModalTitle').textContent = `${t.name || 'Unit'} — blank floorplan`;
     document.getElementById('bpModal').style.display = 'flex';
     bpBlankRedraw();
+    BP_BL.zoom = 1; bpBlankApplyZoom();
     bpSetStatus('');
 }
 // Saves the blank floorplan to Documents › Floorplans (shared) and makes
@@ -20024,6 +20055,14 @@ function bpWireBlank() {
         }
         const it = bpBlankHit(q);
         BP_BL.sel = it ? it.id : null;
+        if (!it && BP_BL.zoom > 1) {
+            // Drag the background to pan.
+            const st = document.querySelector('#bpModal .bp-modal-stage');
+            BP_BL.drag = { pan: true, x: e.clientX, y: e.clientY, sl: st.scrollLeft, stp: st.scrollTop };
+            cv.setPointerCapture(e.pointerId);
+            cv.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
         if (it) {
             const c = BP_BL.B.toImg([it.x, it.y]);
             BP_BL.drag = { id: it.id, dx: c[0] - q[0], dy: c[1] - q[1], moved: false };
@@ -20034,7 +20073,12 @@ function bpWireBlank() {
     });
     cv.addEventListener('pointermove', e => {
         const d = BP_BL.drag;
-        if (!d) { if (BP_BL.open) { const q = bpBlankEventImg(e); cv.style.cursor = bpBlankHitHandle(q) ? 'nwse-resize' : bpBlankHit(q) ? 'move' : 'default'; } return; }
+        if (!d) { if (BP_BL.open) { const q = bpBlankEventImg(e); cv.style.cursor = bpBlankHitHandle(q) ? (bpBlankSelected().kind === 'closet' ? 'ew-resize' : 'nwse-resize') : bpBlankHit(q) ? 'move' : BP_BL.zoom > 1 ? 'grab' : 'default'; } return; }
+        if (d.pan) {
+            const st = document.querySelector('#bpModal .bp-modal-stage');
+            st.scrollLeft = d.sl - (e.clientX - d.x); st.scrollTop = d.stp - (e.clientY - d.y);
+            return;
+        }
         const it = bpBlankItems().find(x => x.id === d.id);
         if (!it) return;
         if (d.resize) {
@@ -20042,7 +20086,7 @@ function bpWireBlank() {
             const r = d.resize, q = bpBlankEventImg(e), ppi = BP_BL.B.ppi, cos = Math.cos(r.a), sin = Math.sin(r.a);
             const dx = q[0] - r.fixed[0], dy = q[1] - r.fixed[1];
             const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos;
-            const wi = Math.max(6, Math.round(r.sx * lx / ppi)), hi = Math.max(6, Math.round(r.sy * ly / ppi));
+            const wi = Math.max(6, Math.round(r.sx * lx / ppi)), hi = r.sy ? Math.max(6, Math.round(r.sy * ly / ppi)) : it.h;
             const mx = r.sx * wi * ppi / 2, my = r.sy * hi * ppi / 2;
             const P = BP_BL.B.fromImg([r.fixed[0] + mx * cos - my * sin, r.fixed[1] + mx * sin + my * cos]);
             it.w = wi; it.h = hi; it.x = P[0]; it.y = P[1]; d.moved = true;
@@ -20053,7 +20097,16 @@ function bpWireBlank() {
         it.x = P[0]; it.y = P[1]; d.moved = true;
         bpBlankRedraw();
     });
-    const up = () => { const d = BP_BL.drag; BP_BL.drag = null; if (d && d.moved) bpBlankChanged(); };
+    const up = () => { const d = BP_BL.drag; BP_BL.drag = null; if (d && d.pan) cv.style.cursor = 'grab'; if (d && d.moved) bpBlankChanged(); };
+    document.getElementById('bpBlankZoomIn').addEventListener('click', () => bpBlankZoomBy(1.25));
+    document.getElementById('bpBlankZoomOut').addEventListener('click', () => bpBlankZoomBy(1 / 1.25));
+    document.getElementById('bpBlankZoomFit').addEventListener('click', () => { BP_BL.zoom = 1; bpBlankApplyZoom(); });
+    document.querySelector('#bpModal .bp-modal-stage').addEventListener('wheel', e => {
+        if (!BP_BL.open || !(e.ctrlKey || e.metaKey)) return;
+        e.preventDefault();
+        bpBlankZoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY);
+    }, { passive: false });
+    window.addEventListener('resize', () => { if (BP_BL.open) bpBlankApplyZoom(); });
     cv.addEventListener('pointerup', up);
     cv.addEventListener('pointercancel', up);
     cv.addEventListener('dblclick', e => { const it = bpBlankHit(bpBlankEventImg(e)); if (it && it.kind === 'label') { BP_BL.sel = it.id; bpBlankRename(); } });
@@ -20062,6 +20115,8 @@ function bpWireBlank() {
         if (!BP_BL.open) return;
         if (/input|textarea|select/i.test((document.activeElement || {}).tagName || '')) return;
         const it = bpBlankSelected();
+        if (e.key === '+' || e.key === '=') { bpBlankZoomBy(1.25); e.preventDefault(); e.stopImmediatePropagation(); return; }
+        if (e.key === '-' || e.key === '_') { bpBlankZoomBy(1 / 1.25); e.preventDefault(); e.stopImmediatePropagation(); return; }
         if (e.key === 'Escape') { if (it) { BP_BL.sel = null; bpBlankRedraw(); } else bpModalClose(); }
         else if (!it) return;
         else if (e.key === 'Delete' || e.key === 'Backspace') bpBlankDelete();
