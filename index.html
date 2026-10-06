@@ -1478,15 +1478,21 @@
     .bp-blank-item svg text { fill: #222; stroke: none; font: bold 7px Arial, sans-serif; text-anchor: middle; }
     .bp-blank-row { display: flex; flex-wrap: wrap; gap: 4px; }
     .bp-blank-row input { flex: 1; min-width: 0; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
-    .bp-blank-sel { background: #eef5fd; border: 1px solid #b9d4f3; border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; gap: 6px; }
+    .bp-blank-mode .bp-modal-stage { position: relative; }
+    .bp-blank-bar { position: absolute; z-index: 2; display: flex; align-items: center; gap: 4px; white-space: nowrap; background: #fff; border: 1px solid #b9d4f3; border-radius: 8px; padding: 4px 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.18); font-size: 12px; }
+    .bp-blank-bar-name { font-weight: 700; padding: 0 2px; }
+    .bp-blank-ico { padding: 3px 5px; line-height: 0; }
+    .bp-blank-ico svg { width: 18px; height: 18px; }
+    .bp-blank-bar .bp-blank-size { color: #555; padding-right: 2px; }
     .bp-blank-del { color: #b03a2e; }
     .bp-blank-size { font-size: 12px; color: #555; }
+    .bp-blank-bar .bp-blank-size { font-size: 11.5px; }
     .bp-blank-size:empty { display: none; }
     .bp-blank-tip { color: #666; font-size: 12px; line-height: 1.4; margin-top: 4px; }
     body.dark-mode .bp-blank-item, body.dark-mode .bp-blank-row input { background: var(--dm-card-alt); }
     body.dark-mode .bp-blank-item svg { stroke: #ddd; }
     body.dark-mode .bp-blank-item svg text { fill: #ddd; }
-    body.dark-mode .bp-blank-sel { background: transparent; }
+    body.dark-mode .bp-blank-bar { background: var(--dm-card-alt); }
     @media (max-width: 760px) {
         .bp-modal-main { flex-direction: column; }
         #bpModal .bp-modal-head { flex-wrap: wrap; }
@@ -4111,20 +4117,24 @@
                         <button type="button" class="bp-btn" id="bpModalClose">Close</button>
                     </div>
                     <div class="bp-modal-body bp-modal-main">
-                        <div class="bp-modal-stage"><img id="bpModalImg" alt="Measured floorplan"><canvas id="bpModalCanvas"></canvas></div>
-                        <div class="bp-blank-side">
-                            <div class="bp-blank-sel" id="bpBlankSelTools" style="display:none;">
-                                <div class="bp-blank-h">Selected: <span id="bpBlankSelName"></span></div>
-                                <div class="bp-blank-size" id="bpBlankSelSize"></div>
-                                <div class="bp-blank-row">
-                                    <button type="button" class="bp-btn bp-small" id="bpBlankRotL" title="Rotate 90° left (Shift+R)">&#8634; 90&deg;</button>
-                                    <button type="button" class="bp-btn bp-small" id="bpBlankRotR" title="Rotate 90° right (R)">&#8635; 90&deg;</button>
-                                    <button type="button" class="bp-btn bp-small" id="bpBlankSmaller" data-label-only title="Smaller text">A&minus;</button>
-                                    <button type="button" class="bp-btn bp-small" id="bpBlankLarger" data-label-only title="Larger text">A+</button>
-                                    <button type="button" class="bp-btn bp-small" id="bpBlankRename" data-label-only title="Change the text (or double-click the label)">Rename</button>
-                                    <button type="button" class="bp-btn bp-small bp-blank-del" id="bpBlankDelete" title="Remove (Delete)">Delete</button>
-                                </div>
+                        <div class="bp-modal-stage"><img id="bpModalImg" alt="Measured floorplan"><canvas id="bpModalCanvas"></canvas>
+                            <div class="bp-blank-bar" id="bpBlankSelTools" style="display:none;">
+                                <span class="bp-blank-bar-name" id="bpBlankSelName"></span>
+                                <span class="bp-blank-size" id="bpBlankSelSize"></span>
+                                <button type="button" class="bp-btn bp-small" id="bpBlankRotL" title="Rotate 90° left (Shift+R)">&#8634; 90&deg;</button>
+                                <button type="button" class="bp-btn bp-small" id="bpBlankRotR" title="Rotate 90° right (R)">&#8635; 90&deg;</button>
+                                <button type="button" class="bp-btn bp-small bp-blank-ico" id="bpBlankFwd" title="Forward — bring in front of the item over it"><svg viewBox="0 0 20 20"><rect x="2" y="2" width="11" height="11" fill="#111" stroke="#111"/><rect x="7" y="7" width="11" height="11" fill="#fff" stroke="#111"/></svg></button>
+                                <button type="button" class="bp-btn bp-small bp-blank-ico" id="bpBlankBack" title="Backward — send behind the item under it"><svg viewBox="0 0 20 20"><rect x="2" y="2" width="11" height="11" fill="#fff" stroke="#111"/><rect x="7" y="7" width="11" height="11" fill="#111" stroke="#111"/></svg></button>
+                                <button type="button" class="bp-btn bp-small" id="bpBlankGroup" title="Link these items so they move and rotate together (Ctrl/⌘+G)">Group</button>
+                                <button type="button" class="bp-btn bp-small" id="bpBlankUngroup" title="Unlink the grouped items (Ctrl/⌘+Shift+G)">Ungroup</button>
+                                <button type="button" class="bp-btn bp-small" id="bpBlankFlip" data-door-only title="Swap the hinge side">Flip</button>
+                                <button type="button" class="bp-btn bp-small" id="bpBlankSmaller" data-label-only title="Smaller text">A&minus;</button>
+                                <button type="button" class="bp-btn bp-small" id="bpBlankLarger" data-label-only title="Larger text">A+</button>
+                                <button type="button" class="bp-btn bp-small" id="bpBlankRename" data-label-only title="Change the text (or double-click the label)">Rename</button>
+                                <button type="button" class="bp-btn bp-small bp-blank-del" id="bpBlankDelete" title="Remove (Delete)">Delete</button>
                             </div>
+                        </div>
+                        <div class="bp-blank-side">
                             <div class="bp-blank-h">Room labels</div>
                             <div class="bp-blank-list" id="bpBlankRooms"></div>
                             <div class="bp-blank-row"><input type="text" id="bpBlankCustom" placeholder="Custom label…"><button type="button" class="bp-btn bp-small" id="bpBlankCustomAdd">Add</button></div>
@@ -4132,14 +4142,18 @@
                             <div class="bp-blank-list" id="bpBlankAppl">
                                 <button type="button" class="bp-blank-item" data-appl="wd" title="Stackable washer/dryer, 2′5″ × 2′5″"><svg viewBox="0 0 30 30"><rect x="3" y="3" width="24" height="24"/><text x="15" y="18.5">W/D</text></svg>W/D <small>stackable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="wd2" title="Side-by-side washer and dryer, two 2′5″ × 2′5″ boxes"><svg viewBox="0 0 30 30"><rect x="1" y="8" width="14" height="14"/><rect x="15" y="8" width="14" height="14"/><text x="8" y="18">W</text><text x="22" y="18">D</text></svg>W + D <small>side by side</small></button>
-                                <button type="button" class="bp-blank-item" data-appl="bath" title="Bathtub, 5′ × 2′6″"><svg viewBox="0 0 30 30"><rect x="1" y="8" width="28" height="14"/><rect x="3" y="10" width="24" height="10" rx="4"/><circle cx="7" cy="15" r="1"/></svg>Bath</button>
-                                <button type="button" class="bp-blank-item" data-appl="shower" title="Shower, 3′ × 3′"><svg viewBox="0 0 30 30"><rect x="5" y="5" width="20" height="20"/><path d="M5 5L25 25M25 5L5 25"/><circle cx="15" cy="15" r="2" fill="#fff"/></svg>Shower</button>
+                                <button type="button" class="bp-blank-item" data-appl="bath" title="Bathtub, 5′ × 2′6″"><svg viewBox="0 0 30 30"><rect x="1" y="8" width="28" height="14"/><rect x="3" y="10" width="24" height="10" rx="4"/><circle cx="7" cy="15" r="1"/></svg>Bath <small>resizable</small></button>
+                                <button type="button" class="bp-blank-item" data-appl="shower" title="Shower, 3′ × 3′"><svg viewBox="0 0 30 30"><rect x="5" y="5" width="20" height="20"/><path d="M5 5L25 25M25 5L5 25"/><circle cx="15" cy="15" r="2" fill="#fff"/></svg>Shower <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="toilet" title="Toilet, 20″ × 28″"><svg viewBox="0 0 30 30"><rect x="8" y="2" width="14" height="6" rx="1"/><ellipse cx="15" cy="17.5" rx="5.5" ry="9"/></svg>Toilet</button>
                                 <button type="button" class="bp-blank-item" data-appl="sink" title="Sink, 2′ × 1′8″"><svg viewBox="0 0 30 30"><rect x="3" y="6" width="24" height="20"/><ellipse cx="15" cy="16.5" rx="9" ry="6.5"/><circle cx="15" cy="16.5" r="1"/></svg>Sink</button>
+                                <button type="button" class="bp-blank-item" data-appl="stove" title="Stove / range, 2′6″ × 2′1″"><svg viewBox="0 0 30 30"><rect x="3" y="4" width="24" height="21"/><path d="M3 7H27"/><circle cx="9.5" cy="12" r="3"/><circle cx="20.5" cy="12" r="3"/><circle cx="9.5" cy="20" r="2.6"/><circle cx="20.5" cy="20" r="2.6"/></svg>Stove</button>
+                                <button type="button" class="bp-blank-item" data-appl="fridge" title="Refrigerator, 3′ × 2′6″"><svg viewBox="0 0 30 30"><rect x="3" y="3" width="24" height="22"/><path d="M3 22H27M15 22V25M3 3L27 22"/></svg>Fridge</button>
+                                <button type="button" class="bp-blank-item" data-appl="door" title="Swinging door, 2′8″ — drag an end to set the width; Flip swaps the hinge side"><svg viewBox="0 0 30 30"><path d="M4 4H28M4 4V28" style="stroke-width:2"/><path d="M28 4A24 24 0 0 1 4 28"/></svg>Door <small>resizable</small></button>
+                                <button type="button" class="bp-blank-item" data-appl="slider" title="Sliding glass door, 6′ — set its width and the wall's thickness by dragging a corner"><svg viewBox="0 0 30 30"><path d="M2 10V20M28 10V20" style="stroke-width:2"/><path d="M2 11H28M2 19H28" style="stroke-width:.6"/><rect x="2" y="12" width="14" height="2.5"/><rect x="14" y="15.5" width="14" height="2.5"/></svg>Sliding door <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="counter" title="Countertop (gray) — drag a corner to set its width and length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a"><rect x="2" y="10" width="26" height="10"/></svg>Countertop <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="closet" title="Closet (gray dashed line) — drag an end to set its length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2;stroke-width:2"><path d="M2 15H28"/></svg>Closet <small>dashed line, resizable</small></button>
                             </div>
-                            <div class="bp-blank-tip">Click an item to add it, then drag it into place. Select one to rotate (R), resize or delete it; arrow keys nudge. Countertops: drag a corner square to set the width and length; closets: drag an end to set the length. Ctrl/&#8984; + scroll or &minus;/+ zooms; drag the background to pan when zoomed in. Labels and additions are saved with this unit.</div>
+                            <div class="bp-blank-tip">Click an item to add it, then drag it into place. Select one to rotate (R), resize or delete it; arrow keys nudge. Selecting an item shows its edit bar above it. Ctrl/&#8984;-click more items to select several, then Group them to move and rotate them together. The layer buttons bring an item in front of (or behind) what it overlaps. Resizable items show white squares: drag a corner to set the width and length (doors and closets: drag an end). Place a door's straight top edge along the wall; size a sliding door to the wall's thickness so it opens the wall up. Ctrl/&#8984; + scroll or &minus;/+ zooms; drag the background to pan when zoomed in. Labels and additions are saved with this unit.</div>
                         </div>
                     </div>
                 </div>
@@ -19665,6 +19679,7 @@ function bpMakeBlankBase(t) {
     if (inner) { ctx.lineWidth = 4; path(inner.P); ctx.stroke(); }
     if (outer) { ctx.lineWidth = 8; path(outer.P); ctx.stroke(); }
     // Balcony: the part of the inner trace that's outside the outer trace.
+    let balcony = null;
     if (inner && outer) {
         let n = 0, sx = 0, sy = 0, insideInner = 0;
         const step = Math.max(w, h) / 160;
@@ -19686,11 +19701,7 @@ function bpMakeBlankBase(t) {
                 }
                 c = best || c;
             }
-            const q = toImg(c);
-            ctx.fillStyle = '#000';
-            ctx.font = `${BP_BLANK_FONT}px Arial, sans-serif`;
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText('Balcony', q[0], q[1]);
+            balcony = c;   // its "Balcony" label is a movable item (bpBlankEnsureBalcony)
         }
     }
     // Image pixels per real inch (for true-size appliances); without any
@@ -19700,22 +19711,28 @@ function bpMakeBlankBase(t) {
     // Where the traced shape sits on this image (see bpPlMap): scale s,
     // no rotation, its center c at the matching image point.
     const cImg = toImg(bpPlCenter(shapes));
-    return { canvas, toImg, fromImg, ppi, center: cImg, place: { s, rot: 0, mirror: false, tx: cImg[0], ty: cImg[1] } };
+    return { canvas, toImg, fromImg, ppi, center: cImg, balcony, place: { s, rot: 0, mirror: false, tx: cImg[0], ty: cImg[1] } };
 }
 // ---- Room labels and appliances ----
 // Each item: { id, kind, text, x, y, rot, k } with x/y its center in the
 // unit's page points (so it stays put on the walls), rot in degrees and
 // k a size factor for labels. Appliances are drawn to true size.
 const BP_BLANK_FONT = Math.round(Math.max(28, BP_BLANK_MAX / 40));
-const BP_BLANK_ROOMS = ['Primary Bedroom', 'Bedroom', 'Bedroom 2', 'Bedroom 3', 'Living Room', 'Kitchen', 'Dining', 'Primary Bath', 'Bath', 'Half Bath', 'Walk-in Closet', 'Closet', 'Entry', 'Laundry', 'Pantry', 'Den', 'Office', 'Storage', 'Patio'];
+const BP_BLANK_ROOMS = ['Primary Bedroom', 'Bedroom', 'Bedroom 2', 'Bedroom 3', 'Living Room', 'Kitchen', 'Dining', 'Primary Bath', 'Bath', 'Half Bath', 'W/I Closet', 'Closet', 'Entry', 'Laundry', 'Pantry', 'Den', 'Office', 'Storage', 'Patio'];
 const BP_BLANK_APPL = {
     wd:     { label: 'W/D (stackable)', w: 29, h: 29 },        // 2'5" × 2'5"
     wd2:    { label: 'W + D (side by side)', w: 58, h: 29 },   // two of those
-    bath:   { label: 'Bath', w: 60, h: 30 },
-    shower: { label: 'Shower', w: 36, h: 36 },
+    // resize: true = drag a corner (width and length); 'len' = drag an
+    // end (length only); 'door' = drag an end of the opening (the swing grows with it).
+    bath:   { label: 'Bath', w: 60, h: 30, resize: true },
+    shower: { label: 'Shower', w: 36, h: 36, resize: true },
     toilet: { label: 'Toilet', w: 20, h: 28 },
     sink:   { label: 'Sink', w: 24, h: 20 },
-    // Gray add-ons whose width and length are set by dragging a corner.
+    stove:  { label: 'Stove', w: 30, h: 25 },
+    fridge: { label: 'Fridge', w: 36, h: 30 },
+    door:   { label: 'Door', w: 32, h: 32, resize: 'door' },
+    slider: { label: 'Sliding glass door', w: 72, h: 6, resize: true },
+    // Gray add-ons.
     counter: { label: 'Countertop', w: 96, h: 25, resize: true },
     closet:  { label: 'Closet', w: 72, h: 8, resize: 'len' }      // a dashed line; h is just its grab area
 };
@@ -19723,7 +19740,14 @@ const BP_BLANK_GRAY = '#8a8a8a';
 // Size of an item in image pixels, unrotated.
 function bpBlankItemSize(ctx, it, ppi) {
     const A = BP_BLANK_APPL[it.kind];
-    if (A) return A.resize ? [(it.w || A.w) * ppi, (A.resize === 'len' ? A.h : it.h || A.h) * ppi] : [A.w * ppi, A.h * ppi];
+    if (!A) {
+        const fs = BP_BLANK_FONT * (it.k || 1);
+        ctx.font = `${fs}px Arial, sans-serif`;
+        return [ctx.measureText(it.text || '').width + fs * 0.3, fs * 1.25];
+    }
+    if (!A.resize) return [A.w * ppi, A.h * ppi];
+    const w = it.w || A.w;
+    return [w * ppi, (A.resize === 'len' ? A.h : A.resize === 'door' ? w : it.h || A.h) * ppi];
     const fs = BP_BLANK_FONT * (it.k || 1);
     ctx.font = `${fs}px Arial, sans-serif`;
     return [ctx.measureText(it.text || '').width + fs * 0.3, fs * 1.25];
@@ -19798,6 +19822,53 @@ function bpBlankDrawItem(ctx, it, B) {
         ctx.lineWidth = Math.max(1.5, lw * 0.6);
         ctx.beginPath(); ctx.ellipse(0, 1 * ppi, w / 2 - 3 * ppi, h / 2 - 3.5 * ppi, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.beginPath(); ctx.arc(0, 1 * ppi, Math.max(3, 1.2 * ppi), 0, Math.PI * 2); ctx.stroke();
+    } else if (it.kind === 'stove') {
+        // Range: the box, the control strip at the back and four burners.
+        ctx.lineWidth = lw;
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+        ctx.lineWidth = Math.max(1.5, lw * 0.6);
+        ctx.beginPath(); ctx.moveTo(-w / 2, -h / 2 + 3 * ppi); ctx.lineTo(w / 2, -h / 2 + 3 * ppi); ctx.stroke();
+        const cy0 = 1.5 * ppi;
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sy]) => {
+            const r = (sy < 0 ? 4 : 3.4) * ppi;
+            ctx.beginPath(); ctx.arc(sx * w / 4, cy0 + sy * h / 4.6, r, 0, Math.PI * 2); ctx.stroke();
+        });
+    } else if (it.kind === 'fridge') {
+        // Refrigerator: the box, the doors along the front and their handles.
+        ctx.lineWidth = lw;
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+        ctx.lineWidth = Math.max(1.5, lw * 0.6);
+        const fy = h / 2 - 3 * ppi;
+        ctx.beginPath();
+        ctx.moveTo(-w / 2, fy); ctx.lineTo(w / 2, fy);
+        ctx.moveTo(0, fy); ctx.lineTo(0, h / 2);
+        ctx.moveTo(-w / 2, -h / 2); ctx.lineTo(w / 2, fy);
+        ctx.stroke();
+    } else if (it.kind === 'door') {
+        // Swinging door: the opening along the top edge, the leaf standing
+        // open from the hinge and the arc of its swing. Flip = hinge side.
+        if (it.flip) ctx.scale(-1, 1);
+        const y0 = -h / 2;
+        ctx.lineWidth = lw;
+        ctx.beginPath(); ctx.moveTo(-w / 2, y0); ctx.lineTo(-w / 2, y0 + w); ctx.stroke();
+        ctx.lineWidth = Math.max(1, lw * 0.45);
+        ctx.beginPath(); ctx.arc(-w / 2, y0, w, 0, Math.PI / 2); ctx.stroke();
+    } else if (it.kind === 'slider') {
+        // Sliding glass door: the wall is opened up across its width, with
+        // two half-width panels on side-by-side tracks overlapping in the middle.
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-w / 2, -h / 2 - 6, w, h + 12);
+        ctx.lineWidth = lw;
+        ctx.beginPath();
+        ctx.moveTo(-w / 2, -h / 2 - 6); ctx.lineTo(-w / 2, h / 2 + 6);
+        ctx.moveTo(w / 2, -h / 2 - 6); ctx.lineTo(w / 2, h / 2 + 6);
+        ctx.stroke();
+        ctx.lineWidth = Math.max(1, lw * 0.4);
+        ctx.beginPath(); ctx.moveTo(-w / 2, -h / 2); ctx.lineTo(w / 2, -h / 2); ctx.moveTo(-w / 2, h / 2); ctx.lineTo(w / 2, h / 2); ctx.stroke();
+        const ov = Math.min(3 * ppi, w * 0.05), t1 = h * 0.08, t2 = h * 0.34;
+        ctx.lineWidth = Math.max(1.5, lw * 0.6);
+        ctx.strokeRect(-w / 2, -t2, w / 2 + ov, t2 - t1);
+        ctx.strokeRect(-ov, t1, w / 2 + ov, t2 - t1);
     } else if (it.kind === 'counter') {
         ctx.strokeStyle = BP_BLANK_GRAY; ctx.lineWidth = lw;
         ctx.strokeRect(-w / 2, -h / 2, w, h);
@@ -19819,24 +19890,27 @@ function bpBlankCompose(B, items, sel) {
 function bpBlankPaint(ctx, B, items, sel) {
     ctx.drawImage(B.canvas, 0, 0);
     (items || []).forEach(it => bpBlankDrawItem(ctx, it, B));
-    const it = sel && (items || []).find(x => x.id === sel);
-    if (it) {
+    const ids = [].concat(sel || []), chosen = (items || []).filter(x => ids.indexOf(x.id) !== -1);
+    chosen.forEach(it => {
         const c = B.toImg([it.x, it.y]);
         const [w, h] = bpBlankItemSize(ctx, it, B.ppi);
         ctx.save();
         ctx.translate(c[0], c[1]); ctx.rotate((it.rot || 0) * Math.PI / 180);
         ctx.strokeStyle = '#2e7dd7'; ctx.lineWidth = 3; ctx.setLineDash([10, 6]);
         ctx.strokeRect(-w / 2 - 8, -h / 2 - 8, w + 16, h + 16);
-        if (bpBlankResizable(it)) {
+        if (chosen.length === 1 && bpBlankResizable(it)) {
             ctx.setLineDash([]); ctx.fillStyle = '#fff'; ctx.lineWidth = 3;
             bpBlankHandles(it).forEach(([sx, sy]) => { ctx.fillRect(sx * w / 2 - 9, sy * h / 2 - 9, 18, 18); ctx.strokeRect(sx * w / 2 - 9, sy * h / 2 - 9, 18, 18); });
         }
         ctx.restore();
-    }
+    });
 }
 function bpBlankResizable(it) { const A = it && BP_BLANK_APPL[it.kind]; return !!(A && A.resize); }
 // Resize handles: the corners, or just the two ends of a line.
-function bpBlankHandles(it) { return BP_BLANK_APPL[it.kind].resize === 'len' ? [[-1, 0], [1, 0]] : [[-1, -1], [1, -1], [1, 1], [-1, 1]]; }
+function bpBlankHandles(it) {
+    const m = BP_BLANK_APPL[it.kind].resize;
+    return m === 'len' ? [[-1, 0], [1, 0]] : m === 'door' ? [[-1, -1], [1, -1]] : [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+}
 // The corner handle of the selected resizable item under an image point.
 function bpBlankHitHandle(q) {
     const it = bpBlankSelected();
@@ -19848,14 +19922,16 @@ function bpBlankHitHandle(q) {
         const lx = sx * w / 2, ly = sy * h / 2;
         const hx = c[0] + lx * cos - ly * sin, hy = c[1] + lx * sin + ly * cos;
         if (Math.abs(q[0] - hx) <= 16 && Math.abs(q[1] - hy) <= 16) {
-            // The opposite corner stays put while dragging.
-            return { it, sx, sy, a, fixed: [c[0] - lx * cos + ly * sin, c[1] - lx * sin - ly * cos] };
+            // The opposite corner (or other end) stays put while dragging.
+            const mode = BP_BLANK_APPL[it.kind].resize, fx = -lx, fy = mode === true ? -ly : ly;
+            return { it, sx, sy, a, mode, fixed: [c[0] + fx * cos - fy * sin, c[1] + fx * sin + fy * cos] };
         }
     }
     return null;
 }
 async function bpMakeBlank(t) {
     const B = bpMakeBlankBase(t);
+    bpBlankEnsureBalcony(t, B);
     const canvas = bpBlankCompose(B, t.blankItems);
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
     return { blob, place: B.place };
@@ -19881,23 +19957,54 @@ function bpBlankZoomBy(f, cx, cy) {
     const r0 = cv.getBoundingClientRect(), fx = (cx - r0.left) / r0.width, fy = (cy - r0.top) / r0.height;
     BP_BL.zoom = Math.max(1, Math.min(8, BP_BL.zoom * f));
     bpBlankApplyZoom();
+    bpBlankPlaceBar();
     const r1 = cv.getBoundingClientRect();
     st.scrollLeft += (r1.left + fx * r1.width) - cx;
     st.scrollTop += (r1.top + fy * r1.height) - cy;
 }
 function bpBlankItems() { const t = BP_BL.t; return t ? (t.blankItems = t.blankItems || []) : []; }
+// The balcony's label starts where it's drawn automatically and can then be
+// moved (or deleted) like any other label.
+function bpBlankEnsureBalcony(t, B) {
+    if (!B.balcony || t.blankNoBalcony || (t.blankItems || []).some(i => i.auto === 'balcony')) return false;
+    (t.blankItems = t.blankItems || []).unshift({ id: 'balcony', auto: 'balcony', kind: 'label', text: 'Balcony', k: 1, rot: 0, x: B.balcony[0], y: B.balcony[1] });
+    return true;
+}
+function bpBlankFlip() { const it = bpBlankSelected(); if (!it || it.kind !== 'door') return; it.flip = !it.flip; bpBlankChanged(); }
 function bpBlankRedraw() {
     const cv = document.getElementById('bpModalCanvas');
     if (!BP_BL.B) return;
     if (cv.width !== BP_BL.B.canvas.width || cv.height !== BP_BL.B.canvas.height) { cv.width = BP_BL.B.canvas.width; cv.height = BP_BL.B.canvas.height; }
-    bpBlankPaint(cv.getContext('2d'), BP_BL.B, bpBlankItems(), BP_BL.sel);
-    const it = bpBlankItems().find(x => x.id === BP_BL.sel);
-    document.getElementById('bpBlankSelTools').style.display = it ? '' : 'none';
-    document.getElementById('bpBlankSelName').textContent = it ? (it.kind === 'label' ? `“${it.text}”` : BP_BLANK_APPL[it.kind].label) : '';
+    const sel = bpBlankSelItems();
+    bpBlankPaint(cv.getContext('2d'), BP_BL.B, bpBlankItems(), sel.map(x => x.id));
+    const it = sel.length === 1 ? sel[0] : null;
+    document.getElementById('bpBlankSelTools').style.display = sel.length ? '' : 'none';
+    const grouped = sel.length > 1 && sel.every(x => x.g && x.g === sel[0].g);
+    document.getElementById('bpBlankSelName').textContent = it ? (it.kind === 'label' ? `“${it.text}”` : BP_BLANK_APPL[it.kind].label) : sel.length ? `${sel.length} items${grouped ? ' (grouped)' : ''}` : '';
+    document.getElementById('bpBlankGroup').style.display = sel.length > 1 && !grouped ? '' : 'none';
+    document.getElementById('bpBlankUngroup').style.display = sel.some(x => x.g) ? '' : 'none';
     const A = it && BP_BLANK_APPL[it.kind];
-    document.getElementById('bpBlankSelSize').textContent = !(A && A.resize) ? '' : A.resize === 'len'
-        ? `${bpFmtFtIn(it.w || A.w)} long — drag an end square to resize` : `${bpFmtFtIn(it.w || A.w)} × ${bpFmtFtIn(it.h || A.h)} — drag a corner square to resize`;
+    document.getElementById('bpBlankSelSize').textContent = !(A && A.resize) ? '' : A.resize === 'len' || A.resize === 'door'
+        ? `${bpFmtFtIn(it.w || A.w)}${A.resize === 'len' ? ' long' : ' wide'}` : `${bpFmtFtIn(it.w || A.w)} × ${bpFmtFtIn(it.h || A.h)}`;
     document.querySelectorAll('#bpBlankSelTools [data-label-only]').forEach(b => { b.style.display = it && it.kind === 'label' ? '' : 'none'; });
+    document.querySelectorAll('#bpBlankSelTools [data-door-only]').forEach(b => { b.style.display = it && it.kind === 'door' ? '' : 'none'; });
+    bpBlankPlaceBar();
+}
+// Puts the edit banner just above the selected item (below it if there's no room).
+function bpBlankPlaceBar() {
+    const bar = document.getElementById('bpBlankSelTools'), sel = bpBlankSelItems();
+    if (!sel.length || bar.style.display === 'none') return;
+    const cv = document.getElementById('bpModalCanvas'), st = cv.parentElement;
+    const k = cv.clientWidth / cv.width;
+    if (!k) return;
+    const bb = bpBlankBox(sel);
+    const cx = cv.offsetLeft + (bb[0] + bb[2]) / 2 * k, top = cv.offsetTop + bb[1] * k, bottom = cv.offsetTop + bb[3] * k;
+    const bw = bar.offsetWidth, bh = bar.offsetHeight;
+    let y = top - bh - 6;
+    if (y < st.scrollTop + 2) y = bottom + 6;
+    const x = Math.max(st.scrollLeft + 2, Math.min(cx - bw / 2, st.scrollLeft + st.clientWidth - bw - 2));
+    bar.style.left = x.toFixed(1) + 'px';
+    bar.style.top = y.toFixed(1) + 'px';
 }
 // Saves the items with the unit (synced like the rest of the trace).
 function bpBlankChanged() {
@@ -19922,7 +20029,7 @@ function bpBlankAdd(kind, text) {
     const P = B.fromImg(spot);
     it.x = P[0]; it.y = P[1];
     items.push(it);
-    BP_BL.sel = it.id;
+    bpBlankSetSel([it.id]);
     bpBlankChanged();
 }
 function bpBlankEventImg(e) {
@@ -19941,13 +20048,79 @@ function bpBlankHit(q) {
     }
     return null;
 }
-function bpBlankSelected() { return bpBlankItems().find(x => x.id === BP_BL.sel) || null; }
-function bpBlankRotate(deg) { const it = bpBlankSelected(); if (!it) return; it.rot = (((it.rot || 0) + deg) % 360 + 360) % 360; bpBlankChanged(); }
+// Selection: BP_BL.sel is a single item; BP_BL.ids holds several
+// (Ctrl/⌘-click, or a group). Clicking a grouped item picks its whole group.
+function bpBlankSelected() { return BP_BL.sel ? bpBlankItems().find(x => x.id === BP_BL.sel) || null : null; }
+function bpBlankSelIds() { return BP_BL.sel ? [BP_BL.sel] : (BP_BL.ids || []); }
+function bpBlankSelItems() { const ids = bpBlankSelIds(); return bpBlankItems().filter(x => ids.indexOf(x.id) !== -1); }
+function bpBlankSetSel(ids) {
+    ids = Array.from(new Set(ids || []));
+    BP_BL.sel = ids.length === 1 ? ids[0] : null;
+    BP_BL.ids = ids.length > 1 ? ids : [];
+}
+function bpBlankGroupOf(it) { return it.g ? bpBlankItems().filter(x => x.g === it.g) : [it]; }
+// Image-pixel box [x0, y0, x1, y1] around items (with the selection margin).
+function bpBlankBox(list) {
+    const ctx = document.getElementById('bpModalCanvas').getContext('2d');
+    let b = [Infinity, Infinity, -Infinity, -Infinity];
+    list.forEach(it => {
+        const c = BP_BL.B.toImg([it.x, it.y]), [w, h] = bpBlankItemSize(ctx, it, BP_BL.B.ppi);
+        const a = (it.rot || 0) * Math.PI / 180, cos = Math.abs(Math.cos(a)), sin = Math.abs(Math.sin(a));
+        const hw = (w * cos + h * sin) / 2 + 8, hh = (w * sin + h * cos) / 2 + 8;
+        b = [Math.min(b[0], c[0] - hw), Math.min(b[1], c[1] - hh), Math.max(b[2], c[0] + hw), Math.max(b[3], c[1] + hh)];
+    });
+    return b;
+}
+// Rotates the selection by deg around its middle (each item turns too).
+function bpBlankRotate(deg) {
+    const sel = bpBlankSelItems();
+    if (!sel.length) return;
+    const bb = bpBlankBox(sel), pc = BP_BL.B.fromImg([(bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2]);
+    const a = deg * Math.PI / 180, cos = Math.round(Math.cos(a) * 1e9) / 1e9, sin = Math.round(Math.sin(a) * 1e9) / 1e9;
+    sel.forEach(it => {
+        if (sel.length > 1) { const dx = it.x - pc[0], dy = it.y - pc[1]; it.x = pc[0] + dx * cos - dy * sin; it.y = pc[1] + dx * sin + dy * cos; }
+        it.rot = (((it.rot || 0) + deg) % 360 + 360) % 360;
+    });
+    bpBlankChanged();
+}
+function bpBlankGroup() {
+    const sel = bpBlankSelItems();
+    if (sel.length < 2) return;
+    const g = 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    sel.forEach(it => { it.g = g; });
+    bpBlankChanged();
+}
+function bpBlankUngroup() { bpBlankSelItems().forEach(it => { delete it.g; }); bpBlankChanged(); }
+// Layers: Forward puts the selection above the next item over it, Backward
+// below the next item under it (or to the very top / bottom).
+function bpBlankLayer(dir) {
+    const items = bpBlankItems(), ids = bpBlankSelIds();
+    if (!ids.length) return;
+    const sel = items.filter(x => ids.indexOf(x.id) !== -1), rest = items.filter(x => ids.indexOf(x.id) === -1);
+    const bb = bpBlankBox(sel);
+    const overlaps = x => { const o = bpBlankBox([x]); return o[0] < bb[2] && bb[0] < o[2] && o[1] < bb[3] && bb[1] < o[3]; };
+    let at;
+    if (dir > 0) {
+        // The first other item above the topmost selected one that overlaps it.
+        const top = Math.max(...sel.map(x => items.indexOf(x)));
+        const next = items.slice(top + 1).find(x => ids.indexOf(x.id) === -1 && overlaps(x));
+        at = next ? rest.indexOf(next) + 1 : rest.length;
+    } else {
+        const bottom = Math.min(...sel.map(x => items.indexOf(x)));
+        const prev = items.slice(0, bottom).reverse().find(x => ids.indexOf(x.id) === -1 && overlaps(x));
+        at = prev ? rest.indexOf(prev) : 0;
+    }
+    rest.splice(at, 0, ...sel);
+    items.splice(0, items.length, ...rest);
+    bpBlankChanged();
+}
 function bpBlankResize(f) { const it = bpBlankSelected(); if (!it || it.kind !== 'label') return; it.k = Math.max(0.4, Math.min(3, (it.k || 1) * f)); bpBlankChanged(); }
 function bpBlankDelete() {
-    const items = bpBlankItems(), i = items.findIndex(x => x.id === BP_BL.sel);
-    if (i < 0) return;
-    items.splice(i, 1); BP_BL.sel = null; bpBlankChanged();
+    const items = bpBlankItems(), ids = bpBlankSelIds();
+    if (!ids.length) return;
+    if (items.some(x => x.auto === 'balcony' && ids.indexOf(x.id) !== -1)) BP_BL.t.blankNoBalcony = true;
+    items.splice(0, items.length, ...items.filter(x => ids.indexOf(x.id) === -1));
+    bpBlankSetSel([]); bpBlankChanged();
 }
 function bpBlankRename() {
     const it = bpBlankSelected();
@@ -19966,7 +20139,7 @@ function bpModalMode(blank) {
     m.classList.toggle('bp-blank-mode', !!blank);
     document.getElementById('bpModalUse').style.display = blank ? '' : 'none';
     BP_BL.open = !!blank;
-    if (!blank) { BP_BL.t = null; BP_BL.B = null; BP_BL.sel = null; BP_BL.drag = null; }
+    if (!blank) { BP_BL.t = null; BP_BL.B = null; bpBlankSetSel([]); BP_BL.drag = null; }
 }
 function bpModalClose() {
     document.getElementById('bpModal').style.display = 'none';
@@ -19988,13 +20161,15 @@ async function bpTakeoffImage() {
     bpSetStatus('Drawing the blank floorplan…');
     const safe = (t.name || 'Unit').replace(/[‐-―]/g, '-').replace(/[\\/:*?"<>|]+/g, '-').replace(/[^\x20-\x7e]/g, '').replace(/\s+/g, ' ').trim() || 'Unit';
     BP.blankName = `${safe} blank 2D.png`;
-    BP_BL.t = t; BP_BL.B = bpMakeBlankBase(t); BP_BL.sel = null; BP_BL.drag = null;
+    BP_BL.t = t; BP_BL.B = bpMakeBlankBase(t); bpBlankSetSel([]); BP_BL.drag = null;
+    if (bpBlankEnsureBalcony(t, BP_BL.B)) bpSaveState();
     bpBlankMenu();
     bpModalMode(true);
     document.getElementById('bpModalTitle').textContent = `${t.name || 'Unit'} — blank floorplan`;
     document.getElementById('bpModal').style.display = 'flex';
     bpBlankRedraw();
     BP_BL.zoom = 1; bpBlankApplyZoom();
+    bpBlankRedraw();
     bpSetStatus('');
 }
 // Saves the blank floorplan to Documents › Floorplans (shared) and makes
@@ -20044,6 +20219,8 @@ function bpWireBlank() {
     document.getElementById('bpBlankLarger').addEventListener('click', () => bpBlankResize(1.15));
     document.getElementById('bpBlankRename').addEventListener('click', bpBlankRename);
     document.getElementById('bpBlankDelete').addEventListener('click', bpBlankDelete);
+    document.getElementById('bpBlankFlip').addEventListener('click', bpBlankFlip);
+    document.querySelector('#bpModal .bp-modal-stage').addEventListener('scroll', () => { if (BP_BL.open) bpBlankPlaceBar(); });
     cv.addEventListener('pointerdown', e => {
         if (!BP_BL.open || e.button !== 0) return;
         const q = bpBlankEventImg(e), hd = bpBlankHitHandle(q);
@@ -20054,7 +20231,18 @@ function bpWireBlank() {
             return;
         }
         const it = bpBlankHit(q);
-        BP_BL.sel = it ? it.id : null;
+        if (e.ctrlKey || e.metaKey) {
+            // Ctrl/⌘-click adds an item (with its group) to the selection, or takes it out.
+            if (it) {
+                const g = bpBlankGroupOf(it).map(x => x.id), cur = bpBlankSelIds();
+                bpBlankSetSel(g.every(id => cur.indexOf(id) !== -1) ? cur.filter(id => g.indexOf(id) === -1) : cur.concat(g));
+                e.preventDefault();
+            }
+            bpBlankRedraw();
+            return;
+        }
+        if (it && !(bpBlankSelIds().length > 1 && bpBlankSelIds().indexOf(it.id) !== -1)) bpBlankSetSel(bpBlankGroupOf(it).map(x => x.id));
+        else if (!it) bpBlankSetSel([]);
         if (!it && BP_BL.zoom > 1) {
             // Drag the background to pan.
             const st = document.querySelector('#bpModal .bp-modal-stage');
@@ -20064,8 +20252,8 @@ function bpWireBlank() {
             e.preventDefault();
         }
         if (it) {
-            const c = BP_BL.B.toImg([it.x, it.y]);
-            BP_BL.drag = { id: it.id, dx: c[0] - q[0], dy: c[1] - q[1], moved: false };
+            // Drags every selected item together.
+            BP_BL.drag = { id: it.id, q0: q, start: bpBlankSelItems().map(x => ({ x, p: [x.x, x.y] })), moved: false };
             cv.setPointerCapture(e.pointerId);
             e.preventDefault();
         }
@@ -20073,7 +20261,7 @@ function bpWireBlank() {
     });
     cv.addEventListener('pointermove', e => {
         const d = BP_BL.drag;
-        if (!d) { if (BP_BL.open) { const q = bpBlankEventImg(e); cv.style.cursor = bpBlankHitHandle(q) ? (bpBlankSelected().kind === 'closet' ? 'ew-resize' : 'nwse-resize') : bpBlankHit(q) ? 'move' : BP_BL.zoom > 1 ? 'grab' : 'default'; } return; }
+        if (!d) { if (BP_BL.open) { const q = bpBlankEventImg(e); cv.style.cursor = bpBlankHitHandle(q) ? (/^(closet|door)$/.test(bpBlankSelected().kind) ? 'ew-resize' : 'nwse-resize') : bpBlankHit(q) ? 'move' : BP_BL.zoom > 1 ? 'grab' : 'default'; } return; }
         if (d.pan) {
             const st = document.querySelector('#bpModal .bp-modal-stage');
             st.scrollLeft = d.sl - (e.clientX - d.x); st.scrollTop = d.stp - (e.clientY - d.y);
@@ -20086,45 +20274,54 @@ function bpWireBlank() {
             const r = d.resize, q = bpBlankEventImg(e), ppi = BP_BL.B.ppi, cos = Math.cos(r.a), sin = Math.sin(r.a);
             const dx = q[0] - r.fixed[0], dy = q[1] - r.fixed[1];
             const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos;
-            const wi = Math.max(6, Math.round(r.sx * lx / ppi)), hi = r.sy ? Math.max(6, Math.round(r.sy * ly / ppi)) : it.h;
-            const mx = r.sx * wi * ppi / 2, my = r.sy * hi * ppi / 2;
+            const wi = Math.max(6, Math.round(r.sx * lx / ppi));
+            const hi = r.mode === true ? Math.max(2, Math.round(r.sy * ly / ppi)) : r.mode === 'door' ? wi : it.h;
+            const mx = r.sx * wi * ppi / 2, my = r.mode === true ? r.sy * hi * ppi / 2 : r.mode === 'door' ? -r.sy * hi * ppi / 2 : 0;
             const P = BP_BL.B.fromImg([r.fixed[0] + mx * cos - my * sin, r.fixed[1] + mx * sin + my * cos]);
             it.w = wi; it.h = hi; it.x = P[0]; it.y = P[1]; d.moved = true;
             bpBlankRedraw();
             return;
         }
-        const q = bpBlankEventImg(e), P = BP_BL.B.fromImg([q[0] + d.dx, q[1] + d.dy]);
-        it.x = P[0]; it.y = P[1]; d.moved = true;
+        const q = bpBlankEventImg(e), s = BP_BL.B.place.s;
+        const dx = (q[0] - d.q0[0]) / s, dy = (q[1] - d.q0[1]) / s;
+        d.start.forEach(o => { o.x.x = o.p[0] + dx; o.x.y = o.p[1] + dy; });
+        d.moved = true;
         bpBlankRedraw();
     });
     const up = () => { const d = BP_BL.drag; BP_BL.drag = null; if (d && d.pan) cv.style.cursor = 'grab'; if (d && d.moved) bpBlankChanged(); };
     document.getElementById('bpBlankZoomIn').addEventListener('click', () => bpBlankZoomBy(1.25));
     document.getElementById('bpBlankZoomOut').addEventListener('click', () => bpBlankZoomBy(1 / 1.25));
-    document.getElementById('bpBlankZoomFit').addEventListener('click', () => { BP_BL.zoom = 1; bpBlankApplyZoom(); });
+    document.getElementById('bpBlankZoomFit').addEventListener('click', () => { BP_BL.zoom = 1; bpBlankApplyZoom(); bpBlankPlaceBar(); });
     document.querySelector('#bpModal .bp-modal-stage').addEventListener('wheel', e => {
         if (!BP_BL.open || !(e.ctrlKey || e.metaKey)) return;
         e.preventDefault();
         bpBlankZoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX, e.clientY);
     }, { passive: false });
-    window.addEventListener('resize', () => { if (BP_BL.open) bpBlankApplyZoom(); });
+    window.addEventListener('resize', () => { if (BP_BL.open) { bpBlankApplyZoom(); bpBlankPlaceBar(); } });
     cv.addEventListener('pointerup', up);
     cv.addEventListener('pointercancel', up);
-    cv.addEventListener('dblclick', e => { const it = bpBlankHit(bpBlankEventImg(e)); if (it && it.kind === 'label') { BP_BL.sel = it.id; bpBlankRename(); } });
+    cv.addEventListener('dblclick', e => { const it = bpBlankHit(bpBlankEventImg(e)); if (it && it.kind === 'label' && !(e.ctrlKey || e.metaKey)) { bpBlankSetSel([it.id]); bpBlankRedraw(); bpBlankRename(); } });
+    cv.addEventListener('contextmenu', e => { if (BP_BL.open) e.preventDefault(); });   // Mac Ctrl-click
+    document.getElementById('bpBlankGroup').addEventListener('click', bpBlankGroup);
+    document.getElementById('bpBlankUngroup').addEventListener('click', bpBlankUngroup);
+    document.getElementById('bpBlankFwd').addEventListener('click', () => bpBlankLayer(1));
+    document.getElementById('bpBlankBack').addEventListener('click', () => bpBlankLayer(-1));
     // Keys while the editor is open (ahead of the sheet's own shortcuts).
     document.addEventListener('keydown', e => {
         if (!BP_BL.open) return;
         if (/input|textarea|select/i.test((document.activeElement || {}).tagName || '')) return;
-        const it = bpBlankSelected();
+        const it = bpBlankSelIds().length ? bpBlankSelItems() : null;
         if (e.key === '+' || e.key === '=') { bpBlankZoomBy(1.25); e.preventDefault(); e.stopImmediatePropagation(); return; }
         if (e.key === '-' || e.key === '_') { bpBlankZoomBy(1 / 1.25); e.preventDefault(); e.stopImmediatePropagation(); return; }
-        if (e.key === 'Escape') { if (it) { BP_BL.sel = null; bpBlankRedraw(); } else bpModalClose(); }
+        if (e.key === 'Escape') { if (it) { bpBlankSetSel([]); bpBlankRedraw(); } else bpModalClose(); }
         else if (!it) return;
+        else if ((e.ctrlKey || e.metaKey) && (e.key === 'g' || e.key === 'G')) { if (e.shiftKey) bpBlankUngroup(); else bpBlankGroup(); }
         else if (e.key === 'Delete' || e.key === 'Backspace') bpBlankDelete();
         else if (e.key === 'r' || e.key === 'R') bpBlankRotate(e.shiftKey ? -90 : 90);
         else if (/^Arrow/.test(e.key)) {
             const step = (e.shiftKey ? 10 : 1) / BP_BL.B.place.s;
             const m = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
-            it.x += m[0]; it.y += m[1];
+            it.forEach(x => { x.x += m[0]; x.y += m[1]; });
             bpBlankChanged();
         } else return;
         e.preventDefault();
