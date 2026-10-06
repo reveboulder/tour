@@ -1477,6 +1477,8 @@
     .bp-blank-row input { flex: 1; min-width: 0; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
     .bp-blank-sel { background: #eef5fd; border: 1px solid #b9d4f3; border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; gap: 6px; }
     .bp-blank-del { color: #b03a2e; }
+    .bp-blank-size { font-size: 12px; color: #555; }
+    .bp-blank-size:empty { display: none; }
     .bp-blank-tip { color: #666; font-size: 12px; line-height: 1.4; margin-top: 4px; }
     body.dark-mode .bp-blank-item, body.dark-mode .bp-blank-row input { background: var(--dm-card-alt); }
     body.dark-mode .bp-blank-item svg { stroke: #ddd; }
@@ -4109,6 +4111,7 @@
                         <div class="bp-blank-side">
                             <div class="bp-blank-sel" id="bpBlankSelTools" style="display:none;">
                                 <div class="bp-blank-h">Selected: <span id="bpBlankSelName"></span></div>
+                                <div class="bp-blank-size" id="bpBlankSelSize"></div>
                                 <div class="bp-blank-row">
                                     <button type="button" class="bp-btn bp-small" id="bpBlankRotL" title="Rotate 90° left (Shift+R)">&#8634; 90&deg;</button>
                                     <button type="button" class="bp-btn bp-small" id="bpBlankRotR" title="Rotate 90° right (R)">&#8635; 90&deg;</button>
@@ -4121,14 +4124,18 @@
                             <div class="bp-blank-h">Room labels</div>
                             <div class="bp-blank-list" id="bpBlankRooms"></div>
                             <div class="bp-blank-row"><input type="text" id="bpBlankCustom" placeholder="Custom label…"><button type="button" class="bp-btn bp-small" id="bpBlankCustomAdd">Add</button></div>
-                            <div class="bp-blank-h">Appliances</div>
+                            <div class="bp-blank-h">Additions</div>
                             <div class="bp-blank-list" id="bpBlankAppl">
                                 <button type="button" class="bp-blank-item" data-appl="wd" title="Stackable washer/dryer, 2′5″ × 2′5″"><svg viewBox="0 0 30 30"><rect x="3" y="3" width="24" height="24"/><text x="15" y="18.5">W/D</text></svg>W/D <small>stackable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="wd2" title="Side-by-side washer and dryer, two 2′5″ × 2′5″ boxes"><svg viewBox="0 0 30 30"><rect x="1" y="8" width="14" height="14"/><rect x="15" y="8" width="14" height="14"/><text x="8" y="18">W</text><text x="22" y="18">D</text></svg>W + D <small>side by side</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="bath" title="Bathtub, 5′ × 2′6″"><svg viewBox="0 0 30 30"><rect x="1" y="8" width="28" height="14"/><rect x="3" y="10" width="24" height="10" rx="4"/><circle cx="7" cy="15" r="1"/></svg>Bath</button>
                                 <button type="button" class="bp-blank-item" data-appl="shower" title="Shower, 3′ × 3′"><svg viewBox="0 0 30 30"><rect x="5" y="5" width="20" height="20"/><path d="M5 5L25 25M25 5L5 25"/><circle cx="15" cy="15" r="2" fill="#fff"/></svg>Shower</button>
+                                <button type="button" class="bp-blank-item" data-appl="toilet" title="Toilet, 20″ × 28″"><svg viewBox="0 0 30 30"><rect x="8" y="2" width="14" height="6" rx="1"/><ellipse cx="15" cy="17.5" rx="5.5" ry="9"/></svg>Toilet</button>
+                                <button type="button" class="bp-blank-item" data-appl="sink" title="Sink, 2′ × 1′8″"><svg viewBox="0 0 30 30"><rect x="3" y="6" width="24" height="20"/><ellipse cx="15" cy="16.5" rx="9" ry="6.5"/><circle cx="15" cy="16.5" r="1"/></svg>Sink</button>
+                                <button type="button" class="bp-blank-item" data-appl="counter" title="Countertop (gray) — drag a corner to set its width and length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a"><rect x="2" y="10" width="26" height="10"/></svg>Countertop <small>resizable</small></button>
+                                <button type="button" class="bp-blank-item" data-appl="closet" title="Closet (gray dashed) — drag a corner to set its width and length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2"><rect x="2" y="8" width="26" height="14"/></svg>Closet <small>dashed, resizable</small></button>
                             </div>
-                            <div class="bp-blank-tip">Click an item to add it, then drag it into place. Select one to rotate (R), resize or delete it; arrow keys nudge. Labels and appliances are saved with this unit.</div>
+                            <div class="bp-blank-tip">Click an item to add it, then drag it into place. Select one to rotate (R), resize or delete it; arrow keys nudge. Countertops and closets: drag a corner square to set the width and length. Labels and additions are saved with this unit.</div>
                         </div>
                     </div>
                 </div>
@@ -19701,12 +19708,18 @@ const BP_BLANK_APPL = {
     wd:     { label: 'W/D (stackable)', w: 29, h: 29 },        // 2'5" × 2'5"
     wd2:    { label: 'W + D (side by side)', w: 58, h: 29 },   // two of those
     bath:   { label: 'Bath', w: 60, h: 30 },
-    shower: { label: 'Shower', w: 36, h: 36 }
+    shower: { label: 'Shower', w: 36, h: 36 },
+    toilet: { label: 'Toilet', w: 20, h: 28 },
+    sink:   { label: 'Sink', w: 24, h: 20 },
+    // Gray add-ons whose width and length are set by dragging a corner.
+    counter: { label: 'Countertop', w: 96, h: 25, resize: true },
+    closet:  { label: 'Closet', w: 72, h: 24, resize: true }
 };
+const BP_BLANK_GRAY = '#8a8a8a';
 // Size of an item in image pixels, unrotated.
 function bpBlankItemSize(ctx, it, ppi) {
     const A = BP_BLANK_APPL[it.kind];
-    if (A) return [A.w * ppi, A.h * ppi];
+    if (A) return A.resize ? [(it.w || A.w) * ppi, (it.h || A.h) * ppi] : [A.w * ppi, A.h * ppi];
     const fs = BP_BLANK_FONT * (it.k || 1);
     ctx.font = `${fs}px Arial, sans-serif`;
     return [ctx.measureText(it.text || '').width + fs * 0.3, fs * 1.25];
@@ -19760,6 +19773,34 @@ function bpBlankDrawItem(ctx, it, B) {
         ctx.fillStyle = '#fff';
         ctx.beginPath(); ctx.arc(0, 0, Math.max(4, 2 * ppi), 0, Math.PI * 2); ctx.fill();
         ctx.lineWidth = Math.max(1.5, lw * 0.6); ctx.stroke();
+    } else if (it.kind === 'toilet') {
+        // Toilet (tank against the wall at the top): tank and bowl.
+        ctx.lineWidth = Math.max(1.5, lw * 0.8);
+        const th = 8 * ppi, tw = w;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(-tw / 2, -h / 2, tw, th, 1.5 * ppi); else ctx.rect(-tw / 2, -h / 2, tw, th);
+        ctx.stroke();
+        const bw = 15 * ppi, bh = h - th - 1 * ppi;
+        ctx.beginPath();
+        ctx.ellipse(0, -h / 2 + th + bh / 2 + 0.5 * ppi, bw / 2, bh / 2, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(0, -h / 2 + th + bh / 2 + 1.5 * ppi, bw / 2 - 2.5 * ppi, bh / 2 - 3 * ppi, 0, 0, Math.PI * 2);
+        ctx.lineWidth = Math.max(1, lw * 0.45); ctx.stroke();
+    } else if (it.kind === 'sink') {
+        // Sink: the counter cut-out, the basin and the drain.
+        ctx.lineWidth = lw;
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+        ctx.lineWidth = Math.max(1.5, lw * 0.6);
+        ctx.beginPath(); ctx.ellipse(0, 1 * ppi, w / 2 - 3 * ppi, h / 2 - 3.5 * ppi, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 1 * ppi, Math.max(3, 1.2 * ppi), 0, Math.PI * 2); ctx.stroke();
+    } else if (it.kind === 'counter') {
+        ctx.strokeStyle = BP_BLANK_GRAY; ctx.lineWidth = lw;
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+    } else if (it.kind === 'closet') {
+        ctx.strokeStyle = BP_BLANK_GRAY; ctx.lineWidth = Math.max(2, lw * 0.8);
+        ctx.setLineDash([Math.max(8, 4 * ppi), Math.max(6, 3 * ppi)]);
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
     }
     ctx.restore();
 }
@@ -19782,8 +19823,30 @@ function bpBlankPaint(ctx, B, items, sel) {
         ctx.translate(c[0], c[1]); ctx.rotate((it.rot || 0) * Math.PI / 180);
         ctx.strokeStyle = '#2e7dd7'; ctx.lineWidth = 3; ctx.setLineDash([10, 6]);
         ctx.strokeRect(-w / 2 - 8, -h / 2 - 8, w + 16, h + 16);
+        if (bpBlankResizable(it)) {
+            ctx.setLineDash([]); ctx.fillStyle = '#fff'; ctx.lineWidth = 3;
+            [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sy]) => { ctx.fillRect(sx * w / 2 - 9, sy * h / 2 - 9, 18, 18); ctx.strokeRect(sx * w / 2 - 9, sy * h / 2 - 9, 18, 18); });
+        }
         ctx.restore();
     }
+}
+function bpBlankResizable(it) { const A = it && BP_BLANK_APPL[it.kind]; return !!(A && A.resize); }
+// The corner handle of the selected resizable item under an image point.
+function bpBlankHitHandle(q) {
+    const it = bpBlankSelected();
+    if (!bpBlankResizable(it)) return null;
+    const ctx = document.getElementById('bpModalCanvas').getContext('2d');
+    const c = BP_BL.B.toImg([it.x, it.y]), [w, h] = bpBlankItemSize(ctx, it, BP_BL.B.ppi);
+    const a = (it.rot || 0) * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a);
+    for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+        const lx = sx * w / 2, ly = sy * h / 2;
+        const hx = c[0] + lx * cos - ly * sin, hy = c[1] + lx * sin + ly * cos;
+        if (Math.abs(q[0] - hx) <= 16 && Math.abs(q[1] - hy) <= 16) {
+            // The opposite corner stays put while dragging.
+            return { it, sx, sy, a, fixed: [c[0] - lx * cos + ly * sin, c[1] - lx * sin - ly * cos] };
+        }
+    }
+    return null;
 }
 async function bpMakeBlank(t) {
     const B = bpMakeBlankBase(t);
@@ -19802,6 +19865,8 @@ function bpBlankRedraw() {
     const it = bpBlankItems().find(x => x.id === BP_BL.sel);
     document.getElementById('bpBlankSelTools').style.display = it ? '' : 'none';
     document.getElementById('bpBlankSelName').textContent = it ? (it.kind === 'label' ? `“${it.text}”` : BP_BLANK_APPL[it.kind].label) : '';
+    const A = it && BP_BLANK_APPL[it.kind];
+    document.getElementById('bpBlankSelSize').textContent = A && A.resize ? `${bpFmtFtIn(it.w || A.w)} × ${bpFmtFtIn(it.h || A.h)} — drag a corner square to resize` : '';
     document.querySelectorAll('#bpBlankSelTools [data-label-only]').forEach(b => { b.style.display = it && it.kind === 'label' ? '' : 'none'; });
 }
 // Saves the items with the unit (synced like the rest of the trace).
@@ -19814,6 +19879,7 @@ function bpBlankAdd(kind, text) {
     const B = BP_BL.B, ctx = document.getElementById('bpModalCanvas').getContext('2d');
     const it = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), kind, x: 0, y: 0, rot: 0 };
     if (kind === 'label') { it.text = text; it.k = 1; }
+    if (bpBlankResizable(it)) { it.w = BP_BLANK_APPL[kind].w; it.h = BP_BLANK_APPL[kind].h; }
     // New items go as near the middle of the unit as they can without
     // covering an item that's already there.
     const box = (x, c) => { const [w, h] = bpBlankItemSize(ctx, x, B.ppi), r = (x.rot || 0) % 180 ? [h, w] : [w, h]; return [c[0] - r[0] / 2 - 6, c[1] - r[1] / 2 - 6, c[0] + r[0] / 2 + 6, c[1] + r[1] / 2 + 6]; };
@@ -19949,7 +20015,14 @@ function bpWireBlank() {
     document.getElementById('bpBlankDelete').addEventListener('click', bpBlankDelete);
     cv.addEventListener('pointerdown', e => {
         if (!BP_BL.open || e.button !== 0) return;
-        const q = bpBlankEventImg(e), it = bpBlankHit(q);
+        const q = bpBlankEventImg(e), hd = bpBlankHitHandle(q);
+        if (hd) {
+            BP_BL.drag = { id: hd.it.id, resize: hd, moved: false };
+            cv.setPointerCapture(e.pointerId);
+            e.preventDefault();
+            return;
+        }
+        const it = bpBlankHit(q);
         BP_BL.sel = it ? it.id : null;
         if (it) {
             const c = BP_BL.B.toImg([it.x, it.y]);
@@ -19961,9 +20034,21 @@ function bpWireBlank() {
     });
     cv.addEventListener('pointermove', e => {
         const d = BP_BL.drag;
-        if (!d) { if (BP_BL.open) cv.style.cursor = bpBlankHit(bpBlankEventImg(e)) ? 'move' : 'default'; return; }
+        if (!d) { if (BP_BL.open) { const q = bpBlankEventImg(e); cv.style.cursor = bpBlankHitHandle(q) ? 'nwse-resize' : bpBlankHit(q) ? 'move' : 'default'; } return; }
         const it = bpBlankItems().find(x => x.id === d.id);
         if (!it) return;
+        if (d.resize) {
+            // New size (whole inches, at least 6") from the fixed corner to the pointer.
+            const r = d.resize, q = bpBlankEventImg(e), ppi = BP_BL.B.ppi, cos = Math.cos(r.a), sin = Math.sin(r.a);
+            const dx = q[0] - r.fixed[0], dy = q[1] - r.fixed[1];
+            const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos;
+            const wi = Math.max(6, Math.round(r.sx * lx / ppi)), hi = Math.max(6, Math.round(r.sy * ly / ppi));
+            const mx = r.sx * wi * ppi / 2, my = r.sy * hi * ppi / 2;
+            const P = BP_BL.B.fromImg([r.fixed[0] + mx * cos - my * sin, r.fixed[1] + mx * sin + my * cos]);
+            it.w = wi; it.h = hi; it.x = P[0]; it.y = P[1]; d.moved = true;
+            bpBlankRedraw();
+            return;
+        }
         const q = bpBlankEventImg(e), P = BP_BL.B.fromImg([q[0] + d.dx, q[1] + d.dy]);
         it.x = P[0]; it.y = P[1]; d.moved = true;
         bpBlankRedraw();
