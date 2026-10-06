@@ -4130,8 +4130,8 @@
                                 <button type="button" class="bp-btn bp-small" id="bpBlankFlip" data-door-only title="Swap the hinge side">Flip</button>
                                 <button type="button" class="bp-btn bp-small" id="bpBlankSmaller" data-label-only title="Smaller text">A&minus;</button>
                                 <button type="button" class="bp-btn bp-small" id="bpBlankLarger" data-label-only title="Larger text">A+</button>
-                                <button type="button" class="bp-btn bp-small" id="bpBlankRename" data-label-only title="Change the text (or double-click the label)">Rename</button>
-                                <button type="button" class="bp-btn bp-small bp-blank-del" id="bpBlankDelete" title="Remove (Delete)">Delete</button>
+                                <button type="button" class="bp-btn bp-small bp-blank-ico" id="bpBlankRename" data-label-only title="Rename — change the text (or double-click the label)" aria-label="Rename"><svg viewBox="0 0 20 20" style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><path d="M7 3H13M7 17H13M10 3V17"/></svg></button>
+                                <button type="button" class="bp-btn bp-small bp-blank-ico bp-blank-del" id="bpBlankDelete" title="Delete (Delete key)" aria-label="Delete"><svg viewBox="0 0 20 20" style="width:14px;height:14px;fill:none;stroke:#d0352b;stroke-width:2.6;stroke-linecap:round"><path d="M5 5L15 15M15 5L5 15"/></svg></button>
                             </div>
                         </div>
                         <div class="bp-blank-side">
@@ -4148,10 +4148,11 @@
                                 <button type="button" class="bp-blank-item" data-appl="sink" title="Sink, 2′ × 1′8″"><svg viewBox="0 0 30 30"><rect x="3" y="6" width="24" height="20"/><ellipse cx="15" cy="16.5" rx="9" ry="6.5"/><circle cx="15" cy="16.5" r="1"/></svg>Sink</button>
                                 <button type="button" class="bp-blank-item" data-appl="stove" title="Stove / range, 2′6″ × 2′1″"><svg viewBox="0 0 30 30"><rect x="3" y="4" width="24" height="21"/><path d="M3 7H27"/><circle cx="9.5" cy="12" r="3"/><circle cx="20.5" cy="12" r="3"/><circle cx="9.5" cy="20" r="2.6"/><circle cx="20.5" cy="20" r="2.6"/></svg>Stove</button>
                                 <button type="button" class="bp-blank-item" data-appl="fridge" title="Refrigerator, 3′ × 2′6″"><svg viewBox="0 0 30 30"><rect x="3" y="3" width="24" height="22"/><path d="M3 22H27M15 22V25M3 3L27 22"/></svg>Fridge</button>
-                                <button type="button" class="bp-blank-item" data-appl="door" title="Swinging door, 2′8″ — drag an end to set the width; Flip swaps the hinge side"><svg viewBox="0 0 30 30"><path d="M4 4H28M4 4V28" style="stroke-width:2"/><path d="M28 4A24 24 0 0 1 4 28"/></svg>Door <small>resizable</small></button>
+                                <button type="button" class="bp-blank-item" data-appl="door" title="Swinging door, 2′8″ — drag an end to set the width; Flip swaps the hinge side"><svg viewBox="0 0 30 30"><path d="M4 4V28" style="stroke-width:3"/><path d="M4 4H28" style="stroke-width:.8"/><path d="M28 4A24 24 0 0 1 4 28" style="stroke-width:.8"/></svg>Door <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="slider" title="Sliding glass door, 6′ — set its width and the wall's thickness by dragging a corner"><svg viewBox="0 0 30 30"><path d="M2 10V20M28 10V20" style="stroke-width:2"/><path d="M2 11H28M2 19H28" style="stroke-width:.6"/><rect x="2" y="12" width="14" height="2.5"/><rect x="14" y="15.5" width="14" height="2.5"/></svg>Sliding door <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="counter" title="Countertop (gray) — drag a corner to set its width and length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a"><rect x="2" y="10" width="26" height="10"/></svg>Countertop <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="closet" title="Closet (gray dashed line) — drag an end to set its length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2;stroke-width:2"><path d="M2 15H28"/></svg>Closet <small>dashed line, resizable</small></button>
+                                <button type="button" class="bp-blank-item" data-appl="wicloset" title="Walk-in closet: dashed U along the back and both sides — drag a corner to set the width and depth"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2;stroke-width:2"><path d="M4 26V5H26V26"/></svg>W/I Closet <small>dashed U, resizable</small></button>
                             </div>
                             <div class="bp-blank-tip">Click an item to add it, then drag it into place. Select one to rotate (R), resize or delete it; arrow keys nudge. Selecting an item shows its edit bar above it. Ctrl/&#8984;-click more items to select several, then Group them to move and rotate them together. The layer buttons bring an item in front of (or behind) what it overlaps. Resizable items show white squares: drag a corner to set the width and length (doors and closets: drag an end). Place a door's straight top edge along the wall; size a sliding door to the wall's thickness so it opens the wall up. Ctrl/&#8984; + scroll or &minus;/+ zooms; drag the background to pan when zoomed in. Labels and additions are saved with this unit.</div>
                         </div>
@@ -19734,7 +19735,8 @@ const BP_BLANK_APPL = {
     slider: { label: 'Sliding glass door', w: 72, h: 6, resize: true },
     // Gray add-ons.
     counter: { label: 'Countertop', w: 96, h: 25, resize: true },
-    closet:  { label: 'Closet', w: 72, h: 8, resize: 'len' }      // a dashed line; h is just its grab area
+    closet:  { label: 'Closet', w: 72, h: 8, resize: 'len' },     // a dashed line; h is just its grab area
+    wicloset: { label: 'W/I Closet', w: 72, h: 60, resize: true }  // dashed U: back and both sides, open at the front
 };
 const BP_BLANK_GRAY = '#8a8a8a';
 // Size of an item in image pixels, unrotated.
@@ -19849,9 +19851,10 @@ function bpBlankDrawItem(ctx, it, B) {
         // open from the hinge and the arc of its swing. Flip = hinge side.
         if (it.flip) ctx.scale(-1, 1);
         const y0 = -h / 2;
-        ctx.lineWidth = lw;
+        ctx.lineWidth = Math.max(4, lw * 1.6);     // the door itself, standing open
         ctx.beginPath(); ctx.moveTo(-w / 2, y0); ctx.lineTo(-w / 2, y0 + w); ctx.stroke();
-        ctx.lineWidth = Math.max(1, lw * 0.45);
+        ctx.lineWidth = Math.max(1, lw * 0.45);    // its closed position and the swing
+        ctx.beginPath(); ctx.moveTo(-w / 2, y0); ctx.lineTo(w / 2, y0); ctx.stroke();
         ctx.beginPath(); ctx.arc(-w / 2, y0, w, 0, Math.PI / 2); ctx.stroke();
     } else if (it.kind === 'slider') {
         // Sliding glass door: the wall is opened up across its width, with
@@ -19876,6 +19879,10 @@ function bpBlankDrawItem(ctx, it, B) {
         ctx.strokeStyle = BP_BLANK_GRAY; ctx.lineWidth = Math.max(2, lw * 0.8);
         ctx.setLineDash([Math.max(8, 4 * ppi), Math.max(6, 3 * ppi)]);
         ctx.beginPath(); ctx.moveTo(-w / 2, 0); ctx.lineTo(w / 2, 0); ctx.stroke();
+    } else if (it.kind === 'wicloset') {
+        ctx.strokeStyle = BP_BLANK_GRAY; ctx.lineWidth = Math.max(2, lw * 0.8);
+        ctx.setLineDash([Math.max(8, 4 * ppi), Math.max(6, 3 * ppi)]);
+        ctx.beginPath(); ctx.moveTo(-w / 2, h / 2); ctx.lineTo(-w / 2, -h / 2); ctx.lineTo(w / 2, -h / 2); ctx.lineTo(w / 2, h / 2); ctx.stroke();
     }
     ctx.restore();
 }
@@ -19994,6 +20001,10 @@ function bpBlankRedraw() {
 function bpBlankPlaceBar() {
     const bar = document.getElementById('bpBlankSelTools'), sel = bpBlankSelItems();
     if (!sel.length || bar.style.display === 'none') return;
+    // Out of the way while an item is being dragged or resized; back once it's let go.
+    const busy = !!(BP_BL.drag && BP_BL.drag.moved && !BP_BL.drag.pan);
+    bar.style.visibility = busy ? 'hidden' : '';
+    if (busy) return;
     const cv = document.getElementById('bpModalCanvas'), st = cv.parentElement;
     const k = cv.clientWidth / cv.width;
     if (!k) return;
