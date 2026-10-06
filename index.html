@@ -4000,7 +4000,7 @@
                             <button type="button" class="bp-btn bp-to-trace" data-bp-tool="move" title="Drag the selected unit's outlines into place">Move unit</button>
                             <button type="button" class="bp-btn bp-small" id="bpToRot" title="Rotate the selected unit 90\u00b0">&#8635; 90&deg;</button>
                             <button type="button" class="bp-btn bp-small" id="bpToMirror" title="Flip the selected unit left/right">Mirror</button>
-                            <button type="button" class="btn primary bp-to-make" id="bpToImage">Create floorplan image</button>
+                            <button type="button" class="btn primary bp-to-make" id="bpToImage" title="Draws a plain line floorplan from the outer and inner traces (balcony labeled) to use as this unit's floorplan">Create blank floorplan</button>
                         </div>
                         <div class="bp-to-results" id="bpToResults"></div>
                         <div class="bp-lay">
@@ -4070,6 +4070,7 @@
                     <div class="bp-modal-head">
                         <b id="bpModalTitle">Measured floorplan</b>
                         <span style="margin-left:auto;"></span>
+                        <button type="button" class="btn primary" id="bpModalUse" style="width:auto;flex:none;padding:7px 14px;display:none;" title="Save it to Documents › Floorplans and set it as this unit's floorplan, with the traced shape placed exactly on it">Use as this unit’s floorplan</button>
                         <button type="button" class="btn primary" id="bpModalDownload" style="width:auto;flex:none;padding:7px 14px;">Download PNG</button>
                         <button type="button" class="bp-btn" id="bpModalClose">Close</button>
                     </div>
@@ -16818,7 +16819,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-lease-questions": {"title": "Ask Questions About the Sample Lease", "icon": "\u2753", "category": "Lease", "steps": ["Open the Lease tab and click \"Upload sample lease\" to load the current lease PDF (only needed when a new version comes out).", "The lease text is shared with the team, so everyone can ask questions after one upload; the PDF itself stays in the browser that uploaded it.", "Type a question in the bar (e.g. \"What is the late fee?\", \"How long can guests stay?\") and press Enter, or click an example.", "The answer quotes the matching sentences with the section and page. \"Read the whole section\" shows the full paragraph, and \"Open page\" opens the PDF there.", "\"Also see\" lists other sections that mention the same thing \u2014 click one to see its answer."]},
     "builtin-new-lease": {"title": "Fill Out a New Lease", "icon": "🖊️", "category": "Lease", "steps": ["Complete the resident's Welcome Letter first — the Lease tab pulls from it and from Residents.", "Open the Lease tab and search for the resident by unit or name.", "Each section (Lease Terms, Cover Sheet, Animal, Buyout, Inventory, Parking, Rent Concession, Special Provisions) shows the values to enter.", "Click the copy button next to any value to copy it, then paste it into the lease.", "For a renewal, check \"Select if Renewal Lease\" — the new dates start the day after the current lease ends.", "Click × next to the search to clear the selection."]},
     "builtin-mmr-traffic": {"title": "Record Weekly Traffic for the MMR", "icon": "🚶", "category": "Admin", "steps": ["Go to Admin (enter the password) > MMR > Weekly Traffic Detail.", "For each reason, write one sentence per show, starting with the prospect's first and last name and ending with a period.", "Each sentence that starts with a name counts as one show; follow-up sentences about the same prospect don't add to the count.", "Download New MMR replaces last week's numbers in the uploaded file.", "Click \"Clear for New Week\" to start the next week fresh."]},
-    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Traced units, sheet scales and measurements are shared with the team through the backend: anyone who opens the same PDF file (same name and size) sees them, and changes sync about every 25 seconds.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points. Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Clicks snap to the drawn corners (green square). Hold Ctrl to move freely without snapping, Shift to keep the line perfectly straight across or up/down (snapping then only sets the length), or Ctrl+Shift for both.", "Edit: drag any orange corner of a traced outline or measurement to move it, or click one corner, then a second corner on the same outline, click the new corners and finish on the second one to redraw that stretch. Delete removes a selected corner.", "Load a trace: pick a unit you traced (on any sheet) from \"Load a trace\u2026\" to copy it onto this sheet under a new name, then drag it into place with Move unit (its nearest corner snaps to the drawn lines). Rotate 90\u00b0 and Mirror handle mirrored units.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create floorplan image\" makes a PNG of the unit with every wall length labeled (sized from the known sq ft), ready to download.", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary.", "To put the traced shape on a 2D floorplan: under \"Floorplan image with measurements\", choose a site floorplan or upload one, then click \"Place traced shape on floorplan\". Drag the shape onto the walls, resize from its corner square, rotate or mirror as needed, and click \"Download PNG\". Wall lengths always come from the blueprint."]},
+    "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Traced units, sheet scales and measurements are shared with the team through the backend: anyone who opens the same PDF file (same name and size) sees them, and changes sync about every 25 seconds.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points. Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Clicks snap to the drawn corners (green square). Hold Ctrl to move freely without snapping, Shift to keep the line perfectly straight across or up/down (snapping then only sets the length), or Ctrl+Shift for both.", "Edit: drag any orange corner of a traced outline or measurement to move it, or click one corner, then a second corner on the same outline, click the new corners and finish on the second one to redraw that stretch. Delete removes a selected corner.", "Load a trace: pick a unit you traced (on any sheet) from \"Load a trace\u2026\" to copy it onto this sheet under a new name, then drag it into place with Move unit (its nearest corner snaps to the drawn lines). Rotate 90\u00b0 and Mirror handle mirrored units.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create blank floorplan\" draws a plain line floorplan from the outer and inner traces (the part of the inner trace outside the outer one is labeled Balcony). Download it, or click \"Use as this unit\u2019s floorplan\" to save it to Documents \u203a Floorplans and place the traced shape exactly on it, then add the measurements with \"Place traced shape on floorplan\".", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary.", "To put the traced shape on a 2D floorplan: under \"Floorplan image with measurements\", choose a site floorplan or upload one, then click \"Place traced shape on floorplan\". Drag the shape onto the walls, resize from its corner square, rotate or mirror as needed, and click \"Download PNG\". Wall lengths always come from the blueprint."]},
     "builtin-commissions": {"title": "Run Commissions for the Pay Period", "icon": "💼", "category": "Admin", "steps": ["Go to Admin > Commissions and check the Current pay period (change its start date if needed).", "Review Suggested Move-Ins (residents moving in this pay period): + adds one officially, × rejects it.", "Add anything missing with \"+ Add Move-In\" or \"+ Add Renewal\", or use \"Import Renewals\" with the Resident Activity Detail export.", "Optional: upload last period's Commissions file to keep its formatting.", "Click \"Export to Excel\" — only officially added Move-Ins and Renewals are included."]},
     "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx)\". The file stays in your browser tab only and is never saved.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code (suggestions come from the file), To, Amount and For.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Check the summary under the table — it warns if the items won't fit in the sheet.", "Click \"Export to Excel\". Items go into the table, the approval date is set to today, and the rest of the file is unchanged.", "When asked, clear the exported items so they aren't added twice next time."]},
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
@@ -19569,102 +19570,113 @@ function bpRenderTakeoff() {
     if (t.basis === 'mid' && !(t.outer && t.inner)) notes.push('Trace both boundaries to size from the wall centers.');
     box.innerHTML = `<table>${head}${rows.join('')}</table><div class="bp-to-note">${notes.join(' ')}</div>`;
 }
-// Builds a PNG of the unit: the sheet (or image) cropped around the
-// traced outline, both boundaries drawn, every wall length labeled, and a
-// header with the unit, known sq ft and the measured areas.
+// ---- Blank floorplan from the traces ----
+// Draws the unit as a plain line floorplan: the outer trace as thick
+// walls, the inner trace as thinner lines, and the part of the inner
+// trace outside the outer one (the balcony) labeled "Balcony". It's made
+// straight from the trace coordinates, so when it's used as the unit's
+// floorplan the traced shape sits exactly on its lines.
+const BP_BLANK_MAX = 1800;   // longest side of the drawing, px
+async function bpMakeBlank(t) {
+    const shapes = bpPlShapes(t);
+    const all = [].concat(...shapes.map(s => s.P));
+    const xs = all.map(p => p[0]), ys = all.map(p => p[1]);
+    const x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(...xs) - x0, h = Math.max(...ys) - y0;
+    const s = BP_BLANK_MAX / Math.max(w, h);
+    const pad = 110;
+    const W = Math.round(w * s + pad * 2), H = Math.round(h * s + pad * 2);
+    const toImg = P => [(P[0] - x0) * s + pad, (P[1] - y0) * s + pad];
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#000'; ctx.lineJoin = 'miter'; ctx.lineCap = 'square';
+    const path = P => { ctx.beginPath(); P.map(toImg).forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); };
+    const inner = shapes.find(x => x.key === 'inner'), outer = shapes.find(x => x.key === 'outer');
+    if (inner) { ctx.lineWidth = 4; path(inner.P); ctx.stroke(); }
+    if (outer) { ctx.lineWidth = 8; path(outer.P); ctx.stroke(); }
+    // Balcony: the part of the inner trace that's outside the outer trace.
+    if (inner && outer) {
+        let n = 0, sx = 0, sy = 0, insideInner = 0;
+        const step = Math.max(w, h) / 160;
+        for (let x = x0; x <= x0 + w; x += step) for (let y = y0; y <= y0 + h; y += step) {
+            if (!bpPointInPoly([x, y], inner.P)) continue;
+            insideInner++;
+            if (bpPointInPoly([x, y], outer.P)) continue;
+            n++; sx += x; sy += y;
+        }
+        if (n > insideInner * 0.01) {
+            // Label at the balcony point farthest from its edges near the centroid.
+            let c = [sx / n, sy / n];
+            if (!bpPointInPoly(c, inner.P) || bpPointInPoly(c, outer.P)) {
+                let best = null, bd = Infinity;
+                for (let x = x0; x <= x0 + w; x += step) for (let y = y0; y <= y0 + h; y += step) {
+                    if (!bpPointInPoly([x, y], inner.P) || bpPointInPoly([x, y], outer.P)) continue;
+                    const d = Math.hypot(x - c[0], y - c[1]);
+                    if (d < bd) { bd = d; best = [x, y]; }
+                }
+                c = best || c;
+            }
+            const q = toImg(c);
+            ctx.fillStyle = '#000';
+            ctx.font = `${Math.round(Math.max(28, BP_BLANK_MAX / 40))}px Arial, sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('Balcony', q[0], q[1]);
+        }
+    }
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    // Where the traced shape sits on this image (see bpPlMap): scale s,
+    // no rotation, its center c at the matching image point.
+    const c = bpPlCenter(shapes);
+    const cImg = toImg(c);
+    return { blob, place: { s, rot: 0, mirror: false, tx: cImg[0], ty: cImg[1] } };
+}
 async function bpTakeoffImage() {
     const t = bpActiveTakeoff(false);
-    const bound = t && (t.outer || t.inner);
-    if (!bound) { alert('Trace the unit\'s outer boundary first.'); return; }
-    const S = bpTakeoffScale(t);
-    if (!S.inPerUnit) { alert('Enter the known sq ft (or set the sheet scale) first, so lengths can be worked out.'); return; }
-    bpSetStatus('Building the floorplan image…');
-    const page = await BP.pdf.getPage(BP.pageNum);
-    const v1 = page.getViewport({ scale: 1 });
-    const all = [].concat(t.outer || [], t.inner || []).map(p => v1.convertToViewportPoint(p[0], p[1]));
-    let x0 = Math.min(...all.map(p => p[0])), x1 = Math.max(...all.map(p => p[0]));
-    let y0 = Math.min(...all.map(p => p[1])), y1 = Math.max(...all.map(p => p[1]));
-    const w = x1 - x0, h = y1 - y0;
-    const scale = Math.max(0.5, Math.min(12, 1800 / Math.max(w, h)));
-    const pad = Math.max(w, h) * scale * 0.12 + 40;
-    const header = 150, footer = 40;
-    const cw = Math.round(w * scale + pad * 2), ch = Math.round(h * scale + pad * 2 + header + footer);
-    const canvas = document.createElement('canvas');
-    canvas.width = cw; canvas.height = ch;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cw, ch);
-    // Sheet region under the unit.
-    ctx.save();
-    ctx.beginPath(); ctx.rect(0, header, cw, ch - header - footer); ctx.clip();
-    const vp = page.getViewport({ scale });
-    const tx = -(x0 * scale) + pad, ty = -(y0 * scale) + pad + header;
-    await page.render({ canvasContext: ctx, viewport: vp, transform: [1, 0, 0, 1, tx, ty] }).promise;
-    ctx.restore();
-    // Soften the drawing so the measurements stand out.
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.fillRect(0, header, cw, ch - header - footer);
-    const toXY = p => { const q = vp.convertToViewportPoint(p[0], p[1]); return [q[0] + tx, q[1] + ty]; };
-    const font = Math.round(Math.max(13, Math.min(22, Math.max(w, h) * scale / 60)));
-    const drawPoly = (pts, stroke, fill, width) => {
-        ctx.beginPath();
-        pts.map(toXY).forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
-        ctx.closePath();
-        ctx.fillStyle = fill; ctx.fill();
-        ctx.strokeStyle = stroke; ctx.lineWidth = width; ctx.stroke();
-    };
-    if (t.outer) drawPoly(t.outer, '#1f5fd1', 'rgba(31,95,209,0.07)', 3);
-    if (t.inner) drawPoly(t.inner, '#18a058', 'rgba(24,160,88,0.08)', 2.5);
-    const label = (l, color, off) => {
-        const x = l.x + l.nx * off, y = l.y + l.ny * off;
-        ctx.save();
-        ctx.translate(x, y); ctx.rotate(l.ang * Math.PI / 180);
-        ctx.font = `700 ${font}px Arial, sans-serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.lineWidth = 4; ctx.strokeStyle = '#fff'; ctx.lineJoin = 'round';
-        ctx.strokeText(l.text, 0, 0);
-        ctx.fillStyle = color; ctx.fillText(l.text, 0, 0);
-        ctx.restore();
-    };
-    if (t.outer) bpEdgeLabels(t.outer, S.inPerUnit, toXY, true, font * 2.2).forEach(l => label(l, '#1f5fd1', font * 0.9));
-    if (t.inner) bpEdgeLabels(t.inner, S.inPerUnit, toXY, false, font * 2.2).forEach(l => label(l, '#12804a', font * 0.85));
-    // Header.
-    const sq = units => units ? (units * S.inPerUnit * S.inPerUnit / 144).toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 }) : '';
-    const oU = bpPolyAreaUnits(t.outer), iU = bpPolyAreaUnits(t.inner);
-    ctx.fillStyle = '#231f20';
-    ctx.font = '700 30px Arial, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-    ctx.fillText(t.name || 'Unit floorplan', 30, 48);
-    ctx.font = '16px Arial, sans-serif';
-    const line2 = S.from === 'known'
-        ? `Known: ${S.known.toLocaleString('en-US')} sq ft (measured to the ${BP_BASIS_LABEL[t.basis || 'outer']}) — lengths sized from it`
-        : 'Lengths from the sheet scale';
-    ctx.fillText(line2, 30, 80);
-    const parts = [];
-    if (oU) parts.push(`Outer boundary ${sq(oU)} sq ft`);
-    if (oU && iU) parts.push(`Wall centers ≈ ${sq((oU + iU) / 2)} sq ft`);
-    if (iU) parts.push(`Inner boundary ${sq(iU)} sq ft`);
-    if (oU && iU) parts.push(`Walls ${sq(oU - iU)} sq ft`);
-    ctx.fillText(parts.join('   ·   '), 30, 108);
-    ctx.fillStyle = '#7a7470'; ctx.font = '13px Arial, sans-serif';
-    const src = BP.pdf.isImage ? BP.fileName : `${BP.fileName} — sheet ${BP.pageNum}${BP.pages[BP.pageNum] && BP.pages[BP.pageNum].label ? ' (' + BP.pages[BP.pageNum].label + ')' : ''}`;
-    ctx.fillText(`${src} · ${new Date().toLocaleDateString('en-US')}`, 30, 134);
-    // Legend + footer note.
-    ctx.fillStyle = '#1f5fd1'; ctx.fillRect(cw - 300, 34, 14, 14);
-    ctx.fillStyle = '#231f20'; ctx.font = '14px Arial, sans-serif'; ctx.fillText('Outer boundary', cw - 278, 46);
-    if (t.inner) { ctx.fillStyle = '#18a058'; ctx.fillRect(cw - 300, 60, 14, 14); ctx.fillStyle = '#231f20'; ctx.fillText('Inner boundary', cw - 278, 72); }
-    ctx.fillStyle = '#7a7470'; ctx.font = '12px Arial, sans-serif';
-    ctx.fillText('Lengths are measured along the traced outlines, to the nearest 1/4". For reference only.', 30, ch - 15);
-    ctx.strokeStyle = '#e6e2dc'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, header - 0.5); ctx.lineTo(cw, header - 0.5); ctx.stroke();
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!t || (!t.outer && !t.inner)) { alert('Trace the unit\'s outer and inner boundaries first.'); return; }
+    bpSetStatus('Drawing the blank floorplan…');
+    const res = await bpMakeBlank(t);
+    BP.blank = { t, res };
     if (BP.lastImage) URL.revokeObjectURL(BP.lastImage.url);
-    const url = URL.createObjectURL(blob);
-    // Plain ASCII file name (an em dash makes browsers fall back to "download").
-    const safe = (t.name || 'Unit').replace(/[\u2010-\u2015]/g, '-').replace(/[\\/:*?"<>|]+/g, '-').replace(/[^\x20-\x7e]/g, '').replace(/\s+/g, ' ').trim() || 'Unit';
-    BP.lastImage = { url, name: `${safe} measured floorplan.png` };
-    document.getElementById('bpModalTitle').textContent = t.name ? `${t.name} — measured floorplan` : 'Measured floorplan';
-    document.getElementById('bpModalImg').src = url;
+    const safe = (t.name || 'Unit').replace(/[‐-―]/g, '-').replace(/[\\/:*?"<>|]+/g, '-').replace(/[^\x20-\x7e]/g, '').replace(/\s+/g, ' ').trim() || 'Unit';
+    BP.lastImage = { url: URL.createObjectURL(res.blob), name: `${safe} blank 2D.png` };
+    document.getElementById('bpModalTitle').textContent = `${t.name || 'Unit'} — blank floorplan`;
+    document.getElementById('bpModalImg').src = BP.lastImage.url;
+    document.getElementById('bpModalUse').style.display = '';
     document.getElementById('bpModal').style.display = 'flex';
     bpSetStatus('');
+}
+// Saves the blank floorplan to Documents › Floorplans (shared) and makes
+// it this unit's floorplan, with the traced shape placed exactly on it.
+async function bpUseBlank() {
+    const B = BP.blank;
+    if (!B) return;
+    const t = B.t, name = BP.lastImage.name;
+    const btn = document.getElementById('bpModalUse');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+        const b64 = await docsReadBase64(B.res.blob);
+        const entry = { id: docsNewId(), section: 'floorplans', title: name.replace(/\.png$/i, ''), name, size: B.res.blob.size, mime: 'image/png', print: 'full', added: new Date().toISOString() };
+        await docsCachePut(entry.id, b64);
+        await docsRunShare(entry, b64, 'Uploading', true);
+        if (!DOC_UPLOADS.some(u => u.id === entry.id)) { DOC_UPLOADS.push(Object.assign({ localOnly: true }, entry)); docsPersistLocal(); }
+        // Make it the unit's floorplan (the unit must be the active one).
+        const list = bpTakeoffs(), i = list.indexOf(t);
+        if (i >= 0) BP.toIdx[BP.pageNum] = i;
+        await bpSetLayout(new Blob([B.res.blob], { type: 'image/png' }), name, 'site', 'up:' + entry.id);
+        if (t.layout && BP.lay) {
+            t.layout.place = Object.assign({ key: BP.lay.key, inner: !!t.inner, outer: !t.inner }, B.res.place);
+            bpSaveState();
+        }
+        bpFillFloorplanSelect();
+        document.getElementById('bpModal').style.display = 'none';
+        bpLayStatus(`“${name}” saved to Documents › Floorplans and set as this unit's floorplan — click “Place traced shape on floorplan” to add the measurements.`);
+    } catch (err) {
+        console.error(err);
+        alert('Couldn’t save the blank floorplan (' + err.message + '). You can still download it.');
+    } finally {
+        btn.disabled = false; btn.textContent = 'Use as this unit’s floorplan';
+    }
 }
 // Floorplans already on the site (Documents › Floorplans) to open here.
 // Site floorplans: the MEDIA_Floorplans folder plus ones uploaded in
@@ -19731,8 +19743,9 @@ function bpWireTakeoff() {
         bpSaveState(); bpRenderTakeoff(); bpDrawOverlay();
     });
     document.getElementById('bpToImage').addEventListener('click', () => { if (BP.pdf) bpTakeoffImage().catch(err => { console.error(err); bpSetStatus('Couldn\'t build the image (' + err.message + ').'); }); });
-    document.getElementById('bpModalClose').addEventListener('click', () => { document.getElementById('bpModal').style.display = 'none'; });
-    document.getElementById('bpModal').addEventListener('click', e => { if (e.target.id === 'bpModal') e.target.style.display = 'none'; });
+    document.getElementById('bpModalClose').addEventListener('click', () => { document.getElementById('bpModal').style.display = 'none'; document.getElementById('bpModalUse').style.display = 'none'; });
+    document.getElementById('bpModalUse').addEventListener('click', () => bpUseBlank());
+    document.getElementById('bpModal').addEventListener('click', e => { if (e.target.id === 'bpModal') { e.target.style.display = 'none'; document.getElementById('bpModalUse').style.display = 'none'; } });
     document.getElementById('bpModalDownload').addEventListener('click', () => {
         if (!BP.lastImage) return;
         const a = document.createElement('a');
@@ -20065,6 +20078,7 @@ async function bpExportLayout() {
     BP.lastImage = { url, name: `${safe}.png` };
     document.getElementById('bpModalTitle').textContent = `${L.name} — with measurements`;
     document.getElementById('bpModalImg').src = url;
+    document.getElementById('bpModalUse').style.display = 'none';
     document.getElementById('bpModal').style.display = 'flex';
 }
 function bpWireLayout() {
