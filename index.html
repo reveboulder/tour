@@ -1769,7 +1769,33 @@
     .tn-table .tn-legend-row td.tn-legend-trades span { display: inline-flex; margin: 2px 18px 2px 0; }
     .tn-table .tn-legend-row td.tn-legend-trades em { font-style: normal; font-weight: 600; opacity: 0.75; }
     /* Turns calendar */
-    .tn-cal-wrap { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 6px; margin-bottom: 14px; }
+    .tn-top { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
+    .tn-top-main { flex: 1 1 420px; min-width: 0; }
+    .tn-top-main .tn-toolbar { margin-bottom: 0; }
+    .tn-mini { flex: none; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 5px 6px; }
+    .tn-mini-bar { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 2px; }
+    .tn-mini-label { font-size: 11.5px; font-weight: 700; }
+    .tn-mini-nav { border: 0; background: transparent; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 5px; color: var(--ink-soft); border-radius: 4px; }
+    .tn-mini-nav:hover { background: #f1ece8; color: var(--reve-orange); }
+    .tn-mini-grid { display: grid; grid-template-columns: repeat(7, 30px); gap: 2px; }
+    .tn-mini-grid .tn-md { font-size: 8.5px; font-weight: 700; color: var(--ink-soft); text-align: center; }
+    .tn-mini-day { position: relative; height: 22px; border: 1px solid var(--line); border-radius: 4px; display: flex; align-items: center; justify-content: space-between; padding: 0 2px 0 3px; box-sizing: border-box; font-size: 9px; font-weight: 700; color: var(--ink-soft); cursor: pointer; background: #fff; }
+    .tn-mini-day.empty { border: 0; background: transparent; cursor: default; }
+    .tn-mini-day.today { border-color: var(--reve-orange); color: var(--reve-orange); box-shadow: 0 0 0 1px var(--reve-orange) inset; }
+    .tn-mini-day:not(.empty):hover { border-color: var(--reve-orange); }
+    .tn-mini-day .tn-cal-bub { min-width: 13px; height: 13px; padding: 0 3px; font-size: 8.5px; border-radius: 7px; }
+    .tn-mini-day .tn-cal-tip { left: 50%; transform: translateX(-50%); }
+    .tn-mini-day:hover { z-index: 31; }
+    .tn-mini-day:hover .tn-cal-tip { display: block; }
+    .tn-mini-legend { display: flex; gap: 6px; font-size: 8.5px; color: var(--ink-soft); margin-top: 3px; }
+    .tn-mini-legend span { display: inline-flex; align-items: center; gap: 2px; }
+    .tn-mini-legend .tn-cal-bub { min-width: 8px; width: 8px; height: 8px; padding: 0; }
+    .tn-mini-foot { display: flex; gap: 3px; margin-top: 4px; }
+    .tn-mini-foot button { flex: 1; border: 1px solid var(--line); background: #fff; border-radius: 4px; font: inherit; font-size: 10.5px; font-weight: 600; padding: 2px 0; cursor: pointer; color: inherit; }
+    .tn-mini-foot button:hover { border-color: var(--reve-orange); color: var(--reve-orange); }
+    .tn-cal-card { width: min(1150px, 100%); padding: 12px 14px 10px; overflow: visible; }
+    .tn-cal-body { overflow: auto; max-height: calc(100vh - 170px); }
+    body.dark-mode .tn-mini, body.dark-mode .tn-mini-day, body.dark-mode .tn-mini-foot button { background: var(--dm-card-alt); }
     .tn-cal-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
     .tn-cal-bar .cal-nav-btn { width: 28px; height: 28px; font-size: 16px; line-height: 1; padding: 0; }
     .tn-cal-bar .cal-month-block { min-width: 190px; }
@@ -1831,7 +1857,7 @@
     .tn-cal-hint { margin-left: auto; }
     #turnsBody tr.tn-flash td { animation: tnFlash 1.6s ease; }
     @keyframes tnFlash { 0%, 40% { box-shadow: inset 0 0 0 9999px rgba(232,119,34,0.35); } 100% { box-shadow: none; } }
-    body.dark-mode .tn-cal-wrap, body.dark-mode .tn-cal-item { background: var(--dm-card-alt); }
+    body.dark-mode .tn-cal-item { background: var(--dm-card-alt); }
     .tn-sw { display: inline-block; width: 22px; height: 14px; border: 1px solid rgba(0,0,0,0.18); border-radius: 3px; }
     .tn-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 10px; }
     .tn-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; }
@@ -3440,31 +3466,53 @@
             <div class="tag">Unit turn tracker &mdash; maintenance, paint, carpet, clean &mdash; shared across the team</div>
         </div>
     </div>
-    <div class="tn-cal-wrap" id="tnCalWrap">
-        <div class="tn-cal-bar">
-            <button type="button" class="cal-nav-btn" id="tnCalPrev" title="Previous">&lsaquo;</button>
-            <div class="cal-month-block">
-                <div class="cal-month-label" id="tnCalLabel"></div>
-                <div class="cal-month-summary" id="tnCalSummary"></div>
+    <div class="tn-top">
+        <div class="tn-mini" id="tnMini" title="Turn items per day — hover a count for the units and vendors, click a day for its details">
+            <div class="tn-mini-bar">
+                <button type="button" class="tn-mini-nav" id="tnMiniPrev" title="Previous month">&lsaquo;</button>
+                <span class="tn-mini-label" id="tnMiniLabel"></span>
+                <button type="button" class="tn-mini-nav" id="tnMiniNext" title="Next month">&rsaquo;</button>
             </div>
-            <button type="button" class="cal-nav-btn" id="tnCalNext" title="Next">&rsaquo;</button>
-            <div class="tn-cal-views">
-                <button type="button" class="cal-action-btn" id="tnCalToday">Today</button>
-                <button type="button" class="cal-action-btn" data-tn-view="condensed" title="Month, with just a count per day">Condensed</button>
-                <button type="button" class="cal-action-btn" data-tn-view="month">Month</button>
-                <button type="button" class="cal-action-btn" data-tn-view="week">Weekly</button>
-                <button type="button" class="cal-action-btn" data-tn-view="day">Daily</button>
+            <div class="tn-mini-grid" id="tnMiniGrid"></div>
+            <div class="tn-mini-legend"><span><i class="tn-cal-bub"></i>scheduled</span><span><i class="tn-cal-bub today"></i>today</span><span><i class="tn-cal-bub late"></i>past due</span><span><i class="tn-cal-bub done"></i>done</span></div>
+            <div class="tn-mini-foot">
+                <button type="button" data-tn-open="month">Month</button>
+                <button type="button" data-tn-open="week">Weekly</button>
+                <button type="button" data-tn-open="day">Daily</button>
             </div>
         </div>
-        <div class="avail-cal-grid tn-cal-grid" id="tnCalGrid"></div>
-        <div class="tn-cal-legend"><span><i class="tn-cal-dot"></i>Scheduled</span><span><i class="tn-cal-dot today"></i>Today</span><span><i class="tn-cal-dot late"></i>Past due, not done</span><span><i class="tn-cal-dot done"></i>Done</span><span class="tn-cal-hint">Hover a unit for its vendors &middot; click a unit to jump to its row &middot; click a day for its details</span></div>
-    </div>
-    <div class="tn-toolbar">
+        <div class="tn-top-main">
+        <div class="tn-toolbar">
         <input type="text" id="turnSearch" class="res-search-inline" placeholder="Search unit, floorplan, vendor or comment&hellip;" autocomplete="off">
         <label class="tn-inline"><input type="checkbox" id="turnHideDone"> Hide completed</label>
         <span class="tn-count" id="turnCount"></span>
         <span class="empty-note" id="turnSyncStatus" style="margin:0;font-weight:600;"></span>
         <button type="button" class="btn primary" id="turnAddBtn" style="width:auto;flex:none;padding:8px 16px;margin-left:auto;">+ Add Unit</button>
+    </div>
+        </div>
+    </div>
+    <div class="bp-modal tn-cal-modal" id="tnCalModal" style="display:none;">
+        <div class="bp-modal-card tn-cal-card">
+            <div class="tn-cal-bar">
+                <button type="button" class="cal-nav-btn" id="tnCalPrev" title="Previous">&lsaquo;</button>
+                <div class="cal-month-block">
+                    <div class="cal-month-label" id="tnCalLabel"></div>
+                    <div class="cal-month-summary" id="tnCalSummary"></div>
+                </div>
+                <button type="button" class="cal-nav-btn" id="tnCalNext" title="Next">&rsaquo;</button>
+                <div class="tn-cal-views">
+                    <button type="button" class="cal-action-btn" id="tnCalToday">Today</button>
+                    <button type="button" class="cal-action-btn" data-tn-view="month">Month</button>
+                    <button type="button" class="cal-action-btn" data-tn-view="week">Weekly</button>
+                    <button type="button" class="cal-action-btn" data-tn-view="day">Daily</button>
+                    <button type="button" class="bp-btn" id="tnCalClose">Close</button>
+                </div>
+            </div>
+            <div class="tn-cal-body">
+                <div class="avail-cal-grid tn-cal-grid" id="tnCalGrid"></div>
+            </div>
+            <div class="tn-cal-legend"><span><i class="tn-cal-dot"></i>Scheduled</span><span><i class="tn-cal-dot today"></i>Today</span><span><i class="tn-cal-dot late"></i>Past due, not done</span><span><i class="tn-cal-dot done"></i>Done</span><span class="tn-cal-hint">Hover a unit for its vendors &middot; click a unit to jump to its row &middot; click a day for its details</span></div>
+        </div>
     </div>
     <div class="tn-scroll">
         <table class="tn-table" id="turnsTable">
@@ -3502,7 +3550,7 @@
             <tbody id="turnsBody"></tbody>
         </table>
     </div>
-    <div class="empty-note" style="margin-top:8px;">Click a date to pick it Click a date to pick it (Paint / Carpet / Clean / Other can hold several).mdash; turn items can be a startClick a date to pick it (Paint / Carpet / Clean / Other can hold several).ndash;end range, and Paint / Carpet / Clean / Other can hold several. Each dropdown&rsquo;s &ldquo;Edit list&hellip;&rdquo; changes the names it offers. Click a column title to sort.</div>
+    <div class="empty-note" style="margin-top:8px;">Click a date to pick it &mdash; turn items can be a start&ndash;end range, and Paint / Carpet / Clean / Other can hold several. Each dropdown&rsquo;s &ldquo;Edit list&hellip;&rdquo; changes the names it offers. Click a column title to sort.</div>
     <div class="tn-pop" id="turnPop" style="display:none;"></div>
     <div id="turnListOverlay" class="howto-overlay" style="display:none;">
         <div class="howto-detail-card docs-edit-card">
@@ -13581,7 +13629,9 @@ function renderTurnsBody() {
     renderTurnCal();
 }
 // ---- Calendar (top of the tab): every scheduled turn item by date ----
-let turnCalView = (() => { try { return localStorage.getItem('reve-turn-cal-view') || 'month'; } catch (e) { return 'month'; } })();
+let turnCalView = 'month';   // the larger calendar (opened from the small one)
+let turnMiniMonth = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+function turnCalOpen() { return document.getElementById('tnCalModal').style.display !== 'none'; }
 let turnCalDate = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); })();
 const TURN_STATE_RANK = { late: 4, today: 3, '': 2, past: 1, done: 0 };
 // One event per scheduled date: maintenance (Entry Date + Turn tech) and
@@ -13612,9 +13662,30 @@ function turnTip(list, withUnit) {
     return `<div class="tn-cal-tip">${list.map(e => `<div class="${e.state === 'done' ? 'tn-tip-done' : e.state === 'late' ? 'tn-tip-late' : ''}">${withUnit ? `<b>${escapeHtml(e.unit)}</b> ` : ''}${escapeHtml(e.item)}: ${escapeHtml(e.who || 'no vendor yet')}</div>`).join('')}</div>`;
 }
 function turnIsoOf(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+// The small calendar: a count bubble per day.
+function renderTurnMini(byDate) {
+    const grid = document.getElementById('tnMiniGrid');
+    if (!grid) return;
+    const y = turnMiniMonth.getFullYear(), m = turnMiniMonth.getMonth(), days = new Date(y, m + 1, 0).getDate(), first = new Date(y, m, 1).getDay();
+    document.getElementById('tnMiniLabel').textContent = turnMiniMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const prefix = `${y}-${String(m + 1).padStart(2, '0')}-`, todayIso = turnTodayIso();
+    let h = ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => `<div class="tn-md">${d}</div>`).join('');
+    for (let i = 0; i < first; i++) h += '<div class="tn-mini-day empty"></div>';
+    for (let d = 1; d <= days; d++) {
+        const iso = prefix + String(d).padStart(2, '0'), list = byDate[iso] || [];
+        h += `<div class="tn-mini-day${iso === todayIso ? ' today' : ''}" data-tn-day="${iso}">${d}${list.length ? `<span class="tn-cal-bub ${turnWorst(list)}">${list.length}</span>${turnTip(list, true)}` : ''}</div>`;
+    }
+    grid.innerHTML = h;
+}
 function renderTurnCal() {
     const grid = document.getElementById('tnCalGrid');
     if (!grid) return;
+    {
+        const all = {};
+        turnCalEvents().forEach(e => (all[e.date] = all[e.date] || []).push(e));
+        renderTurnMini(all);
+    }
+    if (!turnCalOpen()) return;
     document.querySelectorAll('[data-tn-view]').forEach(b => b.classList.toggle('active', b.getAttribute('data-tn-view') === turnCalView));
     const evs = turnCalEvents(), byDate = {};
     evs.forEach(e => (byDate[e.date] = byDate[e.date] || []).push(e));
@@ -13688,11 +13759,35 @@ function turnJumpToRow(id) {
     tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
     tr.classList.remove('tn-flash'); void tr.offsetWidth; tr.classList.add('tn-flash');
 }
+function turnCalShow(view, date) {
+    turnCalView = view;
+    if (date) turnCalDate = date;
+    document.getElementById('tnCalModal').style.display = 'flex';
+    renderTurnCal();
+}
+function turnCalHide() { document.getElementById('tnCalModal').style.display = 'none'; }
 (function turnCalWire() {
     const grid = document.getElementById('tnCalGrid');
+    document.getElementById('tnMiniGrid').addEventListener('click', e => {
+        const d = e.target.closest('[data-tn-day]');
+        if (!d) return;
+        const [y, m, dd] = d.getAttribute('data-tn-day').split('-').map(Number);
+        turnCalShow('day', new Date(y, m - 1, dd));
+    });
+    const miniStep = dir => { turnMiniMonth = new Date(turnMiniMonth.getFullYear(), turnMiniMonth.getMonth() + dir, 1); renderTurnCal(); };
+    document.getElementById('tnMiniPrev').addEventListener('click', () => miniStep(-1));
+    document.getElementById('tnMiniNext').addEventListener('click', () => miniStep(1));
+    document.querySelectorAll('[data-tn-open]').forEach(b => b.addEventListener('click', () => {
+        // Open on today when the small calendar shows this month, else on that month.
+        const now = new Date(), same = now.getFullYear() === turnMiniMonth.getFullYear() && now.getMonth() === turnMiniMonth.getMonth();
+        turnCalShow(b.getAttribute('data-tn-open'), same ? new Date(now.getFullYear(), now.getMonth(), now.getDate()) : new Date(turnMiniMonth));
+    }));
+    document.getElementById('tnCalClose').addEventListener('click', turnCalHide);
+    document.getElementById('tnCalModal').addEventListener('click', e => { if (e.target.id === 'tnCalModal') turnCalHide(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && turnCalOpen()) turnCalHide(); });
     grid.addEventListener('click', e => {
         const j = e.target.closest('[data-tn-jump]');
-        if (j) { turnJumpToRow(j.getAttribute('data-tn-jump')); return; }
+        if (j) { turnCalHide(); turnJumpToRow(j.getAttribute('data-tn-jump')); return; }
         const d = e.target.closest('[data-tn-day]');
         if (d && turnCalView !== 'day') {
             const [y, m, dd] = d.getAttribute('data-tn-day').split('-').map(Number);
@@ -13714,7 +13809,6 @@ function turnJumpToRow(id) {
     document.getElementById('tnCalToday').addEventListener('click', () => { const d = new Date(); turnCalDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()); renderTurnCal(); });
     document.querySelectorAll('[data-tn-view]').forEach(b => b.addEventListener('click', () => {
         turnCalView = b.getAttribute('data-tn-view');
-        try { localStorage.setItem('reve-turn-cal-view', turnCalView); } catch (e) {}
         renderTurnCal();
     }));
 })();
