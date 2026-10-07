@@ -1739,6 +1739,20 @@
     .fp-flabel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); width: 74px; flex: none; }
     .fp-filters .chip { padding: 2px 9px; font-size: 11.5px; min-height: 0; line-height: 1.5; }
     .fp-body { display: flex; align-items: flex-start; gap: 16px; }
+    .et-panel { display: flex; gap: 16px; align-items: flex-start; }
+    .et-side { width: 260px; flex: none; display: flex; flex-direction: column; gap: 8px; }
+    .et-list { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
+    .et-row { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; padding: 9px 12px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; font: inherit; }
+    .et-row:last-child { border-bottom: 0; }
+    .et-row span { font-size: 12px; color: #777; }
+    .et-row:hover { background: #fbf6f2; }
+    .et-row.active { background: #fdeee4; box-shadow: inset 3px 0 0 var(--reve-orange); }
+    .et-editor { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+    .et-editor textarea { width: 100%; box-sizing: border-box; font: 13px/1.45 Consolas, 'Courier New', monospace; padding: 10px; border: 1px solid var(--line); border-radius: 6px; resize: vertical; }
+    .et-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    body.dark-mode .et-list, body.dark-mode .et-editor textarea { background: var(--dm-card-alt); color: inherit; }
+    body.dark-mode .et-row.active { background: rgba(232,119,34,0.18); }
+    @media (max-width: 760px) { .et-panel { flex-direction: column; } .et-side { width: 100%; } }
     .fp-list { flex: none; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
     .fp-row { display: grid; grid-template-columns: 270px 70px 62px 66px 58px 54px 40px 124px; align-items: center; gap: 8px; padding: 3px 8px; font-size: 12.5px; border-top: 1px solid var(--line); min-height: 30px; font-variant-numeric: tabular-nums; cursor: pointer; }
     .fp-head { cursor: default; }
@@ -1760,8 +1774,8 @@
     .docs-x-pill:hover { color: #c0392b !important; border-color: #c0392b !important; }
     .docs-edit-card { max-width: 420px; }
     .docs-edit-field { display: block; font-size: 12px; font-weight: 600; color: var(--ink-soft); margin-top: 10px; }
-    .docs-edit-field input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-family: var(--sans); font-size: 13.5px; color: var(--ink); }
-    body.dark-mode .docs-edit-field input { background: var(--dm-card-alt); }
+    .docs-edit-field input, .docs-edit-field select { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-family: var(--sans); font-size: 13.5px; color: var(--ink); }
+    body.dark-mode .docs-edit-field input, body.dark-mode .docs-edit-field select { background: var(--dm-card-alt); }
     .fp-row.fp-selected, .fp-row.fp-selected:hover { background: #fbe0d4 !important; box-shadow: inset 3px 0 0 var(--reve-orange); }
     .fp-row.fp-dup { background: #fde2e2 !important; box-shadow: inset 3px 0 0 #c0392b; }
     .fp-row.fp-dup .fp-file { color: #c0392b; font-weight: 600; }
@@ -4311,6 +4325,26 @@
             <aside class="fp-preview" id="fpPreview" style="display:none;" aria-live="polite"></aside>
         </div>
         <div class="empty-note" id="fpNote" style="margin-top:8px;"></div>
+    </div>
+    <div id="etPanel" class="et-panel" style="display:none;">
+        <div class="et-side">
+            <button type="button" class="btn" id="etNew" style="width:100%;padding:8px 12px;">+ New template</button>
+            <div class="et-list" id="etList"></div>
+        </div>
+        <div class="et-editor" id="etEditor">
+            <label class="docs-edit-field">Template name<input type="text" id="etName" autocomplete="off"></label>
+            <label class="docs-edit-field">Use for<select id="etSlot"></select></label>
+            <label class="docs-edit-field">Subject<input type="text" id="etSubject" autocomplete="off"></label>
+            <label class="docs-edit-field">Message<textarea id="etBody" rows="22" spellcheck="true"></textarea></label>
+            <div class="empty-note" style="margin:2px 0 0;">Plain text (email drafts can&rsquo;t carry formatting). <b>{name}</b> and <b>{unit}</b> are filled in with the resident&rsquo;s name and apartment when a draft is created.</div>
+            <div class="et-actions">
+                <button type="button" class="btn primary" id="etSave" style="width:auto;flex:none;padding:8px 16px;">Save</button>
+                <button type="button" class="btn" id="etDraft" style="width:auto;flex:none;padding:8px 16px;">Open as email draft</button>
+                <button type="button" class="btn" id="etCopy" style="width:auto;flex:none;padding:8px 16px;">Copy message</button>
+                <button type="button" class="btn" id="etDelete" style="width:auto;flex:none;padding:8px 16px;margin-left:auto;">Delete</button>
+            </div>
+            <div class="empty-note" id="etStatus" style="margin:4px 0 0;"></div>
+        </div>
     </div>
     <div class="empty-note" id="docsEmptyNote" style="display:none;">No documents in this section yet &mdash; click &ldquo;+ Upload&rdquo; to add one.</div>
     <iframe id="docsPrintFrame" title="Print" style="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;"></iframe>
@@ -13797,8 +13831,197 @@ async function wlDownloadSticker(btn) {
 /* ---------- Create Email Draft ----------
    Asks for the resident's email (remembering the last one used for this
    unit), then opens a new draft in the computer's default mail app
-   (e.g. desktop Outlook) via a mailto: link, addressed and with a
-   subject line — the Outlook template and attachments are added there. */
+   (e.g. desktop Outlook) via a mailto: link, addressed, with a subject
+   line and the welcome checklist below as the (plain-text) body. The
+   body is also copied to the clipboard, in case a mail app shortens long
+   mailto: links — then it can just be pasted. Attachments are added there.
+   The subject and body come from the template linked to this button in
+   Documents › Email Templates. */
+/* ---------- Email Templates (Documents › Email Templates) ----------
+   Plain-text email templates, shared with the team through the backend.
+   Each can be linked to a "Create Email Draft" button (ET_SLOTS); that
+   button opens a new draft with the template's subject and body, with
+   {name} and {unit} filled in. Built-in templates can be edited (and
+   reset); custom ones can be added and deleted. */
+const ET_SLOTS = [{ id: 'wl', label: 'WL tab › Create Email Draft' }];
+const ET_BUILTIN = [{
+    id: 'welcome', builtIn: true, slot: 'wl',
+    name: 'Welcome / Move-in Checklist',
+    subject: 'Welcome to REVE Boulder \u2014 Apt {unit}',
+    body: [
+        'Hi {name},',
+        '',
+        'Welcome to RÊVE Boulder!',
+        '',
+        'Congratulations! Your application at RÊVE Boulder has been approved. We are very excited to have you here. Below is a checklist of items for you to review before your move-in:',
+        '',
+        'DO TODAY:',
+        '',
+        '1) Pay the Holding Fee to secure the reservation for your apartment.',
+        '   • Due within 72 hours of when the lease is generated.',
+        '   • This secures your apartment until move-in and will later be applied toward your move-in balance as part of your security deposit.',
+        '   • Pay online: Create your Bilt payment account: https://www.biltrewards.com/paywithbilt/account/enter-email',
+        '   • To make a manual payment, select "Make a payment" → "Edit amount."',
+        '',
+        'DUE BEFORE MOVE-IN:',
+        '',
+        '1) Fully Signed Lease Agreement',
+        '   • Your lease will be sent electronically from Blue Moon. Please sign and return by all parties before move-in.',
+        '',
+        "2) Proof of Renter's Insurance",
+        '   • Minimum $100,000 in personal liability coverage is required. Additional contents coverage is highly recommended as you are responsible for all of your personal items. You can utilize the insurance company of your choice.',
+        '   • Rêve Boulder must be listed as "Additional Interest" on your policy using this address: PO Box 115009, Carrollton, TX 75011',
+        '   • If no policy is provided by move-in, you will automatically be enrolled in our Master Policy.',
+        '   • Need a policy? You can enroll through RealCoverage (the company we use for our Master Policy): https://www.realcoverage.com/',
+        '',
+        '3) Pay Remaining Move-In Balance',
+        '   • Amount due is listed on your attached Welcome Letter charges summary (subtract the $200 holding fee if already paid).',
+        '   • Pay via the Bilt portal, or by cashier\'s check / money order made out to "Reve Boulder."',
+        '',
+        'Future Rent Payments:',
+        '   • Rent is due on the 1st of each month. Your rent could be late if you don’t allow ample time for your bank to complete the approval process to transfer funds directly to REVE Boulder. The online portal is an option offered for convenience. REVE Boulder is not responsible for transfer issues between the bank to your account. After your first move-in payment, personal checks can also be received at the main office.',
+        '',
+        'OTHER SETUP INFORMATION:',
+        '',
+        'Pets & Parking:',
+        '   • Vehicles: Send us the Make, Model, and License Plate number for each vehicle so we can register it in our system.',
+        '   • Pets: Create an account with PetScreening and upload current vaccination records prior to move-in (see attached flyer for the property sign-up link).',
+        '',
+        'Wireless Internet:',
+        '   • See the attached QuantumFiber document to set up service at or before move-in.',
+        '   ** Referral and/or promo codes can only be used at first setup.',
+        '',
+        'Utilities (Water, Electric, Sewer, Gas):',
+        '   • Already set up for you by the Rêve Boulder team.',
+        '   • Usage statements arrive by mail after your second full month of occupancy.',
+        '   • All utility bills are payable through the Bilt portal along with rent. Final bill is due after move-out (billed in arrears).',
+        '',
+        'BUNDLE Valet Trash:',
+        '   • Pickup is now 7 days a week! Set trash cans outside your door by 6:00 p.m.; bring them back in after collection.',
+        '   • Trash bags must be tied; boxes broken down. Use clear bags for recycling.',
+        '',
+        'BUNDLE Package Management:',
+        '   • Watch for an email from Amazon near your move-in date to sign up for Amazon Hub lockers — enrollment and account status is your responsibility.',
+        '   • All other packages go to the central package room in the Rêve North Garage (24/7 resident access).',
+        '   • Bundle service: front-door evening delivery, 7 days a week, starting at 6:00 p.m.',
+        '',
+        "Please let us know if you have any additional questions or if you don't receive the documents mentioned above. We all look forward to welcoming you to your new home!",
+        ''
+    ].join('\n')
+}];
+const ET_KEY = 'reve-email-templates';
+const ET_BACKEND_KEY = 'email-templates';
+// Stored edits and custom templates: { id: { ...template, ts } } (deleted ones keep { id, ts, deleted: true }).
+let ET_STORE = {};
+try { ET_STORE = JSON.parse(localStorage.getItem(ET_KEY) || '{}') || {}; } catch (e) { ET_STORE = {}; }
+let etSelected = 'welcome';
+function etTemplates() {
+    const out = ET_BUILTIN.map(b => { const o = ET_STORE[b.id]; return o && !o.deleted ? Object.assign({}, b, o, { builtIn: true }) : Object.assign({}, b); });
+    Object.keys(ET_STORE).forEach(id => { const o = ET_STORE[id]; if (!o.deleted && !ET_BUILTIN.some(b => b.id === id)) out.push(o); });
+    return out;
+}
+function etFor(slot) { return etTemplates().find(t => t.slot === slot) || null; }
+function etFill(text, vars) {
+    return String(text || '').replace(/\{(name|unit)\}/g, (m, k) => vars[k] || '').replace(/^(Hi|Hello|Dear) +([,!])/m, '$1$2');
+}
+function etSaveLocal() { try { localStorage.setItem(ET_KEY, JSON.stringify(ET_STORE)); } catch (e) {} }
+async function etSync() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const st = document.getElementById('etStatus');
+    try {
+        const remote = await backendPullChecked(ET_BACKEND_KEY);
+        if (remote === undefined) { if (st) st.textContent = 'Couldn\u2019t reach the shared backend \u2014 saved on this device.'; return; }
+        const R = (remote && remote.items) || {};
+        let changed = false, push = false;
+        new Set(Object.keys(R).concat(Object.keys(ET_STORE))).forEach(id => {
+            const r = R[id], l = ET_STORE[id];
+            if (r && (!l || r.ts > l.ts)) { ET_STORE[id] = r; changed = true; }
+            else if (l && (!r || l.ts > r.ts)) push = true;
+        });
+        if (changed) { etSaveLocal(); if (docsCurrentSection === 'email-templates') renderEmailTemplates(); }
+        if (push) {
+            const ok = await backendPush(ET_BACKEND_KEY, { v: 1, items: ET_STORE });
+            if (st) st.textContent = ok ? 'Saved to the shared backend.' : 'Saving to the shared backend failed \u2014 saved on this device.';
+        } else if (st && changed) st.textContent = '';
+    } catch (err) { console.error(err); }
+}
+function etPut(t) {
+    ET_STORE[t.id] = Object.assign({}, t, { ts: Date.now() });
+    delete ET_STORE[t.id].builtIn;
+    etSaveLocal(); etSync();
+}
+function renderEmailTemplates() {
+    const list = etTemplates();
+    if (!list.some(t => t.id === etSelected)) etSelected = list.length ? list[0].id : null;
+    const slotLabel = id => (ET_SLOTS.find(x => x.id === id) || {}).label || '';
+    document.getElementById('etList').innerHTML = list.map(t => `<button type="button" class="et-row${t.id === etSelected ? ' active' : ''}" data-et-id="${escapeAttr(t.id)}"><b>${escapeHtml(t.name || 'Untitled')}</b><span>${t.slot ? 'Used by ' + escapeHtml(slotLabel(t.slot)) : t.builtIn ? 'Built-in' : 'Not linked to a button'}</span></button>`).join('')
+        || '<div class="empty-note" style="padding:10px;">No templates yet.</div>';
+    const t = list.find(x => x.id === etSelected);
+    const ed = document.getElementById('etEditor');
+    ed.style.display = t ? '' : 'none';
+    if (!t) return;
+    document.getElementById('etName').value = t.name || '';
+    document.getElementById('etSubject').value = t.subject || '';
+    document.getElementById('etBody').value = t.body || '';
+    document.getElementById('etSlot').innerHTML = '<option value="">Not linked</option>' + ET_SLOTS.map(x => `<option value="${x.id}"${t.slot === x.id ? ' selected' : ''}>${escapeHtml(x.label)}</option>`).join('');
+    document.getElementById('etDelete').textContent = t.builtIn ? 'Reset to original' : 'Delete';
+    document.getElementById('etDelete').style.display = t.builtIn && !(ET_STORE[t.id] && !ET_STORE[t.id].deleted) ? 'none' : '';
+}
+function etEditorValues() {
+    return { name: document.getElementById('etName').value.trim() || 'Untitled', subject: document.getElementById('etSubject').value, body: document.getElementById('etBody').value.replace(/\r\n/g, '\n'), slot: document.getElementById('etSlot').value };
+}
+function etSaveCurrent() {
+    const t = etTemplates().find(x => x.id === etSelected);
+    if (!t) return;
+    const v = etEditorValues();
+    // One template per button: linking this one unlinks any other.
+    if (v.slot) etTemplates().forEach(o => { if (o.id !== t.id && o.slot === v.slot) etPut(Object.assign({}, o, { slot: '' })); });
+    etPut(Object.assign({}, t, v));
+    renderEmailTemplates();
+    const st = document.getElementById('etStatus');
+    if (st && !(BACKEND_URL && APP_MODE !== 'test')) st.textContent = 'Saved on this device.';
+}
+function etOpenDraft(to, t, vars) {
+    const body = etFill(t.body, vars).replace(/\r?\n/g, '\r\n');
+    try { if (navigator.clipboard) navigator.clipboard.writeText(body).catch(() => {}); } catch (e) {}
+    const a = document.createElement('a');
+    // Keep '@' literal: some Outlook versions show an encoded %40 as-is.
+    a.href = `mailto:${(to || []).map(e => encodeURIComponent(e).replace(/%40/g, '@')).join(',')}?subject=${encodeURIComponent(etFill(t.subject, vars))}&body=${encodeURIComponent(body)}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+(function etWire() {
+    document.getElementById('etList').addEventListener('click', e => {
+        const b = e.target.closest('[data-et-id]');
+        if (!b) return;
+        etSelected = b.getAttribute('data-et-id');
+        renderEmailTemplates();
+    });
+    document.getElementById('etNew').addEventListener('click', () => {
+        const id = 'et' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+        etPut({ id, name: 'New template', subject: '', body: 'Hi {name},\n\n', slot: '' });
+        etSelected = id;
+        renderEmailTemplates();
+        document.getElementById('etName').select();
+    });
+    document.getElementById('etSave').addEventListener('click', etSaveCurrent);
+    document.getElementById('etCopy').addEventListener('click', () => {
+        const v = etEditorValues();
+        try { navigator.clipboard.writeText(v.body.replace(/\n/g, '\r\n')); document.getElementById('etStatus').textContent = 'Body copied to the clipboard.'; } catch (e) {}
+    });
+    document.getElementById('etDraft').addEventListener('click', () => etOpenDraft([], etEditorValues(), { name: '', unit: '' }));
+    document.getElementById('etDelete').addEventListener('click', () => {
+        const t = etTemplates().find(x => x.id === etSelected);
+        if (!t) return;
+        if (!confirm(t.builtIn ? `Reset \u201c${t.name}\u201d to the original text?` : `Delete \u201c${t.name}\u201d?`)) return;
+        ET_STORE[t.id] = { id: t.id, ts: Date.now(), deleted: true };
+        etSaveLocal(); etSync();
+        renderEmailTemplates();
+    });
+    setTimeout(etSync, 0);
+})();
+
 function wlCreateEmailDraft() {
     const wlKey = wlSelectedUnit;
     const unit = wlKeyUnit(wlKey);
@@ -13813,13 +14036,9 @@ function wlCreateEmailDraft() {
     const bad = emails.filter(e => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
     if (bad.length) { alert(`That doesn't look like a valid email address: ${bad.join(', ')}`); return; }
     wlCommit('residentEmail', emails.join(', '));
-    const subject = `Welcome to REVE Boulder \u2014 Apt ${unit}`;
-    const a = document.createElement('a');
-    // Keep '@' literal: some Outlook versions show an encoded %40 as-is.
-    a.href = `mailto:${emails.map(e => encodeURIComponent(e).replace(/%40/g, '@')).join(',')}?subject=${encodeURIComponent(subject)}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // The template linked to this button in Documents › Email Templates.
+    const t = etFor('wl') || { subject: 'Welcome to REVE Boulder \u2014 Apt {unit}', body: '' };
+    etOpenDraft(emails, t, { name: (resident && String(resident.first || '').trim()) || who, unit });
 }
 [...document.querySelectorAll('.wl-email-btn')].forEach(btn => btn.addEventListener('click', wlCreateEmailDraft));
 
@@ -15473,7 +15692,18 @@ function renderDocuments() {
     const tabBtn = (id, label) => `<button type="button" class="wl-subtab${id === docsCurrentSection ? ' active' : ''}" data-docs-section="${escapeAttr(id)}">${escapeHtml(label)}</button>`;
     tabs.innerHTML = DOC_SECTIONS.filter(s => !s.list).map(s => tabBtn(s.id, s.label)).join('')
         + tabBtn('floorplans', 'Floorplans')
-        + DOC_SECTIONS.filter(s => s.list).map(s => tabBtn(s.id, s.label)).join('');
+        + DOC_SECTIONS.filter(s => s.list).map(s => tabBtn(s.id, s.label)).join('')
+        + tabBtn('email-templates', 'Email Templates');
+    // Email Templates: its own editor; none of the file tools apply.
+    const isEt = docsCurrentSection === 'email-templates';
+    document.getElementById('etPanel').style.display = isEt ? '' : 'none';
+    ['docsViewToggle', 'docsUploadBtn', 'docsZipBtn'].forEach(id => { document.getElementById(id).style.visibility = isEt ? 'hidden' : ''; });
+    if (isEt) {
+        ['fpPanel', 'docsGrid', 'otherPanel', 'docsEmptyNote'].forEach(id => { document.getElementById(id).style.display = 'none'; });
+        document.getElementById('docsRestoreHidden').style.display = 'none';
+        renderEmailTemplates();
+        return;
+    }
     // Floorplans is its own compact, filterable list (open/download only);
     // list sections (Other) use the same list + preview layout, with uploads.
     docsRenderRestore();
@@ -16897,7 +17127,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-new-resident": {"title": "Add a New Resident and Track Move-In Steps", "icon": "🧑‍💼", "category": "Residents", "steps": ["Open the Residents tab and click \"+ New Resident\".", "Fill in Agent, Unit, First and Last name, Date Applied, Move-In date, Term, Rate and Promo.", "Update Screen as the application moves along: Applied → Screening → Approved → ↑ Uploaded.", "Work through the checklist (ID, WL, Lease, Deposit, Pet, Parking, Ins., M/I Pmt, Inv/Cond, M/I Folder, Walk-Thru, Moved In, Latch).", "Once Screen is Approved or Uploaded, any unfinished step is shaded pink. Ins. and M/I Pmt turn red until checked.", "The row turns green when all 8 checklist boxes are checked. Use Status for Notice, Renewed, Transfer, Early Term or Eviction.", "Move-Out and Notice Needed dates calculate automatically from the move-in date and term."]},
     "builtin-residents-views": {"title": "Find Residents: Tabs, Calendar and Search", "icon": "📋", "category": "Residents", "steps": ["Active: everyone not yet moved out. Pending: not moved in yet. Notice Req.: a notice-needed date in the next 30 days. Move-Outs: past residents.", "The calendar at the top shows move-ins for the month — use ‹ › to change months, and click a unit to jump to its row.", "Type in \"Search unit or resident name…\" to find someone fast.", "Use the filter on each column header to narrow the table, and \"Clear Filters\" to reset.", "Click \"Refresh to Update\" to pull the latest changes from other agents."]},
     "builtin-residents-backup": {"title": "Back Up or Restore Residents Data", "icon": "💾", "category": "Residents", "steps": ["On the Residents tab, click \"Export data\" to download a backup of the whole table.", "To restore from a backup, click \"Upload data\" and enter the Admin password — this replaces the current data for everyone.", "\"Clear all data\" permanently removes every resident and also needs the Admin password. Export a backup first."]},
-    "builtin-welcome-letter": {"title": "Prepare a Welcome Letter", "icon": "✉️", "category": "Welcome Letter", "steps": ["Open the WL tab and search for the resident by unit or name (they need to be on the Residents tab first).", "Unit details fill in automatically. Complete Monthly Charges, Security & Other Deposits, Fees, Fees Paid, Concessions and Utilities.", "Click \"Download WL PDF\" for the letter.", "Click \"Create Email Draft\", enter the resident's email, and a new draft opens in your mail app with the subject filled in — add the template and attachments there.", "For the move-in folder, click \"Download M/I Sticker\". \"Name on Sticker\" uses the resident's name unless you type a different one.", "Everything you enter here also fills the Lease tab."]},
+    "builtin-welcome-letter": {"title": "Prepare a Welcome Letter", "icon": "✉️", "category": "Welcome Letter", "steps": ["Open the WL tab and search for the resident by unit or name (they need to be on the Residents tab first).", "Unit details fill in automatically. Complete Monthly Charges, Security & Other Deposits, Fees, Fees Paid, Concessions and Utilities.", "Click \"Download WL PDF\" for the letter.", "Click \"Create Email Draft\", enter the resident's email, and a new draft opens in your mail app with the subject and the welcome checklist filled in (also copied to the clipboard, in case your mail app cuts a long message short) — add the attachments there. The message comes from Documents › Email Templates, where it can be edited.", "For the move-in folder, click \"Download M/I Sticker\". \"Name on Sticker\" uses the resident's name unless you type a different one.", "Everything you enter here also fills the Lease tab."]},
     "builtin-lease-questions": {"title": "Ask Questions About the Sample Lease", "icon": "\u2753", "category": "Lease", "steps": ["Open the Lease tab and click \"Upload sample lease\" to load the current lease PDF (only needed when a new version comes out).", "The lease text is shared with the team, so everyone can ask questions after one upload; the PDF itself stays in the browser that uploaded it.", "Type a question in the bar (e.g. \"What is the late fee?\", \"How long can guests stay?\") and press Enter, or click an example.", "The answer quotes the matching sentences with the section and page. \"Read the whole section\" shows the full paragraph, and \"Open page\" opens the PDF there.", "\"Also see\" lists other sections that mention the same thing \u2014 click one to see its answer."]},
     "builtin-new-lease": {"title": "Fill Out a New Lease", "icon": "🖊️", "category": "Lease", "steps": ["Complete the resident's Welcome Letter first — the Lease tab pulls from it and from Residents.", "Open the Lease tab and search for the resident by unit or name.", "Each section (Lease Terms, Cover Sheet, Animal, Buyout, Inventory, Parking, Rent Concession, Special Provisions) shows the values to enter.", "Click the copy button next to any value to copy it, then paste it into the lease.", "For a renewal, check \"Select if Renewal Lease\" — the new dates start the day after the current lease ends.", "Click × next to the search to clear the selection."]},
     "builtin-mmr-traffic": {"title": "Record Weekly Traffic for the MMR", "icon": "🚶", "category": "Admin", "steps": ["Go to Admin (enter the password) > MMR > Weekly Traffic Detail.", "For each reason, write one sentence per show, starting with the prospect's first and last name and ending with a period.", "Each sentence that starts with a name counts as one show; follow-up sentences about the same prospect don't add to the count.", "Download New MMR replaces last week's numbers in the uploaded file.", "Click \"Clear for New Week\" to start the next week fresh."]},
