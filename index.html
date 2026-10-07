@@ -1755,8 +1755,16 @@
     @media (max-width: 760px) { .et-panel { flex-direction: column; } .et-side { width: 100%; } }
     /* ---- Turns tab ---- */
     .turns-wrap { max-width: none; }
-    .tn-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-soft); margin-bottom: 12px; }
-    .tn-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .tn-table .tn-legend-row td { background: #f6f5f2; height: auto; padding: 6px 8px; text-align: left; vertical-align: bottom; font-size: 11px; line-height: 1.3; color: var(--ink-soft); border-bottom: 0; }
+    .tn-table .tn-legend-row td span { display: flex; align-items: center; gap: 6px; white-space: nowrap; margin: 2px 0; }
+    .tn-table .tn-legend-row td:first-child { position: sticky; left: 0; z-index: 1; }
+    .tn-sw.tn-past-sw { background: #fff; position: relative; }
+    .tn-sw.tn-past-sw::after { content: ''; position: absolute; left: 3px; right: 3px; top: 50%; border-top: 1px solid #9a9a9a; }
+    .tn-vt-sw { font-style: normal; font-weight: 800; color: #c0392b; width: 22px; text-align: center; font-size: 15px; }
+    .tn-unit-in { display: flex; align-items: center; justify-content: center; }
+    .tn-vt { color: #c0392b; font-weight: 800; font-size: 17px; cursor: help; margin-left: -4px; padding-right: 4px; }
+    .tn-table td.tn-all-done .tn-vt { color: #ffd54f; }
+    body.dark-mode .tn-table .tn-legend-row td { background: var(--dm-card-alt); }
     .tn-sw { display: inline-block; width: 22px; height: 14px; border: 1px solid rgba(0,0,0,0.18); border-radius: 3px; }
     .tn-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 10px; }
     .tn-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; }
@@ -1808,6 +1816,7 @@
     .tn-table td.tn-maint-done .tn-date, .tn-table td.tn-maint-done .tn-sel-label { text-decoration: line-through; color: #7a3b2e; font-weight: 600; }
     .tn-table td.tn-done, .tn-sw.tn-done { background: #d9d9d9; }
     .tn-table td.tn-done .tn-date, .tn-table td.tn-done .tn-sel-label { text-decoration: line-through; color: #555; }
+    .tn-table td.tn-done .tn-ph, .tn-table td.tn-maint-done .tn-ph { visibility: hidden; }
     .tn-table td.tn-today, .tn-sw.tn-today { background: #ffff00; }
     .tn-table td.tn-late, .tn-sw.tn-late { background: #ff0000; color: #fff; font-weight: 700; }
     .tn-table td.tn-late .tn-caret { opacity: 0.8; }
@@ -3358,16 +3367,6 @@
             <div class="tag">Unit turn tracker &mdash; maintenance, paint, carpet, clean &mdash; shared across the team</div>
         </div>
     </div>
-    <div class="tn-legend">
-        <span><i class="tn-sw tn-mi-week"></i>Move-in within the week</span>
-        <span><i class="tn-sw tn-movedin"></i>Moved in</span>
-        <span><i class="tn-sw tn-maint-done"></i>Maint. turn complete (Oven Clean checked)</span>
-        <span><i class="tn-sw tn-today"></i>Vendor scheduled today</span>
-        <span><i class="tn-sw tn-late"></i>Scheduled date passed, not complete</span>
-        <span><i class="tn-sw tn-done"></i>Turn item complete</span>
-        <span><i class="tn-sw tn-all-done"></i>Every item complete</span>
-        <span><i class="tn-sw tn-flag-sw"></i>Flagged row (&#9873;)</span>
-    </div>
     <div class="tn-toolbar">
         <input type="text" id="turnSearch" class="res-search-inline" placeholder="Search unit, floorplan, vendor or comment&hellip;" autocomplete="off">
         <label class="tn-inline"><input type="checkbox" id="turnHideDone"> Hide completed</label>
@@ -3378,6 +3377,15 @@
     <div class="tn-scroll">
         <table class="tn-table" id="turnsTable">
             <thead>
+                <tr class="tn-legend-row">
+                    <td colspan="2"><span><i class="tn-sw tn-all-done"></i>Every item complete</span><span><i class="tn-vt-sw">*</i>Video tour needed</span></td>
+                    <td colspan="2"><span><i class="tn-sw tn-past-sw"></i>Moved out</span><span><i class="tn-sw tn-mi-week"></i>Move-in within the week</span><span><i class="tn-sw tn-movedin"></i>Moved in</span></td>
+                    <td></td>
+                    <td colspan="3" class="tn-gs"><span><i class="tn-sw tn-maint-done"></i>Maint. turn complete</span></td>
+                    <td colspan="3" class="tn-gs"><span><i class="tn-sw tn-today"></i>Vendor scheduled today</span><span><i class="tn-sw tn-late"></i>Date passed, not complete</span><span><i class="tn-sw tn-done"></i>Turn item complete</span></td>
+                    <td colspan="3" class="tn-gs"></td><td colspan="3" class="tn-gs"></td><td colspan="3" class="tn-gs"></td>
+                    <td class="tn-gs" colspan="2"><span><i class="tn-sw tn-flag-sw"></i>Flagged row (&#9873;)</span></td>
+                </tr>
                 <tr class="tn-h1">
                     <th rowspan="2" class="tn-unit-h" data-sort="unit">Unit</th>
                     <th rowspan="2" data-sort="fp">FP</th>
@@ -3385,7 +3393,7 @@
                     <th rowspan="2" data-sort="moveIn">Move In</th>
                     <th rowspan="2">Lease Status</th>
                     <th colspan="3" class="tn-gs">Maintenance</th>
-                    <th colspan="4" class="tn-gs">Paint</th>
+                    <th colspan="3" class="tn-gs">Paint</th>
                     <th colspan="3" class="tn-gs">Carpet</th>
                     <th colspan="3" class="tn-gs">Clean</th>
                     <th colspan="3" class="tn-gs">Other</th>
@@ -3393,8 +3401,8 @@
                     <th rowspan="2"></th>
                 </tr>
                 <tr class="tn-h2">
-                    <th class="tn-gs" data-sort="entry">Entry Date</th><th>Turn</th><th>Oven Clean</th>
-                    <th class="tn-gs">Done</th><th>Dates</th><th>Vendor</th><th>Paint Removed By</th>
+                    <th class="tn-gs">Done</th><th data-sort="entry">Entry Date</th><th>Turn</th>
+                    <th class="tn-gs">Done</th><th>Dates</th><th>Vendor</th>
                     <th class="tn-gs">Done</th><th>Dates</th><th>Vendor</th>
                     <th class="tn-gs">Done</th><th>Dates</th><th>Vendor</th>
                     <th class="tn-gs">Done</th><th>Dates</th><th>Vendor</th>
@@ -13128,7 +13136,7 @@ document.getElementById('residentsClearBtn').addEventListener('click', () => {
    backend demonstrably holds it. Dropdown lists are editable and shared.
    Colors follow the turn sheet:
    - Unit / FP dark green: every turn item is done.
-   - Maintenance cells pink + struck through: Oven Clean is checked.
+   - Maintenance cells pink + struck through: its Done is checked.
    - A trade's cells: gray + struck through when done; yellow when it's
      scheduled today; red when its last date has passed and it isn't done.
    - Move Out struck through once it's past; Move In tinted when it's
@@ -13146,7 +13154,6 @@ const TURN_LIST_DEFS = {
     lease: { label: 'Lease Status', def: ['Vacant', 'Notice', 'Leased', 'Occupied'] },
     tech: { label: 'Turn (maintenance)', def: ['?', 'Heather', 'Josh', 'Will', 'Jon', 'Taylor'] },
     paintVendor: { label: 'Paint Vendor', def: ['?', 'Heather', 'Josh', 'Will', 'Jon', 'Taylor'] },
-    paintRemoved: { label: 'Paint Removed By', def: ['-', 'Heather', 'Josh', 'Will', 'Jon', 'Taylor'] },
     carpetVendor: { label: 'Carpet Vendor', def: ['?', 'Bear', 'Dixie'] },
     cleanVendor: { label: 'Clean Vendor', def: ['?', 'Estefania', 'JGM'] },
     otherVendor: { label: 'Other Vendor', def: ['-'] }
@@ -13157,7 +13164,7 @@ let TURN_LISTS_DIRTY = false;
 function turnList(k) { return Array.isArray(TURN_LISTS[k]) ? TURN_LISTS[k] : TURN_LIST_DEFS[k].def; }
 // The trades: done checkbox, dates and vendor field names.
 const TURN_TRADES = [
-    { id: 'paint', label: 'Paint', vendorList: 'paintVendor', extra: { f: 'paintRemoved', list: 'paintRemoved', label: 'Paint Removed By' } },
+    { id: 'paint', label: 'Paint', vendorList: 'paintVendor' },
     { id: 'carpet', label: 'Carpet', vendorList: 'carpetVendor' },
     { id: 'clean', label: 'Clean', vendorList: 'cleanVendor' },
     { id: 'other', label: 'Other', vendorList: 'otherVendor' }
@@ -13176,9 +13183,9 @@ function turnSeedRows() {
     const y = 2026, d = (m, dd) => `${y}-${String(m).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
     const done = (dates, vendor) => ({ done: true, dates, vendor });
     const open = (dates, vendor) => ({ done: false, dates, vendor });
-    const R = (unit, fp, moveOut, moveIn, entry, tech, oven, paint, removed, carpet, clean, other, comments, flag) => ({
-        unit, fp, moveOut, moveIn, lease: 'Vacant', entry, tech, oven,
-        paintDone: paint.done, paintDates: paint.dates, paintVendor: paint.vendor, paintRemoved: removed,
+    const R = (unit, fp, moveOut, moveIn, entry, tech, maintDone, paint, removed, carpet, clean, other, comments, flag) => ({
+        unit, fp, moveOut, moveIn, lease: 'Vacant', entry, tech, maintDone,
+        paintDone: paint.done, paintDates: paint.dates, paintVendor: paint.vendor,
         carpetDone: carpet.done, carpetDates: carpet.dates, carpetVendor: carpet.vendor,
         cleanDone: clean.done, cleanDates: clean.dates, cleanVendor: clean.vendor,
         otherDone: other.done, otherDates: other.dates, otherVendor: other.vendor,
@@ -13350,9 +13357,8 @@ function turnAddRow() {
     const existing = Object.keys(TURN_ROWS).find(id => !TURN_ROWS[id].deleted && TURN_ROWS[id].unit === u);
     if (existing && !confirm(`Unit ${u} is already on the list. Add another row for it?`)) return;
     const id = newTurnId();
-    const row = { unit: u, fp: turnFpFor(u), moveOut: '', moveIn: '', lease: 'Vacant', entry: '', tech: '?', oven: false, comments: '', flag: false };
+    const row = { unit: u, fp: turnFpFor(u), moveOut: '', moveIn: '', lease: 'Vacant', entry: '', tech: '?', maintDone: false, comments: '', flag: false };
     TURN_TRADES.forEach(t => { row[t.id + 'Done'] = false; row[t.id + 'Dates'] = []; row[t.id + 'Vendor'] = turnList(t.vendorList)[0] || ''; });
-    row.paintRemoved = '-';
     Object.keys(row).forEach(k => residentTouch(row, k));
     TURN_ROWS[id] = row;
     TURN_DIRTY.add(id);
@@ -13388,7 +13394,17 @@ function turnTradeState(row, t, today) {
     if (ds.length && ds[ds.length - 1] < today) return 'late';
     return '';
 }
-function turnAllDone(row) { return !!row.oven && TURN_TRADES.every(t => row[t.id + 'Done']); }
+// Maintenance done (rows from before this column used Oven Clean for it).
+function turnMaintDone(row) { return 'maintDone' in row ? !!row.maintDone : !!row.oven; }
+function turnAllDone(row) { return turnMaintDone(row) && TURN_TRADES.every(t => row[t.id + 'Done']); }
+// On Availability's "Video Tours Needed" list as available now or upcoming
+// (any unit needing one, if no pricing sheet is loaded).
+function turnNeedsVideo(unit) {
+    const u = (typeof UNITS !== 'undefined' ? UNITS : []).find(x => x.unit === String(unit || '').trim());
+    if (!u || typeof unitNeedsVideoTour !== 'function' || !unitNeedsVideoTour(u)) return false;
+    const ps = typeof PRICING_SUMMARY !== 'undefined' ? PRICING_SUMMARY : {};
+    return !Object.keys(ps).length || !!ps[u.unit];
+}
 // ---- Rendering ----
 function turnSelect(id, field, listKey, value) {
     const list = turnList(listKey).slice();
@@ -13415,7 +13431,7 @@ function renderTurnsBody() {
     if (turnHideDone) ids = ids.filter(id => !turnAllDone(TURN_ROWS[id]) || id === turnPinned);
     if (q) ids = ids.filter(id => {
         const r = TURN_ROWS[id];
-        return [r.unit, r.fp, r.lease, r.tech, r.comments, r.paintVendor, r.carpetVendor, r.cleanVendor, r.otherVendor, r.paintRemoved].join(' ').toLowerCase().includes(q) || id === turnPinned;
+        return [r.unit, r.fp, r.lease, r.tech, r.comments, r.paintVendor, r.carpetVendor, r.cleanVendor, r.otherVendor].join(' ').toLowerCase().includes(q) || id === turnPinned;
     });
     const k = turnSort.key, dir = turnSort.dir;
     const val = r => k === 'unit' ? (r.unit || '') : k === 'fp' ? (r.fp || '') : (r[k] || '');
@@ -13433,25 +13449,25 @@ function renderTurnsBody() {
     body.innerHTML = ids.map(id => {
         const r = TURN_ROWS[id];
         const all = turnAllDone(r);
-        const maint = r.oven ? ' tn-maint-done' : '';
+        const maint = turnMaintDone(r) ? ' tn-maint-done' : '';
         const out = turnDates(r.moveOut)[0] || '', inn = turnDates(r.moveIn)[0] || '';
         const outCls = out && out < today ? 'tn-past' : '';
         const inCls = !inn ? '' : inn < today ? 'tn-movedin' : inn <= weekEnd ? 'tn-mi-week' : '';
         let h = `<tr data-id="${id}" class="${r.flag ? 'tn-flag' : ''}">`;
-        h += `<td class="tn-unit${all ? ' tn-all-done' : ''}"><input class="tn-txt" data-id="${id}" data-f="unit" value="${escapeAttr(r.unit || '')}" aria-label="Unit"></td>`;
+        const vt = turnNeedsVideo(r.unit) ? '<span class="tn-vt" title="Video Tour Needed" aria-label="Video Tour Needed">*</span>' : '';
+        h += `<td class="tn-unit${all ? ' tn-all-done' : ''}"><div class="tn-unit-in"><input class="tn-txt" data-id="${id}" data-f="unit" value="${escapeAttr(r.unit || '')}" aria-label="Unit">${vt}</div></td>`;
         h += `<td class="tn-fp${all ? ' tn-all-done' : ''}"><input class="tn-txt" data-id="${id}" data-f="fp" value="${escapeAttr(r.fp || '')}" aria-label="Floorplan"></td>`;
         h += turnDateCell(id, 'moveOut', r.moveOut, false, outCls);
         h += turnDateCell(id, 'moveIn', r.moveIn, false, inCls);
         h += `<td>${turnSelect(id, 'lease', 'lease', r.lease || '')}</td>`;
+        h += turnCheck(id, 'maintDone', turnMaintDone(r), 'tn-m tn-gs' + maint);
         h += turnDateCell(id, 'entry', r.entry, false, 'tn-m' + maint);
         h += `<td class="tn-m${maint}">${turnSelect(id, 'tech', 'tech', r.tech || '')}</td>`;
-        h += turnCheck(id, 'oven', r.oven, 'tn-m tn-gs' + maint);
         TURN_TRADES.forEach(t => {
             const st = turnTradeState(r, t, today), sc = st ? ' tn-' + st : '';
             h += turnCheck(id, t.id + 'Done', r[t.id + 'Done'], 'tn-gs' + (st === 'done' ? '' : sc));
             h += turnDateCell(id, t.id + 'Dates', r[t.id + 'Dates'], true, sc);
             h += `<td class="${sc}">${turnSelect(id, t.id + 'Vendor', t.vendorList, r[t.id + 'Vendor'] || '')}</td>`;
-            if (t.extra) h += `<td class="${st === 'done' ? 'tn-done' : ''}">${turnSelect(id, t.extra.f, t.extra.list, r[t.extra.f] || '')}</td>`;
         });
         h += `<td class="tn-gs tn-comments"><textarea class="tn-note" data-id="${id}" data-f="comments" rows="1" aria-label="Comments">${escapeHtml(r.comments || '')}</textarea></td>`;
         h += `<td class="tn-act"><button type="button" class="tn-flag-btn${r.flag ? ' on' : ''}" data-act="flag" data-id="${id}" title="${r.flag ? 'Remove the highlight' : 'Highlight this row (yellow)'}">⚑</button><button type="button" class="tn-del-btn" data-act="del" data-id="${id}" title="Remove this unit">×</button></td>`;
