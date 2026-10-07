@@ -21108,6 +21108,8 @@ function bpBlankDrawItem(ctx, it, B) {
         bpBlankFaucet(ctx, 0, -h / 2, ppi, lw);
     } else if (it.kind === 'stove') {
         // Range: the box, the control strip at the back and four burners.
+        // Solid white inside, so a wall or countertop line under it is hidden.
+        ctx.fillStyle = '#fff'; ctx.fillRect(-w / 2, -h / 2, w, h);
         ctx.lineWidth = lw;
         ctx.strokeRect(-w / 2, -h / 2, w, h);
         ctx.lineWidth = Math.max(1.5, lw * 0.6);
@@ -21119,6 +21121,8 @@ function bpBlankDrawItem(ctx, it, B) {
         });
     } else if (it.kind === 'fridge') {
         // Refrigerator: the box, the doors along the front and their handles.
+        // Solid white inside, so a wall or countertop line under it is hidden.
+        ctx.fillStyle = '#fff'; ctx.fillRect(-w / 2, -h / 2, w, h);
         ctx.lineWidth = lw;
         ctx.strokeRect(-w / 2, -h / 2, w, h);
         ctx.lineWidth = Math.max(1.5, lw * 0.6);
