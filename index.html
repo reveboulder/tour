@@ -1753,6 +1753,81 @@
     body.dark-mode .et-list, body.dark-mode .et-editor textarea { background: var(--dm-card-alt); color: inherit; }
     body.dark-mode .et-row.active { background: rgba(232,119,34,0.18); }
     @media (max-width: 760px) { .et-panel { flex-direction: column; } .et-side { width: 100%; } }
+    /* ---- Turns tab ---- */
+    .turns-wrap { max-width: none; }
+    .tn-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-soft); margin-bottom: 12px; }
+    .tn-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .tn-sw { display: inline-block; width: 22px; height: 14px; border: 1px solid rgba(0,0,0,0.18); border-radius: 3px; }
+    .tn-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 10px; }
+    .tn-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .tn-count { font-size: 13px; color: var(--ink-soft); font-weight: 600; white-space: nowrap; }
+    .tn-scroll { overflow: auto; max-height: calc(100vh - 250px); border: 1px solid #bbb; border-radius: 8px; background: #fff; }
+    .tn-table { border-collapse: separate; border-spacing: 0; font-size: 13px; min-width: 100%; }
+    .tn-table th, .tn-table td { border-right: 1px solid #d6d6d6; border-bottom: 1px solid #d6d6d6; padding: 0; text-align: center; vertical-align: middle; background: #fff; }
+    .tn-table thead th { position: sticky; z-index: 2; background: #3a3a3a; color: #fff; font-family: var(--sans); font-size: 12px; font-weight: 700; letter-spacing: 0.02em; padding: 6px 8px; white-space: nowrap; border-color: #555; }
+    .tn-table .tn-h1 th { top: 0; text-transform: uppercase; font-size: 12.5px; }
+    .tn-table .tn-h2 th { top: 29px; background: #4a4a4a; font-size: 11.5px; }
+    .tn-table thead th[data-sort] { cursor: pointer; }
+    .tn-table thead th[data-sort]::after { content: attr(data-dir); font-size: 9px; margin-left: 4px; opacity: 0.85; }
+    .tn-table thead th.tn-sorted { background: #5a5a5a; }
+    .tn-table .tn-gs { border-left: 2px solid #8a8a8a; }
+    .tn-table thead .tn-gs { border-left-color: #888; }
+    .tn-table td { height: 34px; }
+    .tn-table tbody tr:hover td { filter: brightness(0.97); }
+    /* Unit column stays put while scrolling sideways. */
+    .tn-table .tn-unit, .tn-table .tn-unit-h { position: sticky; left: 0; z-index: 1; }
+    .tn-table thead .tn-unit-h { z-index: 3; }
+    .tn-txt { width: 100%; box-sizing: border-box; border: 0; background: transparent; text-align: center; font: inherit; font-size: 14px; padding: 6px 4px; color: inherit; }
+    .tn-unit .tn-txt { width: 64px; font-weight: 700; font-size: 15px; }
+    .tn-fp .tn-txt { width: 52px; }
+    .tn-txt:focus, .tn-note:focus { outline: 2px solid #2e7dd7; outline-offset: -2px; background: #fff; color: #222; }
+    .tn-selwrap { position: relative; display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 84px; height: 100%; min-height: 34px; padding: 0 8px; box-sizing: border-box; }
+    .tn-selwrap:focus-within { outline: 2px solid #2e7dd7; outline-offset: -2px; }
+    .tn-sel-label { white-space: nowrap; }
+    .tn-caret { font-size: 10px; opacity: 0.45; margin-left: auto; }
+    .tn-sel { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 14px; }
+    .tn-date { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; width: 100%; min-width: 74px; min-height: 34px; padding: 3px 6px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; line-height: 1.2; white-space: nowrap; }
+    .tn-date:focus-visible { outline: 2px solid #2e7dd7; outline-offset: -2px; }
+    .tn-ph { color: #bbb; font-size: 11.5px; }
+    .tn-chk { width: 56px; }
+    .tn-chk input { width: 17px; height: 17px; cursor: pointer; accent-color: #2e7d32; vertical-align: middle; }
+    .tn-comments { min-width: 280px; text-align: left !important; }
+    .tn-note { display: block; width: 100%; box-sizing: border-box; min-height: 34px; border: 0; background: transparent; resize: none; font: inherit; font-size: 12px; line-height: 1.35; padding: 8px; color: inherit; overflow: hidden; }
+    .tn-act { white-space: nowrap; padding: 0 4px !important; }
+    .tn-act button { border: 0; background: transparent; cursor: pointer; font-size: 15px; padding: 4px 5px; color: #999; border-radius: 4px; }
+    .tn-act button:hover { background: rgba(0,0,0,0.06); color: #333; }
+    .tn-flag-btn.on { color: #c79100; }
+    .tn-del-btn:hover { color: #c0392b !important; }
+    /* Conditional formatting */
+    .tn-table tr.tn-flag td, .tn-flag-sw { background: #ffff00; }
+    .tn-table td.tn-past .tn-date { color: #9a9a9a; text-decoration: line-through; }
+    .tn-table td.tn-mi-week, .tn-sw.tn-mi-week { background: #d9ead3; }
+    .tn-table td.tn-movedin, .tn-sw.tn-movedin { background: #d0e0e3; }
+    .tn-table td.tn-movedin .tn-date, .tn-table td.tn-mi-week .tn-date { font-weight: 700; }
+    .tn-table td.tn-maint-done, .tn-sw.tn-maint-done { background: #e6b8af; }
+    .tn-table td.tn-maint-done .tn-date, .tn-table td.tn-maint-done .tn-sel-label { text-decoration: line-through; color: #7a3b2e; font-weight: 600; }
+    .tn-table td.tn-done, .tn-sw.tn-done { background: #d9d9d9; }
+    .tn-table td.tn-done .tn-date, .tn-table td.tn-done .tn-sel-label { text-decoration: line-through; color: #555; }
+    .tn-table td.tn-today, .tn-sw.tn-today { background: #ffff00; }
+    .tn-table td.tn-late, .tn-sw.tn-late { background: #ff0000; color: #fff; font-weight: 700; }
+    .tn-table td.tn-late .tn-caret { opacity: 0.8; }
+    .tn-table td.tn-all-done, .tn-sw.tn-all-done { background: #274e13; color: #fff; }
+    .tn-table td.tn-all-done .tn-txt { color: #fff; }
+    .tn-pop { position: fixed; z-index: 1200; background: #fff; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,0.2); padding: 10px; width: 220px; font-size: 13px; }
+    .tn-pop-h { font-weight: 700; margin-bottom: 6px; }
+    .tn-pop-list { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .tn-pop-chip { display: inline-flex; align-items: center; gap: 2px; background: #eef5fd; border: 1px solid #b9d4f3; border-radius: 12px; padding: 1px 4px 1px 8px; }
+    .tn-pop-chip button { border: 0; background: transparent; cursor: pointer; color: #c0392b; font-size: 14px; line-height: 1; padding: 0 3px; }
+    .tn-pop-in { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+    .tn-pop-foot { display: flex; gap: 6px; margin-top: 8px; }
+    .tn-pop-foot button { flex: 1; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 5px 0; cursor: pointer; font: inherit; font-size: 12.5px; }
+    .tn-pop-foot .tn-pop-done { background: var(--reve-orange); border-color: var(--reve-orange); color: #fff; font-weight: 600; }
+    .tn-list-text { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; }
+    body.dark-mode .tn-scroll, body.dark-mode .tn-table td { background: var(--dm-card-alt); }
+    body.dark-mode .tn-table td { border-color: #444; }
+    body.dark-mode .tn-table td.tn-today, body.dark-mode .tn-table td.tn-mi-week, body.dark-mode .tn-table td.tn-movedin, body.dark-mode .tn-table td.tn-maint-done, body.dark-mode .tn-table td.tn-done, body.dark-mode .tn-table tr.tn-flag td { color: #222; }
+    body.dark-mode .tn-pop { background: var(--dm-card-alt); }
+    @media (max-width: 760px) { .tn-scroll { max-height: none; } .tn-toolbar #turnAddBtn { margin-left: 0 !important; } }
     .fp-list { flex: none; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
     .fp-row { display: grid; grid-template-columns: 270px 70px 62px 66px 58px 54px 40px 124px; align-items: center; gap: 8px; padding: 3px 8px; font-size: 12.5px; border-top: 1px solid var(--line); min-height: 30px; font-variant-numeric: tabular-nums; cursor: pointer; }
     .fp-head { cursor: default; }
@@ -2754,6 +2829,7 @@
         </div>
     </div>
     <div class="top-tabs top-tabs-row2">
+        <button type="button" class="top-tab" data-tab="turns">Turns</button>
         <button type="button" class="top-tab" data-tab="residents">Residents</button>
         <button type="button" class="top-tab" data-tab="wl">WL</button>
         <button type="button" class="top-tab" data-tab="lease">Lease</button>
@@ -3273,6 +3349,77 @@
 </div>
 
 <!-- ============ WAITLIST TAB ============ -->
+<div class="tab-panel" id="tab-turns">
+<div class="admin-wrap turns-wrap">
+    <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 18px;">
+        <img class="mark mark-logo-img" alt="RÊVE">
+        <div>
+            <h1>Turns</h1>
+            <div class="tag">Unit turn tracker &mdash; maintenance, paint, carpet, clean &mdash; shared across the team</div>
+        </div>
+    </div>
+    <div class="tn-legend">
+        <span><i class="tn-sw tn-mi-week"></i>Move-in within the week</span>
+        <span><i class="tn-sw tn-movedin"></i>Moved in</span>
+        <span><i class="tn-sw tn-maint-done"></i>Maint. turn complete (Oven Clean checked)</span>
+        <span><i class="tn-sw tn-today"></i>Vendor scheduled today</span>
+        <span><i class="tn-sw tn-late"></i>Scheduled date passed, not complete</span>
+        <span><i class="tn-sw tn-done"></i>Turn item complete</span>
+        <span><i class="tn-sw tn-all-done"></i>Every item complete</span>
+        <span><i class="tn-sw tn-flag-sw"></i>Flagged row (&#9873;)</span>
+    </div>
+    <div class="tn-toolbar">
+        <input type="text" id="turnSearch" class="res-search-inline" placeholder="Search unit, floorplan, vendor or comment&hellip;" autocomplete="off">
+        <label class="tn-inline"><input type="checkbox" id="turnHideDone"> Hide completed</label>
+        <span class="tn-count" id="turnCount"></span>
+        <span class="empty-note" id="turnSyncStatus" style="margin:0;font-weight:600;"></span>
+        <button type="button" class="btn primary" id="turnAddBtn" style="width:auto;flex:none;padding:8px 16px;margin-left:auto;">+ Add Unit</button>
+    </div>
+    <div class="tn-scroll">
+        <table class="tn-table" id="turnsTable">
+            <thead>
+                <tr class="tn-h1">
+                    <th rowspan="2" class="tn-unit-h" data-sort="unit">Unit</th>
+                    <th rowspan="2" data-sort="fp">FP</th>
+                    <th rowspan="2" data-sort="moveOut">Move Out</th>
+                    <th rowspan="2" data-sort="moveIn">Move In</th>
+                    <th rowspan="2">Lease Status</th>
+                    <th colspan="3" class="tn-gs">Maintenance</th>
+                    <th colspan="4" class="tn-gs">Paint</th>
+                    <th colspan="3" class="tn-gs">Carpet</th>
+                    <th colspan="3" class="tn-gs">Clean</th>
+                    <th colspan="3" class="tn-gs">Other</th>
+                    <th rowspan="2" class="tn-gs">Comments</th>
+                    <th rowspan="2"></th>
+                </tr>
+                <tr class="tn-h2">
+                    <th class="tn-gs" data-sort="entry">Entry Date</th><th>Turn</th><th>Oven Clean</th>
+                    <th class="tn-gs">Done</th><th>Dates</th><th>Vendor</th><th>Paint Removed By</th>
+                    <th class="tn-gs">Done</th><th>Dates</th><th>Vendor</th>
+                    <th class="tn-gs">Done</th><th>Dates</th><th>Vendor</th>
+                    <th class="tn-gs">Done</th><th>Dates</th><th>Vendor</th>
+                </tr>
+            </thead>
+            <tbody id="turnsBody"></tbody>
+        </table>
+    </div>
+    <div class="empty-note" style="margin-top:8px;">Click a date to pick it (Paint / Carpet / Clean / Other can hold several). Each dropdown&rsquo;s &ldquo;Edit list&hellip;&rdquo; changes the names it offers. Click a column title to sort.</div>
+    <div class="tn-pop" id="turnPop" style="display:none;"></div>
+    <div id="turnListOverlay" class="howto-overlay" style="display:none;">
+        <div class="howto-detail-card docs-edit-card">
+            <div class="mmr-section-title" id="turnListTitle">Edit list</div>
+            <div class="empty-note" style="margin:4px 0 8px;">One name per line, in the order they should show.</div>
+            <textarea id="turnListText" rows="10" class="tn-list-text"></textarea>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+                <button type="button" class="btn" id="turnListReset" style="width:auto;flex:none;padding:8px 16px;margin-right:auto;">Reset to default</button>
+                <button type="button" class="btn" id="turnListCancel" style="width:auto;flex:none;padding:8px 16px;">Cancel</button>
+                <button type="button" class="btn primary" id="turnListSave" style="width:auto;flex:none;padding:8px 16px;">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
 <div class="tab-panel" id="tab-residents">
 <div class="admin-wrap">
     <div class="brand-strip" style="border-bottom:1px solid var(--line); margin-bottom: 24px;">
@@ -6379,6 +6526,7 @@ function switchTab(name) {
     if (name === 'availability') renderCalendar();
     if (name === 'expiring') renderExpiringList();
     if (name === 'residents') renderResidents();
+    if (name === 'turns' && typeof renderTurns === 'function') renderTurns();
     if (name === 'wl') wlEnsureFormVisible();
     if (name === 'lease' && typeof lsOnShow === 'function') lsOnShow();
     if (name === 'media' && typeof renderSitemap === 'function') renderSitemap();
@@ -12973,6 +13121,451 @@ document.getElementById('residentsClearBtn').addEventListener('click', () => {
 
 
 /* ============================================================
+   TURNS — unit turn tracker (maintenance, paint, carpet, clean, other),
+   one row per unit, shared with the team. Same saving model as the
+   Residents tab: every edit stamps the field's time, syncs merge field
+   by field (newest edit wins), and a row stays "unsaved" here until the
+   backend demonstrably holds it. Dropdown lists are editable and shared.
+   Colors follow the turn sheet:
+   - Unit / FP dark green: every turn item is done.
+   - Maintenance cells pink + struck through: Oven Clean is checked.
+   - A trade's cells: gray + struck through when done; yellow when it's
+     scheduled today; red when its last date has passed and it isn't done.
+   - Move Out struck through once it's past; Move In tinted when it's
+     within the next week, and a deeper tint once moved in.
+   - Flagged rows (⚑) are highlighted yellow.
+   ============================================================ */
+let TURN_ROWS = {};
+const TURN_KEY = 'reve-turns';
+const TURN_BACKEND_KEY = 'turns';
+const TURN_DIRTY_KEY = 'reve-turns-dirty';
+const TURN_DIRTY = new Set((() => { try { return JSON.parse(localStorage.getItem(TURN_DIRTY_KEY) || '[]'); } catch (e) { return []; } })());
+const TURN_LISTS_KEY = 'reve-turn-lists';
+const TURN_LISTS_BACKEND_KEY = 'turn-lists';
+const TURN_LIST_DEFS = {
+    lease: { label: 'Lease Status', def: ['Vacant', 'Notice', 'Leased', 'Occupied'] },
+    tech: { label: 'Turn (maintenance)', def: ['?', 'Heather', 'Josh', 'Will', 'Jon', 'Taylor'] },
+    paintVendor: { label: 'Paint Vendor', def: ['?', 'Heather', 'Josh', 'Will', 'Jon', 'Taylor'] },
+    paintRemoved: { label: 'Paint Removed By', def: ['-', 'Heather', 'Josh', 'Will', 'Jon', 'Taylor'] },
+    carpetVendor: { label: 'Carpet Vendor', def: ['?', 'Bear', 'Dixie'] },
+    cleanVendor: { label: 'Clean Vendor', def: ['?', 'Estefania', 'JGM'] },
+    otherVendor: { label: 'Other Vendor', def: ['-'] }
+};
+let TURN_LISTS = {};
+try { TURN_LISTS = JSON.parse(localStorage.getItem(TURN_LISTS_KEY) || '{}') || {}; } catch (e) { TURN_LISTS = {}; }
+let TURN_LISTS_DIRTY = false;
+function turnList(k) { return Array.isArray(TURN_LISTS[k]) ? TURN_LISTS[k] : TURN_LIST_DEFS[k].def; }
+// The trades: done checkbox, dates and vendor field names.
+const TURN_TRADES = [
+    { id: 'paint', label: 'Paint', vendorList: 'paintVendor', extra: { f: 'paintRemoved', list: 'paintRemoved', label: 'Paint Removed By' } },
+    { id: 'carpet', label: 'Carpet', vendorList: 'carpetVendor' },
+    { id: 'clean', label: 'Clean', vendorList: 'cleanVendor' },
+    { id: 'other', label: 'Other', vendorList: 'otherVendor' }
+];
+let turnSort = { key: 'moveOut', dir: 1 };
+let turnHideDone = false;
+let turnSyncState = 'idle';
+
+function newTurnId() { return 'turn_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7); }
+function turnFpFor(unit) {
+    const u = (typeof UNITS !== 'undefined' ? UNITS : []).find(x => x.unit === String(unit).trim());
+    return u ? (u.floorplan || '') : '';
+}
+// Starting rows (from the turn sheet), used only when there's no data anywhere yet.
+function turnSeedRows() {
+    const y = 2026, d = (m, dd) => `${y}-${String(m).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+    const done = (dates, vendor) => ({ done: true, dates, vendor });
+    const open = (dates, vendor) => ({ done: false, dates, vendor });
+    const R = (unit, fp, moveOut, moveIn, entry, tech, oven, paint, removed, carpet, clean, other, comments, flag) => ({
+        unit, fp, moveOut, moveIn, lease: 'Vacant', entry, tech, oven,
+        paintDone: paint.done, paintDates: paint.dates, paintVendor: paint.vendor, paintRemoved: removed,
+        carpetDone: carpet.done, carpetDates: carpet.dates, carpetVendor: carpet.vendor,
+        cleanDone: clean.done, cleanDates: clean.dates, cleanVendor: clean.vendor,
+        otherDone: other.done, otherDates: other.dates, otherVendor: other.vendor,
+        comments: comments || '', flag: !!flag
+    });
+    const q = open([], '?'), dash = done([], '-');
+    const list = [
+        R('4125', 'A1', d(1, 31), d(8, 16), '', '?', false, q, '-', q, q, open([], '-'), 'Remediation from Water Damage - Full demo. Lease break effective 1/31', true),
+        R('4225', 'A1', d(1, 31), d(8, 1), '', '?', false, q, '-', q, q, open([], '-'), 'Remediation from Water Damage - Full demo. Lease break effective 2/28. Leaving early on 1… accomodations in 1107', true),
+        R('4325', 'A1', d(1, 31), d(7, 31), '', '?', false, q, '-', q, q, open([], '-'), 'Remediation from Water Damage - Full demo - Closet conversion needed. Lease terminated.', true),
+        R('1434', 'A3', d(6, 3), d(7, 11), d(6, 4), 'Heather', true, done([d(6, 5)], 'Heather'), '-', done([d(6, 16)], 'Bear'), done([d(6, 15)], 'Estefania'), dash),
+        R('1332', 'S3', d(6, 6), '', d(6, 8), 'Josh', true, done([d(6, 9), d(6, 11)], 'Josh'), '-', done([d(6, 12)], 'Bear'), done([d(6, 15)], 'JGM'), dash),
+        R('4128', 'A9', d(6, 12), '', d(6, 15), 'Will', true, done([d(6, 23)], 'Will'), '-', done([d(6, 29)], 'Dixie'), open([d(7, 1)], 'Estefania'), dash, 'started turn full paint prep    stefania pre clean no movin date'),
+        R('3107', 'LW1', d(6, 12), '', d(6, 15), 'Will', true, done([d(6, 24), d(6, 25)], 'Jon'), '-', done([d(6, 30)], 'Bear'), open([d(7, 1)], 'JGM'), dash),
+        R('3113', 'A9', d(6, 13), '', d(6, 15), 'Heather', true, done([d(6, 15), d(6, 17)], 'Heather'), '-', done([d(6, 24)], 'Bear'), done([d(6, 30)], 'Estefania'), dash),
+        R('4331', 'A5', d(6, 15), d(7, 2), d(6, 15), 'Will', true, done([d(6, 16)], 'Will'), '-', done([d(6, 24)], 'Bear'), done([d(6, 26)], 'JGM'), dash),
+        R('1312', 'A3', d(6, 15), d(7, 31), d(6, 16), 'Taylor', true, done([d(6, 22)], 'Heather'), '-', done([d(6, 24)], 'Bear'), done([d(6, 25)], 'Estefania'), dash)
+    ];
+    const rows = {};
+    list.forEach((r, i) => { rows['turn_seed_' + i] = r; });
+    return rows;
+}
+function turnPersistDirty() { try { localStorage.setItem(TURN_DIRTY_KEY, JSON.stringify([...TURN_DIRTY])); } catch (e) {} }
+function turnPersistLocal() {
+    try { localStorage.setItem(TURN_KEY, JSON.stringify(TURN_ROWS)); } catch (e) {}
+    turnPersistDirty();
+    renderTurnSyncStatus();
+}
+function renderTurnSyncStatus() {
+    const el = document.getElementById('turnSyncStatus');
+    if (!el) return;
+    try { BACKEND_URL; APP_MODE; } catch (e) { return; }
+    const n = TURN_DIRTY.size + (TURN_LISTS_DIRTY ? 1 : 0);
+    if (!BACKEND_URL) { el.textContent = 'Saved in this browser only (no shared backend configured).'; el.style.color = ''; return; }
+    if (APP_MODE === 'test') { el.textContent = 'Test mode — changes stay in this browser.'; el.style.color = ''; return; }
+    if (turnSyncState === 'saving') { el.textContent = `Saving ${n} change${n === 1 ? '' : 's'} to the shared backend…`; el.style.color = ''; return; }
+    if (!n) { el.textContent = 'All changes saved to the shared backend.'; el.style.color = 'var(--good)'; return; }
+    el.textContent = turnSyncState === 'failed'
+        ? `${n} change${n === 1 ? '' : 's'} NOT confirmed by the shared backend — kept in this browser and retrying.`
+        : `${n} unsaved change${n === 1 ? '' : 's'} — saving shortly.`;
+    el.style.color = turnSyncState === 'failed' ? '#c0392b' : '';
+}
+function turnMergeRemote(remote) {
+    let changed = false;
+    Object.keys(remote).forEach(id => {
+        const r = remote[id];
+        if (!r || typeof r !== 'object') return;
+        const mine = TURN_ROWS[id];
+        if (!mine) { TURN_ROWS[id] = r; changed = true; return; }
+        const m = residentMergeRow(r, mine);
+        if (m.mineNewer) TURN_DIRTY.add(id);
+        if (residentStableJson(m.row) !== residentStableJson(mine)) { TURN_ROWS[id] = m.row; changed = true; }
+    });
+    return changed;
+}
+// Lists: one object whose fields are the lists, merged the same way.
+function turnListsMerge(remote) {
+    if (!remote || typeof remote !== 'object') return false;
+    const m = residentMergeRow(remote, TURN_LISTS);
+    if (m.mineNewer) TURN_LISTS_DIRTY = true;
+    const changed = residentStableJson(m.row) !== residentStableJson(TURN_LISTS);
+    TURN_LISTS = m.row;
+    try { localStorage.setItem(TURN_LISTS_KEY, JSON.stringify(TURN_LISTS)); } catch (e) {}
+    return changed;
+}
+let turnSyncInFlight = null, turnSyncAgain = false;
+function turnSyncNow() {
+    if (turnSyncInFlight) { turnSyncAgain = true; return turnSyncInFlight; }
+    turnSyncInFlight = (async () => {
+        try { do { turnSyncAgain = false; await turnSyncOnce(); } while (turnSyncAgain); }
+        finally { turnSyncInFlight = null; renderTurnSyncStatus(); }
+    })();
+    return turnSyncInFlight;
+}
+async function turnSyncOnce() {
+    turnPersistLocal();
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    if (TURN_LISTS_DIRTY) {
+        const rl = await backendPullChecked(TURN_LISTS_BACKEND_KEY);
+        if (rl !== undefined) {
+            turnListsMerge(rl || {});
+            if (await backendPush(TURN_LISTS_BACKEND_KEY, TURN_LISTS)) {
+                const chk = await backendPullChecked(TURN_LISTS_BACKEND_KEY);
+                if (chk && residentRowCovered(chk, TURN_LISTS)) TURN_LISTS_DIRTY = false;
+            }
+        }
+    }
+    if (!TURN_DIRTY.size) { turnSyncState = TURN_LISTS_DIRTY ? 'failed' : 'idle'; return; }
+    turnSyncState = 'saving';
+    renderTurnSyncStatus();
+    const remote = await backendPullChecked(TURN_BACKEND_KEY);
+    // Never push without a fresh copy of the backend to merge into.
+    if (remote === undefined || (remote !== null && typeof remote !== 'object')) { turnSyncState = 'failed'; turnPersistLocal(); return; }
+    turnMergeRemote(remote || {});
+    const payload = Object.assign({}, remote || {});
+    Object.keys(payload).forEach(id => { if (TURN_ROWS[id]) payload[id] = TURN_ROWS[id]; });
+    TURN_DIRTY.forEach(id => { if (TURN_ROWS[id]) payload[id] = TURN_ROWS[id]; });
+    turnPersistLocal();
+    const ok = await backendPush(TURN_BACKEND_KEY, payload);
+    const check = ok ? await backendPullChecked(TURN_BACKEND_KEY) : undefined;
+    let allConfirmed = !!check;
+    if (check) [...TURN_DIRTY].forEach(id => { if (residentRowCovered(check[id], TURN_ROWS[id])) TURN_DIRTY.delete(id); else allConfirmed = false; });
+    turnSyncState = allConfirmed || !TURN_DIRTY.size ? 'idle' : (turnSyncAgain ? 'saving' : 'failed');
+    turnPersistLocal();
+    turnRenderIfIdle();
+}
+const turnPushDebounced = debounce(() => { turnSyncNow(); }, 900);
+function turnRenderIfIdle() {
+    const body = document.getElementById('turnsBody');
+    if (!body || body.contains(document.activeElement) || document.getElementById('turnPop').style.display !== 'none') return;
+    renderTurnsBody();
+}
+async function pullTurnsFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const [remote, lists] = await Promise.all([backendPullChecked(TURN_BACKEND_KEY), backendPullChecked(TURN_LISTS_BACKEND_KEY)]);
+    let changed = false;
+    if (remote && typeof remote === 'object') changed = turnMergeRemote(remote) || changed;
+    if (lists && typeof lists === 'object') changed = turnListsMerge(lists) || changed;
+    turnPersistLocal();
+    if (TURN_DIRTY.size || TURN_LISTS_DIRTY) turnPushDebounced();
+    if (changed) turnRenderIfIdle();
+}
+function initTurns() {
+    try { const raw = localStorage.getItem(TURN_KEY); if (raw) TURN_ROWS = JSON.parse(raw) || {}; } catch (e) { TURN_ROWS = {}; }
+    if (!Object.keys(TURN_ROWS).length) {
+        if (BACKEND_URL && APP_MODE !== 'test') {
+            backendPullChecked(TURN_BACKEND_KEY).then(remote => {
+                if (remote && typeof remote === 'object' && Object.keys(remote).length) TURN_ROWS = remote;
+                else if (remote === null || (remote && !Object.keys(remote).length)) {
+                    // Nothing shared yet: start from the turn sheet and share it.
+                    TURN_ROWS = turnSeedRows();
+                    Object.keys(TURN_ROWS).forEach(id => { Object.keys(TURN_ROWS[id]).forEach(k => residentTouch(TURN_ROWS[id], k)); TURN_DIRTY.add(id); });
+                    turnPushDebounced();
+                }
+                turnPersistLocal();
+                turnRenderIfIdle();
+            });
+        } else {
+            TURN_ROWS = turnSeedRows();
+            turnPersistLocal();
+        }
+    }
+    if (TURN_DIRTY.size || TURN_LISTS_DIRTY) turnPushDebounced();
+    pullTurnsFromBackend();
+}
+// ---- Editing ----
+function turnSet(id, field, value) {
+    const row = TURN_ROWS[id];
+    if (!row) return;
+    if (residentStableJson(row[field]) === residentStableJson(value)) return;
+    row[field] = value;
+    residentTouch(row, field);
+    TURN_DIRTY.add(id);
+    turnPersistLocal();
+    turnPushDebounced();
+}
+function turnSetList(key, values) {
+    TURN_LISTS[key] = values;
+    residentTouch(TURN_LISTS, key);
+    TURN_LISTS_DIRTY = true;
+    try { localStorage.setItem(TURN_LISTS_KEY, JSON.stringify(TURN_LISTS)); } catch (e) {}
+    renderTurnSyncStatus();
+    turnPushDebounced();
+}
+function turnAddRow() {
+    const unit = prompt('Unit number for the new turn:');
+    if (unit === null || !unit.trim()) return;
+    const u = unit.trim();
+    const existing = Object.keys(TURN_ROWS).find(id => !TURN_ROWS[id].deleted && TURN_ROWS[id].unit === u);
+    if (existing && !confirm(`Unit ${u} is already on the list. Add another row for it?`)) return;
+    const id = newTurnId();
+    const row = { unit: u, fp: turnFpFor(u), moveOut: '', moveIn: '', lease: 'Vacant', entry: '', tech: '?', oven: false, comments: '', flag: false };
+    TURN_TRADES.forEach(t => { row[t.id + 'Done'] = false; row[t.id + 'Dates'] = []; row[t.id + 'Vendor'] = turnList(t.vendorList)[0] || ''; });
+    row.paintRemoved = '-';
+    Object.keys(row).forEach(k => residentTouch(row, k));
+    TURN_ROWS[id] = row;
+    TURN_DIRTY.add(id);
+    turnPersistLocal();
+    turnPushDebounced();
+    turnPinned = id;
+    renderTurnsBody();
+    const el = document.querySelector(`#turnsBody tr[data-id="${id}"]`);
+    if (el) el.scrollIntoView({ block: 'center' });
+}
+let turnPinned = null;
+function turnDeleteRow(id) {
+    const r = TURN_ROWS[id];
+    if (!r || !confirm(`Remove unit ${r.unit || ''} from Turns?`)) return;
+    turnSet(id, 'deleted', true);
+    renderTurnsBody();
+}
+// ---- Dates: stored YYYY-MM-DD, shown "Ddd M/D" ----
+function turnTodayIso() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function turnIsoAdd(iso, days) { const [y, m, d] = iso.split('-').map(Number); const t = new Date(y, m - 1, d + days); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; }
+function turnFmt(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (!m) return '';
+    const d = new Date(+m[1], +m[2] - 1, +m[3]);
+    return `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()]} ${+m[2]}/${+m[3]}`;
+}
+function turnDates(v) { return (Array.isArray(v) ? v : v ? [v] : []).filter(Boolean).sort(); }
+// ---- Status helpers (the conditional formatting) ----
+function turnTradeState(row, t, today) {
+    if (row[t.id + 'Done']) return 'done';
+    const ds = turnDates(row[t.id + 'Dates']);
+    if (ds.includes(today)) return 'today';
+    if (ds.length && ds[ds.length - 1] < today) return 'late';
+    return '';
+}
+function turnAllDone(row) { return !!row.oven && TURN_TRADES.every(t => row[t.id + 'Done']); }
+// ---- Rendering ----
+function turnSelect(id, field, listKey, value) {
+    const list = turnList(listKey).slice();
+    if (value && !list.includes(value)) list.push(value);
+    // A label (which can be struck through / colored) over an invisible native select.
+    return `<div class="tn-selwrap"><span class="tn-sel-label">${escapeHtml(value || '')}</span><span class="tn-caret">▾</span><select class="tn-sel" data-id="${id}" data-f="${field}" data-list="${listKey}" aria-label="${escapeAttr(TURN_LIST_DEFS[listKey].label)}"><option value=""${value ? '' : ' selected'}></option>${list.map(v => `<option value="${escapeAttr(v)}"${v === value ? ' selected' : ''}>${escapeHtml(v)}</option>`).join('')}<option value="__edit">Edit list…</option></select></div>`;
+}
+function turnDateCell(id, field, value, multi, cls) {
+    const ds = turnDates(value);
+    const txt = ds.length ? ds.map(x => `<span>${turnFmt(x)}</span>`).join('') : '<span class="tn-ph">+ date</span>';
+    return `<td class="tn-date-td ${cls || ''}"><button type="button" class="tn-date" data-id="${id}" data-f="${field}" data-multi="${multi ? 1 : ''}">${txt}</button></td>`;
+}
+function turnCheck(id, field, value, cls) {
+    return `<td class="tn-chk ${cls || ''}"><input type="checkbox" data-id="${id}" data-f="${field}"${value ? ' checked' : ''} aria-label="${field}"></td>`;
+}
+function renderTurns() { renderTurnsBody(); renderTurnSyncStatus(); }
+function renderTurnsBody() {
+    const body = document.getElementById('turnsBody');
+    if (!body) return;
+    const today = turnTodayIso(), weekEnd = turnIsoAdd(today, 7);
+    const q = (document.getElementById('turnSearch').value || '').trim().toLowerCase();
+    let ids = Object.keys(TURN_ROWS).filter(id => !TURN_ROWS[id].deleted);
+    const total = ids.length;
+    if (turnHideDone) ids = ids.filter(id => !turnAllDone(TURN_ROWS[id]) || id === turnPinned);
+    if (q) ids = ids.filter(id => {
+        const r = TURN_ROWS[id];
+        return [r.unit, r.fp, r.lease, r.tech, r.comments, r.paintVendor, r.carpetVendor, r.cleanVendor, r.otherVendor, r.paintRemoved].join(' ').toLowerCase().includes(q) || id === turnPinned;
+    });
+    const k = turnSort.key, dir = turnSort.dir;
+    const val = r => k === 'unit' ? (r.unit || '') : k === 'fp' ? (r.fp || '') : (r[k] || '');
+    ids.sort((a, b) => {
+        if (a === turnPinned) return -1;
+        if (b === turnPinned) return 1;
+        const va = val(TURN_ROWS[a]), vb = val(TURN_ROWS[b]);
+        if (!va !== !vb) return va ? -1 : 1;   // blanks last
+        return dir * String(va).localeCompare(String(vb), undefined, { numeric: true }) || String(TURN_ROWS[a].unit).localeCompare(String(TURN_ROWS[b].unit), undefined, { numeric: true });
+    });
+    document.querySelectorAll('#turnsTable [data-sort]').forEach(th => {
+        th.classList.toggle('tn-sorted', th.getAttribute('data-sort') === k);
+        th.setAttribute('data-dir', th.getAttribute('data-sort') === k ? (dir > 0 ? '▲' : '▼') : '');
+    });
+    body.innerHTML = ids.map(id => {
+        const r = TURN_ROWS[id];
+        const all = turnAllDone(r);
+        const maint = r.oven ? ' tn-maint-done' : '';
+        const out = turnDates(r.moveOut)[0] || '', inn = turnDates(r.moveIn)[0] || '';
+        const outCls = out && out < today ? 'tn-past' : '';
+        const inCls = !inn ? '' : inn < today ? 'tn-movedin' : inn <= weekEnd ? 'tn-mi-week' : '';
+        let h = `<tr data-id="${id}" class="${r.flag ? 'tn-flag' : ''}">`;
+        h += `<td class="tn-unit${all ? ' tn-all-done' : ''}"><input class="tn-txt" data-id="${id}" data-f="unit" value="${escapeAttr(r.unit || '')}" aria-label="Unit"></td>`;
+        h += `<td class="tn-fp${all ? ' tn-all-done' : ''}"><input class="tn-txt" data-id="${id}" data-f="fp" value="${escapeAttr(r.fp || '')}" aria-label="Floorplan"></td>`;
+        h += turnDateCell(id, 'moveOut', r.moveOut, false, outCls);
+        h += turnDateCell(id, 'moveIn', r.moveIn, false, inCls);
+        h += `<td>${turnSelect(id, 'lease', 'lease', r.lease || '')}</td>`;
+        h += turnDateCell(id, 'entry', r.entry, false, 'tn-m' + maint);
+        h += `<td class="tn-m${maint}">${turnSelect(id, 'tech', 'tech', r.tech || '')}</td>`;
+        h += turnCheck(id, 'oven', r.oven, 'tn-m tn-gs' + maint);
+        TURN_TRADES.forEach(t => {
+            const st = turnTradeState(r, t, today), sc = st ? ' tn-' + st : '';
+            h += turnCheck(id, t.id + 'Done', r[t.id + 'Done'], 'tn-gs' + (st === 'done' ? '' : sc));
+            h += turnDateCell(id, t.id + 'Dates', r[t.id + 'Dates'], true, sc);
+            h += `<td class="${sc}">${turnSelect(id, t.id + 'Vendor', t.vendorList, r[t.id + 'Vendor'] || '')}</td>`;
+            if (t.extra) h += `<td class="${st === 'done' ? 'tn-done' : ''}">${turnSelect(id, t.extra.f, t.extra.list, r[t.extra.f] || '')}</td>`;
+        });
+        h += `<td class="tn-gs tn-comments"><textarea class="tn-note" data-id="${id}" data-f="comments" rows="1" aria-label="Comments">${escapeHtml(r.comments || '')}</textarea></td>`;
+        h += `<td class="tn-act"><button type="button" class="tn-flag-btn${r.flag ? ' on' : ''}" data-act="flag" data-id="${id}" title="${r.flag ? 'Remove the highlight' : 'Highlight this row (yellow)'}">⚑</button><button type="button" class="tn-del-btn" data-act="del" data-id="${id}" title="Remove this unit">×</button></td>`;
+        return h + '</tr>';
+    }).join('') || `<tr><td colspan="24" class="empty-note" style="padding:14px;">${total ? 'No turns match.' : 'No turns yet — click “+ Add Unit”.'}</td></tr>`;
+    const open = Object.keys(TURN_ROWS).filter(id => !TURN_ROWS[id].deleted && !turnAllDone(TURN_ROWS[id])).length;
+    document.getElementById('turnCount').textContent = `${total} unit${total === 1 ? '' : 's'} · ${open} in progress`;
+    body.querySelectorAll('.tn-note').forEach(turnGrow);
+}
+function turnGrow(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; }
+// ---- Date popover ----
+function turnOpenDates(btn) {
+    const id = btn.getAttribute('data-id'), f = btn.getAttribute('data-f'), multi = !!btn.getAttribute('data-multi');
+    const pop = document.getElementById('turnPop');
+    const draw = () => {
+        const ds = turnDates(TURN_ROWS[id][f]);
+        pop.innerHTML = `<div class="tn-pop-h">${multi ? 'Dates' : 'Date'}</div>`
+            + (ds.length ? `<div class="tn-pop-list">${ds.map(x => `<span class="tn-pop-chip">${turnFmt(x)}<button type="button" data-rm="${x}" title="Remove">×</button></span>`).join('')}</div>` : '')
+            + (multi || !ds.length ? `<input type="date" class="tn-pop-in" aria-label="${multi ? 'Add a date' : 'Date'}">` : `<input type="date" class="tn-pop-in" value="${ds[0]}" aria-label="Date">`)
+            + `<div class="tn-pop-foot"><button type="button" class="tn-pop-today">Today</button>${ds.length ? '<button type="button" class="tn-pop-clear">Clear</button>' : ''}<button type="button" class="tn-pop-done">Done</button></div>`;
+        const inp = pop.querySelector('.tn-pop-in');
+        const put = v => {
+            if (!v) return;
+            const cur = turnDates(TURN_ROWS[id][f]);
+            if (multi) turnSet(id, f, turnDates(cur.concat(cur.includes(v) ? [] : [v])));
+            else turnSet(id, f, v);
+            draw();
+        };
+        inp.addEventListener('change', () => put(inp.value));
+        pop.querySelector('.tn-pop-today').addEventListener('click', () => put(turnTodayIso()));
+        const clr = pop.querySelector('.tn-pop-clear');
+        if (clr) clr.addEventListener('click', () => { turnSet(id, f, multi ? [] : ''); draw(); });
+        pop.querySelector('.tn-pop-done').addEventListener('click', turnClosePop);
+        pop.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { turnSet(id, f, turnDates(TURN_ROWS[id][f]).filter(x => x !== b.getAttribute('data-rm'))); draw(); }));
+    };
+    draw();
+    pop.style.display = 'block';
+    pop._for = btn;
+    const r = btn.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+    pop.style.left = Math.max(8, Math.min(window.innerWidth - pw - 8, r.left)) + 'px';
+    pop.style.top = (r.bottom + ph + 8 > window.innerHeight ? Math.max(8, r.top - ph - 4) : r.bottom + 4) + 'px';
+}
+function turnClosePop() {
+    const pop = document.getElementById('turnPop');
+    if (pop.style.display === 'none') return;
+    pop.style.display = 'none';
+    renderTurnsBody();
+}
+// ---- List editor ----
+function turnEditList(key) {
+    const ov = document.getElementById('turnListOverlay');
+    document.getElementById('turnListTitle').textContent = `Edit list — ${TURN_LIST_DEFS[key].label}`;
+    document.getElementById('turnListText').value = turnList(key).join('\n');
+    ov.style.display = 'flex';
+    ov._key = key;
+    document.getElementById('turnListText').focus();
+}
+(function turnWire() {
+    const body = document.getElementById('turnsBody');
+    body.addEventListener('change', e => {
+        const el = e.target, id = el.getAttribute('data-id'), f = el.getAttribute('data-f');
+        if (!id || !f || !TURN_ROWS[id]) return;
+        if (el.tagName === 'SELECT') {
+            if (el.value === '__edit') { el.value = TURN_ROWS[id][f] || ''; turnEditList(el.getAttribute('data-list')); return; }
+            turnSet(id, f, el.value);
+        } else if (el.type === 'checkbox') turnSet(id, f, el.checked);
+        else if (f === 'unit') {
+            const u = el.value.trim();
+            turnSet(id, 'unit', u);
+            if (!TURN_ROWS[id].fp && turnFpFor(u)) turnSet(id, 'fp', turnFpFor(u));
+        } else turnSet(id, f, f === 'comments' ? el.value : el.value.trim());
+        if (f !== 'comments') { if (f === 'moveOut' && turnPinned === id) turnPinned = null; renderTurnsBody(); }
+    });
+    body.addEventListener('input', e => {
+        if (!e.target.classList.contains('tn-note')) return;
+        turnGrow(e.target);
+        const id = e.target.getAttribute('data-id');
+        if (TURN_ROWS[id]) turnSet(id, 'comments', e.target.value);
+    });
+    body.addEventListener('click', e => {
+        const d = e.target.closest('.tn-date');
+        if (d) { turnOpenDates(d); e.stopPropagation(); return; }
+        const a = e.target.closest('[data-act]');
+        if (!a) return;
+        const id = a.getAttribute('data-id');
+        if (a.getAttribute('data-act') === 'flag') { turnSet(id, 'flag', !TURN_ROWS[id].flag); renderTurnsBody(); }
+        else turnDeleteRow(id);
+    });
+    document.addEventListener('pointerdown', e => {
+        const pop = document.getElementById('turnPop');
+        if (pop.style.display !== 'none' && !pop.contains(e.target) && !(pop._for && pop._for.contains(e.target))) turnClosePop();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') turnClosePop(); });
+    document.querySelectorAll('#turnsTable [data-sort]').forEach(th => th.addEventListener('click', () => {
+        const k = th.getAttribute('data-sort');
+        turnSort = turnSort.key === k ? { key: k, dir: -turnSort.dir } : { key: k, dir: 1 };
+        turnPinned = null;
+        renderTurnsBody();
+    }));
+    document.getElementById('turnSearch').addEventListener('input', renderTurnsBody);
+    document.getElementById('turnHideDone').addEventListener('change', e => { turnHideDone = e.target.checked; renderTurnsBody(); });
+    document.getElementById('turnAddBtn').addEventListener('click', turnAddRow);
+    document.getElementById('turnListCancel').addEventListener('click', () => { document.getElementById('turnListOverlay').style.display = 'none'; });
+    document.getElementById('turnListReset').addEventListener('click', () => { const ov = document.getElementById('turnListOverlay'); document.getElementById('turnListText').value = TURN_LIST_DEFS[ov._key].def.join('\n'); });
+    document.getElementById('turnListSave').addEventListener('click', () => {
+        const ov = document.getElementById('turnListOverlay');
+        const vals = [...new Set(document.getElementById('turnListText').value.split('\n').map(x => x.trim()).filter(Boolean))];
+        turnSetList(ov._key, vals);
+        ov.style.display = 'none';
+        renderTurnsBody();
+    });
+})();
+
+/* ============================================================
    WELCOME LETTER — one record per unit. The "autofill" (green) side
    pulls live from the Residents/Units data already in the app wherever
    that data actually exists (name, apartment/building/floorplan/sqft,
@@ -16875,6 +17468,7 @@ setInterval(() => {
     pullRetailInfoFromBackend();
     pullDocumentsFromBackend();
     pullResidentsFromBackend();
+    pullTurnsFromBackend();
     pullWlFromBackend();
     pullLeaseFromBackend();
     pullHowToFromBackend();
@@ -16905,6 +17499,7 @@ pcardController.init();
 renderPcardSummary();
 restorePayPeriodLocal();
 initResidents();
+initTurns();
 restoreWlLocal();
 restoreLeaseLocal();
 
@@ -18523,6 +19118,7 @@ if (BACKEND_URL) {
     pullRetailInfoFromBackend();
     pullDocumentsFromBackend();
     pullResidentsFromBackend();
+    pullTurnsFromBackend();
     pullWlFromBackend();
     pullLeaseFromBackend();
     pullHowToFromBackend();
