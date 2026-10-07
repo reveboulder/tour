@@ -1765,6 +1765,73 @@
     .tn-vt { color: #c0392b; font-weight: 800; font-size: 17px; cursor: help; margin-left: -4px; padding-right: 4px; }
     .tn-table td.tn-all-done .tn-vt { color: #ffd54f; }
     body.dark-mode .tn-table .tn-legend-row td { background: var(--dm-card-alt); }
+    .tn-table .tn-legend-row td.tn-legend-trades { vertical-align: middle; }
+    .tn-table .tn-legend-row td.tn-legend-trades span { display: inline-flex; margin: 2px 18px 2px 0; }
+    .tn-table .tn-legend-row td.tn-legend-trades em { font-style: normal; font-weight: 600; opacity: 0.75; }
+    /* Turns calendar */
+    .tn-cal-wrap { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 6px; margin-bottom: 14px; }
+    .tn-cal-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+    .tn-cal-bar .cal-nav-btn { width: 28px; height: 28px; font-size: 16px; line-height: 1; padding: 0; }
+    .tn-cal-bar .cal-month-block { min-width: 190px; }
+    .tn-cal-bar .cal-month-label { font-size: 15px; }
+    .tn-cal-views { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+    .tn-cal-grid .cal-day { min-height: 62px; position: relative; cursor: pointer; }
+    .tn-cal-grid .cal-day.empty { cursor: default; }
+    .tn-cal-grid .cal-day:not(.empty):hover { border-color: var(--reve-orange); }
+    .tn-cal-pills { display: flex; flex-wrap: wrap; gap: 3px; }
+    .tn-cal-pw { position: relative; }
+    .tn-cal-pw .cal-unit-pill { display: block; }
+    .cal-unit-pill.tn-s-today { background: #ffff00; color: #333; }
+    .cal-unit-pill.tn-s-late { background: #ff0000; color: #fff; }
+    .cal-unit-pill.tn-s-done { background: #e3e3e3; color: #777; text-decoration: line-through; }
+    .cal-unit-pill.tn-s-past { background: #f1ece8; color: #9a7f70; }
+    .tn-cal-tip { display: none; position: absolute; left: 0; top: calc(100% + 3px); z-index: 30; background: #222; color: #fff; border-radius: 6px; padding: 6px 8px; font-size: 11.5px; line-height: 1.45; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.25); pointer-events: none; text-align: left; }
+    .tn-cal-tip b { color: #ffcf9e; }
+    .tn-cal-tip .tn-tip-done { opacity: 0.6; text-decoration: line-through; }
+    .tn-cal-tip .tn-tip-late { color: #ff8a80; font-weight: 700; }
+    .tn-cal-pw:hover { z-index: 31; }
+    .tn-cal-pw:hover .tn-cal-tip, .tn-cal-bub-w:hover .tn-cal-tip { display: block; }
+    /* Condensed: just a count bubble per day */
+    .tn-cal-grid.tn-condensed { gap: 3px; }
+    .tn-cal-grid.tn-condensed .cal-day { min-height: 26px; padding: 3px 5px; flex-direction: row; align-items: center; justify-content: space-between; border-radius: 5px; }
+    .tn-cal-grid.tn-condensed .cal-dow { font-size: 9px; padding-bottom: 1px; }
+    .tn-cal-bub-w { position: relative; }
+    .tn-cal-bub { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: var(--reve-orange); color: #fff; font-size: 10.5px; font-weight: 700; }
+    .tn-cal-bub.today { background: #ffd600; color: #333; }
+    .tn-cal-bub.late { background: #e00; }
+    .tn-cal-bub.done { background: #bdbdbd; }
+    .tn-cal-bub-w .tn-cal-tip { left: auto; right: 0; }
+    /* Weekly / Daily */
+    .tn-cal-grid.week-mode .week-row { padding: 8px 14px; cursor: pointer; }
+    .tn-cal-items { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+    .tn-cal-item { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-left: 4px solid var(--reve-orange); border-radius: 6px; padding: 5px 9px; background: #fff; font-size: 12px; cursor: pointer; text-align: left; font: inherit; font-size: 12px; color: inherit; }
+    .tn-cal-item b { font-family: var(--mono); font-size: 12.5px; }
+    .tn-cal-item small { color: var(--ink-soft); }
+    .tn-cal-item:hover { border-color: var(--reve-orange); }
+    .tn-cal-item.tn-s-today { border-left-color: #ffd600; background: #fffde0; }
+    .tn-cal-item.tn-s-late { border-left-color: #e00; background: #ffeaea; }
+    .tn-cal-item.tn-s-done { border-left-color: #bdbdbd; background: #f4f4f4; color: #888; }
+    .tn-cal-item.tn-s-done b, .tn-cal-item.tn-s-done span { text-decoration: line-through; }
+    .tn-cal-item.tn-s-past { border-left-color: #c9b2a3; }
+    .tn-cal-grid.day-mode { max-width: 760px; }
+    .tn-cal-grid.day-mode .cal-unit-card { border-left: 5px solid var(--reve-orange); }
+    .tn-cal-grid.day-mode .cal-unit-card.tn-s-today { border-left-color: #ffd600; }
+    .tn-cal-grid.day-mode .cal-unit-card.tn-s-late { border-left-color: #e00; }
+    .tn-cal-grid.day-mode .cal-unit-card.tn-s-done { border-left-color: #bdbdbd; opacity: 0.75; }
+    .tn-day-status { font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+    .tn-day-status.late { color: #d00; }
+    .tn-day-status.done { color: #777; }
+    .tn-day-status.today { color: #a68a00; }
+    .tn-cal-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
+    .tn-cal-legend span { display: inline-flex; align-items: center; gap: 5px; }
+    .tn-cal-dot { display: inline-block; width: 12px; height: 9px; border-radius: 2px; background: #fbeee8; border: 1px solid var(--reve-orange); }
+    .tn-cal-dot.today { background: #ffff00; border-color: #c9b800; }
+    .tn-cal-dot.late { background: #ff0000; border-color: #c00; }
+    .tn-cal-dot.done { background: #e3e3e3; border-color: #bbb; }
+    .tn-cal-hint { margin-left: auto; }
+    #turnsBody tr.tn-flash td { animation: tnFlash 1.6s ease; }
+    @keyframes tnFlash { 0%, 40% { box-shadow: inset 0 0 0 9999px rgba(232,119,34,0.35); } 100% { box-shadow: none; } }
+    body.dark-mode .tn-cal-wrap, body.dark-mode .tn-cal-item { background: var(--dm-card-alt); }
     .tn-sw { display: inline-block; width: 22px; height: 14px; border: 1px solid rgba(0,0,0,0.18); border-radius: 3px; }
     .tn-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 10px; }
     .tn-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; }
@@ -1794,7 +1861,7 @@
     .tn-sel-label { white-space: nowrap; }
     .tn-caret { font-size: 10px; opacity: 0.45; margin-left: auto; }
     .tn-sel { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 14px; }
-    .tn-date { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; width: 100%; min-width: 74px; min-height: 34px; padding: 3px 6px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; line-height: 1.2; white-space: nowrap; }
+    .tn-date { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; width: 100%; min-width: 78px; min-height: 34px; padding: 3px 6px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; line-height: 1.2; white-space: nowrap; }
     .tn-date:focus-visible { outline: 2px solid #2e7dd7; outline-offset: -2px; }
     .tn-ph { color: #bbb; font-size: 11.5px; }
     .tn-chk { width: 56px; }
@@ -1829,6 +1896,12 @@
     .tn-pop-chip button { border: 0; background: transparent; cursor: pointer; color: #c0392b; font-size: 14px; line-height: 1; padding: 0 3px; }
     .tn-pop-in { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
     .tn-pop-foot { display: flex; gap: 6px; margin-top: 8px; }
+    .tn-pop-range { display: flex; flex-direction: column; gap: 6px; }
+    .tn-pop-range label { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); }
+    .tn-pop-range small { font-weight: 400; }
+    .tn-pop-end { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+    .tn-pop-add { width: 100%; margin-top: 6px; border: 1px solid #2e7dd7; background: #eef5fd; color: #1d5fa8; border-radius: 6px; padding: 5px 0; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600; }
+    .tn-pop { width: 240px; }
     .tn-pop-foot button { flex: 1; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 5px 0; cursor: pointer; font: inherit; font-size: 12.5px; }
     .tn-pop-foot .tn-pop-done { background: var(--reve-orange); border-color: var(--reve-orange); color: #fff; font-weight: 600; }
     .tn-list-text { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; }
@@ -3367,6 +3440,25 @@
             <div class="tag">Unit turn tracker &mdash; maintenance, paint, carpet, clean &mdash; shared across the team</div>
         </div>
     </div>
+    <div class="tn-cal-wrap" id="tnCalWrap">
+        <div class="tn-cal-bar">
+            <button type="button" class="cal-nav-btn" id="tnCalPrev" title="Previous">&lsaquo;</button>
+            <div class="cal-month-block">
+                <div class="cal-month-label" id="tnCalLabel"></div>
+                <div class="cal-month-summary" id="tnCalSummary"></div>
+            </div>
+            <button type="button" class="cal-nav-btn" id="tnCalNext" title="Next">&rsaquo;</button>
+            <div class="tn-cal-views">
+                <button type="button" class="cal-action-btn" id="tnCalToday">Today</button>
+                <button type="button" class="cal-action-btn" data-tn-view="condensed" title="Month, with just a count per day">Condensed</button>
+                <button type="button" class="cal-action-btn" data-tn-view="month">Month</button>
+                <button type="button" class="cal-action-btn" data-tn-view="week">Weekly</button>
+                <button type="button" class="cal-action-btn" data-tn-view="day">Daily</button>
+            </div>
+        </div>
+        <div class="avail-cal-grid tn-cal-grid" id="tnCalGrid"></div>
+        <div class="tn-cal-legend"><span><i class="tn-cal-dot"></i>Scheduled</span><span><i class="tn-cal-dot today"></i>Today</span><span><i class="tn-cal-dot late"></i>Past due, not done</span><span><i class="tn-cal-dot done"></i>Done</span><span class="tn-cal-hint">Hover a unit for its vendors &middot; click a unit to jump to its row &middot; click a day for its details</span></div>
+    </div>
     <div class="tn-toolbar">
         <input type="text" id="turnSearch" class="res-search-inline" placeholder="Search unit, floorplan, vendor or comment&hellip;" autocomplete="off">
         <label class="tn-inline"><input type="checkbox" id="turnHideDone"> Hide completed</label>
@@ -3382,8 +3474,7 @@
                     <td colspan="2"><span><i class="tn-sw tn-past-sw"></i>Moved out</span><span><i class="tn-sw tn-mi-week"></i>Move-in within the week</span><span><i class="tn-sw tn-movedin"></i>Moved in</span></td>
                     <td></td>
                     <td colspan="3" class="tn-gs"><span><i class="tn-sw tn-maint-done"></i>Maint. turn complete</span></td>
-                    <td colspan="3" class="tn-gs"><span><i class="tn-sw tn-today"></i>Vendor scheduled today</span><span><i class="tn-sw tn-late"></i>Date passed, not complete</span><span><i class="tn-sw tn-done"></i>Turn item complete</span></td>
-                    <td colspan="3" class="tn-gs"></td><td colspan="3" class="tn-gs"></td><td colspan="3" class="tn-gs"></td>
+                    <td colspan="12" class="tn-gs tn-legend-trades"><span><i class="tn-sw tn-today"></i>Vendor scheduled today</span><span><i class="tn-sw tn-late"></i>Date passed, not complete</span><span><i class="tn-sw tn-done"></i>Turn item complete</span><em>Paint &middot; Carpet &middot; Clean &middot; Other</em></td>
                     <td class="tn-gs" colspan="2"><span><i class="tn-sw tn-flag-sw"></i>Flagged row (&#9873;)</span></td>
                 </tr>
                 <tr class="tn-h1">
@@ -3411,7 +3502,7 @@
             <tbody id="turnsBody"></tbody>
         </table>
     </div>
-    <div class="empty-note" style="margin-top:8px;">Click a date to pick it (Paint / Carpet / Clean / Other can hold several). Each dropdown&rsquo;s &ldquo;Edit list&hellip;&rdquo; changes the names it offers. Click a column title to sort.</div>
+    <div class="empty-note" style="margin-top:8px;">Click a date to pick it Click a date to pick it (Paint / Carpet / Clean / Other can hold several).mdash; turn items can be a startClick a date to pick it (Paint / Carpet / Clean / Other can hold several).ndash;end range, and Paint / Carpet / Clean / Other can hold several. Each dropdown&rsquo;s &ldquo;Edit list&hellip;&rdquo; changes the names it offers. Click a column title to sort.</div>
     <div class="tn-pop" id="turnPop" style="display:none;"></div>
     <div id="turnListOverlay" class="howto-overlay" style="display:none;">
         <div class="howto-detail-card docs-edit-card">
@@ -13386,12 +13477,23 @@ function turnFmt(iso) {
     return `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()]} ${+m[2]}/${+m[3]}`;
 }
 function turnDates(v) { return (Array.isArray(v) ? v : v ? [v] : []).filter(Boolean).sort(); }
+// Turn item dates can also be a range, stored "start/end" and shown "Wed 10/7 - Thu 10/8".
+function turnRange(x) { const [a, b] = String(x || '').split('/'); return [a, b && b > a ? b : a]; }
+function turnFmtEntry(x) { const [a, b] = turnRange(x); return b !== a ? `${turnFmt(a)} - ${turnFmt(b)}` : turnFmt(a); }
+function turnCovers(x, iso) { const [a, b] = turnRange(x); return a <= iso && iso <= b; }
+function turnEnd(x) { return turnRange(x)[1]; }
+// Every day a list of dates / ranges covers (ranges capped at 120 days).
+function turnDays(list) {
+    const out = [];
+    list.forEach(x => { const [a, b] = turnRange(x); let d = a; for (let i = 0; i < 120 && d <= b; i++) { out.push({ day: d, x }); d = turnIsoAdd(d, 1); } });
+    return out;
+}
 // ---- Status helpers (the conditional formatting) ----
 function turnTradeState(row, t, today) {
     if (row[t.id + 'Done']) return 'done';
     const ds = turnDates(row[t.id + 'Dates']);
-    if (ds.includes(today)) return 'today';
-    if (ds.length && ds[ds.length - 1] < today) return 'late';
+    if (ds.some(x => turnCovers(x, today))) return 'today';
+    if (ds.length && Math.max(...ds.map(x => +turnEnd(x).replace(/-/g, ''))) < +today.replace(/-/g, '')) return 'late';
     return '';
 }
 // Maintenance done (rows from before this column used Oven Clean for it).
@@ -13414,7 +13516,7 @@ function turnSelect(id, field, listKey, value) {
 }
 function turnDateCell(id, field, value, multi, cls) {
     const ds = turnDates(value);
-    const txt = ds.length ? ds.map(x => `<span>${turnFmt(x)}</span>`).join('') : '<span class="tn-ph">+ date</span>';
+    const txt = ds.length ? ds.map(x => `<span>${turnFmtEntry(x)}</span>`).join('') : '<span class="tn-ph">+ date</span>';
     return `<td class="tn-date-td ${cls || ''}"><button type="button" class="tn-date" data-id="${id}" data-f="${field}" data-multi="${multi ? 1 : ''}">${txt}</button></td>`;
 }
 function turnCheck(id, field, value, cls) {
@@ -13476,31 +13578,180 @@ function renderTurnsBody() {
     const open = Object.keys(TURN_ROWS).filter(id => !TURN_ROWS[id].deleted && !turnAllDone(TURN_ROWS[id])).length;
     document.getElementById('turnCount').textContent = `${total} unit${total === 1 ? '' : 's'} · ${open} in progress`;
     body.querySelectorAll('.tn-note').forEach(turnGrow);
+    renderTurnCal();
 }
+// ---- Calendar (top of the tab): every scheduled turn item by date ----
+let turnCalView = (() => { try { return localStorage.getItem('reve-turn-cal-view') || 'month'; } catch (e) { return 'month'; } })();
+let turnCalDate = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); })();
+const TURN_STATE_RANK = { late: 4, today: 3, '': 2, past: 1, done: 0 };
+// One event per scheduled date: maintenance (Entry Date + Turn tech) and
+// each trade date (with its vendor).
+function turnCalEvents() {
+    const today = turnTodayIso(), out = [];
+    Object.keys(TURN_ROWS).forEach(id => {
+        const r = TURN_ROWS[id];
+        if (r.deleted) return;
+        const add = (date, item, who, done, last) => {
+            const state = done ? 'done' : date === today ? 'today' : date < today ? (date === last ? 'late' : 'past') : '';
+            out.push({ date, id, unit: r.unit || '?', fp: r.fp || '', item, who: who && who !== '-' ? who : '', done, state });
+        };
+        const ent = turnDates(r.entry);
+        if (ent.length) { const last = turnEnd(ent[0]); turnDays(ent).forEach(o => add(o.day, 'Maintenance', r.tech, turnMaintDone(r), last)); }
+        TURN_TRADES.forEach(t => {
+            const ds = turnDates(r[t.id + 'Dates']);
+            if (!ds.length) return;
+            const last = ds.map(turnEnd).sort().pop();
+            turnDays(ds).forEach(o => add(o.day, t.label, r[t.id + 'Vendor'], !!r[t.id + 'Done'], last));
+        });
+    });
+    return out;
+}
+function turnWorst(list) { return list.reduce((w, e) => TURN_STATE_RANK[e.state] > TURN_STATE_RANK[w] ? e.state : w, 'done'); }
+function turnStateText(st) { return st === 'done' ? 'Done' : st === 'today' ? 'Scheduled today' : st === 'late' ? 'Past due \u2014 not done' : st === 'past' ? 'Earlier date' : 'Scheduled'; }
+function turnTip(list, withUnit) {
+    return `<div class="tn-cal-tip">${list.map(e => `<div class="${e.state === 'done' ? 'tn-tip-done' : e.state === 'late' ? 'tn-tip-late' : ''}">${withUnit ? `<b>${escapeHtml(e.unit)}</b> ` : ''}${escapeHtml(e.item)}: ${escapeHtml(e.who || 'no vendor yet')}</div>`).join('')}</div>`;
+}
+function turnIsoOf(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function renderTurnCal() {
+    const grid = document.getElementById('tnCalGrid');
+    if (!grid) return;
+    document.querySelectorAll('[data-tn-view]').forEach(b => b.classList.toggle('active', b.getAttribute('data-tn-view') === turnCalView));
+    const evs = turnCalEvents(), byDate = {};
+    evs.forEach(e => (byDate[e.date] = byDate[e.date] || []).push(e));
+    const todayIso = turnTodayIso(), label = document.getElementById('tnCalLabel'), sum = document.getElementById('tnCalSummary');
+    const summary = list => {
+        const units = new Set(list.map(e => e.id)).size, late = list.filter(e => e.state === 'late').length, open = list.filter(e => e.state !== 'done').length;
+        return `<b>${list.length}</b> turn item${list.length === 1 ? '' : 's'} &middot; <b>${units}</b> unit${units === 1 ? '' : 's'} &middot; <b>${open}</b> open${late ? ` &middot; <b style="color:#d00">${late}</b> past due` : ''}`;
+    };
+    const byUnit = list => { const m = {}; list.forEach(e => (m[e.id] = m[e.id] || []).push(e)); return Object.values(m).sort((a, b) => String(a[0].unit).localeCompare(String(b[0].unit), undefined, { numeric: true })); };
+    grid.className = 'avail-cal-grid tn-cal-grid';
+    grid.style.gridTemplateRows = '';
+    if (turnCalView === 'month' || turnCalView === 'condensed') {
+        const y = turnCalDate.getFullYear(), m = turnCalDate.getMonth(), days = new Date(y, m + 1, 0).getDate(), first = new Date(y, m, 1).getDay();
+        label.textContent = turnCalDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        const prefix = `${y}-${String(m + 1).padStart(2, '0')}-`;
+        sum.innerHTML = summary(evs.filter(e => e.date.startsWith(prefix)));
+        const condensed = turnCalView === 'condensed';
+        if (condensed) grid.classList.add('tn-condensed');
+        let h = (condensed ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']).map(d => `<div class="cal-dow">${d}</div>`).join('');
+        for (let i = 0; i < first; i++) h += '<div class="cal-day empty"></div>';
+        for (let d = 1; d <= days; d++) {
+            const iso = prefix + String(d).padStart(2, '0'), list = byDate[iso] || [];
+            let inner = '';
+            if (condensed) {
+                const w = list.length ? turnWorst(list) : '';
+                inner = list.length ? `<span class="tn-cal-bub-w"><span class="tn-cal-bub ${w}">${list.length}</span>${turnTip(list, true)}</span>` : '';
+            } else {
+                inner = `<div class="tn-cal-pills">${byUnit(list).map(g => `<span class="tn-cal-pw"><span class="cal-unit-pill tn-s-${turnWorst(g) || 'open'}" data-tn-jump="${g[0].id}">${escapeHtml(g[0].unit)}</span>${turnTip(g, false)}</span>`).join('')}</div>`;
+            }
+            h += `<div class="cal-day${iso === todayIso ? ' today' : ''}" data-tn-day="${iso}"><div class="cal-day-num">${d}</div>${inner}</div>`;
+        }
+        grid.innerHTML = h;
+    } else if (turnCalView === 'week') {
+        const start = new Date(turnCalDate); start.setDate(start.getDate() - start.getDay());
+        const end = new Date(start); end.setDate(end.getDate() + 6);
+        label.textContent = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} \u2013 ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        grid.classList.add('week-mode');
+        let h = '', all = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(start); d.setDate(d.getDate() + i);
+            const iso = turnIsoOf(d), list = (byDate[iso] || []).slice().sort((a, b) => String(a.unit).localeCompare(String(b.unit), undefined, { numeric: true }));
+            all = all.concat(list);
+            h += `<div class="week-row${iso === todayIso ? ' today' : ''}" data-tn-day="${iso}"><div class="week-row-date"><div class="week-row-dow">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]}</div><div class="week-row-daynum">${d.getDate()}</div></div>`
+                + `<div class="tn-cal-items">${list.length ? list.map(e => `<button type="button" class="tn-cal-item tn-s-${e.state || 'open'}" data-tn-jump="${e.id}" title="${escapeAttr(turnStateText(e.state))}"><b>${escapeHtml(e.unit)}</b><span>${escapeHtml(e.item)}</span><small>${escapeHtml(e.who || 'no vendor yet')}</small></button>`).join('') : '<div class="week-row-empty">Nothing scheduled</div>'}</div></div>`;
+        }
+        sum.innerHTML = summary(all);
+        grid.innerHTML = h;
+    } else {
+        const iso = turnIsoOf(turnCalDate), list = (byDate[iso] || []).slice();
+        label.textContent = turnCalDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        sum.innerHTML = summary(list);
+        grid.classList.add('day-mode');
+        list.sort((a, b) => TURN_STATE_RANK[b.state] - TURN_STATE_RANK[a.state] || String(a.unit).localeCompare(String(b.unit), undefined, { numeric: true }));
+        grid.innerHTML = list.length ? list.map(e => {
+            const r = TURN_ROWS[e.id] || {};
+            const meta = [r.lease, turnDates(r.moveIn)[0] ? 'Move-in ' + turnFmt(turnDates(r.moveIn)[0]) : '', r.comments].filter(Boolean).map(escapeHtml).join(' \u00b7 ');
+            return `<div class="cal-unit-card tn-s-${e.state || 'open'}" data-tn-jump="${e.id}"><div><div class="cal-unit-card-main">Apt ${escapeHtml(e.unit)}${e.fp ? ` <small style="font-weight:500;color:var(--ink-soft)">(${escapeHtml(e.fp)})</small>` : ''} \u2014 ${escapeHtml(e.item)}</div><div class="cal-unit-card-meta">${escapeHtml(e.who || 'No vendor yet')}${meta ? ' \u00b7 ' + meta : ''}</div></div><div class="tn-day-status ${e.state}">${turnStateText(e.state)}</div></div>`;
+        }).join('') : '<div class="week-row-empty" style="padding:10px 4px;">Nothing scheduled this day.</div>';
+    }
+}
+// Scrolls the table to a unit's row (clearing a search / filter that hides it) and flashes it.
+function turnJumpToRow(id) {
+    let tr = document.querySelector(`#turnsBody tr[data-id="${id}"]`);
+    if (!tr) {
+        document.getElementById('turnSearch').value = '';
+        turnHideDone = false; document.getElementById('turnHideDone').checked = false;
+        renderTurnsBody();
+        tr = document.querySelector(`#turnsBody tr[data-id="${id}"]`);
+        if (!tr) return;
+    }
+    tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    tr.classList.remove('tn-flash'); void tr.offsetWidth; tr.classList.add('tn-flash');
+}
+(function turnCalWire() {
+    const grid = document.getElementById('tnCalGrid');
+    grid.addEventListener('click', e => {
+        const j = e.target.closest('[data-tn-jump]');
+        if (j) { turnJumpToRow(j.getAttribute('data-tn-jump')); return; }
+        const d = e.target.closest('[data-tn-day]');
+        if (d && turnCalView !== 'day') {
+            const [y, m, dd] = d.getAttribute('data-tn-day').split('-').map(Number);
+            turnCalDate = new Date(y, m - 1, dd);
+            turnCalView = 'day';
+            renderTurnCal();
+        }
+    });
+    const step = dir => {
+        const d = new Date(turnCalDate);
+        if (turnCalView === 'week') d.setDate(d.getDate() + 7 * dir);
+        else if (turnCalView === 'day') d.setDate(d.getDate() + dir);
+        else { d.setDate(1); d.setMonth(d.getMonth() + dir); }
+        turnCalDate = d;
+        renderTurnCal();
+    };
+    document.getElementById('tnCalPrev').addEventListener('click', () => step(-1));
+    document.getElementById('tnCalNext').addEventListener('click', () => step(1));
+    document.getElementById('tnCalToday').addEventListener('click', () => { const d = new Date(); turnCalDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()); renderTurnCal(); });
+    document.querySelectorAll('[data-tn-view]').forEach(b => b.addEventListener('click', () => {
+        turnCalView = b.getAttribute('data-tn-view');
+        try { localStorage.setItem('reve-turn-cal-view', turnCalView); } catch (e) {}
+        renderTurnCal();
+    }));
+})();
 function turnGrow(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; }
 // ---- Date popover ----
 function turnOpenDates(btn) {
     const id = btn.getAttribute('data-id'), f = btn.getAttribute('data-f'), multi = !!btn.getAttribute('data-multi');
+    // Turn items (Entry Date and the trades' dates) can be a start-end range.
+    const ranged = multi || f === 'entry';
     const pop = document.getElementById('turnPop');
     const draw = () => {
         const ds = turnDates(TURN_ROWS[id][f]);
+        const cur = !multi && ds[0] ? turnRange(ds[0]) : ['', ''];
         pop.innerHTML = `<div class="tn-pop-h">${multi ? 'Dates' : 'Date'}</div>`
-            + (ds.length ? `<div class="tn-pop-list">${ds.map(x => `<span class="tn-pop-chip">${turnFmt(x)}<button type="button" data-rm="${x}" title="Remove">×</button></span>`).join('')}</div>` : '')
-            + (multi || !ds.length ? `<input type="date" class="tn-pop-in" aria-label="${multi ? 'Add a date' : 'Date'}">` : `<input type="date" class="tn-pop-in" value="${ds[0]}" aria-label="Date">`)
+            + (ds.length && multi ? `<div class="tn-pop-list">${ds.map(x => `<span class="tn-pop-chip">${turnFmtEntry(x)}<button type="button" data-rm="${escapeAttr(x)}" title="Remove">×</button></span>`).join('')}</div>` : '')
+            + (ranged
+                ? `<div class="tn-pop-range"><label>Start<input type="date" class="tn-pop-in" value="${cur[0]}"></label><label>End <small>(optional)</small><input type="date" class="tn-pop-end" value="${cur[1] !== cur[0] ? cur[1] : ''}"></label></div><button type="button" class="tn-pop-add">${multi ? 'Add' : 'Set'}</button>`
+                : `<input type="date" class="tn-pop-in" value="${cur[0]}" aria-label="Date">`)
             + `<div class="tn-pop-foot"><button type="button" class="tn-pop-today">Today</button>${ds.length ? '<button type="button" class="tn-pop-clear">Clear</button>' : ''}<button type="button" class="tn-pop-done">Done</button></div>`;
-        const inp = pop.querySelector('.tn-pop-in');
-        const put = v => {
+        const inp = pop.querySelector('.tn-pop-in'), end = pop.querySelector('.tn-pop-end');
+        const put = (v, e) => {
             if (!v) return;
+            if (e && e < v) [v, e] = [e, v];
+            const val = e && e !== v ? `${v}/${e}` : v;
             const cur = turnDates(TURN_ROWS[id][f]);
-            if (multi) turnSet(id, f, turnDates(cur.concat(cur.includes(v) ? [] : [v])));
-            else turnSet(id, f, v);
+            if (multi) turnSet(id, f, turnDates(cur.concat(cur.includes(val) ? [] : [val])));
+            else turnSet(id, f, val);
             draw();
         };
-        inp.addEventListener('change', () => put(inp.value));
+        if (ranged) {
+            pop.querySelector('.tn-pop-add').addEventListener('click', () => put(inp.value, end.value));
+            [inp, end].forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') put(inp.value, end.value); }));
+        } else inp.addEventListener('change', () => put(inp.value));
         pop.querySelector('.tn-pop-today').addEventListener('click', () => put(turnTodayIso()));
         const clr = pop.querySelector('.tn-pop-clear');
         if (clr) clr.addEventListener('click', () => { turnSet(id, f, multi ? [] : ''); draw(); });
-        pop.querySelector('.tn-pop-done').addEventListener('click', turnClosePop);
+        pop.querySelector('.tn-pop-done').addEventListener('click', () => { if (ranged && inp.value && (multi || inp.value !== cur[0] || (end.value || inp.value) !== cur[1])) put(inp.value, end.value); turnClosePop(); });
         pop.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { turnSet(id, f, turnDates(TURN_ROWS[id][f]).filter(x => x !== b.getAttribute('data-rm'))); draw(); }));
     };
     draw();
