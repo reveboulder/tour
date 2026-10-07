@@ -4492,7 +4492,7 @@
                                 <button type="button" class="bp-blank-item" data-appl="closet" title="Closet (gray dashed line) — drag an end to set its length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2;stroke-width:2"><path d="M2 15H28"/></svg>Closet <small>dashed line, resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="wicloset" title="Walk-in closet: dashed U along the back and both sides — drag a corner to set the width and depth"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2;stroke-width:2"><path d="M4 26V5H26V26"/></svg>W/I Closet <small>dashed U, resizable</small></button>
                             </div>
-                            <div class="bp-blank-tip">Click an item to add it, then drag it into place. Select one to rotate (R), resize or delete it; arrow keys nudge. Selecting an item shows its edit bar above it. Ctrl/&#8984;-click more items to select several, then Group them to move and rotate them together. The layer buttons bring an item in front of (or behind) what it overlaps. Resizable items show white squares: drag a corner to set the width and length (doors and closets: drag an end). Place a door's straight top edge along the wall; size a sliding door to the wall's thickness so it opens the wall up. Ctrl/&#8984; + scroll or &minus;/+ zooms; drag the background to pan when zoomed in. Labels and additions are saved with this unit.</div>
+                            <div class="bp-blank-tip">Click an item to add it, then drag it into place. Select one to rotate (R), resize or delete it; arrow keys nudge. Selecting an item shows its edit bar above it. Ctrl/&#8984;+C and Ctrl/&#8984;+V copy and paste the selected item(s). Ctrl/&#8984;-click more items to select several, then Group them to move and rotate them together. The layer buttons bring an item in front of (or behind) what it overlaps. Resizable items show white squares: drag a corner to set the width and length (doors and closets: drag an end). Place a door's straight top edge along the wall; size a sliding door to the wall's thickness so it opens the wall up. Ctrl/&#8984; + scroll or &minus;/+ zooms; drag the background to pan when zoomed in. Labels and additions are saved with this unit.</div>
                         </div>
                     </div>
                 </div>
@@ -21164,8 +21164,9 @@ function bpBlankPaint(ctx, B, items, sel) {
         ctx.strokeStyle = '#2e7dd7'; ctx.lineWidth = 3; ctx.setLineDash([10, 6]);
         ctx.strokeRect(-w / 2 - 8, -h / 2 - 8, w + 16, h + 16);
         if (chosen.length === 1 && bpBlankResizable(it)) {
-            ctx.setLineDash([]); ctx.fillStyle = '#fff'; ctx.lineWidth = 3;
-            bpBlankHandles(it).forEach(([sx, sy]) => { ctx.fillRect(sx * w / 2 - 9, sy * h / 2 - 9, 18, 18); ctx.strokeRect(sx * w / 2 - 9, sy * h / 2 - 9, 18, 18); });
+            // Outline-only handles, so the item and walls stay visible through them.
+            ctx.setLineDash([]); ctx.lineWidth = 3;
+            bpBlankHandles(it).forEach(([sx, sy]) => ctx.strokeRect(sx * w / 2 - 9, sy * h / 2 - 9, 18, 18));
         }
         ctx.restore();
     });
@@ -21280,21 +21281,67 @@ function bpBlankChanged() {
     bpSaveState();
     bpBlankRedraw();
 }
+// The part of the image currently on screen, in image pixels [x0, y0, x1, y1].
+function bpBlankVisRect() {
+    const W = BP_BL.B.canvas.width, H = BP_BL.B.canvas.height;
+    const cv = document.getElementById('bpModalCanvas'), cr = cv.getBoundingClientRect(), sr = cv.parentElement.getBoundingClientRect();
+    const k = cr.width ? W / cr.width : 1;
+    let vis = [(Math.max(cr.left, sr.left) - cr.left) * k, (Math.max(cr.top, sr.top) - cr.top) * k, (Math.min(cr.right, sr.right) - cr.left) * k, (Math.min(cr.bottom, sr.bottom) - cr.top) * k];
+    if (!(vis[2] - vis[0] > 20 && vis[3] - vis[1] > 20)) vis = [0, 0, W, H];
+    return [Math.max(0, vis[0]), Math.max(0, vis[1]), Math.min(W, vis[2]), Math.min(H, vis[3])];
+}
+// Copy / paste (Ctrl/⌘+C, Ctrl/⌘+V): pastes a copy of the copied items a
+// little down and to the right (further each paste), or in the middle of
+// the screen if that would be out of view. Groups stay grouped (as a new group).
+function bpBlankCopy() {
+    const sel = bpBlankSelItems();
+    if (!sel.length) return false;
+    BP_BL.clip = { items: JSON.parse(JSON.stringify(sel)), n: 0 };
+    return true;
+}
+function bpBlankPaste() {
+    const C = BP_BL.clip;
+    if (!C || !C.items.length || !BP_BL.B) return false;
+    C.n++;
+    const B = BP_BL.B, s = B.place.s, off = 24 * C.n / s;
+    const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const groups = {};
+    const copies = C.items.map(o => {
+        const it = JSON.parse(JSON.stringify(o));
+        it.id = newId();
+        delete it.auto;
+        if (it.g) it.g = groups[it.g] = groups[it.g] || 'g' + newId();
+        it.x += off; it.y += off;
+        return it;
+    });
+    // Keep the copies on screen.
+    const vis = bpBlankVisRect(), bb = bpBlankBox(copies), cx = (bb[0] + bb[2]) / 2, cy = (bb[1] + bb[3]) / 2;
+    if (cx < vis[0] || cx > vis[2] || cy < vis[1] || cy > vis[3]) {
+        const dx = ((vis[0] + vis[2]) / 2 - cx) / s, dy = ((vis[1] + vis[3]) / 2 - cy) / s;
+        copies.forEach(it => { it.x += dx; it.y += dy; });
+    }
+    const items = bpBlankItems();
+    copies.forEach(it => items.push(it));
+    bpBlankSetSel(copies.map(it => it.id));
+    bpBlankChanged();
+    return true;
+}
 function bpBlankAdd(kind, text) {
     const items = bpBlankItems();
     const B = BP_BL.B, ctx = document.getElementById('bpModalCanvas').getContext('2d');
     const it = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), kind, x: 0, y: 0, rot: 0 };
     if (kind === 'label') { it.text = text; it.k = 1; }
     if (bpBlankResizable(it)) { it.w = BP_BLANK_APPL[kind].w; it.h = BP_BLANK_APPL[kind].h; }
-    // New items go as near the middle of the unit as they can without
-    // covering an item that's already there.
+    // New items go as near the middle of what's on screen (zoomed in or
+    // not) as they can without covering an item that's already there.
     const box = (x, c) => { const [w, h] = bpBlankItemSize(ctx, x, B.ppi), r = (x.rot || 0) % 180 ? [h, w] : [w, h]; return [c[0] - r[0] / 2 - 6, c[1] - r[1] / 2 - 6, c[0] + r[0] / 2 + 6, c[1] + r[1] / 2 + 6]; };
     const taken = items.map(x => box(x, B.toImg([x.x, x.y])));
+    const vis = bpBlankVisRect();
+    const mid = [(vis[0] + vis[2]) / 2, (vis[1] + vis[3]) / 2], step = Math.max(8, Math.min(40, (vis[2] - vis[0]) / 14));
     const cands = [];
-    for (let i = -12; i <= 12; i++) for (let j = -12; j <= 12; j++) cands.push([B.center[0] + i * 40, B.center[1] + j * 40]);
-    cands.sort((u, v) => Math.hypot(u[0] - B.center[0], u[1] - B.center[1]) - Math.hypot(v[0] - B.center[0], v[1] - B.center[1]));
-    const W = B.canvas.width, H = B.canvas.height;
-    const spot = cands.find(c => { const r = box(it, c); return r[0] >= 0 && r[1] >= 0 && r[2] <= W && r[3] <= H && !taken.some(q => r[0] < q[2] && q[0] < r[2] && r[1] < q[3] && q[1] < r[3]); }) || B.center;
+    for (let i = -14; i <= 14; i++) for (let j = -14; j <= 14; j++) cands.push([mid[0] + i * step, mid[1] + j * step]);
+    cands.sort((u, v) => Math.hypot(u[0] - mid[0], u[1] - mid[1]) - Math.hypot(v[0] - mid[0], v[1] - mid[1]));
+    const spot = cands.find(c => { const r = box(it, c); return r[0] >= vis[0] && r[1] >= vis[1] && r[2] <= vis[2] && r[3] <= vis[3] && !taken.some(q => r[0] < q[2] && q[0] < r[2] && r[1] < q[3] && q[1] < r[3]); }) || mid;
     const P = B.fromImg(spot);
     it.x = P[0]; it.y = P[1];
     items.push(it);
@@ -21582,6 +21629,10 @@ function bpWireBlank() {
         const it = bpBlankSelIds().length ? bpBlankSelItems() : null;
         if (e.key === '+' || e.key === '=') { bpBlankZoomBy(1.25); e.preventDefault(); e.stopImmediatePropagation(); return; }
         if (e.key === '-' || e.key === '_') { bpBlankZoomBy(1 / 1.25); e.preventDefault(); e.stopImmediatePropagation(); return; }
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && /^[cv]$/i.test(e.key)) {
+            if (e.key.toLowerCase() === 'c' ? bpBlankCopy() : bpBlankPaste()) { e.preventDefault(); e.stopImmediatePropagation(); }
+            return;
+        }
         if (e.key === 'Escape') { if (it) { bpBlankSetSel([]); bpBlankRedraw(); } else bpModalClose(); }
         else if (!it) return;
         else if ((e.ctrlKey || e.metaKey) && (e.key === 'g' || e.key === 'G')) { if (e.shiftKey) bpBlankUngroup(); else bpBlankGroup(); }
