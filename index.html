@@ -1482,6 +1482,8 @@
     .bp-blank-bar { position: absolute; z-index: 2; display: flex; align-items: center; gap: 4px; white-space: nowrap; background: #fff; border: 1px solid #b9d4f3; border-radius: 8px; padding: 4px 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.18); font-size: 12px; }
     .bp-blank-bar-name { font-weight: 700; padding: 0 2px; }
     .bp-blank-ico { padding: 3px 5px; line-height: 0; }
+    .bp-blank-angle { display: inline-flex; align-items: center; gap: 1px; font-size: 12px; }
+    .bp-blank-angle input { width: 52px; padding: 3px 4px; border: 1px solid var(--line); border-radius: 5px; font: inherit; font-size: 12px; }
     .bp-blank-ico svg { width: 18px; height: 18px; }
     .bp-blank-bar .bp-blank-size { color: #555; padding-right: 2px; }
     .bp-blank-del { color: #b03a2e; }
@@ -4463,6 +4465,7 @@
                                 <span class="bp-blank-size" id="bpBlankSelSize"></span>
                                 <button type="button" class="bp-btn bp-small" id="bpBlankRotL" title="Rotate 90° left (Shift+R)">&#8634; 90&deg;</button>
                                 <button type="button" class="bp-btn bp-small" id="bpBlankRotR" title="Rotate 90° right (R)">&#8635; 90&deg;</button>
+                                <label class="bp-blank-angle" id="bpBlankAngleW" title="Angle in degrees — or drag the round handle above the item, or Alt + scroll over it (Shift = 15° steps)"><input type="number" id="bpBlankAngle" step="1">&deg;</label>
                                 <button type="button" class="bp-btn bp-small bp-blank-ico" id="bpBlankFwd" title="Forward — bring in front of the item over it"><svg viewBox="0 0 20 20"><rect x="2" y="2" width="11" height="11" fill="#111" stroke="#111"/><rect x="7" y="7" width="11" height="11" fill="#fff" stroke="#111"/></svg></button>
                                 <button type="button" class="bp-btn bp-small bp-blank-ico" id="bpBlankBack" title="Backward — send behind the item under it"><svg viewBox="0 0 20 20"><rect x="2" y="2" width="11" height="11" fill="#fff" stroke="#111"/><rect x="7" y="7" width="11" height="11" fill="#111" stroke="#111"/></svg></button>
                                 <button type="button" class="bp-btn bp-small" id="bpBlankGroup" title="Link these items so they move and rotate together (Ctrl/⌘+G)">Group</button>
@@ -4490,12 +4493,13 @@
                                 <button type="button" class="bp-blank-item" data-appl="stove" title="Stove / range, 2′6″ × 2′1″"><svg viewBox="0 0 30 30"><rect x="3" y="4" width="24" height="21"/><path d="M3 7H27"/><circle cx="9.5" cy="12" r="3"/><circle cx="20.5" cy="12" r="3"/><circle cx="9.5" cy="20" r="2.6"/><circle cx="20.5" cy="20" r="2.6"/></svg>Stove</button>
                                 <button type="button" class="bp-blank-item" data-appl="fridge" title="Refrigerator, 3′ × 2′6″"><svg viewBox="0 0 30 30"><rect x="3" y="3" width="24" height="22"/><path d="M3 22H27M15 22V25M3 3L27 22"/></svg>Fridge</button>
                                 <button type="button" class="bp-blank-item" data-appl="door" title="Swinging door, 2′8″ — drag an end to set the width; Flip swaps the hinge side"><svg viewBox="0 0 30 30"><path d="M4 4V28" style="stroke-width:3"/><path d="M28 4A24 24 0 0 1 4 28" style="stroke-width:.8"/></svg>Door <small>resizable</small></button>
+                                <button type="button" class="bp-blank-item" data-appl="ldoor" title="Laundry doors, 5′ — two doors side by side, each shown partly open; drag an end to set the width"><svg viewBox="0 0 30 30"><path d="M2 10L13 17.7M28 10L17 17.7" style="stroke-width:2.6;stroke-linecap:round"/><path d="M15.5 10A13.5 13.5 0 0 1 13 17.7M14.5 10A13.5 13.5 0 0 0 17 17.7" style="stroke-width:.8"/></svg>Laundry Doors <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="slider" title="Sliding glass door, 6′ — set its width and the wall's thickness by dragging a corner"><svg viewBox="0 0 30 30"><path d="M2 10V20M28 10V20" style="stroke-width:2"/><path d="M2 11H28M2 19H28" style="stroke-width:.6"/><rect x="2" y="12" width="14" height="2.5"/><rect x="14" y="15.5" width="14" height="2.5"/></svg>Sliding door <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="counter" title="Countertop (gray) — drag a corner to set its width and length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a"><rect x="2" y="10" width="26" height="10"/></svg>Countertop <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="closet" title="Closet (gray dashed line) — drag an end to set its length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2;stroke-width:2"><path d="M2 15H28"/></svg>Closet <small>dashed line, resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="wicloset" title="Walk-in closet: dashed U along the back and both sides — drag a corner to set the width and depth"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2;stroke-width:2"><path d="M4 26V5H26V26"/></svg>W/I Closet <small>dashed U, resizable</small></button>
                             </div>
-                            <div class="bp-blank-tip">Click an item to add it, then drag it into place. Select one to rotate (R), resize or delete it; arrow keys nudge. Selecting an item shows its edit bar above it. Ctrl/&#8984;+C and Ctrl/&#8984;+V copy and paste the selected item(s). Ctrl/&#8984;-click more items to select several, then Group them to move and rotate them together. The layer buttons bring an item in front of (or behind) what it overlaps. Resizable items show white squares: drag a corner to set the width and length (doors and closets: drag an end). Place a door's straight top edge along the wall; size a sliding door to the wall's thickness so it opens the wall up. Ctrl/&#8984; + scroll or &minus;/+ zooms; drag the background to pan when zoomed in. Labels and additions are saved with this unit.</div>
+                            <div class="bp-blank-tip">Click an item to add it, then drag it into place. Drag the round handle above a selected item to turn it to any angle (Shift = 15&deg; steps), type an angle, or Alt + scroll over it. Select one to rotate (R), resize or delete it; arrow keys nudge. Selecting an item shows its edit bar above it. Ctrl/&#8984;+C and Ctrl/&#8984;+V copy and paste the selected item(s). Ctrl/&#8984;-click more items to select several, then Group them to move and rotate them together. The layer buttons bring an item in front of (or behind) what it overlaps. Resizable items show white squares: drag a corner to set the width and length (doors and closets: drag an end). Place a door's straight top edge along the wall; size a sliding door to the wall's thickness so it opens the wall up. Ctrl/&#8984; + scroll or &minus;/+ zooms; drag the background to pan when zoomed in. Labels and additions are saved with this unit.</div>
                         </div>
                     </div>
                 </div>
@@ -20994,6 +20998,7 @@ const BP_BLANK_APPL = {
     stove:  { label: 'Stove', w: 30, h: 25 },
     fridge: { label: 'Fridge', w: 36, h: 30 },
     door:   { label: 'Door', w: 32, h: 32, resize: 'door' },
+    ldoor:  { label: 'Laundry Doors', w: 60, h: 18, resize: 'ddoor' },   // two leaves, each opened ~35°
     slider: { label: 'Sliding glass door', w: 72, h: 6, resize: true },
     // Gray add-ons.
     counter: { label: 'Countertop', w: 96, h: 25, resize: true },
@@ -21002,6 +21007,9 @@ const BP_BLANK_APPL = {
 };
 const BP_BLANK_GRAY = '#8a8a8a';
 // Size of an item in image pixels, unrotated.
+// Laundry doors: depth of two half-width leaves opened BP_LDOOR_ANG degrees.
+const BP_LDOOR_ANG = 35;
+function bpBlankDdoorH(w) { return w / 2 * Math.sin(BP_LDOOR_ANG * Math.PI / 180) + 1; }
 function bpBlankItemSize(ctx, it, ppi) {
     const A = BP_BLANK_APPL[it.kind];
     if (!A) {
@@ -21011,7 +21019,7 @@ function bpBlankItemSize(ctx, it, ppi) {
     }
     if (!A.resize) return [A.w * ppi, A.h * ppi];
     const w = it.w || A.w;
-    return [w * ppi, (A.resize === 'len' ? A.h : A.resize === 'door' ? w : it.h || A.h) * ppi];
+    return [w * ppi, (A.resize === 'len' ? A.h : A.resize === 'door' ? w : A.resize === 'ddoor' ? bpBlankDdoorH(w) : it.h || A.h) * ppi];
     const fs = BP_BLANK_FONT * (it.k || 1);
     ctx.font = `${fs}px Arial, sans-serif`;
     return [ctx.measureText(it.text || '').width + fs * 0.3, fs * 1.25];
@@ -21141,6 +21149,18 @@ function bpBlankDrawItem(ctx, it, B) {
         ctx.beginPath(); ctx.moveTo(-w / 2, y0); ctx.lineTo(-w / 2, y0 + w); ctx.stroke();
         ctx.lineWidth = Math.max(1, lw * 0.45);    // the swing
         ctx.beginPath(); ctx.arc(-w / 2, y0, w, 0, Math.PI / 2); ctx.stroke();
+    } else if (it.kind === 'ldoor') {
+        // Laundry doors: two half-width leaves hinged at each end of the
+        // opening (top edge), each shown partly open with its swing.
+        const y0 = -h / 2, L = w / 2, a = BP_LDOOR_ANG * Math.PI / 180;
+        [1, -1].forEach(sx => {
+            ctx.save(); ctx.scale(sx, 1);
+            ctx.lineWidth = Math.max(4, lw * 1.6);
+            ctx.beginPath(); ctx.moveTo(-w / 2, y0); ctx.lineTo(-w / 2 + L * Math.cos(a), y0 + L * Math.sin(a)); ctx.stroke();
+            ctx.lineWidth = Math.max(1, lw * 0.45);
+            ctx.beginPath(); ctx.arc(-w / 2, y0, L, 0, a); ctx.stroke();
+            ctx.restore();
+        });
     } else if (it.kind === 'slider') {
         // Sliding glass door: the wall is opened up across its width, with
         // two half-width panels on side-by-side tracks overlapping in the middle.
@@ -21197,12 +21217,44 @@ function bpBlankPaint(ctx, B, items, sel) {
         }
         ctx.restore();
     });
+    // Rotation handle: drag it to turn the selection to any angle.
+    const rh = chosen.length ? bpBlankRotHandle(chosen) : null;
+    if (rh) {
+        ctx.save();
+        ctx.strokeStyle = '#2e7dd7'; ctx.lineWidth = 3; ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(rh.from[0], rh.from[1]); ctx.lineTo(rh.at[0], rh.at[1]); ctx.stroke();
+        ctx.beginPath(); ctx.arc(rh.at[0], rh.at[1], 11, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(rh.at[0], rh.at[1], 5, -Math.PI * 0.9, Math.PI * 0.4); ctx.stroke();
+        ctx.restore();
+    }
+}
+// Where the rotation handle sits for the selected items (image px): above a
+// single item (turning with it), or above the middle of a group's box.
+function bpBlankRotHandle(sel) {
+    if (!sel.length || !BP_BL.B) return null;
+    const B = BP_BL.B, ctx = document.getElementById('bpModalCanvas').getContext('2d');
+    if (sel.length === 1) {
+        const it = sel[0], c = B.toImg([it.x, it.y]), [, h] = bpBlankItemSize(ctx, it, B.ppi);
+        const a = (it.rot || 0) * Math.PI / 180, ux = Math.sin(a), uy = -Math.cos(a);
+        const d0 = h / 2 + 8, d1 = d0 + 36;
+        return { pivot: c, from: [c[0] + ux * d0, c[1] + uy * d0], at: [c[0] + ux * d1, c[1] + uy * d1] };
+    }
+    const bb = bpBlankBox(sel), cx = (bb[0] + bb[2]) / 2;
+    return { pivot: [cx, (bb[1] + bb[3]) / 2], from: [cx, bb[1]], at: [cx, bb[1] - 36] };
+}
+// Turns the selection by deg from where it started (start = [{it, x, y, rot}]) around pivot (page point).
+function bpBlankRotateFrom(start, pivot, deg) {
+    const a = deg * Math.PI / 180, cos = Math.cos(a), sin = Math.sin(a), many = start.length > 1;
+    start.forEach(o => {
+        if (many) { const dx = o.x - pivot[0], dy = o.y - pivot[1]; o.it.x = pivot[0] + dx * cos - dy * sin; o.it.y = pivot[1] + dx * sin + dy * cos; }
+        o.it.rot = Math.round(((((o.rot || 0) + deg) % 360) + 360) % 360 * 10) / 10;
+    });
 }
 function bpBlankResizable(it) { const A = it && BP_BLANK_APPL[it.kind]; return !!(A && A.resize); }
 // Resize handles: the corners, or just the two ends of a line.
 function bpBlankHandles(it) {
     const m = BP_BLANK_APPL[it.kind].resize;
-    return m === 'len' ? [[-1, 0], [1, 0]] : m === 'door' ? [[-1, -1], [1, -1]] : [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+    return m === 'len' ? [[-1, 0], [1, 0]] : (m === 'door' || m === 'ddoor') ? [[-1, -1], [1, -1]] : [[-1, -1], [1, -1], [1, 1], [-1, 1]];
 }
 // The corner handle of the selected resizable item under an image point.
 function bpBlankHitHandle(q) {
@@ -21277,9 +21329,12 @@ function bpBlankRedraw() {
     document.getElementById('bpBlankGroup').style.display = sel.length > 1 && !grouped ? '' : 'none';
     document.getElementById('bpBlankUngroup').style.display = sel.some(x => x.g) ? '' : 'none';
     const A = it && BP_BLANK_APPL[it.kind];
-    document.getElementById('bpBlankSelSize').textContent = !(A && A.resize) ? '' : A.resize === 'len' || A.resize === 'door'
+    document.getElementById('bpBlankSelSize').textContent = !(A && A.resize) ? '' : A.resize === 'len' || A.resize === 'door' || A.resize === 'ddoor'
         ? `${bpFmtFtIn(it.w || A.w)}${A.resize === 'len' ? ' long' : ' wide'}` : `${bpFmtFtIn(it.w || A.w)} × ${bpFmtFtIn(it.h || A.h)}`;
     document.querySelectorAll('#bpBlankSelTools [data-label-only]').forEach(b => { b.style.display = it && it.kind === 'label' ? '' : 'none'; });
+    document.getElementById('bpBlankAngleW').style.display = it ? '' : 'none';
+    const ang = document.getElementById('bpBlankAngle');
+    if (it && document.activeElement !== ang) ang.value = Math.round((((it.rot || 0) + 180) % 360 - 180) * 10) / 10;
     document.querySelectorAll('#bpBlankSelTools [data-door-only]').forEach(b => { b.style.display = it && it.kind === 'door' ? '' : 'none'; });
     bpBlankPlaceBar();
 }
@@ -21295,7 +21350,9 @@ function bpBlankPlaceBar() {
     const k = cv.clientWidth / cv.width;
     if (!k) return;
     const bb = bpBlankBox(sel);
-    const cx = cv.offsetLeft + (bb[0] + bb[2]) / 2 * k, top = cv.offsetTop + bb[1] * k, bottom = cv.offsetTop + bb[3] * k;
+    // Keep clear of the rotation handle too, so the bar never covers it.
+    const rh = bpBlankRotHandle(sel), t0 = Math.min(bb[1], rh ? rh.at[1] - 14 : bb[1]), b0 = Math.max(bb[3], rh ? rh.at[1] + 14 : bb[3]);
+    const cx = cv.offsetLeft + (bb[0] + bb[2]) / 2 * k, top = cv.offsetTop + t0 * k, bottom = cv.offsetTop + b0 * k;
     const bw = bar.offsetWidth, bh = bar.offsetHeight;
     let y = top - bh - 6;
     if (y < st.scrollTop + 2) y = bottom + 6;
@@ -21563,10 +21620,35 @@ function bpWireBlank() {
     document.getElementById('bpBlankRename').addEventListener('click', bpBlankRename);
     document.getElementById('bpBlankDelete').addEventListener('click', bpBlankDelete);
     document.getElementById('bpBlankFlip').addEventListener('click', bpBlankFlip);
+    document.getElementById('bpBlankAngle').addEventListener('change', e => {
+        const it = bpBlankSelected(), v = parseFloat(e.target.value);
+        if (!it || !isFinite(v)) return;
+        it.rot = Math.round((((v % 360) + 360) % 360) * 10) / 10;
+        bpBlankChanged();
+    });
+    // Alt + scroll over the canvas turns the selection 1° a notch (Shift: 15°).
+    cv.addEventListener('wheel', e => {
+        if (!BP_BL.open || !e.altKey || !bpBlankSelIds().length) return;
+        e.preventDefault();
+        const step = (e.shiftKey ? 15 : 1) * (e.deltaY > 0 ? 1 : -1);
+        const sel = bpBlankSelItems(), rh = bpBlankRotHandle(sel);
+        bpBlankRotateFrom(sel.map(it => ({ it, x: it.x, y: it.y, rot: it.rot || 0 })), BP_BL.B.fromImg(rh.pivot), step);
+        clearTimeout(BP_BL.wheelSave);
+        bpBlankRedraw();
+        BP_BL.wheelSave = setTimeout(bpBlankChanged, 400);
+    }, { passive: false });
     document.querySelector('#bpModal .bp-modal-stage').addEventListener('scroll', () => { if (BP_BL.open) bpBlankPlaceBar(); });
     cv.addEventListener('pointerdown', e => {
         if (!BP_BL.open || e.button !== 0) return;
-        const q = bpBlankEventImg(e), hd = bpBlankHitHandle(q);
+        const q = bpBlankEventImg(e);
+        const rh = bpBlankRotHandle(bpBlankSelItems());
+        if (rh && Math.hypot(q[0] - rh.at[0], q[1] - rh.at[1]) <= 16) {
+            BP_BL.drag = { id: bpBlankSelIds()[0], rotate: true, pivotImg: rh.pivot, pivot: BP_BL.B.fromImg(rh.pivot), a0: Math.atan2(q[1] - rh.pivot[1], q[0] - rh.pivot[0]), start: bpBlankSelItems().map(it => ({ it, x: it.x, y: it.y, rot: it.rot || 0 })), moved: false };
+            cv.setPointerCapture(e.pointerId);
+            e.preventDefault();
+            return;
+        }
+        const hd = bpBlankHitHandle(q);
         if (hd) {
             BP_BL.drag = { id: hd.it.id, resize: hd, moved: false };
             cv.setPointerCapture(e.pointerId);
@@ -21604,7 +21686,7 @@ function bpWireBlank() {
     });
     cv.addEventListener('pointermove', e => {
         const d = BP_BL.drag;
-        if (!d) { if (BP_BL.open) { const q = bpBlankEventImg(e); cv.style.cursor = bpBlankHitHandle(q) ? (/^(closet|door)$/.test(bpBlankSelected().kind) ? 'ew-resize' : 'nwse-resize') : bpBlankHit(q) ? 'move' : BP_BL.zoom > 1 ? 'grab' : 'default'; } return; }
+        if (!d) { if (BP_BL.open) { const q = bpBlankEventImg(e); const rh = bpBlankRotHandle(bpBlankSelItems()); cv.style.cursor = rh && Math.hypot(q[0] - rh.at[0], q[1] - rh.at[1]) <= 16 ? 'grab' : bpBlankHitHandle(q) ? (/^(closet|door|ldoor)$/.test(bpBlankSelected().kind) ? 'ew-resize' : 'nwse-resize') : bpBlankHit(q) ? 'move' : BP_BL.zoom > 1 ? 'grab' : 'default'; } return; }
         if (d.pan) {
             const st = document.querySelector('#bpModal .bp-modal-stage');
             st.scrollLeft = d.sl - (e.clientX - d.x); st.scrollTop = d.stp - (e.clientY - d.y);
@@ -21612,14 +21694,27 @@ function bpWireBlank() {
         }
         const it = bpBlankItems().find(x => x.id === d.id);
         if (!it) return;
+        if (d.rotate) {
+            // Free rotation; Shift snaps to 15° steps.
+            const q = bpBlankEventImg(e);
+            let deg = (Math.atan2(q[1] - d.pivotImg[1], q[0] - d.pivotImg[0]) - d.a0) * 180 / Math.PI;
+            if (e.shiftKey) {
+                const r0 = d.start.length === 1 ? d.start[0].rot : 0;
+                deg = Math.round((r0 + deg) / 15) * 15 - r0;
+            }
+            bpBlankRotateFrom(d.start, d.pivot, deg);
+            d.moved = true;
+            bpBlankRedraw();
+            return;
+        }
         if (d.resize) {
             // New size (whole inches, at least 6") from the fixed corner to the pointer.
             const r = d.resize, q = bpBlankEventImg(e), ppi = BP_BL.B.ppi, cos = Math.cos(r.a), sin = Math.sin(r.a);
             const dx = q[0] - r.fixed[0], dy = q[1] - r.fixed[1];
             const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos;
             const wi = Math.max(6, Math.round(r.sx * lx / ppi));
-            const hi = r.mode === true ? Math.max(2, Math.round(r.sy * ly / ppi)) : r.mode === 'door' ? wi : it.h;
-            const mx = r.sx * wi * ppi / 2, my = r.mode === true ? r.sy * hi * ppi / 2 : r.mode === 'door' ? -r.sy * hi * ppi / 2 : 0;
+            const hi = r.mode === true ? Math.max(2, Math.round(r.sy * ly / ppi)) : r.mode === 'door' ? wi : r.mode === 'ddoor' ? bpBlankDdoorH(wi) : it.h;
+            const mx = r.sx * wi * ppi / 2, my = r.mode === true ? r.sy * hi * ppi / 2 : (r.mode === 'door' || r.mode === 'ddoor') ? -r.sy * hi * ppi / 2 : 0;
             const P = BP_BL.B.fromImg([r.fixed[0] + mx * cos - my * sin, r.fixed[1] + mx * sin + my * cos]);
             it.w = wi; it.h = hi; it.x = P[0]; it.y = P[1]; d.moved = true;
             bpBlankRedraw();
