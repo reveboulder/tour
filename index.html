@@ -4485,10 +4485,11 @@
                                 <button type="button" class="bp-blank-item" data-appl="bath" title="Bathtub, 5′ × 2′6″"><svg viewBox="0 0 30 30"><rect x="1" y="8" width="28" height="14"/><rect x="3" y="10" width="24" height="10" rx="4"/><circle cx="7" cy="15" r="1"/></svg>Bath <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="shower" title="Shower, 3′ × 3′"><svg viewBox="0 0 30 30"><rect x="5" y="5" width="20" height="20"/><path d="M5 5L25 25M25 5L5 25"/><circle cx="15" cy="15" r="2" fill="#fff"/></svg>Shower <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="toilet" title="Toilet, 20″ × 28″"><svg viewBox="0 0 30 30"><rect x="8" y="2" width="14" height="6" rx="1"/><ellipse cx="15" cy="17.5" rx="5.5" ry="9"/></svg>Toilet</button>
-                                <button type="button" class="bp-blank-item" data-appl="sink" title="Sink, 2′ × 1′8″"><svg viewBox="0 0 30 30"><rect x="3" y="6" width="24" height="20"/><ellipse cx="15" cy="16.5" rx="9" ry="6.5"/><circle cx="15" cy="16.5" r="1"/></svg>Sink</button>
+                                <button type="button" class="bp-blank-item" data-appl="sink" title="Sink, 2′ × 1′8″"><svg viewBox="0 0 30 30"><rect x="3" y="6" width="24" height="20"/><ellipse cx="15" cy="17.5" rx="9" ry="6"/><rect x="12.5" y="7" width="5" height="2" rx=".6"/><path d="M15 9V12" style="stroke-width:1.6;stroke-linecap:round"/></svg>Sink</button>
+                                <button type="button" class="bp-blank-item" data-appl="sink2" title="Double (kitchen) sink, 2′9″ × 1′10″"><svg viewBox="0 0 30 30"><rect x="1" y="6" width="28" height="19"/><rect x="2.5" y="12" width="11.5" height="11" rx="1.5"/><rect x="16" y="12" width="11.5" height="11" rx="1.5"/><rect x="12.5" y="7" width="5" height="2" rx=".6"/><path d="M15 9V11.5" style="stroke-width:1.6;stroke-linecap:round"/></svg>Double Sink</button>
                                 <button type="button" class="bp-blank-item" data-appl="stove" title="Stove / range, 2′6″ × 2′1″"><svg viewBox="0 0 30 30"><rect x="3" y="4" width="24" height="21"/><path d="M3 7H27"/><circle cx="9.5" cy="12" r="3"/><circle cx="20.5" cy="12" r="3"/><circle cx="9.5" cy="20" r="2.6"/><circle cx="20.5" cy="20" r="2.6"/></svg>Stove</button>
                                 <button type="button" class="bp-blank-item" data-appl="fridge" title="Refrigerator, 3′ × 2′6″"><svg viewBox="0 0 30 30"><rect x="3" y="3" width="24" height="22"/><path d="M3 22H27M15 22V25M3 3L27 22"/></svg>Fridge</button>
-                                <button type="button" class="bp-blank-item" data-appl="door" title="Swinging door, 2′8″ — drag an end to set the width; Flip swaps the hinge side"><svg viewBox="0 0 30 30"><path d="M4 4V28" style="stroke-width:3"/><path d="M4 4H28" style="stroke-width:.8"/><path d="M28 4A24 24 0 0 1 4 28" style="stroke-width:.8"/></svg>Door <small>resizable</small></button>
+                                <button type="button" class="bp-blank-item" data-appl="door" title="Swinging door, 2′8″ — drag an end to set the width; Flip swaps the hinge side"><svg viewBox="0 0 30 30"><path d="M4 4V28" style="stroke-width:3"/><path d="M28 4A24 24 0 0 1 4 28" style="stroke-width:.8"/></svg>Door <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="slider" title="Sliding glass door, 6′ — set its width and the wall's thickness by dragging a corner"><svg viewBox="0 0 30 30"><path d="M2 10V20M28 10V20" style="stroke-width:2"/><path d="M2 11H28M2 19H28" style="stroke-width:.6"/><rect x="2" y="12" width="14" height="2.5"/><rect x="14" y="15.5" width="14" height="2.5"/></svg>Sliding door <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="counter" title="Countertop (gray) — drag a corner to set its width and length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a"><rect x="2" y="10" width="26" height="10"/></svg>Countertop <small>resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="closet" title="Closet (gray dashed line) — drag an end to set its length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2;stroke-width:2"><path d="M2 15H28"/></svg>Closet <small>dashed line, resizable</small></button>
@@ -20989,6 +20990,7 @@ const BP_BLANK_APPL = {
     shower: { label: 'Shower', w: 36, h: 36, resize: true },
     toilet: { label: 'Toilet', w: 20, h: 28 },
     sink:   { label: 'Sink', w: 24, h: 20 },
+    sink2:  { label: 'Double Sink', w: 33, h: 22 },
     stove:  { label: 'Stove', w: 30, h: 25 },
     fridge: { label: 'Fridge', w: 36, h: 30 },
     door:   { label: 'Door', w: 32, h: 32, resize: 'door' },
@@ -21013,6 +21015,18 @@ function bpBlankItemSize(ctx, it, ppi) {
     const fs = BP_BLANK_FONT * (it.k || 1);
     ctx.font = `${fs}px Arial, sans-serif`;
     return [ctx.measureText(it.text || '').width + fs * 0.3, fs * 1.25];
+}
+// A faucet coming off the back edge at (x, y): its base along the edge and the spout reaching over the basin.
+function bpBlankFaucet(ctx, x, y, ppi, lw) {
+    ctx.save();
+    ctx.lineWidth = Math.max(1.5, lw * 0.6);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x - 3 * ppi, y + 0.6 * ppi, 6 * ppi, 1.8 * ppi, 0.6 * ppi); else ctx.rect(x - 3 * ppi, y + 0.6 * ppi, 6 * ppi, 1.8 * ppi);
+    ctx.fill(); ctx.stroke();
+    ctx.lineWidth = Math.max(2, lw * 0.9); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x, y + 2.4 * ppi); ctx.lineTo(x, y + 5.5 * ppi); ctx.stroke();
+    ctx.restore();
 }
 function bpBlankDrawItem(ctx, it, B) {
     const c = B.toImg([it.x, it.y]);
@@ -21078,14 +21092,24 @@ function bpBlankDrawItem(ctx, it, B) {
         ctx.ellipse(0, -h / 2 + th + bh / 2 + 1.5 * ppi, bw / 2 - 2.5 * ppi, bh / 2 - 3 * ppi, 0, 0, Math.PI * 2);
         ctx.lineWidth = Math.max(1, lw * 0.45); ctx.stroke();
     } else if (it.kind === 'sink') {
-        // Sink: the counter cut-out, the basin and the drain.
+        // Sink (back edge at the top): the cut-out, the basin and the faucet.
         ctx.lineWidth = lw;
         ctx.strokeRect(-w / 2, -h / 2, w, h);
         ctx.lineWidth = Math.max(1.5, lw * 0.6);
-        ctx.beginPath(); ctx.ellipse(0, 1 * ppi, w / 2 - 3 * ppi, h / 2 - 3.5 * ppi, 0, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.arc(0, 1 * ppi, Math.max(3, 1.2 * ppi), 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(0, 1.5 * ppi, w / 2 - 3 * ppi, h / 2 - 4.5 * ppi, 0, 0, Math.PI * 2); ctx.stroke();
+        bpBlankFaucet(ctx, 0, -h / 2, ppi, lw);
+    } else if (it.kind === 'sink2') {
+        // Double (kitchen) sink: two narrower basins side by side, one faucet between them.
+        ctx.lineWidth = lw;
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+        ctx.lineWidth = Math.max(1.5, lw * 0.6);
+        const m = 2 * ppi, gap = 2 * ppi, top = -h / 2 + 5 * ppi, bh = h / 2 - 2 * ppi - top, bw = (w - 2 * m - gap) / 2, r = Math.min(bw, bh) * 0.18;
+        [-w / 2 + m, gap / 2].forEach(x0 => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, top, bw, bh, r); else ctx.rect(x0, top, bw, bh); ctx.stroke(); });
+        bpBlankFaucet(ctx, 0, -h / 2, ppi, lw);
     } else if (it.kind === 'stove') {
         // Range: the box, the control strip at the back and four burners.
+        // Solid white inside, so a wall or countertop line under it is hidden.
+        ctx.fillStyle = '#fff'; ctx.fillRect(-w / 2, -h / 2, w, h);
         ctx.lineWidth = lw;
         ctx.strokeRect(-w / 2, -h / 2, w, h);
         ctx.lineWidth = Math.max(1.5, lw * 0.6);
@@ -21097,6 +21121,8 @@ function bpBlankDrawItem(ctx, it, B) {
         });
     } else if (it.kind === 'fridge') {
         // Refrigerator: the box, the doors along the front and their handles.
+        // Solid white inside, so a wall or countertop line under it is hidden.
+        ctx.fillStyle = '#fff'; ctx.fillRect(-w / 2, -h / 2, w, h);
         ctx.lineWidth = lw;
         ctx.strokeRect(-w / 2, -h / 2, w, h);
         ctx.lineWidth = Math.max(1.5, lw * 0.6);
@@ -21113,8 +21139,7 @@ function bpBlankDrawItem(ctx, it, B) {
         const y0 = -h / 2;
         ctx.lineWidth = Math.max(4, lw * 1.6);     // the door itself, standing open
         ctx.beginPath(); ctx.moveTo(-w / 2, y0); ctx.lineTo(-w / 2, y0 + w); ctx.stroke();
-        ctx.lineWidth = Math.max(1, lw * 0.45);    // its closed position and the swing
-        ctx.beginPath(); ctx.moveTo(-w / 2, y0); ctx.lineTo(w / 2, y0); ctx.stroke();
+        ctx.lineWidth = Math.max(1, lw * 0.45);    // the swing
         ctx.beginPath(); ctx.arc(-w / 2, y0, w, 0, Math.PI / 2); ctx.stroke();
     } else if (it.kind === 'slider') {
         // Sliding glass door: the wall is opened up across its width, with
