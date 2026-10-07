@@ -1771,7 +1771,7 @@
     /* Turns calendar */
     .tn-top { display: flex; align-items: stretch; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
     .tn-top2 { margin-bottom: 10px; }
-    .tn-today { flex: 1 1 380px; min-width: 0; max-width: 900px; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; min-height: 0; }
+    .tn-daypanel { flex: 1 1 380px; min-width: 0; max-width: 900px; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; min-height: 0; }
     .tn-today-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
     .tn-today-label { font-size: 13px; font-weight: 700; }
     .tn-today-tag { display: inline-block; background: var(--reve-orange); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 4px; padding: 1px 6px; margin-right: 6px; vertical-align: 1px; }
@@ -1788,7 +1788,7 @@
     .tn-day-main { flex: 1; min-width: 0; cursor: pointer; }
     .tn-day-main:hover .cal-unit-card-main { color: var(--reve-orange); }
     .tn-mini-day.sel { background: #fdeee4; }
-    body.dark-mode .tn-today { background: var(--dm-card-alt); }
+    body.dark-mode .tn-daypanel { background: var(--dm-card-alt); }
     .tn-top-main { flex: 1 1 420px; min-width: 0; }
     .tn-top-main .tn-toolbar { margin-bottom: 0; }
     .tn-mini { flex: none; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 5px 6px; }
@@ -1893,6 +1893,8 @@
     .tn-table .tn-gs { border-left: 2px solid #8a8a8a; }
     .tn-table thead .tn-gs { border-left-color: #888; }
     .tn-table td { height: 34px; }
+    /* Cells keep table layout even if a class name is ever reused elsewhere. */
+    .tn-table > tbody > tr > td { display: table-cell !important; }
     .tn-table tbody tr:hover td { filter: brightness(0.97); }
     /* Unit column stays put while scrolling sideways. */
     .tn-table .tn-unit, .tn-table .tn-unit-h { position: sticky; left: 0; z-index: 1; }
@@ -3499,7 +3501,7 @@
                 <button type="button" data-tn-open="week">Weekly</button>
             </div>
         </div>
-        <div class="tn-today" id="tnToday">
+        <div class="tn-daypanel" id="tnToday">
             <div class="tn-today-bar">
                 <button type="button" class="tn-mini-nav" id="tnTodayPrev" title="Previous day">&lsaquo;</button>
                 <span class="tn-today-label" id="tnTodayLabel"></span>
