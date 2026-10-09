@@ -1626,6 +1626,10 @@
     .docs-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
     .docs-toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
     .docs-upload-status { font-size: 12px; color: var(--ink-soft); }
+    .docs-sync-stack { display: flex; flex-direction: column; gap: 6px; }
+    .docs-sync-stack:empty { display: none; }
+    .docs-sync-stack.many { position: fixed; right: 16px; bottom: 16px; z-index: 900; max-height: 60vh; overflow-y: auto; padding: 2px; }
+    .docs-sync-stack.many .docs-sync { box-shadow: 0 4px 14px rgba(0,0,0,0.15); width: 380px; }
     .docs-sync { display: flex; align-items: center; gap: 8px; font-size: 12.5px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px 6px 10px; background: #fff; max-width: 420px; }
     .docs-sync.working { border-color: #e8b04a; background: #fff8e8; }
     .docs-sync.ok { border-color: #9ccaa8; background: #eef7f0; }
@@ -4622,7 +4626,7 @@
         <div class="wl-subtabs res-subtab-row" id="docsSubtabs" style="margin:0;max-width:100%;"></div>
         <div class="docs-toolbar-right">
             <span class="docs-upload-status" id="docsUploadStatus"></span>
-            <div class="docs-sync" id="docsSync" style="display:none;" role="status" aria-live="polite"></div>
+            <div class="docs-sync-stack" id="docsSync" role="status" aria-live="polite"></div>
             <button type="button" class="fp-link" id="docsRestoreHidden" style="display:none;"></button>
             <div class="docs-view-toggle" id="docsViewToggle" role="group" aria-label="View">
                 <button type="button" data-docs-view="preview">Preview</button>
@@ -4630,7 +4634,7 @@
             </div>
             <button type="button" class="btn docs-zip-btn" id="docsZipBtn" title="Download this tab as a ZIP" aria-label="Download this tab as a ZIP"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg></button>
             <button type="button" class="btn" id="docsUploadBtn" style="width:auto;flex:none;padding:8px 16px;">+ Upload</button>
-            <input type="file" id="docsUploadInput" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.tif,.tiff,.doc,.docx,.xls,.xlsx,.xlsm,.csv,.ppt,.pptx,.txt,.rtf,.odt,.ods,.odp,.pages,.numbers,.key,.eml,.msg,.zip" style="display:none;">
+            <input type="file" id="docsUploadInput" multiple accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.tif,.tiff,.doc,.docx,.xls,.xlsx,.xlsm,.csv,.ppt,.pptx,.txt,.rtf,.odt,.ods,.odp,.pages,.numbers,.key,.eml,.msg,.zip" style="display:none;">
             <input type="file" id="docsReplaceInput" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.tif,.tiff,.doc,.docx,.xls,.xlsx,.xlsm,.csv,.ppt,.pptx,.txt,.rtf,.odt,.ods,.odp,.pages,.numbers,.key,.eml,.msg,.zip" style="display:none;">
         </div>
     </div>
@@ -16462,9 +16466,12 @@ document.getElementById('docsEditForm').addEventListener('submit', async e => {
 function docsSectionName(id) { const x = DOC_SECTIONS.find(s => s.id === id); return x ? x.label : id === 'floorplans' ? 'Floorplans' : id; }
 async function docsShareListEntry(entry) {
     if (!BACKEND_URL || APP_MODE === 'test') return false;
+    return docsWithList(() => docsShareListEntryNow(entry));
+}
+async function docsShareListEntryNow(entry) {
     const remote = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
     if (remote === undefined) return false;
-    const list = Array.isArray(remote) ? remote : [];
+    const list = (Array.isArray(remote) ? remote : []).filter(u => !DOCS_DELETING[u.id]);
     const clean = Object.assign({}, entry); delete clean.localOnly; delete clean.syncing;
     const next = list.some(u => u.id === clean.id) ? list.map(u => u.id === clean.id ? clean : u) : list.concat([clean]);
     if (!(await backendPush(DOCS_UPLOADS_BACKEND_KEY, next))) return false;
@@ -17110,13 +17117,7 @@ async function fpListClick(e) {
         if (hide) {
             if (!promptAdminPassword('', `Enter Admin Password to remove \u201c${upD.name}\u201d for everyone:`)) return;
             if (fpSelected === upD.file.name) fpSelected = null;
-            DOC_UPLOADS = DOC_UPLOADS.filter(x => x.id !== u.id);
-            docsPersistLocal();
-            docsForgetFile(u.fileId || u.id);
-            renderDocuments();
-            const remote = await backendPull(DOCS_UPLOADS_BACKEND_KEY);
-            if (Array.isArray(remote)) await backendPush(DOCS_UPLOADS_BACKEND_KEY, remote.filter(x => x.id !== u.id));
-            backendPush(`document-file-${u.fileId || u.id}`, null);
+            await docsRunDelete(u, upD.name, 'Deleting');
             return;
         }
         openDocsEdit({ key: 'up:' + u.id, title: upD.title || upD.code || upD.base, filename: upD.name, origTitle: u.title || upD.base, origFilename: u.name,
@@ -17416,15 +17417,7 @@ async function docsHandleAction(e) {
     if (action === 'delete') {
         if (doc.uploadId && !doc.replacedBuiltIn) {
             if (!promptAdminPassword('', `Enter Admin Password to remove \u201c${doc.title}\u201d for everyone:`)) return;
-            DOC_UPLOADS = DOC_UPLOADS.filter(u => u.id !== doc.uploadId);
-            docsPersistLocal();
-            docsForgetFile(doc.fileId);
-            renderDocuments();
-            const remote = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
-            if (Array.isArray(remote)) await backendPush(DOCS_UPLOADS_BACKEND_KEY, remote.filter(u => u.id !== doc.uploadId));
-            backendPush(`document-file-${doc.fileId}`, null);
-            backendPush(`document-thumb-${doc.fileId}`, null);
-            docsSetSync('ok', `Removed \u201c${doc.title}\u201d`, 'Removed for everyone.');
+            await docsRunDelete({ id: doc.uploadId, fileId: doc.fileId }, doc.title, 'Deleting');
         } else {
             await docsHide(doc.key, doc.title);
         }
@@ -17437,14 +17430,7 @@ async function docsHandleAction(e) {
     }
     if (action === 'remove') {
         if (!promptAdminPassword(doc.replacedBuiltIn ? `revert "${doc.title}" to the original for everyone` : `remove "${doc.title}" for everyone`)) return;
-        DOC_UPLOADS = DOC_UPLOADS.filter(u => u.id !== doc.uploadId);
-        docsPersistLocal();
-        docsForgetFile(doc.fileId);
-        renderDocuments();
-        const remote = await backendPull(DOCS_UPLOADS_BACKEND_KEY);
-        if (Array.isArray(remote)) await backendPush(DOCS_UPLOADS_BACKEND_KEY, remote.filter(u => u.id !== doc.uploadId));
-        backendPush(`document-file-${doc.fileId}`, null);
-        backendPush(`document-thumb-${doc.fileId}`, null);
+        await docsRunDelete({ id: doc.uploadId, fileId: doc.fileId }, doc.title, doc.replacedBuiltIn ? 'Reverting' : 'Deleting');
         return;
     }
     // Open a tab now (still inside the click) so it isn't popup-blocked
@@ -17566,24 +17552,90 @@ document.getElementById('docsReplaceInput').addEventListener('change', async e =
    The Apps Script answers "OK" even when its own save fails, so an OK
    alone never counts as uploaded. Anything not confirmed stays on this
    device ("this device only") and is retried automatically. */
-let docsSyncTimer = null;
-function docsSetSync(state, title, step, progress, retry) {
+// One status card per job (each upload, delete, move\u2026), each with its own
+// progress bar, so several running at once can all be followed.
+const docsSyncTimers = {};
+function docsSetSync(state, title, step, progress, retry) { docsSyncCard('main', state, title, step, progress, retry); }
+function docsSyncCard(key, state, title, step, progress, retry) {
     const box = document.getElementById('docsSync');
-    clearTimeout(docsSyncTimer);
-    if (!state) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    clearTimeout(docsSyncTimers[key]);
+    let card = [...box.children].find(c => c.dataset.key === key);
+    if (!state) { if (card) card.remove(); box.classList.toggle('many', box.children.length > 1); return; }
+    if (!card) { card = document.createElement('div'); card.dataset.key = key; box.appendChild(card); }
     const icon = state === 'working' ? '\u21bb' : state === 'ok' ? '\u2713' : '!';
-    box.className = 'docs-sync ' + state;
-    box.innerHTML = `<span class="docs-sync-icon">${icon}</span>
+    card.className = 'docs-sync ' + state;
+    card.innerHTML = `<span class="docs-sync-icon">${icon}</span>
         <div class="docs-sync-body"><div class="docs-sync-title" title="${escapeAttr(title)}">${escapeHtml(title)}</div>
             <div class="docs-sync-step">${escapeHtml(step || '')}</div>
             ${state === 'working' ? `<div class="docs-sync-bar"><i style="width:${Math.round((progress || 0) * 100)}%"></i></div>` : ''}</div>
-        ${retry ? '<button type="button" id="docsSyncRetry">Retry</button>' : ''}
-        ${state !== 'working' ? '<button type="button" class="docs-sync-x" id="docsSyncClose" title="Dismiss" aria-label="Dismiss">&times;</button>' : ''}`;
-    box.style.display = '';
-    if (retry) document.getElementById('docsSyncRetry').onclick = retry;
-    const x = document.getElementById('docsSyncClose');
-    if (x) x.onclick = () => docsSetSync(null);
-    if (state === 'ok') docsSyncTimer = setTimeout(() => docsSetSync(null), 12000);
+        ${retry ? '<button type="button" class="docs-sync-retry">Retry</button>' : ''}
+        ${state !== 'working' ? '<button type="button" class="docs-sync-x" title="Dismiss" aria-label="Dismiss">&times;</button>' : ''}`;
+    if (retry) card.querySelector('.docs-sync-retry').onclick = retry;
+    const x = card.querySelector('.docs-sync-x');
+    if (x) x.onclick = () => docsSyncCard(key, null);
+    if (state === 'ok') docsSyncTimers[key] = setTimeout(() => docsSyncCard(key, null), 12000);
+    box.classList.toggle('many', box.children.length > 1);
+}
+// The shared document list is read, changed and written back; jobs in this
+// browser take turns so simultaneous uploads/deletes can't undo each other.
+let docsListQueue = Promise.resolve();
+function docsWithList(fn) {
+    const run = docsListQueue.then(fn, fn);
+    docsListQueue = run.catch(() => {});
+    return run;
+}
+// Deletes not yet confirmed by the backend: { id: { title, fileId } }. Hidden
+// here meanwhile (a sync can't bring them back) and retried until confirmed.
+let DOCS_DELETING = {};
+try { DOCS_DELETING = JSON.parse(localStorage.getItem('reve-docs-deleting') || '{}') || {}; } catch (e) { DOCS_DELETING = {}; }
+function docsPersistDeleting() { try { localStorage.setItem('reve-docs-deleting', JSON.stringify(DOCS_DELETING)); } catch (e) {} }
+async function docsRunDelete(u, title, verb, quiet) {
+    const id = u.id, fileId = u.fileId || u.id, key = 'del:' + id;
+    verb = verb || 'Deleting';
+    DOCS_DELETING[id] = { title, fileId, verb };
+    docsPersistDeleting();
+    const step = (t, f) => { if (!quiet) docsSyncCard(key, 'working', `${verb} \u201c${title}\u201d`, t, f); };
+    step('Removing it here\u2026', 0.1);
+    DOC_UPLOADS = DOC_UPLOADS.filter(x => x.id !== id);
+    docsPersistLocal();
+    docsForgetFile(fileId);
+    if (document.getElementById('tab-documents').classList.contains('active')) renderDocuments();
+    if (!BACKEND_URL || APP_MODE === 'test') {
+        delete DOCS_DELETING[id]; docsPersistDeleting();
+        if (!quiet) docsSyncCard(key, 'ok', `${verb === 'Reverting' ? 'Reverted' : 'Deleted'} \u201c${title}\u201d`, 'Removed from this device (no shared backend set up).');
+        return true;
+    }
+    let why = '';
+    try {
+        why = await docsWithList(async () => {
+            step('Removing it from the shared list\u2026', 0.3);
+            const remote = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
+            if (remote === undefined) return 'Couldn\u2019t read the shared document list.';
+            const list = Array.isArray(remote) ? remote : [];
+            if (list.some(x => x.id === id) && !(await backendPush(DOCS_UPLOADS_BACKEND_KEY, list.filter(x => x.id !== id)))) return 'Couldn\u2019t update the shared document list.';
+            step('Confirming it\u2019s gone for everyone\u2026', 0.6);
+            const check = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
+            if (!Array.isArray(check) && check !== null) return 'Couldn\u2019t confirm the shared list.';
+            if ((check || []).some(x => x.id === id)) return 'The shared list still has it.';
+            return '';
+        });
+        if (!why) {
+            step('Deleting the stored file\u2026', 0.8);
+            for (const k of [`document-file-${fileId}`, `document-thumb-${fileId}`]) {
+                const raw = await backendPullRawChecked(k);
+                const parts = raw.ok && raw.value && raw.value.__chunks ? raw.value.__chunks : 0;
+                await backendPush(k, null);
+                for (let i = 0; i < parts; i++) await backendPushRaw(`${k}__part${i}`, null);
+            }
+        }
+    } catch (err) { why = 'Something went wrong while deleting.'; }
+    if (!why) {
+        delete DOCS_DELETING[id]; docsPersistDeleting();
+        if (!quiet) docsSyncCard(key, 'ok', `${verb === 'Reverting' ? 'Reverted' : 'Deleted'} \u201c${title}\u201d`, 'Removed for everyone.');
+        return true;
+    }
+    if (!quiet) docsSyncCard(key, 'error', `Not deleted for everyone yet: \u201c${title}\u201d`, why + ' It\u2019s hidden here and will keep retrying.', 0, () => docsRunDelete(u, title, verb));
+    return false;
 }
 // Resolves true only once the backend has provably stored the file and
 // lists the entry. step(text, fraction) reports progress.
@@ -17601,18 +17653,21 @@ async function docsShareEntry(entry, b64, step) {
     if (!saved) return { ok: false, why: 'The backend didn\u2019t keep the file (it may be too large or the backend is busy).' };
     step('Making a preview\u2026', 0.78);
     await docsEnsureThumb({ uploadId: entry.id, fileId: entry.fileId || entry.id, mime: entry.mime });
-    step('Adding it to the shared list\u2026', 0.86);
-    const remote = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
-    if (remote === undefined) return { ok: false, why: 'Couldn\u2019t read the shared document list.' };
-    const list = Array.isArray(remote) ? remote : [];
-    const clean = Object.assign({}, entry); delete clean.localOnly; delete clean.syncing;
-    const next = list.some(u => u.id === clean.id) ? list.map(u => u.id === clean.id ? clean : u) : list.concat([clean]);
-    if (!(await backendPush(DOCS_UPLOADS_BACKEND_KEY, next))) return { ok: false, why: 'Couldn\u2019t update the shared document list.' };
-    step('Confirming\u2026', 0.95);
-    const check = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
-    const listed = Array.isArray(check) && check.some(u => u.id === clean.id && (u.fileId || u.id) === (clean.fileId || clean.id));
-    if (!listed) return { ok: false, why: 'The shared list didn\u2019t keep the new document.' };
-    return { ok: true };
+    step('Waiting for its turn to update the shared list\u2026', 0.84);
+    return docsWithList(async () => {
+        step('Adding it to the shared list\u2026', 0.86);
+        const remote = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
+        if (remote === undefined) return { ok: false, why: 'Couldn\u2019t read the shared document list.' };
+        const list = (Array.isArray(remote) ? remote : []).filter(u => !DOCS_DELETING[u.id]);
+        const clean = Object.assign({}, entry); delete clean.localOnly; delete clean.syncing;
+        const next = list.some(u => u.id === clean.id) ? list.map(u => u.id === clean.id ? clean : u) : list.concat([clean]);
+        if (!(await backendPush(DOCS_UPLOADS_BACKEND_KEY, next))) return { ok: false, why: 'Couldn\u2019t update the shared document list.' };
+        step('Confirming\u2026', 0.95);
+        const check = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
+        const listed = Array.isArray(check) && check.some(u => u.id === clean.id && (u.fileId || u.id) === (clean.fileId || clean.id));
+        if (!listed) return { ok: false, why: 'The shared list didn\u2019t keep the new document.' };
+        return { ok: true };
+    });
 }
 function docsSectionLabel(id) { const s = DOC_SECTIONS.find(x => x.id === id); return s ? s.label : id; }
 // Runs one upload/replace with the status panel; marks the entry
@@ -17622,7 +17677,7 @@ async function docsRunShare(entry, b64, verb, quiet) {
     if (docsSyncing.has(entry.id)) return false;
     docsSyncing.add(entry.id);
     const title = `${verb} \u201c${entry.title}\u201d (${docsSectionLabel(entry.section)})`;
-    const step = (text, frac) => { if (!quiet) docsSetSync('working', title, text, frac); };
+    const step = (text, frac) => { if (!quiet) docsSyncCard(entry.id, 'working', title, text, frac); };
     entry.localOnly = true; entry.syncing = true;
     DOC_UPLOADS = DOC_UPLOADS.some(u => u.id === entry.id) ? DOC_UPLOADS.map(u => u.id === entry.id ? entry : u) : DOC_UPLOADS.concat([entry]);
     docsPersistLocal();
@@ -17635,8 +17690,8 @@ async function docsRunShare(entry, b64, verb, quiet) {
     docsPersistLocal();
     docsSyncing.delete(entry.id);
     if (document.getElementById('tab-documents').classList.contains('active')) renderDocuments();
-    if (res.ok) docsSetSync('ok', `${({ Uploading: 'Uploaded', Replacing: 'Replaced', Moving: 'Moved' })[verb] || 'Saved'} \u201c${entry.title}\u201d`, `Saved and visible to the team in ${docsSectionLabel(entry.section)}.`);
-    else if (!quiet) docsSetSync('error', `Not shared yet: \u201c${entry.title}\u201d`, res.why + ' It\u2019s on this device only; retrying automatically.', 0, () => docsRunShare(entry, b64, verb));
+    if (res.ok) docsSyncCard(entry.id, 'ok', `${({ Uploading: 'Uploaded', Replacing: 'Replaced', Moving: 'Moved' })[verb] || 'Saved'} \u201c${entry.title}\u201d`, `Saved and visible to the team in ${docsSectionLabel(entry.section)}.`);
+    else if (!quiet) docsSyncCard(entry.id, 'error', `Not shared yet: \u201c${entry.title}\u201d`, res.why + ' It\u2019s on this device only; retrying automatically.', 0, () => docsRunShare(entry, b64, verb));
     return res.ok;
 }
 // Quietly retries anything still "this device only" (file kept in this
@@ -17644,6 +17699,12 @@ async function docsRunShare(entry, b64, verb, quiet) {
 const docsRetryAt = {};
 async function docsRetryLocalOnly() {
     if (!BACKEND_URL || APP_MODE === 'test') return;
+    for (const id of Object.keys(DOCS_DELETING)) {
+        if (Date.now() - (docsRetryAt['del:' + id] || 0) < 60000) continue;
+        docsRetryAt['del:' + id] = Date.now();
+        const d = DOCS_DELETING[id];
+        await docsRunDelete({ id, fileId: d.fileId }, d.title, d.verb, true);
+    }
     for (const u of DOC_UPLOADS.filter(x => x.localOnly && !x.syncing)) {
         if (Date.now() - (docsRetryAt[u.id] || 0) < 120000) continue;
         docsRetryAt[u.id] = Date.now();
@@ -17652,21 +17713,35 @@ async function docsRetryLocalOnly() {
     }
 }
 document.getElementById('docsUploadInput').addEventListener('change', async e => {
-    const file = e.target.files && e.target.files[0];
+    const files = [...(e.target.files || [])];
     e.target.value = '';
-    if (!file) return;
-    const mime = docsCheckFile(file);
-    if (!mime) return;
+    if (!files.length) return;
     const section = DOC_SECTIONS.find(s => s.id === docsCurrentSection) || { id: 'floorplans', label: 'Floorplans', list: true };
-    const title = prompt(section.id === 'floorplans' ? 'Name for this floorplan (e.g. "B5 1211 3D" \u2014 the floorplan code and sq ft drive the filters):' : `Title for this document (in ${section.label}):`, file.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim());
-    if (title === null || !title.trim()) return;
-    const half = section.list || !docsCanPreview({ mime }) ? false : confirm('Print this as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
-    docsSetSync('working', `Uploading \u201c${title.trim()}\u201d`, 'Reading the file\u2026', 0.01);
-    const b64 = await docsReadBase64(file);
-    const entry = { id: docsNewId(), section: section.id, title: title.trim(), name: file.name, size: file.size, mime, print: half ? 'half' : 'full', added: new Date().toISOString() };
-    await docsCachePut(entry.id, b64);
-    docsSetStatus('');
-    await docsRunShare(entry, b64, 'Uploading');
+    const ok = files.filter(f => docsCheckFile(f));
+    if (!ok.length) return;
+    const clean = f => f.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim();
+    let titles, half;
+    if (ok.length === 1) {
+        const t = prompt(section.id === 'floorplans' ? 'Name for this floorplan (e.g. "B5 1211 3D" — the floorplan code and sq ft drive the filters):' : `Title for this document (in ${section.label}):`, clean(ok[0]));
+        if (t === null || !t.trim()) return;
+        titles = [t.trim()];
+        half = section.list || !docsCanPreview({ mime: docsCheckFile(ok[0]) }) ? false : confirm('Print this as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
+    } else {
+        // Several files: each is titled from its file name (rename later with the pencil).
+        if (!confirm(`Upload ${ok.length} files to ${section.label}?\n\n${ok.map(f => '• ' + f.name).join('\n')}\n\nEach is titled from its file name.`)) return;
+        titles = ok.map(clean);
+        half = section.list ? false : confirm('Print these as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
+    }
+    // All at once, each with its own progress card.
+    await Promise.all(ok.map(async (file, i) => {
+        const mime = docsCheckFile(file);
+        const entry = { id: docsNewId(), section: section.id, title: titles[i], name: file.name, size: file.size, mime, print: half && docsCanPreview({ mime }) ? 'half' : 'full', added: new Date().toISOString() };
+        docsSyncCard(entry.id, 'working', `Uploading “${entry.title}” (${docsSectionLabel(section.id)})`, 'Reading the file…', 0.01);
+        const b64 = await docsReadBase64(file);
+        await docsCachePut(entry.id, b64);
+        docsSetStatus('');
+        await docsRunShare(entry, b64, 'Uploading');
+    }));
 });
 async function pullDocumentsFromBackend() {
     const [remote, order, meta] = await Promise.all([backendPull(DOCS_UPLOADS_BACKEND_KEY), backendPull(DOCS_ORDER_BACKEND_KEY), backendPull(DOCS_META_BACKEND_KEY)]);
@@ -17678,7 +17753,7 @@ async function pullDocumentsFromBackend() {
     }
     if (Array.isArray(remote)) {
         const localOnly = DOC_UPLOADS.filter(u => (u.localOnly || u.syncing) && !remote.some(r => r.id === u.id));
-        const next = remote.concat(localOnly);
+        const next = remote.filter(u => !DOCS_DELETING[u.id]).concat(localOnly);
         if (JSON.stringify(next) !== JSON.stringify(DOC_UPLOADS)) { DOC_UPLOADS = next; docsPersistLocal(); changed = true; }
     }
     if (order && typeof order === 'object' && !Array.isArray(order) && JSON.stringify(order) !== JSON.stringify(DOC_ORDER)) {
