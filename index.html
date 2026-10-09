@@ -1069,9 +1069,21 @@
     .renewal-term-check input { width: auto; margin: 0; accent-color: var(--reve-orange); }
 
     /* -- Settings tab -- */
-    .settings-wrap { max-width: 640px; margin: 0 auto; padding: 0 20px 40px; }
+    .settings-wrap { max-width: 1024px; margin: 0 auto; padding: 0 20px 40px; }
     .admin-wrap { max-width: 1600px; margin: 0 auto; padding: 0 24px 40px; }
     .admin-wrap #adminLockScreen { max-width: 480px; }
+    .ui-fp-btn { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-soft); }
+    .ui-fp-btn.set { color: var(--ink); font-weight: 700; border-color: var(--reve-orange); }
+    .ui-fp-btn span { font-size: 9px; opacity: 0.6; }
+    .ui-fp-pop { position: fixed; z-index: 1300; width: 340px; background: #fff; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,0.22); padding: 8px; font-size: 13px; }
+    .ui-fp-head { font-weight: 700; font-size: 12.5px; margin: 2px 2px 6px; }
+    .ui-fp-pop input { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; margin-bottom: 6px; }
+    .ui-fp-list { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; }
+    .ui-fp-list button { text-align: left; border: 0; background: transparent; padding: 6px 8px; border-radius: 5px; font: inherit; font-size: 12.5px; cursor: pointer; color: inherit; }
+    .ui-fp-list button:hover { background: #fbeee8; }
+    .ui-fp-list button.cur { background: #fdeee4; font-weight: 700; box-shadow: inset 3px 0 0 var(--reve-orange); }
+    .ui-fp-note { color: var(--ink-soft); font-size: 12px; padding: 6px 8px; }
+    body.dark-mode .ui-fp-pop, body.dark-mode .ui-fp-btn { background: var(--dm-card-alt); color: inherit; }
     .settings-card {
         background: var(--panel);
         border: 1px solid var(--line);
@@ -3180,7 +3192,7 @@
                 <div class="field">
                     <label>Floorplan image URL</label>
                     <input type="text" id="fFloorplanImg" placeholder="https://... .jpg / .png">
-                    <div class="empty-note">Auto-fills from the floorplans/ folder when a match exists. Overwrite with any URL, or leave blank for a placeholder.</div>
+                    <div class="empty-note">Auto-fills with the unit&rsquo;s floorplan (pick a different one per unit in Settings &rsaquo; Unit Info &rsaquo; Tour Floorplan). Overwrite with any URL, or leave blank for a placeholder.</div>
                 </div>
                 <div class="field">
                     <label>Apply Now URL</label>
@@ -4520,7 +4532,7 @@
                                 <button type="button" class="bp-blank-item" data-appl="closet" title="Closet (gray dashed line) — drag an end to set its length"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2;stroke-width:2"><path d="M2 15H28"/></svg>Closet <small>dashed line, resizable</small></button>
                                 <button type="button" class="bp-blank-item" data-appl="wicloset" title="Walk-in closet: dashed U along the back and both sides — drag a corner to set the width and depth"><svg viewBox="0 0 30 30" style="stroke:#8a8a8a;stroke-dasharray:3 2;stroke-width:2"><path d="M4 26V5H26V26"/></svg>W/I Closet <small>dashed U, resizable</small></button>
                             </div>
-                            <div class="bp-blank-tip">Click an item to add it, then drag it into place. Drag the round handle above a selected item to turn it to any angle (Shift = 15&deg; steps), type an angle, or Alt + scroll over it. Select one to rotate (R), resize or delete it; arrow keys nudge. Selecting an item shows its edit bar above it. Ctrl/&#8984;+C and Ctrl/&#8984;+V copy and paste the selected item(s). Ctrl/&#8984;-click more items to select several, then Group them to move and rotate them together. The layer buttons bring an item in front of (or behind) what it overlaps. Resizable items show white squares: drag a corner to set the width and length (doors and closets: drag an end). Place a door's straight top edge along the wall; size a sliding door to the wall's thickness so it opens the wall up. Ctrl/&#8984; + scroll or &minus;/+ zooms; drag the background to pan when zoomed in. Labels and additions are saved with this unit.</div>
+                            <div class="bp-blank-tip">Click an item to add it, then drag it into place. A selected label&rsquo;s corner squares make its text bigger or smaller; the side squares make its box narrower or wider and the words wrap onto more lines. Drag the round handle above a selected item to turn it to any angle (Shift = 15&deg; steps), type an angle, or Alt + scroll over it. Select one to rotate (R), resize or delete it; arrow keys nudge. Selecting an item shows its edit bar above it. Ctrl/&#8984;+C and Ctrl/&#8984;+V copy and paste the selected item(s). Ctrl/&#8984;-click more items to select several, then Group them to move and rotate them together. The layer buttons bring an item in front of (or behind) what it overlaps. Resizable items show white squares: drag a corner to set the width and length (doors and closets: drag an end). Place a door's straight top edge along the wall; size a sliding door to the wall's thickness so it opens the wall up. Ctrl/&#8984; + scroll or &minus;/+ zooms; drag the background to pan when zoomed in. Labels and additions are saved with this unit.</div>
                         </div>
                     </div>
                 </div>
@@ -4865,7 +4877,7 @@
                 <table class="mmr-table" id="unitInfoTable">
                     <thead><tr>
                         <th>Unit</th><th>Floorplan</th><th>Sq Ft</th><th>Bldg</th><th>Floor</th>
-                        <th>Yardi</th><th>Bed/Bath</th><th>Address</th><th>View</th><th>Mailbox</th><th>Amenity</th><th>Commission</th><th>Market Rent</th><th>Video Name</th><th>Video Link</th>
+                        <th>Yardi</th><th>Bed/Bath</th><th>Address</th><th>View</th><th>Mailbox</th><th>Amenity</th><th>Commission</th><th>Market Rent</th><th>Video Name</th><th>Video Link</th><th>Tour Floorplan</th>
                     </tr></thead>
                     <tbody id="unitInfoTbody"></tbody>
                 </table>
@@ -4969,8 +4981,49 @@ UNITS.forEach(u => byUnit[u.unit] = u);
 const UNIT_IMAGE_MAP = {"1101":"LW3-2471","1102":"LW2-1968","1103":"LW1-2122","1104":"TH2-2153","1105":"TH2-2153","1106":"TH2-2153","1107":"TH2-2153","1201":"B2-1148","1202":"A2-737","1203":"A3-741-767","1204":"A3-741","1205":"A3-741-767","1206":"A3-741-767","1208":"S4-686-703","1209":"A3-741-767","1210":"A3-741-767","1211":"A3-741-767","1212":"A3-741-767","1213":"A3-741-767","1214":"S4-686-703","1215":"A6-924","1217":"A3-741-767","1219":"S4-686-703","1221":"A3-741-767","1223":"A3-741-767","1225":"A3-741-767","1227":"B7-1243","1229":"A3-741-767","1231":"S4-686-703","1233":"A3-741-767","1234":"A3-741-767","1235":"A3-741-767","1236":"A3-741-767","1237":"A3-741-767","1238":"S4-686-703","1239":"A3-741-767","1240":"A3-741-767","1241":"A3-741-767","1242":"A3-741-767","1243":"A3-741-767","1244":"A3-741-767","1245":"S4-686-703","1247":"A4-824","1248":"A4-824","1301":"B2-1148","1302":"A2-737","1303":"A3-741-767","1304":"A3-741","1305":"A3-741-767","1306":"A3-741-767","1308":"S4-686-703","1309":"A3-741-767","1310":"A3-741-767","1311":"A3-741-767","1312":"A3-741-767","1313":"A3-741-767","1314":"S4-686-703","1315":"A6-924","1317":"A3-741-767","1318":"B8-1716","1319":"S4-686-703","1321":"A3-741-767","1322":"S3-647-balcony","1323":"A3-741-767","1325":"A3-741-767","1327":"B7-1243","1329":"A3-741-767","1331":"S4-686-703","1332":"S4-686","1333":"A3-741-767","1334":"A3-741-767","1335":"A3-741-767","1336":"A3-741-767","1337":"A3-741-767","1338":"S4-686-703","1339":"A3-741-767","1340":"A3-741-767","1341":"A3-741-767","1342":"A3-741-767","1343":"A3-741-767","1344":"A3-741-767","1345":"S4-686-703","1347":"A4-824","1348":"A4-824","1404":"A3-741","1406":"A3-741-767","1408":"S4-686-703","1410":"A3-741-767","1412":"A3-741-767","1414":"S4-686-703","1415":"A6-924","1417":"A3-741-767","1419":"S2-581","1420":"B8-1716","1422":"S3-647","1427":"A8-1004","1429":"A3-741-767","1431":"S4-686-703","1432":"S4-686","1433":"A3-741-767","1434":"A3-741-767","1435":"A3-741-767","1436":"A3-741-767","1437":"A3-741-767","1438":"S4-686-703","1439":"A3-741-767","1440":"A3-741-767","1441":"A3-741-767","1442":"A3-741-767","1443":"A3-741-767","1444":"A3-741-767","1445":"S4-686-703","1447":"B4-1173","3103":"LW4-1732","3104":"A5-872-895","3105":"LW4-1732","3106":"A1-548","3107":"LW4-1732","3108":"A5-872-895","3109":"LW4-1732","3110":"A1-548","3111":"LW4-1732","3112":"A1-548","3113":"A9-1090","3114":"B1-1020","3202":"C3-2030","3204":"A5-872-895","3206":"A1-548","3208":"A5-872-895","3210":"A1-548","3212":"A5-872-895","3213":"A9-1090","3214":"B1-1020","3301":"A9-1150","3302":"A1-548","3304":"A5-872-895","3305":"C2-1740","3306":"A1-548","3307":"C2-1740","3308":"A5-872-895","3309":"A9-1090","3310":"A1-548","3312":"A5-872-895","3404":"A5-872-895","3405":"C2-1740","3406":"A1-548","3407":"C2-1740","3408":"A5-872-895","3410":"A1-548","3412":"A5-872-895","3414":"PH2-1800","4116":"TH1-1350","4118":"TH1-1350","4120":"B6-1240","4121":"A5-872-895","4122":"B5-1211","4123":"A5-872-895","4124":"B5-1211","4125":"A1-548","4126":"B5-1211","4127":"A5-872-895","4129":"A1-548","4130":"B5-1211","4131":"A5-872-895","4132":"A9-1090","4134":"TH1-1350","4136":"TH1-1350","4138":"TH2-1765","4139":"A1-548","4140":"TH2-1765","4141":"B3-1150","4144":"TH2-1800","4146":"A7-1050","4221":"A5-872-895","4222":"B5-1211","4223":"A5-872-895","4224":"B5-1211","4225":"A1-548","4226":"B5-1211","4227":"A5-872-895","4229":"A1-548","4230":"B5-1211","4231":"A5-872-895","4232":"A9-1090","4239":"A1-548","4241":"A5-872-895","4243":"A1-548","4245":"S1-530","4246":"B5-1211","4320":"B9-2200","4323":"A5-872-895","4324":"B5-1211","4325":"A1-548","4326":"B5-1211","4327":"A5-872-895","4329":"A1-548","4330":"B5-1211","4331":"A5-872-895","4332":"A9-1090","4335":"A1-548","4337":"A5-872-895","4339":"A1-548","4340":"B5-1211","4341":"S1-530","4420":"PH1-2150","4421":"B5-1211","4422":"A5-872-895","4423":"B5-1211","4424":"A1-548","4425":"B5-1211","4426":"A5-872-895","4428":"A1-548","4430":"A5-872-895","4431":"PH2-1800","4432":"A1-548","4433":"C1-1590","4434":"A5-872-895","4435":"PH3-1690","1405":"A3-664","1409":"A3-664","1411":"A3-664","1413":"A3-664","1421":"A3-664","1423":"A3-664","1425":"A3-664","3303":"A9-1062","4128":"A9-1062","4228":"A9-1062","4328":"A9-1062","4427":"A9-1062","4334":"B4-1193","4336":"B4-1193","4338":"B4-1193","1407":"A7-882","3314":"A7-940","1403":"B5-1285","4322":"B6-1500","4220":"B6-1521","3403":"PH6-1890","1207":"A7-983","1307":"A7-983","4429":"PH4-1870"};
 
 function floorplanPathForUnit(u) {
+    // A floorplan picked for this unit in Settings › Unit Info (from
+    // Documents › Floorplans) wins; otherwise the print-archive image.
+    if (u.tourFloorplan) return 'doc:' + u.tourFloorplan;
     const key = UNIT_IMAGE_MAP[u.unit];
     return key ? `floorplans/${key}.jpg` : '';
+}
+/* Documents floorplans used on Tour flyers. The flyer keeps a short
+   reference ("doc:fp:<file>" / "doc:up:<id>"); it's turned into a
+   showable image here — PDFs as an image of their first page. */
+const TOUR_FP_URLS = {}, TOUR_FP_PENDING = {};
+function tourFpFile(ref) {
+    if (/^fp:/.test(ref)) return { name: ref.slice(3) };
+    const id = ref.replace(/^up:/, ''), u = (typeof DOC_UPLOADS !== 'undefined' ? DOC_UPLOADS : []).find(x => x.id === id);
+    return u ? { name: ref, upload: u } : null;
+}
+function tourFpLabel(ref) {
+    const f = tourFpFile(ref);
+    if (!f) return 'Missing floorplan';
+    return (typeof fpEffectiveName === 'function' ? fpEffectiveName(f) : (f.upload ? f.upload.name : f.name)).replace(/\.[^.]+$/, '');
+}
+function tourFpResolve(ref) {
+    if (TOUR_FP_URLS[ref]) return Promise.resolve(TOUR_FP_URLS[ref]);
+    if (TOUR_FP_PENDING[ref]) return TOUR_FP_PENDING[ref];
+    TOUR_FP_PENDING[ref] = (async () => {
+        const f = tourFpFile(ref);
+        if (!f) return '';
+        const name = f.upload ? f.upload.name : f.name;
+        const url = f.upload ? await docsUrlFor({ uploadId: f.upload.id, fileId: f.upload.fileId, mime: f.upload.mime }) : fpUrl(f.name);
+        if (!url) return '';
+        if (!/\.pdf$/i.test(name) && !(f.upload && /pdf/.test(f.upload.mime || ''))) return (TOUR_FP_URLS[ref] = url);
+        // PDF: draw its first page and use that picture.
+        const lib = await docsLoadPdfJs();
+        const pdf = await lib.getDocument(url).promise;
+        const page = await pdf.getPage(1);
+        const v1 = page.getViewport({ scale: 1 }), sc = Math.min(4, 1800 / Math.max(v1.width, v1.height));
+        const vp = page.getViewport({ scale: sc });
+        const c = document.createElement('canvas');
+        c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+        await page.render({ canvasContext: g, viewport: vp }).promise;
+        return (TOUR_FP_URLS[ref] = c.toDataURL('image/jpeg', 0.9));
+    })().catch(err => { console.error(err); return ''; }).finally(() => { delete TOUR_FP_PENDING[ref]; });
+    return TOUR_FP_PENDING[ref];
 }
 
 /* Unit -> apply/waitlist link, sourced from the online-leasing export.
@@ -5867,6 +5920,7 @@ function videoBadgeRow(u) {
 }
 
 function floorplanBadgeRow(u) {
+    if (u.tourFloorplan) return `<div class="rc-row"><span>Floorplan image</span><b>${escapeHtml(tourFpLabel(u.tourFloorplan))} <span class="badge ok">from Documents</span></b></div>`;
     const key = UNIT_IMAGE_MAP[u.unit];
     if (key) {
         return `<div class="rc-row"><span>Floorplan image</span><b>${key}.jpg <span class="badge ok">on file</span></b></div>`;
@@ -6328,9 +6382,15 @@ function flyerHTML(u, d, opts) {
         ? `<ul class="lease-terms-list">${terms.map(t => `<li>${escapeHtml(t.price)}${t.price && t.term ? ' ' : ''}${t.term ? '(' + escapeHtml(t.term) + ')' : ''}</li>`).join('')}</ul>`
         : `<p class="muted-line">Add other lease terms in the editor.</p>`;
 
-    const floorplanBlock = d.floorplanImg
-        ? `<img src="${escapeAttr(d.floorplanImg)}" alt="${escapeAttr(u.unit)} Floor Plan" class="floorplan-img">`
-        : `<div class="floorplan-placeholder">Floorplan image not added yet</div>`;
+    let fpSrc = d.floorplanImg;
+    if (/^doc:/.test(fpSrc || '')) {
+        const ref = fpSrc.slice(4);
+        fpSrc = TOUR_FP_URLS[ref] || '';
+        if (!fpSrc) tourFpResolve(ref).then(url => { if (url && typeof renderPreview === 'function') renderPreview(); });
+    }
+    const floorplanBlock = fpSrc
+        ? `<img src="${escapeAttr(fpSrc)}" alt="${escapeAttr(u.unit)} Floor Plan" class="floorplan-img">`
+        : `<div class="floorplan-placeholder">${/^doc:/.test(d.floorplanImg || '') ? 'Loading floorplan\u2026' : 'Floorplan image not added yet'}</div>`;
 
     const priceBlock = (d.bestPrice || d.bestTerm)
         ? `<span class="price-highlight">${escapeHtml(d.bestPrice)}${d.bestPrice && d.bestTerm ? ' ' : ''}${d.bestTerm ? '(' + escapeHtml(d.bestTerm) + ')' : ''}</span>`
@@ -6589,6 +6649,11 @@ async function exportPdf(printable) {
     btn.textContent = 'Generating…';
 
     const multi = selectedUnits.length > 1;
+    // Documents floorplans (and PDF pages) must be ready before capture.
+    await Promise.all(selectedUnits.map(unit => {
+        const d = unit === currentUnit ? draft : loadDraft(unit);
+        return /^doc:/.test(d.floorplanImg || '') ? tourFpResolve(d.floorplanImg.slice(4)) : null;
+    }));
     const cardsHtml = selectedUnits.map(unit => {
         const u = byUnit[unit];
         const d = unit === currentUnit ? draft : loadDraft(unit);
@@ -15841,6 +15906,7 @@ function renderUnitInfoTable() {
         ${UNIT_INFO_FIELDS.map(f => `<td><input type="text" class="mmr-lease-field" data-field="${f}" value="${escapeAttr(String(u[f] === undefined ? '' : u[f]))}"></td>`).join('')}
         <td class="mmr-autofill">${escapeHtml(unitAmenityTag(u))}</td>
         ${UNIT_INFO_FIELDS_2.map(f => `<td><input type="text" class="mmr-lease-field" data-field="${f}" value="${escapeAttr(String(u[f] === undefined ? '' : u[f]))}"></td>`).join('')}
+        <td><button type="button" class="ui-fp-btn${u.tourFloorplan ? ' set' : ''}" data-ui-fp="${escapeAttr(u.unit)}" title="Floorplan shown on this unit's Tour flyer \u2014 click to change">${escapeHtml(unitTourFpText(u))} <span>\u25be</span></button></td>
     </tr>`).join('');
     [...tbody.querySelectorAll('input')].forEach(inp => {
         inp.addEventListener('input', (e) => {
@@ -15865,6 +15931,74 @@ document.getElementById('unitInfoToggle').addEventListener('click', () => {
     if (isHidden) { renderUnitStats(); renderUnitInfoTable(); }
 });
 document.getElementById('unitInfoSearch').addEventListener('input', renderUnitInfoTable);
+/* ---------- Unit Info › Tour Floorplan: which floorplan shows on the
+   unit's Tour flyer. Default = the print-archive image it has always
+   used; or pick any floorplan in Documents › Floorplans (searchable). */
+function unitTourFpText(u) {
+    if (u.tourFloorplan) return tourFpLabel(u.tourFloorplan);
+    const key = UNIT_IMAGE_MAP[u.unit];
+    return key ? `Default (${key})` : 'None';
+}
+function unitSetTourFp(unit, ref) {
+    byUnit[unit].tourFloorplan = ref;
+    UNIT_OVERRIDES[unit] = UNIT_OVERRIDES[unit] || {};
+    UNIT_OVERRIDES[unit].tourFloorplan = ref;
+    UNIT_OVERRIDES_DIRTY.add(unit);
+    persistUnitOverrides();
+    pushUnitOverridesDebounced();
+    if (ref) tourFpResolve(ref);
+    renderUnitInfoTable();
+    if (typeof refreshCurrentUnit === 'function') refreshCurrentUnit();
+}
+function unitFpPickerClose() { const p = document.getElementById('unitFpPicker'); if (p) p.style.display = 'none'; }
+function unitFpPickerOpen(btn) {
+    const unit = btn.getAttribute('data-ui-fp'), u = byUnit[unit];
+    let pop = document.getElementById('unitFpPicker');
+    if (!pop) {
+        pop = document.createElement('div');
+        pop.id = 'unitFpPicker'; pop.className = 'ui-fp-pop';
+        document.body.appendChild(pop);
+        document.addEventListener('pointerdown', e => { if (pop.style.display !== 'none' && !pop.contains(e.target) && !e.target.closest('[data-ui-fp]')) unitFpPickerClose(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') unitFpPickerClose(); });
+    }
+    if (typeof fpLoadList === 'function' && !FP_FILES) fpLoadList(false).then(() => { if (pop.style.display !== 'none' && pop._unit === unit) draw(); });
+    pop._unit = unit;
+    const code = String(u.floorplan || '').toUpperCase(), sq = String(u.sqft || '');
+    const draw = () => {
+        const q = (pop.querySelector('input') || {}).value || '';
+        const files = fpAllFiles().filter(f => !(DOC_META[fpMetaKey(f)] && DOC_META[fpMetaKey(f)].hidden))
+            .map(f => ({ ref: fpMetaKey(f), name: fpEffectiveName(f).replace(/\.[^.]+$/, '') }));
+        // This unit's own floorplan type (and sq ft) first.
+        const rank = x => { const n = x.name.toUpperCase(); return (n.startsWith(code + '-') || n.startsWith(code + '_') ? 0 : 2) - (sq && n.includes(sq) ? 1 : 0); };
+        files.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, undefined, { numeric: true }));
+        const ql = q.trim().toLowerCase();
+        const shown = ql ? files.filter(x => x.name.toLowerCase().includes(ql)) : files;
+        const key = UNIT_IMAGE_MAP[unit];
+        const cur = u.tourFloorplan || '';
+        pop.querySelector('.ui-fp-list').innerHTML =
+            (!ql || 'default'.includes(ql) ? `<button type="button" data-ref=""${!cur ? ' class="cur"' : ''}>Default ${key ? `(${escapeHtml(key)} \u2014 print archive)` : '(none)'}</button>` : '')
+            + shown.map(x => `<button type="button" data-ref="${escapeAttr(x.ref)}"${x.ref === cur ? ' class="cur"' : ''}>${escapeHtml(x.name)}</button>`).join('')
+            + (!FP_FILES ? '<div class="ui-fp-note">Loading the Floorplans folder\u2026</div>' : !shown.length && ql ? '<div class="ui-fp-note">No floorplans match.</div>' : '');
+    };
+    pop.innerHTML = `<div class="ui-fp-head">Tour floorplan \u2014 Apt ${escapeHtml(unit)} (${escapeHtml(u.floorplan || '')} ${escapeHtml(sq)} sf)</div><input type="text" placeholder="Search floorplans (e.g. ${escapeAttr(code || 'A7')}-${escapeAttr(sq || '882')} measurements)\u2026"><div class="ui-fp-list"></div>`;
+    pop.querySelector('input').addEventListener('input', draw);
+    pop.querySelector('.ui-fp-list').addEventListener('click', e => {
+        const b = e.target.closest('[data-ref]');
+        if (!b) return;
+        unitFpPickerClose();
+        unitSetTourFp(unit, b.getAttribute('data-ref'));
+    });
+    draw();
+    pop.style.display = 'block';
+    const r = btn.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight;
+    pop.style.left = Math.max(8, Math.min(window.innerWidth - pw - 8, r.right - pw)) + 'px';
+    pop.style.top = (r.bottom + ph + 8 > window.innerHeight ? Math.max(8, r.top - ph - 4) : r.bottom + 4) + 'px';
+    pop.querySelector('input').focus();
+}
+document.getElementById('unitInfoTbody').addEventListener('click', e => {
+    const b = e.target.closest('[data-ui-fp]');
+    if (b) unitFpPickerOpen(b);
+});
 
 /* ---------- Unit Info statistics: live counts from the roster above;
    click a count to list and filter to those units. ---------- */
@@ -21103,12 +21237,28 @@ const BP_BLANK_GRAY = '#8a8a8a';
 // Laundry doors: depth of two half-width leaves opened BP_LDOOR_ANG degrees.
 const BP_LDOOR_ANG = 35;
 function bpBlankDdoorH(w, leaves) { return w / (leaves || 2) * Math.sin(BP_LDOOR_ANG * Math.PI / 180) + 1; }
+function bpBlankLabelLines(ctx, it) {
+    const fs = BP_BLANK_FONT * (it.k || 1), text = String(it.text || '');
+    ctx.font = `${fs}px Arial, sans-serif`;
+    if (!it.bw) return [text];
+    const out = [];
+    text.split(/\n/).forEach(para => {
+        let line = '';
+        para.split(/\s+/).filter(Boolean).forEach(word => {
+            const t = line ? line + ' ' + word : word;
+            if (line && ctx.measureText(t).width > it.bw) { out.push(line); line = word; } else line = t;
+        });
+        out.push(line);
+    });
+    return out.length ? out : [''];
+}
 function bpBlankItemSize(ctx, it, ppi) {
     const A = BP_BLANK_APPL[it.kind];
     if (!A) {
-        const fs = BP_BLANK_FONT * (it.k || 1);
-        ctx.font = `${fs}px Arial, sans-serif`;
-        return [ctx.measureText(it.text || '').width + fs * 0.3, fs * 1.25];
+        // Label: one line, or wrapped to its box width (it.bw, image px) when set.
+        const fs = BP_BLANK_FONT * (it.k || 1), lines = bpBlankLabelLines(ctx, it);
+        const w = it.bw ? it.bw + fs * 0.3 : Math.max(...lines.map(l => ctx.measureText(l).width)) + fs * 0.3;
+        return [w, lines.length * fs * 1.2 + fs * 0.05];
     }
     if (!A.resize) return [A.w * ppi, A.h * ppi];
     const w = it.w || A.w;
@@ -21144,8 +21294,8 @@ function bpBlankDrawItem(ctx, it, B) {
         ctx.fillText(txt, cx, 1);
     };
     if (it.kind === 'label') {
-        ctx.font = `${BP_BLANK_FONT * (it.k || 1)}px Arial, sans-serif`;
-        ctx.fillText(it.text || '', 0, 0);
+        const fs = BP_BLANK_FONT * (it.k || 1), lines = bpBlankLabelLines(ctx, it);
+        lines.forEach((l, i) => ctx.fillText(l, 0, (i - (lines.length - 1) / 2) * fs * 1.2));
     } else if (it.kind === 'wd') {
         ctx.lineWidth = lw;
         ctx.strokeRect(-w / 2, -h / 2, w, h);
@@ -21351,9 +21501,11 @@ function bpBlankRotateFrom(start, pivot, deg) {
         o.it.rot = Math.round(((((o.rot || 0) + deg) % 360) + 360) % 360 * 10) / 10;
     });
 }
-function bpBlankResizable(it) { const A = it && BP_BLANK_APPL[it.kind]; return !!(A && A.resize); }
+function bpBlankResizable(it) { if (it && it.kind === 'label') return true; const A = it && BP_BLANK_APPL[it.kind]; return !!(A && A.resize); }
 // Resize handles: the corners, or just the two ends of a line.
 function bpBlankHandles(it) {
+    // Labels: corners scale the text, the side squares set the box width (text re-wraps).
+    if (it.kind === 'label') return [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, 0], [1, 0]];
     const m = BP_BLANK_APPL[it.kind].resize;
     return m === 'len' ? [[-1, 0], [1, 0]] : (m === 'door' || m === 'ddoor') ? [[-1, -1], [1, -1]] : [[-1, -1], [1, -1], [1, 1], [-1, 1]];
 }
@@ -21369,8 +21521,8 @@ function bpBlankHitHandle(q) {
         const hx = c[0] + lx * cos - ly * sin, hy = c[1] + lx * sin + ly * cos;
         if (Math.abs(q[0] - hx) <= 16 && Math.abs(q[1] - hy) <= 16) {
             // The opposite corner (or other end) stays put while dragging.
-            const mode = BP_BLANK_APPL[it.kind].resize, fx = -lx, fy = mode === true ? -ly : ly;
-            return { it, sx, sy, a, mode, fixed: [c[0] + fx * cos - fy * sin, c[1] + fx * sin + fy * cos] };
+            const mode = it.kind === 'label' ? 'label' : BP_BLANK_APPL[it.kind].resize, fx = -lx, fy = mode === true || mode === 'label' ? -ly : ly;
+            return { it, sx, sy, a, mode, w0: w, h0: h, k0: it.k || 1, bw0: it.bw || 0, fixed: [c[0] + fx * cos - fy * sin, c[1] + fx * sin + fy * cos] };
         }
     }
     return null;
@@ -21516,7 +21668,7 @@ function bpBlankAdd(kind, text) {
     const B = BP_BL.B, ctx = document.getElementById('bpModalCanvas').getContext('2d');
     const it = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), kind, x: 0, y: 0, rot: 0 };
     if (kind === 'label') { it.text = text; it.k = 1; }
-    if (bpBlankResizable(it)) { it.w = BP_BLANK_APPL[kind].w; it.h = BP_BLANK_APPL[kind].h; }
+    if (kind !== 'label' && bpBlankResizable(it)) { it.w = BP_BLANK_APPL[kind].w; it.h = BP_BLANK_APPL[kind].h; }
     // New items go as near the middle of what's on screen (zoomed in or
     // not) as they can without covering an item that's already there.
     const box = (x, c) => { const [w, h] = bpBlankItemSize(ctx, x, B.ppi), r = (x.rot || 0) % 180 ? [h, w] : [w, h]; return [c[0] - r[0] / 2 - 6, c[1] - r[1] / 2 - 6, c[0] + r[0] / 2 + 6, c[1] + r[1] / 2 + 6]; };
@@ -21787,7 +21939,7 @@ function bpWireBlank() {
     });
     cv.addEventListener('pointermove', e => {
         const d = BP_BL.drag;
-        if (!d) { if (BP_BL.open) { const q = bpBlankEventImg(e); const rh = bpBlankRotHandle(bpBlankSelItems()); cv.style.cursor = rh && Math.hypot(q[0] - rh.at[0], q[1] - rh.at[1]) <= 16 ? 'grab' : bpBlankHitHandle(q) ? (/^(closet|door|ldoor1?)$/.test(bpBlankSelected().kind) ? 'ew-resize' : 'nwse-resize') : bpBlankHit(q) ? 'move' : BP_BL.zoom > 1 ? 'grab' : 'default'; } return; }
+        if (!d) { if (BP_BL.open) { const q = bpBlankEventImg(e); const rh = bpBlankRotHandle(bpBlankSelItems()); const hh = bpBlankHitHandle(q); cv.style.cursor = rh && Math.hypot(q[0] - rh.at[0], q[1] - rh.at[1]) <= 16 ? 'grab' : hh && hh.mode === 'label' && !hh.sy ? 'ew-resize' : hh ? (/^(closet|door|ldoor1?)$/.test(bpBlankSelected().kind) ? 'ew-resize' : 'nwse-resize') : bpBlankHit(q) ? 'move' : BP_BL.zoom > 1 ? 'grab' : 'default'; } return; }
         if (d.pan) {
             const st = document.querySelector('#bpModal .bp-modal-stage');
             st.scrollLeft = d.sl - (e.clientX - d.x); st.scrollTop = d.stp - (e.clientY - d.y);
@@ -21805,6 +21957,28 @@ function bpWireBlank() {
             }
             bpBlankRotateFrom(d.start, d.pivot, deg);
             d.moved = true;
+            bpBlankRedraw();
+            return;
+        }
+        if (d.resize && d.resize.mode === 'label') {
+            const r = d.resize, q = bpBlankEventImg(e), cos = Math.cos(r.a), sin = Math.sin(r.a);
+            const dx = q[0] - r.fixed[0], dy = q[1] - r.fixed[1];
+            const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos;
+            const g = document.getElementById('bpModalCanvas').getContext('2d');
+            if (!r.sy) {
+                // Side: box width; the text re-wraps to fit.
+                const fs = BP_BLANK_FONT * (it.k || 1);
+                it.bw = Math.max(fs * 1.5, r.sx * lx - fs * 0.3);
+            } else {
+                // Corner: scale the whole label.
+                const f = Math.max(0.15, ((r.sx * lx) / r.w0 + (r.sy * ly) / r.h0) / 2);
+                it.k = Math.max(0.3, Math.min(6, r.k0 * f));
+                if (r.bw0) it.bw = r.bw0 * it.k / r.k0;
+            }
+            const [w, h] = bpBlankItemSize(g, it, BP_BL.B.ppi);
+            const mx = r.sx * w / 2, my = r.sy * h / 2;
+            const P = BP_BL.B.fromImg([r.fixed[0] + mx * cos - my * sin, r.fixed[1] + mx * sin + my * cos]);
+            it.x = P[0]; it.y = P[1]; d.moved = true;
             bpBlankRedraw();
             return;
         }
