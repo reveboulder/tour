@@ -1444,6 +1444,10 @@
     .info-show { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; }
     .info-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
     .info-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .info-table-wrap.vault-compact { width: fit-content; max-width: 100%; }
+    .vault-compact .info-table { width: auto; }
+    .vault-compact .info-table td.vault-ro { white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; padding-right: 22px; }
+    .vault-compact .info-table th { padding-right: 22px; }
     .info-table th { position: sticky; top: 0; background: var(--line-soft); color: var(--ink-soft); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
     .info-table td { border-bottom: 1px solid var(--line-soft); padding: 2px 3px; }
     .info-table tr:last-child td { border-bottom: 0; }
@@ -4688,7 +4692,12 @@
                 <button type="button" class="wl-subtab" data-info-subtab="inventory">Inventory</button>
             </div>
             <div id="infoPanel-garden" class="info-subpanel" style="display:none;"></div>
-            <div id="infoPanel-maintenance" class="info-subpanel" style="display:none;"></div>
+            <div id="infoPanel-maintenance" class="info-subpanel" style="display:none;">
+                <div class="wl-subtabs" id="maintSubtabs">
+                    <button type="button" class="wl-subtab active" data-maint-subtab="filters">Filters</button>
+                </div>
+                <div id="maintPanel-filters"></div>
+            </div>
             <div id="infoPanel-inventory" class="info-subpanel" style="display:none;"></div>
             <div id="infoPanel-services" class="info-subpanel" style="display:none;"></div>
             <div id="infoPanel-birthdays" class="info-subpanel" style="display:none;"></div>
@@ -9729,7 +9738,7 @@ function makeVault(cfg) {
                 <span class="empty-note vault-status" style="margin:0;font-weight:600;"></span>
                 <button type="button" class="btn small vault-lockbtn" style="margin-left:auto;">Lock</button>
             </div>
-            <div class="info-table-wrap"><table class="info-table vault-table"></table></div>
+            <div class="info-table-wrap${cfg.compact ? ' vault-compact' : ''}"><table class="info-table vault-table"></table></div>
             ${cfg.modal ? `<div class="vault-modal" style="display:none;"><div class="vault-modal-card">
                 <div class="vault-modal-h"></div>
                 ${cfg.cols.map(c => c.linkKey
@@ -10041,7 +10050,7 @@ makeVault({
 });
 makeVault({
     id: 'passwords', title: 'Passwords', localKey: 'reve-info-passwords-enc', backendKey: 'info-passwords',
-    showLabel: 'Show passwords', otherVaults: 'DOOR Accounts', modal: true, search: true,
+    showLabel: 'Show passwords', otherVaults: 'DOOR Accounts', modal: true, search: true, compact: true,
     cols: [
         { k: 'website', label: 'WEBSITE', linkKey: 'link' },
         { k: 'username', label: 'USERNAME', mlabel: 'Username' },
@@ -17128,30 +17137,32 @@ function makeInfoList(cfg) {
     const newRow = c => { const now = Date.now(); return { id: now.toString(36) + Math.random().toString(36).slice(2, 7), o: now + (++seq % 1000) / 1000, t: now, c: c || {} }; };
     const push = debounce(() => { if (BACKEND_URL && APP_MODE !== 'test') backendPush(cfg.key, { rows: L.rows }); }, 900);
     const changed = () => { persist(); if (BACKEND_URL && APP_MODE !== 'test') saveTrack(cfg.key, 'pending'); push(); };
-    const panel = () => document.getElementById('infoPanel-' + cfg.id);
+    const panel = () => document.getElementById(cfg.panelId || 'infoPanel-' + cfg.id);
     let built = false;
     function build() {
         built = true;
+        const CTRL_TOP = `            <div style="display:flex;gap:8px;flex-wrap:wrap;margin:${cfg.controlsTop ? '0 0 8px' : '10px 0 0'};${cfg.noAdd && cfg.noPaste ? 'display:none;' : ''}">
+                <button type="button" class="btn" data-il="add" style="width:auto;flex:none;padding:7px 14px;${cfg.noAdd ? 'display:none;' : ''}">+ ${escapeHtml(cfg.addLabel || '')}</button>
+                <button type="button" class="btn" data-il="paste" style="width:auto;flex:none;padding:7px 14px;${cfg.noPaste ? 'display:none;' : ''}">${escapeHtml(cfg.pasteLabel || 'Paste from Spreadsheet')}</button>
+            </div>
+            <div data-il="pastebox" style="display:none;margin:${cfg.controlsTop ? '0 0 10px' : '10px 0 0'};">
+                <p class="empty-note" style="font-size:12px;margin:0 0 6px;">${cfg.pasteHelp || `Copy the rows from your spreadsheet (including the header row) and paste them here. Blank rows are skipped, &ldquo;--&rdquo; counts as blank, and a row matching an existing ${escapeHtml(cfg.matchLabel)} updates it instead of adding a duplicate.`}</p>
+                <textarea rows="6" class="wl-field" data-il="pastetext" style="width:100%;box-sizing:border-box;font-family:var(--mono);font-size:11.5px;" placeholder="${escapeAttr(cfg.fields.map(f => f.label).join('\t'))}"></textarea>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+                    <button type="button" class="btn primary" data-il="import" style="width:auto;flex:none;padding:7px 14px;">Import</button>
+                    ${cfg.fileUpload ? '<label class="btn" style="width:auto;flex:none;padding:7px 14px;cursor:pointer;">Or choose a file (.xlsx / .csv)<input type="file" data-il="file" accept=".xlsx,.xls,.csv,.tsv,.txt" style="display:none;"></label>' : ''}
+                    <span class="empty-note" data-il="status" style="margin:0;"></span>
+                </div>
+            </div>`;
         panel().innerHTML = `${cfg.banner ? '<div class="il-banner"></div>' : ''}<p class="empty-note" style="font-size:12.5px;margin-top:0;">${cfg.intro}</p>
             ${cfg.search ? `<input type="text" class="wl-field il-search" data-il="search" placeholder="${escapeAttr(cfg.searchPh || 'Search\u2026')}" style="max-width:280px;margin-bottom:8px;">` : ''}
-            <div class="mmr-table-wrap${cfg.tableClass ? ' ' + cfg.tableClass + '-wrap' : ''}" style="max-height:560px;overflow-y:auto;">
+${cfg.controlsTop ? CTRL_TOP : ""}            <div class="mmr-table-wrap${cfg.tableClass ? ' ' + cfg.tableClass + '-wrap' : ''}" style="max-height:560px;overflow-y:auto;">
                 <table class="mmr-table retail-info-table info-list-table${cfg.tableClass ? ' ' + cfg.tableClass : ''}">
                     <thead><tr>${cfg.fields.map(f => `<th>${escapeHtml(f.label)}</th>`).join('')}${cfg.noRemove ? '' : '<th></th>'}</tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;${cfg.noAdd && cfg.noPaste ? 'display:none;' : ''}">
-                <button type="button" class="btn" data-il="add" style="width:auto;flex:none;padding:7px 14px;${cfg.noAdd ? 'display:none;' : ''}">+ ${escapeHtml(cfg.addLabel || '')}</button>
-                <button type="button" class="btn" data-il="paste" style="width:auto;flex:none;padding:7px 14px;${cfg.noPaste ? 'display:none;' : ''}">Paste from Spreadsheet</button>
-            </div>
-            <div data-il="pastebox" style="display:none;margin-top:10px;">
-                <p class="empty-note" style="font-size:12px;margin:0 0 6px;">Copy the rows from your spreadsheet (including the header row) and paste them here. Blank rows are skipped, &ldquo;--&rdquo; counts as blank, and a row matching an existing ${escapeHtml(cfg.matchLabel)} updates it instead of adding a duplicate.</p>
-                <textarea rows="6" class="wl-field" data-il="pastetext" style="width:100%;box-sizing:border-box;font-family:var(--mono);font-size:11.5px;" placeholder="${escapeAttr(cfg.fields.map(f => f.label).join('\t'))}"></textarea>
-                <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-                    <button type="button" class="btn primary" data-il="import" style="width:auto;flex:none;padding:7px 14px;">Import</button>
-                    <span class="empty-note" data-il="status" style="margin:0;"></span>
-                </div>
-            </div>`;
+${cfg.controlsTop ? "" : CTRL_TOP}`;
         const p = panel(), tbody = p.querySelector('tbody');
         tbody.addEventListener('input', e => {
             const el = e.target.closest('[data-il-f]'); if (!el || el.classList.contains('il-date-in')) return;
@@ -17196,8 +17207,23 @@ function makeInfoList(cfg) {
             const ta = p.querySelector('[data-il="pastetext"]');
             if (!ta.value.trim()) return;
             const n = importPaste(ta.value);
-            p.querySelector('[data-il="status"]').textContent = `Imported: ${n.updated} updated, ${n.added} added.`;
+            p.querySelector('[data-il="status"]').textContent = importSummary(n);
             ta.value = '';
+        });
+        const fileIn = p.querySelector('[data-il="file"]');
+        if (fileIn) fileIn.addEventListener('change', () => {
+            const f = fileIn.files[0]; fileIn.value = '';
+            if (!f) return;
+            const rd = new FileReader();
+            rd.onload = () => {
+                try {
+                    const wb = XLSX.read(new Uint8Array(rd.result), { type: 'array' });
+                    const grid = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' });
+                    const tsv = grid.map(r => r.map(c => /[\t\n"]/.test(String(c)) ? '"' + String(c).replace(/"/g, '""') + '"' : String(c)).join('\t')).join('\n');
+                    p.querySelector('[data-il="status"]').textContent = importSummary(importPaste(tsv));
+                } catch (err) { p.querySelector('[data-il="status"]').textContent = 'Couldn\u2019t read that file \u2014 try copying and pasting the rows instead.'; }
+            };
+            rd.readAsArrayBuffer(f);
         });
     }
     function render() {
@@ -17236,19 +17262,29 @@ function makeInfoList(cfg) {
             cols = grid[hi].map(h => cfg.headerMap[h.trim().toLowerCase()] || null);
             grid.splice(0, hi + 1);
         }
-        let added = 0, updated = 0;
+        let added = 0, updated = 0, skipped = [];
         grid.forEach(r => {
-            const rec = {};
-            cols.forEach((f, i) => { const v = clean(r[i]); if (f && v) rec[f] = v; });
+            const rec = {}, blanks = {};
+            cols.forEach((f, i) => {
+                if (!f) return;
+                let v = clean(r[i]);
+                if (v && cfg.importValue) v = cfg.importValue(f, v);
+                if (v) rec[f] = v; else blanks[f] = '';
+            });
             if (!Object.keys(rec).length) return;
             const k = cfg.matchKey(rec);
             const found = k && live().find(x => cfg.matchKey(x.c) === k);
             const target = found && rowById(found.id);
-            if (target) { target.c = Object.assign({}, target.c, rec); target.t = Date.now(); updated++; }
+            // importOverwrite: a blank cell in a column the sheet has clears that value.
+            if (target) { target.c = Object.assign({}, target.c, cfg.importOverwrite ? blanks : {}, rec); target.t = Date.now(); updated++; }
+            else if (cfg.importExistingOnly) skipped.push(k);
             else { L.rows.push(newRow(rec)); added++; }
         });
         changed(); render();
-        return { added, updated };
+        return { added, updated, skipped };
+    }
+    function importSummary(n) {
+        return `Imported: ${n.updated} updated${n.added ? `, ${n.added} added` : ''}.` + (n.skipped && n.skipped.length ? ` Skipped ${n.skipped.length} not in Unit Info: ${n.skipped.slice(0, 8).join(', ')}${n.skipped.length > 8 ? '\u2026' : ''}` : '');
     }
     L.render = () => { if (adminUnlocked && adminSubTab === 'info' && infoSubTab === cfg.id) render(); };
     L.pull = async () => {
@@ -17343,10 +17379,25 @@ makeInfoList({
     }
 });
 const MAINT_FILTERS = ['18x20x1', '10x30x1', '10x24x1', '10x24x9'];
+// "4/8/25", "04/08/2025", "2025-04-08" or an Excel day number -> "2025-04-08" ('' if unreadable)
+function ilToIsoDate(v) {
+    v = String(v || '').trim();
+    let m;
+    if ((m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    if ((m = v.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2}|\d{4})$/))) {
+        const y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
+        return `${y}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+    }
+    if (/^\d{5}$/.test(v)) return new Date(Date.UTC(1899, 11, 30) + +v * 864e5).toISOString().slice(0, 10);
+    return '';
+}
 makeInfoList({
-    id: 'maintenance', key: 'info-maintenance', localKey: 'reve-info-maintenance', tableClass: 'il-maint',
+    id: 'maintenance', key: 'info-maintenance', localKey: 'reve-info-maintenance', tableClass: 'il-maint', panelId: 'maintPanel-filters',
+    controlsTop: true, pasteLabel: '+ Upload', fileUpload: true, importOverwrite: true, importExistingOnly: true,
+    pasteHelp: 'Paste the rows from your filter sheet (with its header row: Unit #, Yardi, Bed/Bath, Filter 1, Filter 2, Filter 3, Date), or choose the file. Each unit&rsquo;s filters and date are replaced with the sheet&rsquo;s; Yardi and Bed/Bath always come from Unit Info.',
+    importValue: (f, v) => f === 'date' ? ilToIsoDate(v) : /^f\d$/.test(f) ? v.replace(/\s+/g, '').toLowerCase() : f === 'unit' ? v.replace(/^#/, '').trim() : v,
     intro: 'Every unit from Unit Info, with its Yardi type and bed/bath filled in automatically. Pick each unit&rsquo;s filter sizes and the date; changes save automatically and are shared.',
-    noAdd: true, noRemove: true, noPaste: true,
+    noAdd: true, noRemove: true,
     search: (r, q) => { const u = byUnit[r.c.unit] || {}; return [r.c.unit, u.yardi, u.bedBath, r.c.f1, r.c.f2, r.c.f3, r.c.date].some(v => String(v || '').toLowerCase().includes(q)); },
     searchPh: 'Search unit, Yardi, bed/bath or filter…',
     fixedRows: () => UNITS.map((u, i) => ({ id: 'u' + u.unit, o: i + 1, c: { unit: u.unit } })),
@@ -17359,7 +17410,8 @@ makeInfoList({
         { k: 'f3', label: 'Filter 3', options: MAINT_FILTERS },
         { k: 'date', label: 'Date', dateInput: true }
     ],
-    headerMap: {}, matchKey: c => c.unit, rowName: c => c.unit,
+    headerMap: { 'unit #': 'unit', unit: 'unit', 'unit#': 'unit', 'filter 1': 'f1', 'filter 2': 'f2', 'filter 3': 'f3', date: 'date' },
+    matchKey: c => String(c.unit || '').trim(), rowName: c => c.unit,
     sort: rows => rows.slice().sort((a, b) => (a.o || 0) - (b.o || 0))
 });
 makeInfoList({
