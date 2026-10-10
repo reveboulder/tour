@@ -1072,6 +1072,8 @@
     .settings-wrap { max-width: 1024px; margin: 0 auto; padding: 0 20px 40px; }
     .admin-wrap { max-width: 1600px; margin: 0 auto; padding: 0 24px 40px; }
     .admin-wrap #adminLockScreen { max-width: 480px; }
+    #adminLockScreen .field input { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-family: var(--sans); font-size: 13px; background: var(--panel); color: var(--ink); }
+    #adminLockScreen .field { margin-bottom: 10px; }
     .ui-fp-btn { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-soft); }
     .ui-fp-btn.set { color: var(--ink); font-weight: 700; border-color: var(--reve-orange); }
     .ui-fp-btn span { font-size: 9px; opacity: 0.6; }
@@ -3986,14 +3988,19 @@
     </div>
 
     <div class="settings-card" id="adminLockScreen">
-        <div class="section-label" style="margin-top:0;"><span class="dot"></span>Admin Access</div>
-        <p class="empty-note" style="font-size:12.5px;">This area is restricted to admin use. Enter the admin password to continue.</p>
-        <div class="field">
-            <label>Password</label>
+        <div class="section-label" style="margin-top:0;"><span class="dot"></span><span id="adminLockTitle">Admin Access</span></div>
+        <p class="empty-note" id="adminLockNote" style="font-size:12.5px;">This area is restricted to admin use. Enter the admin password to continue.</p>
+        <div class="field" id="adminPassField">
+            <label id="adminPassLabel">Password</label>
             <input type="password" id="adminPasswordInput" placeholder="Enter password" autocomplete="off">
+        </div>
+        <div class="field" id="adminPass2Field" style="display:none;">
+            <label>Confirm password</label>
+            <input type="password" id="adminPasswordInput2" placeholder="Type it again" autocomplete="new-password">
         </div>
         <button type="button" class="btn primary" id="adminUnlockBtn" style="width:100%;">Unlock</button>
         <div class="empty-note" id="adminPasswordError" style="display:none;color:#c0392b;margin-top:8px;">Incorrect password &mdash; try again.</div>
+        <button type="button" class="btn small" id="adminCancelChangeBtn" style="display:none;width:100%;margin-top:8px;">Cancel</button>
     </div>
 
     <div id="adminContent" style="display:none;">
@@ -4004,6 +4011,7 @@
             <button type="button" class="wl-subtab" data-admin-subtab="deposit">Deposit Accounting</button>
             <button type="button" class="wl-subtab" data-admin-subtab="blueprints">Blueprints</button>
             <button type="button" class="wl-subtab" data-admin-subtab="info">INFO</button>
+            <button type="button" class="btn small wl-subtab-right" id="adminChangePassBtn" title="Change the Admin password for everyone">Change Admin Password</button>
         </div>
         <div id="adminPanel-mmr" class="admin-subpanel">
             <div class="mmr-io-bar">
@@ -6844,6 +6852,7 @@ function switchTab(name) {
     if (name === 'turns' && typeof renderTurns === 'function') renderTurns();
     if (name === 'wl') wlEnsureFormVisible();
     if (name === 'lease' && typeof lsOnShow === 'function') lsOnShow();
+    if (name === 'admin' && !adminUnlocked) adminAuthLoad();
     if (name === 'media' && typeof renderSitemap === 'function') renderSitemap();
     if (name === 'howto' && typeof renderHowTo === 'function') renderHowTo();
     if (name === 'documents' && typeof renderDocuments === 'function') renderDocuments();
@@ -9356,31 +9365,196 @@ document.getElementById('concessionSaveBtn').addEventListener('click', () => {
 });
 
 /* ============================================================
-   ADMIN TAB — password-gated shell for now (MMR / Commissions / PCard
-   sub-tabs to be built out later). The gate is a light deterrent, not
-   real security — the password check runs client-side in a page anyone
-   can view-source, so this should never guard anything genuinely
-   sensitive without a real backend-enforced auth layer.
+   ADMIN PASSWORD — set by the team, never written in this page's code.
+   The first visit asks for a new password; only a salted, many-times
+   hashed fingerprint of it is stored (shared backend key 'admin-auth',
+   cached in this browser), never the password itself. Checking a typed
+   password hashes it the same way and compares fingerprints.
+   The hashing is synchronous on purpose: promptAdminPassword() is called
+   straight from click handlers (e.g. before opening a file picker), which
+   must stay in the same user gesture.
+   The gate is still client-side: it keeps casual users out of Admin and
+   destructive actions, but the data behind it isn't encrypted (the INFO
+   table has its own passphrase for that).
    ============================================================ */
-const ADMIN_PASSWORD = 'Reve123';
+const ADMIN_AUTH_KEY = 'admin-auth';
+const ADMIN_AUTH_LOCAL = 'reve-admin-auth';
+const ADMIN_AUTH_ITER = 20000;
+let ADMIN_AUTH = null;          // { v, salt, iter, hash } once known
+let adminAuthState = 'loading'; // loading | ready | new | offline
 let adminUnlocked = false;
+let adminChanging = false;
+try { const v = JSON.parse(localStorage.getItem(ADMIN_AUTH_LOCAL) || 'null'); if (v && v.hash) { ADMIN_AUTH = v; adminAuthState = 'ready'; } } catch (e) {}
 
-function tryAdminUnlock() {
-    const val = document.getElementById('adminPasswordInput').value;
-    if (val === ADMIN_PASSWORD) {
-        adminUnlocked = true;
-        document.getElementById('adminLockScreen').style.display = 'none';
-        document.getElementById('adminContent').style.display = 'block';
-        document.getElementById('adminPasswordError').style.display = 'none';
-        document.getElementById('adminPasswordInput').value = '';
-    } else {
-        document.getElementById('adminPasswordError').style.display = 'block';
+// Compact synchronous SHA-256 (bytes in, bytes out).
+const SHA256_K = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+function sha256Bytes(msg) {
+    const l = msg.length, n = ((l + 9 + 63) >> 6) << 6, b = new Uint8Array(n);
+    b.set(msg); b[l] = 0x80;
+    const dv = new DataView(b.buffer);
+    dv.setUint32(n - 4, l * 8); dv.setUint32(n - 8, Math.floor(l / 0x20000000));
+    const H = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]), w = new Uint32Array(64);
+    const r = (x, k) => (x >>> k) | (x << (32 - k));
+    for (let o = 0; o < n; o += 64) {
+        for (let i = 0; i < 16; i++) w[i] = dv.getUint32(o + i * 4);
+        for (let i = 16; i < 64; i++) {
+            const s0 = r(w[i-15], 7) ^ r(w[i-15], 18) ^ (w[i-15] >>> 3), s1 = r(w[i-2], 17) ^ r(w[i-2], 19) ^ (w[i-2] >>> 10);
+            w[i] = (w[i-16] + s0 + w[i-7] + s1) | 0;
+        }
+        let [a, bb, c, d, e, f, g, h] = H;
+        for (let i = 0; i < 64; i++) {
+            const t1 = (h + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + SHA256_K[i] + w[i]) | 0;
+            const t2 = ((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & bb) ^ (a & c) ^ (bb & c))) | 0;
+            h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = bb; bb = a; a = (t1 + t2) | 0;
+        }
+        H[0] += a; H[1] += bb; H[2] += c; H[3] += d; H[4] += e; H[5] += f; H[6] += g; H[7] += h;
     }
+    const out = new Uint8Array(32), odv = new DataView(out.buffer);
+    for (let i = 0; i < 8; i++) odv.setUint32(i * 4, H[i]);
+    return out;
+}
+function adminHash(pw, saltHex, iter) {
+    const salt = Uint8Array.from(saltHex.match(/../g), x => parseInt(x, 16));
+    const pwb = new TextEncoder().encode(pw);
+    const first = new Uint8Array(salt.length + pwb.length); first.set(salt); first.set(pwb, salt.length);
+    let h = sha256Bytes(first);
+    const buf = new Uint8Array(32 + salt.length); buf.set(salt, 32);
+    for (let i = 1; i < iter; i++) { buf.set(h); h = sha256Bytes(buf); }
+    return [...h].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+function adminCheck(pw) { return !!ADMIN_AUTH && typeof pw === 'string' && adminHash(pw, ADMIN_AUTH.salt, ADMIN_AUTH.iter) === ADMIN_AUTH.hash; }
+function adminMakeAuth(pw) {
+    const salt = [...crypto.getRandomValues(new Uint8Array(16))].map(x => x.toString(16).padStart(2, '0')).join('');
+    return { v: 1, salt, iter: ADMIN_AUTH_ITER, hash: adminHash(pw, salt, ADMIN_AUTH_ITER), t: Date.now() };
+}
+function adminBackendOn() { return !!BACKEND_URL && APP_MODE !== 'test'; }
+function adminStoreLocal(a) { try { localStorage.setItem(ADMIN_AUTH_LOCAL, JSON.stringify(a)); } catch (e) {} }
+
+// Fetch the shared fingerprint (runs once the page has loaded, then
+// whenever the Admin lock screen is shown).
+let adminAuthLoading = null;
+function adminAuthLoad() {
+    if (adminAuthLoading) return adminAuthLoading;
+    adminAuthLoading = (async () => {
+        if (!adminBackendOn()) { if (!ADMIN_AUTH) adminAuthState = 'new'; return; }
+        const remote = await backendPullChecked(ADMIN_AUTH_KEY);
+        if (remote && remote.hash) { ADMIN_AUTH = remote; adminAuthState = 'ready'; adminStoreLocal(remote); }
+        else if (remote === null) {
+            // Nothing shared yet. A password set on this device while the
+            // backend was out of reach is shared now.
+            if (ADMIN_AUTH) await backendPush(ADMIN_AUTH_KEY, ADMIN_AUTH); else adminAuthState = 'new';
+        } else if (!ADMIN_AUTH) adminAuthState = 'offline';
+    })().finally(() => { adminAuthLoading = null; adminLockRender(); });
+    return adminAuthLoading;
+}
+setTimeout(adminAuthLoad, 0);
+
+function adminLockRender() {
+    if (adminUnlocked && !adminChanging) return;
+    const st = adminChanging ? 'change' : adminAuthState;
+    const setup = st === 'new' || st === 'change';
+    document.getElementById('adminLockTitle').textContent = st === 'change' ? 'Change Admin Password' : setup ? 'Set the Admin Password' : 'Admin Access';
+    document.getElementById('adminLockNote').textContent =
+        st === 'change' ? 'Enter the current Admin password, then the new one twice. The new password applies to everyone.'
+        : st === 'new' ? 'No Admin password has been set yet. Choose one now — it will be required for everyone opening Admin and for protected actions (removing documents, clearing Residents, etc.).'
+        : st === 'loading' ? 'Checking the Admin password settings…'
+        : st === 'offline' ? 'Couldn’t reach the shared backend to check the Admin password. Check your connection, then try again.'
+        : 'This area is restricted to admin use. Enter the admin password to continue.';
+    const inp = document.getElementById('adminPasswordInput');
+    document.getElementById('adminPassField').style.display = st === 'offline' ? 'none' : '';
+    document.getElementById('adminPassLabel').textContent = st === 'change' ? 'Current password' : setup ? 'New password' : 'Password';
+    inp.placeholder = st === 'change' ? 'Current password' : setup ? 'At least 6 characters' : 'Enter password';
+    inp.disabled = st === 'loading';
+    document.getElementById('adminPass2Field').style.display = setup ? '' : 'none';
+    let newF = document.getElementById('adminPass3Field');
+    if (!newF) {
+        newF = document.createElement('div'); newF.className = 'field'; newF.id = 'adminPass3Field';
+        newF.innerHTML = '<label>New password</label><input type="password" id="adminPasswordNew" placeholder="At least 6 characters" autocomplete="new-password">';
+        document.getElementById('adminPass2Field').before(newF);
+        newF.querySelector('input').addEventListener('keydown', e => { if (e.key === 'Enter') tryAdminUnlock(); });
+    }
+    newF.style.display = st === 'change' ? '' : 'none';
+    const btn = document.getElementById('adminUnlockBtn');
+    btn.textContent = st === 'change' ? 'Change Password' : st === 'new' ? 'Set Password & Unlock' : st === 'loading' ? 'Checking…' : st === 'offline' ? 'Try again' : 'Unlock';
+    btn.disabled = st === 'loading';
+    document.getElementById('adminCancelChangeBtn').style.display = st === 'change' ? '' : 'none';
+}
+
+async function adminSaveAuth(auth) {
+    adminStoreLocal(auth);
+    if (!adminBackendOn()) return true;
+    if (!(await backendPush(ADMIN_AUTH_KEY, auth))) { /* checked below */ }
+    const back = await backendPullChecked(ADMIN_AUTH_KEY);
+    return !!(back && back.hash === auth.hash);
+}
+
+function adminShowContent() {
+    adminUnlocked = true; adminChanging = false;
+    document.getElementById('adminLockScreen').style.display = 'none';
+    document.getElementById('adminContent').style.display = 'block';
+    document.getElementById('adminPasswordError').style.display = 'none';
+    ['adminPasswordInput', 'adminPasswordInput2', 'adminPasswordNew'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+}
+async function tryAdminUnlock() {
+    const err = msg => { const e = document.getElementById('adminPasswordError'); e.textContent = msg; e.style.display = 'block'; };
+    const btn = document.getElementById('adminUnlockBtn');
+    const val = document.getElementById('adminPasswordInput').value;
+    const val2 = document.getElementById('adminPasswordInput2').value;
+    const nv = (document.getElementById('adminPasswordNew') || {}).value || '';
+    if (adminChanging) {
+        if (!adminCheck(val)) return err('The current password is incorrect.');
+        if (nv.length < 6) return err('Use at least 6 characters for the new password.');
+        if (nv !== val2) return err('The new passwords don’t match.');
+        btn.disabled = true;
+        const auth = adminMakeAuth(nv);
+        const ok = await adminSaveAuth(auth);
+        btn.disabled = false;
+        if (!ok) { adminStoreLocal(ADMIN_AUTH); return err('Couldn’t save the new password to the shared backend — nothing was changed. Try again.'); }
+        ADMIN_AUTH = auth;
+        adminShowContent();
+        alert('Admin password changed for everyone.');
+        return;
+    }
+    if (adminAuthState === 'offline') { adminAuthState = 'loading'; adminLockRender(); adminAuthLoad(); return; }
+    if (adminAuthState === 'loading') return;
+    if (adminAuthState === 'new') {
+        if (val.length < 6) return err('Use at least 6 characters.');
+        if (val !== val2) return err('The two passwords don’t match.');
+        btn.disabled = true;
+        // Last check that nobody set one in the meantime.
+        if (adminBackendOn()) {
+            const remote = await backendPullChecked(ADMIN_AUTH_KEY);
+            if (remote === undefined) { btn.disabled = false; return err('Couldn’t reach the shared backend — try again.'); }
+            if (remote && remote.hash) { btn.disabled = false; ADMIN_AUTH = remote; adminAuthState = 'ready'; adminStoreLocal(remote); adminLockRender(); return err('An Admin password was already set by someone else — enter that password.'); }
+        }
+        const auth = adminMakeAuth(val);
+        const ok = await adminSaveAuth(auth);
+        btn.disabled = false;
+        if (!ok) { try { localStorage.removeItem(ADMIN_AUTH_LOCAL); } catch (e) {} return err('Couldn’t save the password to the shared backend — try again.'); }
+        ADMIN_AUTH = auth; adminAuthState = 'ready';
+        adminShowContent();
+        return;
+    }
+    if (adminCheck(val)) adminShowContent();
+    else err('Incorrect password — try again.');
 }
 document.getElementById('adminUnlockBtn').addEventListener('click', tryAdminUnlock);
-document.getElementById('adminPasswordInput').addEventListener('keydown', (e) => {
+['adminPasswordInput', 'adminPasswordInput2'].forEach(id => document.getElementById(id).addEventListener('keydown', (e) => {
     if (e.key === 'Enter') tryAdminUnlock();
+}));
+document.getElementById('adminChangePassBtn').addEventListener('click', () => {
+    adminChanging = true;
+    document.getElementById('adminContent').style.display = 'none';
+    document.getElementById('adminLockScreen').style.display = '';
+    document.getElementById('adminPasswordError').style.display = 'none';
+    adminLockRender();
+    document.getElementById('adminPasswordInput').focus();
 });
+document.getElementById('adminCancelChangeBtn').addEventListener('click', () => {
+    adminChanging = false;
+    adminShowContent();
+});
+adminLockRender();
 
 // Hidden Games page: click the RÊVE logo on Settings, enter the Admin password.
 document.querySelector('#tab-settings .brand-strip .mark').addEventListener('click', () => {
@@ -13698,9 +13872,14 @@ async function residentReplaceAll(rows) {
 }
 
 function promptAdminPassword(actionLabel, message) {
+    if (!ADMIN_AUTH) {
+        alert(adminAuthState === 'loading' ? 'Still checking the Admin password settings \u2014 try again in a moment.' : 'No Admin password has been set yet. Open the Admin tab to set one first.');
+        if (adminAuthState !== 'ready') adminAuthLoad();
+        return false;
+    }
     const pw = prompt(message || `Enter the Admin password to ${actionLabel}:`);
     if (pw === null) return false;
-    if (pw !== ADMIN_PASSWORD) { alert('Incorrect password.'); return false; }
+    if (!adminCheck(pw)) { alert('Incorrect password.'); return false; }
     return true;
 }
 
