@@ -370,6 +370,35 @@
     .info-list-table tr.il-next td { background: #fff4e0; }
     .info-list-table tr.il-next td:first-child { box-shadow: inset 3px 0 0 var(--reve-orange); }
     .info-list-table .il-tag { display: block; font-size: 10.5px; font-weight: 700; color: var(--reve-orange); margin: 2px 0 0 2px; }
+    /* INFO lists: read-only cells, dropdowns, plain dates */
+    .info-list-table td.il-ro { padding: 8px 10px; white-space: nowrap; font-size: 12.5px; vertical-align: middle; }
+    .info-list-table .il-select, .info-list-table .il-plain-date { border: 1px solid var(--line); border-radius: 5px; padding: 5px 6px; font: inherit; font-size: 12px; background: #fff; color: var(--ink); }
+    .info-list-table .il-select { min-width: 92px; }
+    .il-maint-wrap, .il-garden-wrap, .il-inv-wrap { width: fit-content; max-width: 100%; }
+    .info-list-table.il-maint, .info-list-table.il-garden, .info-list-table.il-inv { width: auto; }
+    .info-list-table.il-maint td textarea, .info-list-table.il-garden td textarea { min-width: 0; }
+    /* Garden Beds: garden theme (this sub-tab only) */
+    #infoPanel-garden { position: relative; border-radius: 12px; padding: 0 14px 14px; margin: 0 -14px;
+        background:
+            url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='70' height='70'%3E%3Cpath d='M14 20c6-8 14-8 18-2-6 6-12 7-18 2z' fill='%23c5e1a5' opacity='.55'/%3E%3Cpath d='M48 52c5-7 12-7 15-1-5 5-10 6-15 1z' fill='%23aed581' opacity='.45'/%3E%3Ccircle cx='52' cy='16' r='2.2' fill='%23f8bbd0' opacity='.8'/%3E%3Ccircle cx='20' cy='54' r='2' fill='%23fff59d'/%3E%3C/svg%3E"),
+            linear-gradient(#f6fbef, #eef7e4); }
+    #infoPanel-garden .il-banner { padding: 18px 150px 34px 18px; background: linear-gradient(180deg, #e3f4fd, #f1f9e6); }
+    #infoPanel-garden .il-banner-h { color: #2f6b2a; }
+    #infoPanel-garden .il-banner-s { color: #4e6b3a; }
+    .il-sun { position: absolute; right: 84px; top: 6px; width: 56px; height: 56px; }
+    .il-can { position: absolute; right: 16px; top: 20px; width: 62px; height: 46px; }
+    .il-garden-row { position: absolute; left: 0; right: 0; bottom: 0; height: 26px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='26'%3E%3Crect y='20' width='96' height='6' fill='%23a1683a'/%3E%3Cpath d='M12 20V10M36 20V8M60 20V11M84 20V9' stroke='%234d7c3a' stroke-width='1.6'/%3E%3Cpath d='M12 14c-4-1-6-4-6-7 4 0 6 3 6 7zM36 13c4-1 6-4 6-7-4 0-6 3-6 7zM60 15c-4-1-6-4-6-7 4 0 6 3 6 7zM84 13c4-1 6-4 6-7-4 0-6 3-6 7z' fill='%237cb342'/%3E%3Ccircle cx='12' cy='8' r='3.2' fill='%23f06292'/%3E%3Ccircle cx='12' cy='8' r='1.2' fill='%23fff176'/%3E%3Ccircle cx='60' cy='9' r='3.2' fill='%23ffb74d'/%3E%3Ccircle cx='60' cy='9' r='1.2' fill='%23fff176'/%3E%3Ccircle cx='84' cy='7' r='3.2' fill='%23ba68c8'/%3E%3Ccircle cx='84' cy='7' r='1.2' fill='%23fff176'/%3E%3C/svg%3E") repeat-x; }
+    .il-sprout { width: 20px; height: 20px; flex: none; }
+    .il-sprout-big { width: 46px; height: 46px; }
+    .il-bed { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: #2f6b2a; }
+    .info-list-table.il-garden th { background: #dcedc8; color: #33691e; }
+    body.dark-mode #infoPanel-garden { background: linear-gradient(#18221a, #141c15); }
+    body.dark-mode #infoPanel-garden .il-banner { background: linear-gradient(180deg, #1c2e3a, #1f2e1c); }
+    body.dark-mode #infoPanel-garden .il-banner-h { color: #aed581; }
+    body.dark-mode #infoPanel-garden .il-banner-s { color: #c5e1a5; }
+    body.dark-mode .info-list-table.il-garden th { background: #2e4a26; color: #c5e1a5; }
+    body.dark-mode .info-list-table .il-select, body.dark-mode .info-list-table .il-plain-date { background: var(--dm-card); }
     /* Birthdays: party theme, compact table, calendar dates */
     #infoPanel-birthdays { position: relative; border-radius: 12px; padding: 0 14px 14px; margin: 0 -14px;
         background:
@@ -1425,6 +1454,21 @@
     .info-table td.info-del { width: 30px; text-align: center; }
     .info-table .info-x { border: 0; background: none; color: #c0392b; font-size: 16px; font-weight: 700; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
     .info-table .info-x:hover { background: #fbe9e7; }
+    .info-table .info-edit { border: 0; background: none; color: var(--ink-soft); cursor: pointer; padding: 3px 5px; border-radius: 4px; vertical-align: middle; }
+    .info-table .info-edit svg { width: 15px; height: 15px; display: block; }
+    .info-table .info-edit:hover { background: var(--line-soft); color: var(--reve-orange); }
+    .info-table td.info-del { white-space: nowrap; width: 62px; }
+    .info-table td.vault-ro { padding: 9px 10px; font-size: 13px; }
+    .info-table td.vault-ro a { color: var(--reve-orange-dark); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+    .info-table td.info-secret-ro { font-family: var(--mono); letter-spacing: .05em; }
+    .vault-modal { position: fixed; inset: 0; z-index: 1300; background: rgba(0,0,0,.35); align-items: center; justify-content: center; padding: 16px; }
+    .vault-modal-card { background: var(--panel); border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.25); padding: 18px; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 10px; }
+    .vault-modal-h { font-weight: 700; font-size: 15px; }
+    .vault-modal-card label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+    .vault-modal-card input[type="text"], .vault-modal-card input[type="password"] { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 13px; background: var(--panel); color: var(--ink); }
+    .vault-modal-card label.vault-modal-show { flex-direction: row; align-items: center; gap: 6px; font-weight: 500; }
+    .vault-modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+    .vault-modal-foot .btn { flex: none; width: auto; padding: 7px 16px; }
     .info-table .info-empty { text-align: center; color: var(--ink-soft); padding: 18px; font-size: 12.5px; }
     .info-fine { font-size: 11.5px; margin-top: 8px; }
     /* -- Admin › Blueprints -- */
@@ -4048,7 +4092,7 @@
         <div>
             <h1>Admin</h1>
             <div class="tag">Restricted &mdash; MMR, Commissions, PCard, Deposits, Blueprints, INFO</div>
-                <div class="save-note" data-save-keys="mmr-* comm-* pcard-items pay-period-start unit-overrides retail-info info-services info-birthdays" aria-live="polite"></div>
+                <div class="save-note" data-save-keys="mmr-* comm-* pcard-items pay-period-start unit-overrides retail-info info-services info-birthdays info-garden info-maintenance info-inventory" aria-live="polite"></div>
         </div>
     </div>
 
@@ -4639,7 +4683,13 @@
                 <button type="button" class="wl-subtab" data-info-subtab="door">DOOR Accounts</button>
                 <button type="button" class="wl-subtab" data-info-subtab="passwords">Passwords</button>
                 <button type="button" class="wl-subtab" data-info-subtab="birthdays">Birthdays</button>
+                <button type="button" class="wl-subtab" data-info-subtab="garden">Garden Beds</button>
+                <button type="button" class="wl-subtab" data-info-subtab="maintenance">Maintenance</button>
+                <button type="button" class="wl-subtab" data-info-subtab="inventory">Inventory</button>
             </div>
+            <div id="infoPanel-garden" class="info-subpanel" style="display:none;"></div>
+            <div id="infoPanel-maintenance" class="info-subpanel" style="display:none;"></div>
+            <div id="infoPanel-inventory" class="info-subpanel" style="display:none;"></div>
             <div id="infoPanel-services" class="info-subpanel" style="display:none;"></div>
             <div id="infoPanel-birthdays" class="info-subpanel" style="display:none;"></div>
             <div id="infoPanel-units" class="info-subpanel">
@@ -4649,7 +4699,7 @@
             <div class="unit-stats-filter" id="unitStatsFilter"></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
                 <input type="text" id="unitInfoSearch" class="wl-field" placeholder="Search unit #, floorplan, Yardi type or bed/bath&hellip;" style="max-width:320px;flex:1 1 220px;">
-                <button type="button" class="btn" id="unitRentPasteToggle" style="width:auto;padding:7px 12px;">Paste Market Rents</button>
+                <button type="button" class="btn small" id="unitRentPasteToggle" style="flex:none;width:auto;margin-left:auto;padding:5px 10px;font-size:11.5px;">Update Market Rents</button>
             </div>
             <div id="unitRentPasteBox" style="display:none;margin-bottom:10px;">
                 <textarea id="unitRentPasteText" rows="4" style="width:100%;box-sizing:border-box;font-family:var(--sans);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:6px 8px;" placeholder="One unit per line: unit number, then market rent (e.g. 4334  2895) &mdash; paste two columns from a spreadsheet"></textarea>
@@ -9674,11 +9724,20 @@ function makeVault(cfg) {
         <div class="vault-body" style="display:none;">
             <div class="info-bar">
                 <button type="button" class="btn small primary vault-add">+ Add Row</button>
+                ${cfg.search ? '<input type="search" class="wl-field vault-search" placeholder="Search websites, usernames, notes\u2026" style="max-width:240px;padding:6px 10px;">' : ''}
                 <label class="info-show"><input type="checkbox" class="vault-show"> ${escapeHtml(cfg.showLabel)}</label>
                 <span class="empty-note vault-status" style="margin:0;font-weight:600;"></span>
                 <button type="button" class="btn small vault-lockbtn" style="margin-left:auto;">Lock</button>
             </div>
             <div class="info-table-wrap"><table class="info-table vault-table"></table></div>
+            ${cfg.modal ? `<div class="vault-modal" style="display:none;"><div class="vault-modal-card">
+                <div class="vault-modal-h"></div>
+                ${cfg.cols.map(c => c.linkKey
+                    ? `<label>Website Name<input type="text" data-m="${c.k}" placeholder="e.g. BlueMoon" autocomplete="off"></label><label>Link<input type="text" data-m="${c.linkKey}" placeholder="https://\u2026" autocomplete="off"></label>`
+                    : `<label>${escapeHtml(c.mlabel || c.label)}<input type="${c.secret ? 'password' : 'text'}" data-m="${c.k}" autocomplete="off" spellcheck="false"></label>`).join('')}
+                <label class="vault-modal-show"><input type="checkbox" class="vault-modal-showpw"> Show password</label>
+                <div class="vault-modal-foot"><button type="button" class="btn small vault-modal-cancel">Cancel</button><button type="button" class="btn small primary vault-modal-save">Save</button></div>
+            </div></div>` : ''}
             <div class="empty-note info-fine">This table is encrypted in your browser with its passphrase before it is saved or synced, so the shared backend only ever holds scrambled text. Anyone who needs it must be given the passphrase. If the passphrase is lost, the table cannot be recovered.</div>
         </div>`;
     const $ = sel => P.querySelector(sel);
@@ -9801,11 +9860,13 @@ function makeVault(cfg) {
         // Finish a pending save first so the last edit isn't lost.
         while (V.saving) await new Promise(r => setTimeout(r, 100));
         if (V.savePending) { clearTimeout(V.saveTimer); await saveNow(); }
+        if (cfg.modal) closeModal();
         V.key = null; V.rows = null; V.salt = null;
         clearInterval(V.pollTimer); V.pollTimer = null;
         clearTimeout(V.retryTimer); V.failCount = 0;
         tbl.innerHTML = '';
         $('.vault-show').checked = false;
+        if (cfg.search) $('.vault-search').value = '';
         $('.vault-body').style.display = 'none';
         onShow();
     }
@@ -9814,17 +9875,54 @@ function makeVault(cfg) {
         if (tbl.contains(document.activeElement)) { V.pendingRender = true; return; }
         V.pendingRender = false;
         const show = $('.vault-show').checked;
-        const live = V.rows.filter(r => !r.del);
+        let live = V.rows.filter(r => !r.del);
+        // Search looks at every column except the secret ones.
+        const q = cfg.search ? ($('.vault-search').value || '').trim().toLowerCase() : '';
+        if (q) live = live.filter(r => cfg.cols.some(c => !c.secret && [r.c[c.k], c.linkKey && r.c[c.linkKey]].some(v => String(v || '').toLowerCase().includes(q))));
         let h = '<thead><tr>' + cfg.cols.map(c => `<th>${escapeHtml(c.label)}</th>`).join('') + '<th></th></tr></thead><tbody>';
-        if (!live.length) h += `<tr><td class="info-empty" colspan="${cfg.cols.length + 1}">No rows yet — click “+ Add Row”.</td></tr>`;
+        if (!live.length) h += `<tr><td class="info-empty" colspan="${cfg.cols.length + 1}">${q ? 'No matches.' : 'No rows yet \u2014 click \u201c+ Add Row\u201d.'}</td></tr>`;
         for (const r of live) {
-            h += `<tr data-id="${escapeHtml(r.id)}">` + cfg.cols.map(c =>
-                `<td><input type="${c.secret && !show ? 'password' : 'text'}" class="${c.secret ? 'info-secret' : ''}" data-k="${c.k}" value="${escapeHtml((r.c && r.c[c.k]) || '')}" autocomplete="off" spellcheck="false" aria-label="${escapeHtml(c.label)}"></td>`
-            ).join('') + `<td class="info-del"><button type="button" class="info-x" title="Delete row" aria-label="Delete row">&#10005;</button></td></tr>`;
+            const c0 = r.c || {};
+            h += `<tr data-id="${escapeHtml(r.id)}">` + cfg.cols.map(c => {
+                if (!cfg.modal) return `<td><input type="${c.secret && !show ? 'password' : 'text'}" class="${c.secret ? 'info-secret' : ''}" data-k="${c.k}" value="${escapeHtml(c0[c.k] || '')}" autocomplete="off" spellcheck="false" aria-label="${escapeHtml(c.label)}"></td>`;
+                const v = c0[c.k] || '';
+                if (c.linkKey) {
+                    const u = normalizeWebUrl(c0[c.linkKey]);
+                    return `<td class="vault-ro">${u ? `<a href="${escapeAttr(u)}" target="_blank" rel="noopener" title="${escapeAttr(u)}">${escapeHtml(v || u)}</a>` : escapeHtml(v)}</td>`;
+                }
+                if (c.secret) return `<td class="vault-ro info-secret-ro">${v ? (show ? escapeHtml(v) : '\u2022'.repeat(10)) : ''}</td>`;
+                return `<td class="vault-ro">${escapeHtml(v)}</td>`;
+            }).join('') + `<td class="info-del">${cfg.modal ? '<button type="button" class="info-edit" title="Edit row" aria-label="Edit row"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M13.6 3.2l3.2 3.2-9.5 9.5-4 .8.8-4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M11.8 5l3.2 3.2" stroke="currentColor" stroke-width="1.6"/></svg></button>' : ''}<button type="button" class="info-x" title="Delete row" aria-label="Delete row">&#10005;</button></td></tr>`;
         }
         tbl.innerHTML = h + '</tbody>';
     }
+    // Modal tables: adding and editing go through a small form.
+    let modalRow = null;
+    function openModal(r) {
+        modalRow = r ? r.id : null;
+        const m = $('.vault-modal');
+        $('.vault-modal-h').textContent = r ? 'Edit row' : 'Add a website';
+        m.querySelectorAll('[data-m]').forEach(inp => {
+            inp.value = (r && r.c && r.c[inp.dataset.m]) || '';
+            if (cfg.cols.some(c => c.secret && c.k === inp.dataset.m)) inp.type = 'password';
+        });
+        $('.vault-modal-showpw').checked = false;
+        m.style.display = 'flex';
+        m.querySelector('[data-m]').focus();
+    }
+    function closeModal() { $('.vault-modal').style.display = 'none'; modalRow = null; }
+    function saveModal() {
+        const vals = {};
+        $('.vault-modal').querySelectorAll('[data-m]').forEach(inp => { vals[inp.dataset.m] = inp.value.trim(); });
+        if (!Object.values(vals).some(Boolean)) { closeModal(); return; }
+        const now = Date.now();
+        let r = modalRow && V.rows.find(x => x.id === modalRow);
+        if (r) { r.c = Object.assign({}, r.c, vals); r.t = now; }
+        else V.rows.push({ id: now.toString(36) + Math.random().toString(36).slice(2, 8), o: now, t: now, c: vals });
+        closeModal(); render(); queueSave();
+    }
     function addRow(silent) {
+        if (cfg.modal) { if (silent) queueSave(); else openModal(null); return; }
         const now = Date.now();
         V.rows.push({ id: now.toString(36) + Math.random().toString(36).slice(2, 8), o: now, t: now, c: {} });
         render();
@@ -9888,10 +9986,23 @@ function makeVault(cfg) {
     $('.vault-unlock').addEventListener('click', unlock);
     ['.vault-pass', '.vault-pass2'].forEach(s => $(s).addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); }));
     $('.vault-lockbtn').addEventListener('click', lock);
+    if (cfg.search) $('.vault-search').addEventListener('input', () => render());
     $('.vault-add').addEventListener('click', () => addRow(false));
     $('.vault-show').addEventListener('change', e => {
+        if (cfg.modal) { render(); return; }
         tbl.querySelectorAll('input.info-secret').forEach(i => { i.type = e.target.checked ? 'text' : 'password'; });
     });
+    if (cfg.modal) {
+        $('.vault-modal-save').addEventListener('click', saveModal);
+        $('.vault-modal-cancel').addEventListener('click', closeModal);
+        $('.vault-modal').addEventListener('keydown', e => { if (e.key === 'Enter') saveModal(); if (e.key === 'Escape') closeModal(); });
+        $('.vault-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+        $('.vault-modal-showpw').addEventListener('change', e => cfg.cols.filter(c => c.secret).forEach(c => { $(`.vault-modal [data-m="${c.k}"]`).type = e.target.checked ? 'text' : 'password'; }));
+        tbl.addEventListener('click', e => {
+            const b = e.target.closest('.info-edit'); if (!b) return;
+            const r = V.rows.find(y => y.id === b.closest('tr').dataset.id); if (r) openModal(r);
+        });
+    }
     tbl.addEventListener('input', e => {
         const inp = e.target.closest('input[data-k]'); if (!inp) return;
         const r = V.rows.find(x => x.id === inp.closest('tr').dataset.id); if (!r) return;
@@ -9930,12 +10041,12 @@ makeVault({
 });
 makeVault({
     id: 'passwords', title: 'Passwords', localKey: 'reve-info-passwords-enc', backendKey: 'info-passwords',
-    showLabel: 'Show passwords', otherVaults: 'DOOR Accounts',
+    showLabel: 'Show passwords', otherVaults: 'DOOR Accounts', modal: true, search: true,
     cols: [
-        { k: 'website', label: 'WEBSITE' },
-        { k: 'username', label: 'USERNAME' },
-        { k: 'password', label: 'PASSWORD', secret: true },
-        { k: 'other', label: 'OTHER' }
+        { k: 'website', label: 'WEBSITE', linkKey: 'link' },
+        { k: 'username', label: 'USERNAME', mlabel: 'Username' },
+        { k: 'password', label: 'PASSWORD', secret: true, mlabel: 'Password' },
+        { k: 'other', label: 'OTHER', mlabel: 'Other' }
     ],
     rowName: c => c.website || c.username
 });
@@ -9948,7 +10059,7 @@ document.querySelectorAll('#infoSubtabs .wl-subtab').forEach(btn => btn.addEvent
     infoOnShow();
 }));
 function infoOnShow() {
-    ['units', 'retail', 'services', 'door', 'passwords', 'birthdays'].forEach(n => { document.getElementById('infoPanel-' + n).style.display = n === infoSubTab ? '' : 'none'; });
+    ['units', 'retail', 'services', 'door', 'passwords', 'birthdays', 'garden', 'maintenance', 'inventory'].forEach(n => { document.getElementById('infoPanel-' + n).style.display = n === infoSubTab ? '' : 'none'; });
     if (infoSubTab === 'units') { renderUnitStats(); renderUnitInfoTable(); }
     else if (infoSubTab === 'retail') renderRetailInfoTable();
     else if (INFO_LISTS[infoSubTab]) INFO_LISTS[infoSubTab].render();
@@ -16636,7 +16747,7 @@ function renderUnitStats() {
     const rent = unitStatsBins(rentVals, 2250, 250);
     groups.push(withRent.length
         ? { title: 'Market Rent', note: withRent.length < UNITS.length ? `${withRent.length} of ${UNITS.length} units have a market rent` : '', rows: rent.map(b => ({ id: 'rent:' + b.lo, label: `$${b.lo.toLocaleString()} – $${b.hi.toLocaleString()}`, units: b.units })) }
-        : { title: 'Market Rent', note: 'Reference counts — add Market Rent to units (column or Paste Market Rents) to make these live', rows: UNIT_RENT_REFERENCE.map(([lo, n]) => ({ label: `$${lo.toLocaleString()} – $${(lo + 249).toLocaleString()}`, count: n })) });
+        : { title: 'Market Rent', note: 'Reference counts — add Market Rent to units (column or Update Market Rents) to make these live', rows: UNIT_RENT_REFERENCE.map(([lo, n]) => ({ label: `$${lo.toLocaleString()} – $${(lo + 249).toLocaleString()}`, count: n })) });
     // Yardi Type
     const yt = {};
     UNITS.forEach(u => { const k = `${u.yardi || '—'}|${u.floorplan || ''} (${u.sqft || ''})`; (yt[k] = yt[k] || []).push(u.unit); });
@@ -17000,7 +17111,18 @@ function makeInfoList(cfg) {
     const L = { cfg, rows: [] };
     const fk = cfg.fields.map(f => f.k);
     try { const v = JSON.parse(localStorage.getItem(cfg.localKey) || 'null'); if (v && Array.isArray(v.rows)) L.rows = v.rows; } catch (e) {}
-    const live = () => L.rows.filter(r => !r.del);
+    // Fixed rows (Garden beds, one Maintenance row per unit) exist without
+    // being stored; a row is saved only once something in it is edited.
+    const seeds = () => (cfg.fixedRows ? cfg.fixedRows() : []);
+    const live = () => {
+        const have = new Set(L.rows.map(r => r.id));
+        return L.rows.filter(r => !r.del).concat(seeds().filter(x => !have.has(x.id)).map(x => ({ id: x.id, o: x.o, t: 0, c: Object.assign({}, x.c) })));
+    };
+    const rowById = id => {
+        let r = L.rows.find(x => x.id === id);
+        if (!r) { const sd = seeds().find(x => x.id === id); if (sd) { r = { id: sd.id, o: sd.o, t: 0, c: Object.assign({}, sd.c) }; L.rows.push(r); } }
+        return r;
+    };
     const persist = () => { try { localStorage.setItem(cfg.localKey, JSON.stringify({ rows: L.rows })); } catch (e) {} };
     let seq = 0; // keeps rows added in the same instant (a paste) in their order
     const newRow = c => { const now = Date.now(); return { id: now.toString(36) + Math.random().toString(36).slice(2, 7), o: now + (++seq % 1000) / 1000, t: now, c: c || {} }; };
@@ -17011,15 +17133,16 @@ function makeInfoList(cfg) {
     function build() {
         built = true;
         panel().innerHTML = `${cfg.banner ? '<div class="il-banner"></div>' : ''}<p class="empty-note" style="font-size:12.5px;margin-top:0;">${cfg.intro}</p>
+            ${cfg.search ? `<input type="text" class="wl-field il-search" data-il="search" placeholder="${escapeAttr(cfg.searchPh || 'Search\u2026')}" style="max-width:280px;margin-bottom:8px;">` : ''}
             <div class="mmr-table-wrap${cfg.tableClass ? ' ' + cfg.tableClass + '-wrap' : ''}" style="max-height:560px;overflow-y:auto;">
                 <table class="mmr-table retail-info-table info-list-table${cfg.tableClass ? ' ' + cfg.tableClass : ''}">
-                    <thead><tr>${cfg.fields.map(f => `<th>${escapeHtml(f.label)}</th>`).join('')}<th></th></tr></thead>
+                    <thead><tr>${cfg.fields.map(f => `<th>${escapeHtml(f.label)}</th>`).join('')}${cfg.noRemove ? '' : '<th></th>'}</tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-                <button type="button" class="btn" data-il="add" style="width:auto;flex:none;padding:7px 14px;">+ ${escapeHtml(cfg.addLabel)}</button>
-                <button type="button" class="btn" data-il="paste" style="width:auto;flex:none;padding:7px 14px;">Paste from Spreadsheet</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;${cfg.noAdd && cfg.noPaste ? 'display:none;' : ''}">
+                <button type="button" class="btn" data-il="add" style="width:auto;flex:none;padding:7px 14px;${cfg.noAdd ? 'display:none;' : ''}">+ ${escapeHtml(cfg.addLabel || '')}</button>
+                <button type="button" class="btn" data-il="paste" style="width:auto;flex:none;padding:7px 14px;${cfg.noPaste ? 'display:none;' : ''}">Paste from Spreadsheet</button>
             </div>
             <div data-il="pastebox" style="display:none;margin-top:10px;">
                 <p class="empty-note" style="font-size:12px;margin:0 0 6px;">Copy the rows from your spreadsheet (including the header row) and paste them here. Blank rows are skipped, &ldquo;--&rdquo; counts as blank, and a row matching an existing ${escapeHtml(cfg.matchLabel)} updates it instead of adding a duplicate.</p>
@@ -17032,13 +17155,19 @@ function makeInfoList(cfg) {
         const p = panel(), tbody = p.querySelector('tbody');
         tbody.addEventListener('input', e => {
             const el = e.target.closest('[data-il-f]'); if (!el || el.classList.contains('il-date-in')) return;
-            const r = L.rows.find(x => x.id === el.closest('tr').dataset.id); if (!r) return;
+            const r = rowById(el.closest('tr').dataset.id); if (!r) return;
+            if (r.c[el.dataset.ilF] === el.value) return;
             r.c = Object.assign({}, r.c, { [el.dataset.ilF]: el.value }); r.t = Date.now();
             const a = el.parentElement.querySelector('.il-open');
             if (a) { const u = normalizeWebUrl(el.value); a.href = u || '#'; a.style.display = u ? '' : 'none'; }
             changed();
+            if (cfg.banner && !cfg.mark) { const rows = cfg.sort ? cfg.sort(live()) : live(); p.querySelector('.il-banner').innerHTML = cfg.banner(rows, {}); }
         });
+        // Selects and date fields: treat "change" like typing (the input handler skips repeats).
+        tbody.addEventListener('change', e => { if (e.target.matches('select[data-il-f], input.il-plain-date')) e.target.dispatchEvent(new Event('input', { bubbles: true })); });
         tbody.addEventListener('focusout', () => setTimeout(() => { if (L.pendingRender && !tbody.contains(document.activeElement)) render(); }, 0));
+        const srch = p.querySelector('[data-il="search"]');
+        if (srch) srch.addEventListener('input', () => render());
         // Date cells: show the date as text; clicking opens the browser's calendar.
         tbody.addEventListener('click', e => {
             const b = e.target.closest('[data-il-date]'); if (!b) return;
@@ -17047,7 +17176,7 @@ function makeInfoList(cfg) {
         });
         tbody.addEventListener('change', e => {
             const inp = e.target.closest('.il-date-in'); if (!inp || !inp.value) return;
-            const r = L.rows.find(x => x.id === inp.closest('tr').dataset.id); if (!r) return;
+            const r = rowById(inp.closest('tr').dataset.id); if (!r) return;
             r.c = Object.assign({}, r.c, { [inp.dataset.ilF]: ilFmtMonthDay(inp.value) }); r.t = Date.now();
             inp.blur(); changed(); render();
         });
@@ -17078,10 +17207,15 @@ function makeInfoList(cfg) {
         L.pendingRender = false;
         let rows = live();
         if (cfg.sort) rows = cfg.sort(rows);
+        const q = cfg.search ? (panel().querySelector('[data-il="search"]').value || '').trim().toLowerCase() : '';
+        if (q) rows = rows.filter(r => cfg.search(r, q));
         const mark = cfg.mark ? cfg.mark(rows) : {};
         if (cfg.banner) panel().querySelector('.il-banner').innerHTML = cfg.banner(rows, mark);
         tbody.innerHTML = rows.length ? rows.map(r => `<tr data-id="${escapeAttr(r.id)}"${mark[r.id] ? ' class="il-next"' : ''}>${cfg.fields.map((f, i) => {
             const v = (r.c && r.c[f.k]) || '';
+            if (f.ro) return `<td class="il-ro">${f.ro(r)}</td>`;
+            if (f.options) return `<td><select data-il-f="${f.k}" class="il-select"><option value=""></option>${f.options.concat(v && !f.options.includes(v) ? [v] : []).map(o => `<option${o === v ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('')}</select></td>`;
+            if (f.dateInput) return `<td><input type="date" class="il-plain-date" data-il-f="${f.k}" value="${escapeAttr(v)}" aria-label="${escapeAttr(f.label)}"></td>`;
             if (f.date) {
                 const doy = ilDayOfYear(v);
                 return `<td class="il-date-cell"><button type="button" class="il-date" data-il-date title="Click to pick a date">${escapeHtml(v || 'Pick a date')}</button><input type="date" class="il-date-in" data-il-f="${f.k}" value="${doy ? ilIsoForDay(doy) : ''}" tabindex="-1" aria-label="${escapeAttr(f.label)}">${mark[r.id] ? `<span class="il-tag">${escapeHtml(mark[r.id])}</span>` : ''}</td>`;
@@ -17089,7 +17223,7 @@ function makeInfoList(cfg) {
             if (f.icon) return `<td><div class="il-iconcell">${f.icon}<textarea rows="1" data-il-f="${f.k}" style="min-width:${f.w || 110}px;">${escapeHtml(v)}</textarea></div></td>`;
             const u = f.link ? normalizeWebUrl(v) : '';
             return `<td${f.link ? ' class="il-link-cell"' : ''}><textarea rows="1" data-il-f="${f.k}"${f.ph ? ` placeholder="${escapeAttr(f.ph)}"` : ''} style="min-width:${f.w || 110}px;${i === 0 ? 'font-weight:700;' : ''}">${escapeHtml(v)}</textarea>${f.link ? `<a class="il-open" href="${escapeAttr(u || '#')}" target="_blank" rel="noopener" title="Open website" style="${u ? '' : 'display:none;'}">&#8599;</a>` : ''}${i === 0 && mark[r.id] ? `<span class="il-tag">${escapeHtml(mark[r.id])}</span>` : ''}</td>`;
-        }).join('')}<td class="mmr-remove-cell"><button type="button" class="wl-remove" data-il-remove title="Remove">&times;</button></td></tr>`).join('')
+        }).join('')}${cfg.noRemove ? '' : '<td class="mmr-remove-cell"><button type="button" class="wl-remove" data-il-remove title="Remove">&times;</button></td>'}</tr>`).join('')
             : `<tr><td colspan="${cfg.fields.length + 1}" class="empty-note" style="text-align:center;padding:16px;">Nothing here yet — click “+ ${escapeHtml(cfg.addLabel)}” or “Paste from Spreadsheet”.</td></tr>`;
     }
     function importPaste(text) {
@@ -17108,7 +17242,8 @@ function makeInfoList(cfg) {
             cols.forEach((f, i) => { const v = clean(r[i]); if (f && v) rec[f] = v; });
             if (!Object.keys(rec).length) return;
             const k = cfg.matchKey(rec);
-            const target = k && live().find(x => cfg.matchKey(x.c) === k);
+            const found = k && live().find(x => cfg.matchKey(x.c) === k);
+            const target = found && rowById(found.id);
             if (target) { target.c = Object.assign({}, target.c, rec); target.t = Date.now(); updated++; }
             else { L.rows.push(newRow(rec)); added++; }
         });
@@ -17186,7 +17321,64 @@ makeInfoList({
             <svg class="il-balloons" viewBox="0 0 64 80" aria-hidden="true"><path d="M20 44c3 8-4 14 0 22M44 40c-2 9 5 15 1 24" stroke="#b8a99a" fill="none"/><ellipse cx="20" cy="26" rx="13" ry="16" fill="#f472b6"/><ellipse cx="44" cy="22" rx="12" ry="15" fill="#60a5fa"/><path d="M18 42l2 3 2-3zM42 37l2 3 2-3z" fill="#9a8a7a"/><ellipse cx="15" cy="19" rx="3" ry="5" fill="#fff" opacity=".45"/><ellipse cx="40" cy="15" rx="3" ry="4.5" fill="#fff" opacity=".45"/></svg>
             <div class="il-banner-body">${IL_CAKE_SVG.replace('class="il-cake"', 'class="il-cake il-cake-big"')}<div><div class="il-banner-h">${headline}</div><div class="il-banner-s">${sub}</div></div></div>`;
     }
+});const IL_SPROUT_SVG = '<svg class="il-sprout" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V11" stroke="#4d7c3a" stroke-width="1.8" stroke-linecap="round"/><path d="M12 12C12 7.5 8.5 5 4 5c0 4.5 3.5 7 8 7z" fill="#7cb342"/><path d="M12 10.5c0-3.8 3-6 7-6 0 3.8-3 6-7 6z" fill="#9ccc65"/><path d="M5 21h14l-1.4-4.2H6.4z" fill="#a1683a"/><path d="M5.6 17h12.8" stroke="#7a4a26" stroke-width="1.2"/></svg>';
+makeInfoList({
+    id: 'garden', key: 'info-garden', localKey: 'reve-info-garden', tableClass: 'il-garden',
+    intro: 'Who has each of the 10 community garden beds. Type a resident&rsquo;s name and unit; it saves automatically and is shared with everyone who can open Admin.',
+    noAdd: true, noRemove: true, noPaste: true,
+    fixedRows: () => Array.from({ length: 10 }, (_, i) => ({ id: 'bed' + (i + 1), o: i + 1, c: { bed: String(i + 1) } })),
+    fields: [
+        { k: 'bed', label: 'Bed #', ro: r => `<span class="il-bed">${IL_SPROUT_SVG}<b>${escapeHtml(r.c.bed || '')}</b></span>` },
+        { k: 'name', label: 'Name', w: 190 },
+        { k: 'unit', label: 'Unit', w: 70 }
+    ],
+    headerMap: {}, matchKey: c => c.bed, rowName: c => 'Bed ' + c.bed,
+    sort: rows => rows.slice().sort((a, b) => (a.o || 0) - (b.o || 0)),
+    banner: rows => {
+        const taken = rows.filter(r => (r.c.name || '').trim() || (r.c.unit || '').trim()).length;
+        return `<svg class="il-sun" viewBox="0 0 60 60" aria-hidden="true"><g stroke="#f6b100" stroke-width="3" stroke-linecap="round">${Array.from({ length: 12 }, (_, i) => { const a = i * Math.PI / 6; return `<line x1="${30 + 18 * Math.cos(a)}" y1="${30 + 18 * Math.sin(a)}" x2="${30 + 25 * Math.cos(a)}" y2="${30 + 25 * Math.sin(a)}"/>`; }).join('')}</g><circle cx="30" cy="30" r="13" fill="#ffd54f"/></svg>
+            <svg class="il-can" viewBox="0 0 64 48" aria-hidden="true"><path d="M14 18h26l-3 24H17z" fill="#5c9ead"/><path d="M40 22l17-10 2 3-16 13z" fill="#5c9ead"/><path d="M18 18c0-9 18-9 18 0" stroke="#3f7f8c" stroke-width="3" fill="none"/><circle cx="59" cy="12" r="2.4" fill="#3f7f8c"/><path d="M61 16l2 4M57 17l-1 4M60 18l0 5" stroke="#8fd3e8" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <div class="il-banner-body">${IL_SPROUT_SVG.replace('class="il-sprout"', 'class="il-sprout il-sprout-big"')}<div><div class="il-banner-h">Community Garden</div><div class="il-banner-s">${taken} of 10 beds assigned &middot; ${10 - taken} open</div></div></div>
+            <div class="il-garden-row" aria-hidden="true"></div>`;
+    }
 });
+const MAINT_FILTERS = ['18x20x1', '10x30x1', '10x24x1', '10x24x9'];
+makeInfoList({
+    id: 'maintenance', key: 'info-maintenance', localKey: 'reve-info-maintenance', tableClass: 'il-maint',
+    intro: 'Every unit from Unit Info, with its Yardi type and bed/bath filled in automatically. Pick each unit&rsquo;s filter sizes and the date; changes save automatically and are shared.',
+    noAdd: true, noRemove: true, noPaste: true,
+    search: (r, q) => { const u = byUnit[r.c.unit] || {}; return [r.c.unit, u.yardi, u.bedBath, r.c.f1, r.c.f2, r.c.f3, r.c.date].some(v => String(v || '').toLowerCase().includes(q)); },
+    searchPh: 'Search unit, Yardi, bed/bath or filter…',
+    fixedRows: () => UNITS.map((u, i) => ({ id: 'u' + u.unit, o: i + 1, c: { unit: u.unit } })),
+    fields: [
+        { k: 'unit', label: 'Unit #', ro: r => `<b>${escapeHtml(r.c.unit || '')}</b>` },
+        { k: 'yardi', label: 'Yardi', ro: r => escapeHtml((byUnit[r.c.unit] || {}).yardi || '') },
+        { k: 'bedBath', label: 'Bed/Bath', ro: r => escapeHtml((byUnit[r.c.unit] || {}).bedBath || '') },
+        { k: 'f1', label: 'Filter 1', options: MAINT_FILTERS },
+        { k: 'f2', label: 'Filter 2', options: MAINT_FILTERS },
+        { k: 'f3', label: 'Filter 3', options: MAINT_FILTERS },
+        { k: 'date', label: 'Date', dateInput: true }
+    ],
+    headerMap: {}, matchKey: c => c.unit, rowName: c => c.unit,
+    sort: rows => rows.slice().sort((a, b) => (a.o || 0) - (b.o || 0))
+});
+makeInfoList({
+    id: 'inventory', key: 'info-inventory', localKey: 'reve-info-inventory', tableClass: 'il-inv',
+    intro: 'Building supplies and equipment &mdash; where each item is kept, what it cost and where it was bought. Saves automatically and is shared with everyone who can open Admin.',
+    addLabel: 'Add Item', matchLabel: 'Building + Location + Item',
+    fields: [
+        { k: 'building', label: 'Building', w: 90 },
+        { k: 'location', label: 'Location', w: 150 },
+        { k: 'item', label: 'Item', w: 210 },
+        { k: 'price', label: 'Price w/o Tax', w: 100 },
+        { k: 'source', label: 'Source', w: 170 }
+    ],
+    headerMap: { building: 'building', bldg: 'building', location: 'location', item: 'item', 'price w/o tax': 'price', price: 'price', source: 'source' },
+    matchKey: c => ['building', 'location', 'item'].map(k => String(c[k] || '').trim().toLowerCase()).join('|'),
+    rowName: c => c.item,
+    sort: rows => rows.slice().sort((a, b) => (a.o || 0) - (b.o || 0))
+});
+
 
 
 /* ============================================================
