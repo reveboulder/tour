@@ -1900,6 +1900,11 @@
     .et-editor { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
     .et-editor textarea { width: 100%; box-sizing: border-box; font: 13px/1.45 Consolas, 'Courier New', monospace; padding: 10px; border: 1px solid var(--line); border-radius: 6px; resize: vertical; }
     .et-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .et-attach { display: flex; flex-direction: column; gap: 6px; }
+    .et-attach-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .et-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--line-soft); border: 1px solid var(--line); border-radius: 14px; padding: 3px 4px 3px 10px; font-size: 12px; color: var(--ink); max-width: 320px; }
+    .et-chip button { border: 0; background: none; color: #c0392b; font-size: 15px; line-height: 1; cursor: pointer; padding: 0 4px; }
+    #etAttachPick { align-self: flex-start; max-width: 360px; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 12.5px; background: var(--panel); color: var(--ink); }
     body.dark-mode .et-list, body.dark-mode .et-editor textarea { background: var(--dm-card-alt); color: inherit; }
     body.dark-mode .et-row.active { background: rgba(232,119,34,0.18); }
     @media (max-width: 760px) { .et-panel { flex-direction: column; } .et-side { width: 100%; } }
@@ -4935,6 +4940,12 @@
             <label class="docs-edit-field">Subject<input type="text" id="etSubject" autocomplete="off"></label>
             <label class="docs-edit-field">Message<textarea id="etBody" rows="22" spellcheck="true"></textarea></label>
             <div class="empty-note" style="margin:2px 0 0;">Plain text (email drafts can&rsquo;t carry formatting). <b>{name}</b> and <b>{unit}</b> are filled in with the resident&rsquo;s name and apartment when a draft is created.</div>
+            <div class="docs-edit-field et-attach">
+                <span>Attachments</span>
+                <div class="et-attach-list" id="etAttachList"></div>
+                <select id="etAttachPick"><option value="">+ Attach a document&hellip;</option></select>
+                <div class="empty-note" style="margin:2px 0 0;">With attachments, &ldquo;Create Email Draft&rdquo; downloads the draft as an email file (.eml) with the documents attached &mdash; open it and it appears in Outlook ready to send.</div>
+            </div>
             <div class="et-actions">
                 <button type="button" class="btn primary" id="etSave" style="width:auto;flex:none;padding:8px 16px;">Save</button>
                 <button type="button" class="btn" id="etDraft" style="width:auto;flex:none;padding:8px 16px;">Open as email draft</button>
@@ -15838,11 +15849,13 @@ function renderEmailTemplates() {
     document.getElementById('etSubject').value = t.subject || '';
     document.getElementById('etBody').value = t.body || '';
     document.getElementById('etSlot').innerHTML = '<option value="">Not linked</option>' + ET_SLOTS.map(x => `<option value="${x.id}"${t.slot === x.id ? ' selected' : ''}>${escapeHtml(x.label)}</option>`).join('');
+    etAttach = (t.attachments || []).slice();
+    etRenderAttach();
     document.getElementById('etDelete').textContent = t.builtIn ? 'Reset to original' : 'Delete';
     document.getElementById('etDelete').style.display = t.builtIn && !(ET_STORE[t.id] && !ET_STORE[t.id].deleted) ? 'none' : '';
 }
 function etEditorValues() {
-    return { name: document.getElementById('etName').value.trim() || 'Untitled', subject: document.getElementById('etSubject').value, body: document.getElementById('etBody').value.replace(/\r\n/g, '\n'), slot: document.getElementById('etSlot').value };
+    return { name: document.getElementById('etName').value.trim() || 'Untitled', subject: document.getElementById('etSubject').value, body: document.getElementById('etBody').value.replace(/\r\n/g, '\n'), slot: document.getElementById('etSlot').value, attachments: etAttach.slice() };
 }
 function etSaveCurrent() {
     const t = etTemplates().find(x => x.id === etSelected);
@@ -15855,15 +15868,103 @@ function etSaveCurrent() {
     const st = document.getElementById('etStatus');
     if (st && !(BACKEND_URL && APP_MODE !== 'test')) st.textContent = 'Saved on this device.';
 }
-function etOpenDraft(to, t, vars) {
+/* ---------- Template attachments ----------
+   A template can carry documents from the app (any Documents section or
+   Floorplans). mailto: links can't carry files, so a draft with
+   attachments is saved as an .eml file marked "unsent" (X-Unsent: 1):
+   opening it shows it in Outlook as a new draft, addressed, with the
+   subject, message and attachments, ready to send.
+   Refs: "doc:<section>|<doc key>" for Documents, "fp:<file>" or
+   "up:<id>" for Floorplans (same refs as Unit Info's Tour Floorplan). */
+let etAttach = [];
+function etRenderAttach() {
+    document.getElementById('etAttachList').innerHTML = etAttach.map(a =>
+        `<span class="et-chip" title="${escapeAttr(a.title)}">📎 ${escapeHtml(a.title)}<button type="button" data-et-rm="${escapeAttr(a.ref)}" title="Remove attachment" aria-label="Remove attachment">&times;</button></span>`).join('')
+        || '<span class="empty-note" style="margin:0;">None</span>';
+}
+function etFillAttachPicker() {
+    const sel = document.getElementById('etAttachPick');
+    if (typeof FP_FILES !== 'undefined' && !FP_FILES && typeof fpLoadList === 'function' && fpLoadState !== 'loading') fpLoadList().then(() => { sel.dataset.filled = ''; });
+    if (sel.dataset.filled === '1') return;
+    const groups = DOC_SECTIONS.map(sec => ({ label: sec.label, items: docsForSection(sec.id, false).map(d => ({ ref: `doc:${sec.id}|${d.key}`, title: d.title || d.filename })) }));
+    if (typeof fpAllFiles === 'function') groups.push({ label: 'Floorplans', items: fpAllFiles().map(f => ({ ref: f.upload ? f.name : 'fp:' + f.name, title: fpEffectiveName(f).replace(/\.[^.]+$/, '') })).sort((a, b) => a.title.localeCompare(b.title)) });
+    sel.innerHTML = '<option value="">+ Attach a document…</option>' + groups.filter(g => g.items.length).map(g =>
+        `<optgroup label="${escapeAttr(g.label)}">${g.items.map(x => `<option value="${escapeAttr(x.ref)}">${escapeHtml(x.title)}</option>`).join('')}</optgroup>`).join('');
+    sel.dataset.filled = '1';
+    setTimeout(() => { sel.dataset.filled = ''; }, 30000);
+}
+// -> { name, blob } or null
+async function etAttachResolve(a) {
+    let url = null, name = '';
+    if (a.ref.startsWith('doc:')) {
+        const [sec, key] = a.ref.slice(4).split('|');
+        const d = docsForSection(sec, true).find(x => x.key === key);
+        if (!d) return null;
+        url = await docsUrlFor(d);
+        name = d.filename || d.title || 'document.pdf';
+    } else {
+        const f = tourFpFile(a.ref);
+        if (!f) return null;
+        url = f.upload ? await docsUrlFor({ uploadId: f.upload.id, fileId: f.upload.fileId, mime: f.upload.mime }) : fpUrl(f.name);
+        name = fpEffectiveName(f);
+    }
+    if (!url) return null;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return { name, blob: await res.blob() };
+}
+function etB64Lines(b64) { return b64.replace(/.{1,76}/g, '$&\r\n'); }
+function etMimeWord(s) { return /^[\x20-\x7e]*$/.test(s) ? s : '=?UTF-8?B?' + btoa(unescape(encodeURIComponent(s))) + '?='; }
+async function etBlobB64(blob) {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+}
+function etMimeType(name, blob) {
+    if (blob.type && blob.type !== 'application/octet-stream') return blob.type;
+    const ext = docsExt(name);
+    return { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' }[ext] || 'application/octet-stream';
+}
+async function etOpenDraft(to, t, vars) {
+    const subject = etFill(t.subject, vars);
     const body = etFill(t.body, vars).replace(/\r?\n/g, '\r\n');
-    try { if (navigator.clipboard) navigator.clipboard.writeText(body).catch(() => {}); } catch (e) {}
+    const atts = t.attachments || [];
+    if (!atts.length) {
+        try { if (navigator.clipboard) navigator.clipboard.writeText(body).catch(() => {}); } catch (e) {}
+        const a = document.createElement('a');
+        // Keep '@' literal: some Outlook versions show an encoded %40 as-is.
+        a.href = `mailto:${(to || []).map(e => encodeURIComponent(e).replace(/%40/g, '@')).join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+    }
+    const files = [], missing = [];
+    for (const a of atts) {
+        try { const f = await etAttachResolve(a); if (f) files.push(f); else missing.push(a.title); }
+        catch (err) { console.error(err); missing.push(a.title); }
+    }
+    if (missing.length && !confirm(`Couldn’t load ${missing.length === 1 ? 'this attachment' : 'these attachments'}:\n• ${missing.join('\n• ')}\n\nCreate the draft without ${missing.length === 1 ? 'it' : 'them'}?`)) return;
+    const boundary = '----=_REVE_' + Date.now().toString(36);
+    let eml = (to && to.length ? `To: ${to.join(', ')}\r\n` : '')
+        + `Subject: ${etMimeWord(subject)}\r\nX-Unsent: 1\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`
+        + `--${boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n`
+        + etB64Lines(btoa(unescape(encodeURIComponent(body))));
+    for (const f of files) {
+        const fname = etMimeWord(f.name.replace(/"/g, ''));
+        eml += `--${boundary}\r\nContent-Type: ${etMimeType(f.name, f.blob)}; name="${fname}"\r\nContent-Disposition: attachment; filename="${fname}"\r\nContent-Transfer-Encoding: base64\r\n\r\n`
+            + etB64Lines(await etBlobB64(f.blob));
+    }
+    eml += `--${boundary}--\r\n`;
     const a = document.createElement('a');
-    // Keep '@' literal: some Outlook versions show an encoded %40 as-is.
-    a.href = `mailto:${(to || []).map(e => encodeURIComponent(e).replace(/%40/g, '@')).join(',')}?subject=${encodeURIComponent(etFill(t.subject, vars))}&body=${encodeURIComponent(body)}`;
+    a.href = URL.createObjectURL(new Blob([eml], { type: 'message/rfc822' }));
+    a.download = (subject || 'Email draft').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) + '.eml';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    alert(`Your email draft was downloaded (${a.download}) with ${files.length} attachment${files.length === 1 ? '' : 's'}.\n\nOpen the downloaded file — it opens in Outlook as a new message, ready to review and send.`);
 }
 (function etWire() {
     document.getElementById('etList').addEventListener('click', e => {
@@ -15880,6 +15981,19 @@ function etOpenDraft(to, t, vars) {
         document.getElementById('etName').select();
     });
     document.getElementById('etSave').addEventListener('click', etSaveCurrent);
+    document.getElementById('etAttachPick').addEventListener('focus', etFillAttachPicker);
+    document.getElementById('etAttachPick').addEventListener('mousedown', etFillAttachPicker);
+    document.getElementById('etAttachPick').addEventListener('change', e => {
+        const ref = e.target.value; if (!ref) return;
+        if (!etAttach.some(a => a.ref === ref)) etAttach.push({ ref, title: e.target.selectedOptions[0].textContent });
+        e.target.value = '';
+        etSaveCurrent();
+    });
+    document.getElementById('etAttachList').addEventListener('click', e => {
+        const b = e.target.closest('[data-et-rm]'); if (!b) return;
+        etAttach = etAttach.filter(a => a.ref !== b.dataset.etRm);
+        etSaveCurrent();
+    });
     document.getElementById('etCopy').addEventListener('click', () => {
         const v = etEditorValues();
         try { navigator.clipboard.writeText(v.body.replace(/\n/g, '\r\n')); document.getElementById('etStatus').textContent = 'Body copied to the clipboard.'; } catch (e) {}
@@ -15911,7 +16025,7 @@ function wlCreateEmailDraft() {
     if (bad.length) { alert(`That doesn't look like a valid email address: ${bad.join(', ')}`); return; }
     wlCommit('residentEmail', emails.join(', '));
     // The template linked to this button in Documents › Email Templates.
-    const t = etFor('wl') || { subject: 'Welcome to REVE Boulder \u2014 Apt {unit}', body: '' };
+    const t = etFor('wl') || { subject: 'Welcome to REVE Boulder \u2014 Apt {unit}', body: '', attachments: [] };
     etOpenDraft(emails, t, { name: (resident && String(resident.first || '').trim()) || who, unit });
 }
 [...document.querySelectorAll('.wl-email-btn')].forEach(btn => btn.addEventListener('click', wlCreateEmailDraft));
