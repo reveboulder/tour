@@ -9519,9 +9519,13 @@ async function doorUnlock() {
     doorStartPoll();
 }
 
-function doorLock() {
+async function doorLock() {
+    // Finish a pending save first so the last edit isn't lost.
+    while (doorSaving) await new Promise(r => setTimeout(r, 100));
+    if (doorSavePending) { clearTimeout(doorSaveTimer); await doorSaveNow(); }
     DOOR_KEY = null; DOOR_ROWS = null; DOOR_SALT = null;
     clearInterval(doorPollTimer); doorPollTimer = null;
+    clearTimeout(doorRetryTimer); doorFailCount = 0;
     document.getElementById('doorTable').innerHTML = '';
     document.getElementById('doorShow').checked = false;
     document.getElementById('doorBody').style.display = 'none';
@@ -9559,24 +9563,57 @@ function doorQueueSave() {
     doorStatus('Saving…');
     doorSaveTimer = setTimeout(doorSaveNow, 700);
 }
+// Send the encrypted table, then READ IT BACK: the Apps Script can answer
+// OK without saving, or save but fail to answer (a busy script often
+// returns an error page the browser blocks), so only the read-back
+// decides. Failures retry with growing waits (5 s → 2 min) until synced.
+let doorRetryTimer = null, doorFailCount = 0;
+async function doorPushVerified(env) {
+    let detail = '';
+    if (BACKEND_URL && JSON.stringify(env).length <= BACKEND_CHUNK_CHARS) {
+        try {
+            const res = await fetch(BACKEND_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key: DOOR_BACKEND_KEY, value: env }) });
+            if (!res.ok) detail = 'the backend answered HTTP ' + res.status;
+        } catch (e) { detail = 'the request was blocked or dropped (' + (e && e.message || 'network error') + ')'; }
+    } else if (!(await backendPush(DOOR_BACKEND_KEY, env))) detail = 'the upload did not complete';
+    for (let i = 0; i < 2; i++) {
+        const back = await backendPullChecked(DOOR_BACKEND_KEY);
+        if (back && back.ct === env.ct) return { ok: true };
+        if (back === undefined) detail = detail || 'couldn\u2019t read the backend back';
+        else detail = detail || 'the backend didn\u2019t keep the save';
+        await new Promise(r => setTimeout(r, 1500));
+    }
+    return { ok: false, detail };
+}
+function doorScheduleRetry(detail) {
+    doorFailCount++;
+    const wait = Math.min(120, 5 * Math.pow(2, doorFailCount - 1));
+    clearTimeout(doorRetryTimer);
+    doorRetryTimer = setTimeout(doorQueueSave, wait * 1000);
+    const el = document.getElementById('doorStatus');
+    el.innerHTML = `Saved on this device \u2014 not synced yet (${escapeHtml(detail)}). Retrying in ${wait}s. <button type="button" class="btn small" id="doorRetryNow">Retry now</button>`;
+    el.style.color = '#c0392b';
+    el.querySelector('#doorRetryNow').onclick = () => { clearTimeout(doorRetryTimer); doorQueueSave(); };
+    console.warn('DOOR Accounts sync failed:', detail);
+}
 async function doorSaveNow() {
     if (!DOOR_KEY) return;
     if (doorSaving) { doorQueueSave(); return; }
     doorSaving = true; doorSavePending = false;
+    clearTimeout(doorRetryTimer);
     try {
         if (doorBackendOn()) {
             const remote = await backendPullChecked(DOOR_BACKEND_KEY);
-            if (remote === undefined) { await doorWriteLocal(); doorStatus('Saved on this device — couldn’t reach the backend, will retry.', true); setTimeout(doorQueueSave, 15000); return; }
+            if (remote === undefined) { await doorWriteLocal(); doorScheduleRetry('couldn\u2019t reach the backend'); return; }
             if (remote && remote.ct) {
                 const rr = await doorDecrypt(remote, DOOR_KEY);
                 if (!rr) { await doorWriteLocal(); doorStatus('Not synced: the shared table uses a different passphrase.', true); return; }
                 DOOR_ROWS = doorMerge(DOOR_ROWS, rr);
             }
             const env = await doorWriteLocal();
-            const ok = await backendPush(DOOR_BACKEND_KEY, env);
-            DOOR_ENV = env;
-            doorStatus(ok ? 'All changes saved & synced' : 'Saved on this device — sync failed, will retry.', !ok);
-            if (!ok) setTimeout(doorQueueSave, 15000);
+            const r = await doorPushVerified(env);
+            if (r.ok) { DOOR_ENV = env; doorFailCount = 0; doorStatus('All changes saved & synced'); }
+            else doorScheduleRetry(r.detail);
         } else {
             DOOR_ENV = await doorWriteLocal();
             doorStatus('Saved on this device (no shared backend set)');
