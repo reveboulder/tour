@@ -4637,6 +4637,7 @@
                 <button type="button" class="wl-subtab" data-info-subtab="retail">Retail</button>
                 <button type="button" class="wl-subtab" data-info-subtab="services">Services</button>
                 <button type="button" class="wl-subtab" data-info-subtab="door">DOOR Accounts</button>
+                <button type="button" class="wl-subtab" data-info-subtab="passwords">Passwords</button>
                 <button type="button" class="wl-subtab" data-info-subtab="birthdays">Birthdays</button>
             </div>
             <div id="infoPanel-services" class="info-subpanel" style="display:none;"></div>
@@ -4691,26 +4692,8 @@
             </div>
         </div>
             </div>
-            <div id="infoPanel-door" class="info-subpanel" style="display:none;">
-                <div class="settings-card info-lock" id="doorLock">
-                    <div class="section-label" style="margin-top:0;"><span class="dot"></span><span id="doorLockTitle">DOOR Accounts are locked</span></div>
-                    <p class="empty-note" id="doorLockNote" style="font-size:12.5px;"></p>
-                    <input type="password" id="doorPass" placeholder="Passphrase" autocomplete="new-password">
-                    <input type="password" id="doorPass2" placeholder="Type the passphrase again" autocomplete="new-password" style="display:none;">
-                    <button type="button" class="btn primary" id="doorUnlockBtn" style="width:100%;">Unlock</button>
-                    <div class="empty-note" id="doorLockErr" style="display:none;color:#c0392b;margin-top:8px;"></div>
-                </div>
-                <div id="doorBody" style="display:none;">
-                    <div class="info-bar">
-                        <button type="button" class="btn small primary" id="doorAddBtn">+ Add Row</button>
-                        <label class="info-show"><input type="checkbox" id="doorShow"> Show passwords &amp; codes</label>
-                        <span class="empty-note" id="doorStatus" style="margin:0;font-weight:600;"></span>
-                        <button type="button" class="btn small" id="doorLockBtn" style="margin-left:auto;">Lock</button>
-                    </div>
-                    <div class="info-table-wrap"><table class="info-table" id="doorTable"></table></div>
-                    <div class="empty-note info-fine">This table is encrypted in your browser with the passphrase before it is saved or synced, so the shared backend only ever holds scrambled text. Anyone who needs it must be given the passphrase. If the passphrase is lost, the table cannot be recovered.</div>
-                </div>
-            </div>
+            <div id="infoPanel-door" class="info-subpanel" style="display:none;"></div>
+            <div id="infoPanel-passwords" class="info-subpanel" style="display:none;"></div>
         </div>
     </div>
 </div>
@@ -9642,40 +9625,20 @@ let adminSubTab = 'mmr';
 });
 
 /* ============================================================
-   Admin › INFO › DOOR Accounts — an editable table of logins, codes
-   and keys. The admin password lives in this page's public source,
-   so it can't protect secrets. Instead the table is encrypted in the
-   browser (AES-GCM, key from a passphrase via PBKDF2) before it touches
-   localStorage or the shared backend; only ciphertext ever leaves the
-   page, and the decrypted rows exist only in memory while unlocked.
-   Rows merge per row by edit time (deletes kept as tombstones), so two
-   people editing different rows don't overwrite each other.
+   Admin › INFO › encrypted tables (DOOR Accounts, Passwords). The admin
+   password lives in this page's public source, so it can't protect
+   secrets. Instead each table is encrypted in the browser (AES-GCM, key
+   from its own passphrase via PBKDF2) before it touches localStorage or
+   the shared backend; only ciphertext ever leaves the page, and the
+   decrypted rows exist only in memory while unlocked. Rows merge per row
+   by edit time (deletes kept as tombstones), so two people editing
+   different rows don't overwrite each other.
    ============================================================ */
-const DOOR_COLS = [
-    { k: 'name', label: 'NAME' },
-    { k: 'email', label: 'Email' },
-    { k: 'password', label: 'Password', secret: true },
-    { k: 'latchName', label: 'Latch Name' },
-    { k: 'latchPassword', label: 'Latch Password', secret: true },
-    { k: 'keys', label: 'KEY(s)' },
-    { k: 'code', label: 'CODE:', secret: true },
-    { k: 'latchCard', label: 'Latch Card' }
-];
-const DOOR_LOCAL_KEY = 'reve-info-door-enc';
-const DOOR_BACKEND_KEY = 'info-door';
-let DOOR_KEY = null, DOOR_SALT = null, DOOR_ROWS = null, DOOR_ENV = null;
-let doorSaveTimer = null, doorPollTimer = null, doorSaving = false, doorSavePending = false, doorPendingRender = false;
-
 const doorB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
 const doorUnb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 async function doorDeriveKey(pass, salt) {
     const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
     return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-}
-async function doorEncrypt(rows) {
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, DOOR_KEY, new TextEncoder().encode(JSON.stringify({ rows })));
-    return { v: 1, salt: doorB64(DOOR_SALT), iv: doorB64(iv), ct: doorB64(ct), t: Date.now() };
 }
 // null = wrong passphrase / different salt / corrupt.
 async function doorDecrypt(env, key) {
@@ -9685,9 +9648,6 @@ async function doorDecrypt(env, key) {
         return Array.isArray(d.rows) ? d.rows : [];
     } catch (e) { return null; }
 }
-function doorLocalEnv() {
-    try { const v = JSON.parse(localStorage.getItem(DOOR_LOCAL_KEY) || 'null'); return v && v.ct ? v : null; } catch (e) { return null; }
-}
 function doorBackendOn() { return !!BACKEND_URL && APP_MODE !== 'test'; }
 function doorMerge(a, b) {
     const m = new Map();
@@ -9695,35 +9655,292 @@ function doorMerge(a, b) {
     return [...m.values()].sort((x, y) => (x.o || 0) - (y.o || 0));
 }
 function doorSame(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
-function doorStatus(msg, bad) {
-    const el = document.getElementById('doorStatus');
-    el.textContent = msg || ''; el.style.color = bad ? '#c0392b' : '';
-}
 
-// The lock form appears at once. A copy saved on this device is enough to
-// unlock right away; the shared copy is folded in as soon as it arrives.
-// With no copy on this device, nothing can be typed until the backend has
-// answered, so an existing table is never mistaken for a new one.
-let doorLoadSeq = 0;
-function doorShowLock(mode, note) {
-    const isNew = mode === 'new', busy = mode === 'loading' || mode === 'offline';
-    document.getElementById('doorLockTitle').textContent = isNew ? 'Set up DOOR Accounts' : 'DOOR Accounts are locked';
-    document.getElementById('doorLockNote').textContent = note || (isNew
-        ? 'Choose a passphrase for this table. It is encrypted with the passphrase before it is saved or shared, and everyone who needs the table will need the passphrase too. It is not the Admin password, and it cannot be recovered if lost. If you already set this table up on another device, don\u2019t create a new one here \u2014 open Admin \u203a INFO on that device first so it can share the table.'
-        : 'Enter the DOOR Accounts passphrase to view and edit this table.');
-    document.getElementById('doorPass').style.display = mode === 'offline' ? 'none' : '';
-    document.getElementById('doorPass').disabled = mode === 'loading';
-    document.getElementById('doorPass2').style.display = isNew ? '' : 'none';
-    const btn = document.getElementById('doorUnlockBtn');
-    btn.textContent = isNew ? 'Create & Unlock' : mode === 'loading' ? 'Checking\u2026' : mode === 'offline' ? 'Try again' : 'Unlock';
-    btn.disabled = mode === 'loading';
-    btn.dataset.mode = mode;
-    document.getElementById('doorLockErr').style.display = 'none';
-    document.getElementById('doorLock').style.display = '';
-    document.getElementById('doorBody').style.display = 'none';
-    if (!busy) document.getElementById('doorPass').focus();
+const VAULTS = {};
+function makeVault(cfg) {
+    // State: key/salt/rows exist only while unlocked; env = the latest
+    // encrypted copy known to be saved (local or shared).
+    const V = { cfg, key: null, salt: null, rows: null, env: null, saving: false, savePending: false, pendingRender: false,
+        saveTimer: null, pollTimer: null, retryTimer: null, failCount: 0, loadSeq: 0 };
+    const P = document.getElementById('infoPanel-' + cfg.id);
+    P.innerHTML = `<div class="settings-card info-lock vault-lock">
+            <div class="section-label" style="margin-top:0;"><span class="dot"></span><span class="vault-lock-title">${escapeHtml(cfg.title)} are locked</span></div>
+            <p class="empty-note vault-lock-note" style="font-size:12.5px;"></p>
+            <input type="password" class="vault-pass" placeholder="Passphrase" autocomplete="new-password">
+            <input type="password" class="vault-pass2" placeholder="Type the passphrase again" autocomplete="new-password" style="display:none;">
+            <button type="button" class="btn primary vault-unlock" style="width:100%;">Unlock</button>
+            <div class="empty-note vault-lock-err" style="display:none;color:#c0392b;margin-top:8px;"></div>
+        </div>
+        <div class="vault-body" style="display:none;">
+            <div class="info-bar">
+                <button type="button" class="btn small primary vault-add">+ Add Row</button>
+                <label class="info-show"><input type="checkbox" class="vault-show"> ${escapeHtml(cfg.showLabel)}</label>
+                <span class="empty-note vault-status" style="margin:0;font-weight:600;"></span>
+                <button type="button" class="btn small vault-lockbtn" style="margin-left:auto;">Lock</button>
+            </div>
+            <div class="info-table-wrap"><table class="info-table vault-table"></table></div>
+            <div class="empty-note info-fine">This table is encrypted in your browser with its passphrase before it is saved or synced, so the shared backend only ever holds scrambled text. Anyone who needs it must be given the passphrase. If the passphrase is lost, the table cannot be recovered.</div>
+        </div>`;
+    const $ = sel => P.querySelector(sel);
+    const tbl = $('.vault-table');
+    const status = (msg, bad) => { const el = $('.vault-status'); el.textContent = msg || ''; el.style.color = bad ? '#c0392b' : ''; };
+    const localEnv = () => { try { const v = JSON.parse(localStorage.getItem(cfg.localKey) || 'null'); return v && v.ct ? v : null; } catch (e) { return null; } };
+    async function encrypt(rows) {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, V.key, new TextEncoder().encode(JSON.stringify({ rows })));
+        return { v: 1, salt: doorB64(V.salt), iv: doorB64(iv), ct: doorB64(ct), t: Date.now() };
+    }
+    async function writeLocal() {
+        const env = await encrypt(V.rows);
+        try { localStorage.setItem(cfg.localKey, JSON.stringify(env)); } catch (e) {}
+        return env;
+    }
+
+    // The lock form appears at once. A copy saved on this device is enough
+    // to unlock right away; the shared copy is folded in as soon as it
+    // arrives. With no copy on this device, nothing can be typed until the
+    // backend has answered, so an existing table is never mistaken for a new one.
+    function showLock(mode, note) {
+        const isNew = mode === 'new', busy = mode === 'loading' || mode === 'offline';
+        $('.vault-lock-title').textContent = isNew ? `Set up ${cfg.title}` : `${cfg.title} are locked`;
+        $('.vault-lock-note').textContent = note || (isNew
+            ? `Choose a passphrase for this table. It is encrypted with the passphrase before it is saved or shared, and everyone who needs the table will need the passphrase too. It is not the Admin password${cfg.otherVaults ? ' or the ' + cfg.otherVaults + ' passphrase' : ''}, and it cannot be recovered if lost. If you already set this table up on another device, don’t create a new one here — open Admin › INFO on that device first so it can share the table.`
+            : `Enter the ${cfg.title} passphrase to view and edit this table.`);
+        $('.vault-pass').style.display = mode === 'offline' ? 'none' : '';
+        $('.vault-pass').disabled = mode === 'loading';
+        $('.vault-pass2').style.display = isNew ? '' : 'none';
+        const btn = $('.vault-unlock');
+        btn.textContent = isNew ? 'Create & Unlock' : mode === 'loading' ? 'Checking…' : mode === 'offline' ? 'Try again' : 'Unlock';
+        btn.disabled = mode === 'loading';
+        btn.dataset.mode = mode;
+        $('.vault-lock-err').style.display = 'none';
+        $('.vault-lock').style.display = '';
+        $('.vault-body').style.display = 'none';
+        if (!busy) $('.vault-pass').focus();
+    }
+    async function onShow() {
+        if (V.key) { render(); startPoll(); return; }
+        const seq = ++V.loadSeq;
+        V.env = localEnv();
+        if (V.env) showLock('unlock');
+        else if (!doorBackendOn()) { showLock('new'); return; }
+        else showLock('loading', 'Checking for the shared table…');
+        if (!doorBackendOn()) return;
+        const remote = await backendPullChecked(cfg.backendKey);
+        if (seq !== V.loadSeq || V.key) return;
+        if (remote && remote.ct) {
+            const had = V.env;
+            V.env = remote;
+            if (!had) showLock('unlock');
+        } else if (!V.env) {
+            if (remote === null) showLock('new');
+            else showLock('offline', 'Couldn’t reach the shared backend to load this table. Check your connection, then try again.');
+        }
+    }
+    // Pull the shared copy and fold it in; if this device holds edits the
+    // backend doesn't have yet (made offline), send them up.
+    async function pullMerge() {
+        const remote = await backendPullChecked(cfg.backendKey);
+        // Nothing shared yet (e.g. earlier saves failed): share this device's table.
+        if (remote === null && V.key && V.rows) { queueSave(); return; }
+        if (!V.key || !remote || !remote.ct || (V.env && remote.ct === V.env.ct)) return;
+        const rr = await doorDecrypt(remote, V.key);
+        if (!rr || !V.key) return;
+        const m = doorMerge(V.rows, rr);
+        V.env = remote;
+        if (!doorSame(m, V.rows)) { V.rows = m; await writeLocal(); render(); }
+        if (!doorSame(m, doorMerge(rr, []))) queueSave();
+    }
+    async function unlock() {
+        const btn = $('.vault-unlock');
+        if (btn.dataset.mode === 'offline') return onShow();
+        if (btn.dataset.mode === 'loading') return;
+        const p1 = $('.vault-pass').value, p2 = $('.vault-pass2').value;
+        const err = msg => { const e = $('.vault-lock-err'); e.textContent = msg; e.style.display = 'block'; };
+        if (!window.crypto || !crypto.subtle) return err('This browser can’t encrypt here (the page must be opened over https).');
+        if (btn.dataset.mode === 'new') {
+            if (p1.length < 8) return err('Use at least 8 characters.');
+            if (p1 !== p2) return err('The two passphrases don’t match.');
+            btn.disabled = true;
+            // Last check that nobody created the table in the meantime.
+            if (doorBackendOn()) {
+                const remote = await backendPullChecked(cfg.backendKey);
+                if (remote === undefined) { btn.disabled = false; return err('Couldn’t reach the shared backend — try again.'); }
+                if (remote && remote.ct) { V.env = remote; showLock('unlock', 'A shared table already exists — enter its passphrase.'); return; }
+            }
+            V.salt = crypto.getRandomValues(new Uint8Array(16));
+            V.key = await doorDeriveKey(p1, V.salt);
+            V.rows = [];
+            btn.disabled = false;
+            addRow(true);
+        } else {
+            btn.disabled = true;
+            const env = V.env;
+            const salt = doorUnb64(env.salt), key = await doorDeriveKey(p1, salt);
+            const rows = await doorDecrypt(env, key);
+            btn.disabled = false;
+            if (!rows) return err('Incorrect passphrase — try again.');
+            V.salt = salt; V.key = key; V.rows = rows;
+            // Fold in the other copy (this device's, or the shared one) so
+            // nothing made offline or by someone else is lost.
+            const local = localEnv();
+            if (local && local.salt === env.salt && local.ct !== env.ct) {
+                const lr = await doorDecrypt(local, key);
+                if (lr) { const m = doorMerge(V.rows, lr); if (!doorSame(m, V.rows)) { V.rows = m; queueSave(); } }
+            }
+            if (doorBackendOn()) pullMerge();
+        }
+        V.loadSeq++;
+        $('.vault-pass').value = ''; $('.vault-pass2').value = '';
+        $('.vault-lock').style.display = 'none';
+        $('.vault-body').style.display = '';
+        render();
+        startPoll();
+    }
+    async function lock() {
+        // Finish a pending save first so the last edit isn't lost.
+        while (V.saving) await new Promise(r => setTimeout(r, 100));
+        if (V.savePending) { clearTimeout(V.saveTimer); await saveNow(); }
+        V.key = null; V.rows = null; V.salt = null;
+        clearInterval(V.pollTimer); V.pollTimer = null;
+        clearTimeout(V.retryTimer); V.failCount = 0;
+        tbl.innerHTML = '';
+        $('.vault-show').checked = false;
+        $('.vault-body').style.display = 'none';
+        onShow();
+    }
+    function render() {
+        if (!V.rows) return;
+        if (tbl.contains(document.activeElement)) { V.pendingRender = true; return; }
+        V.pendingRender = false;
+        const show = $('.vault-show').checked;
+        const live = V.rows.filter(r => !r.del);
+        let h = '<thead><tr>' + cfg.cols.map(c => `<th>${escapeHtml(c.label)}</th>`).join('') + '<th></th></tr></thead><tbody>';
+        if (!live.length) h += `<tr><td class="info-empty" colspan="${cfg.cols.length + 1}">No rows yet — click “+ Add Row”.</td></tr>`;
+        for (const r of live) {
+            h += `<tr data-id="${escapeHtml(r.id)}">` + cfg.cols.map(c =>
+                `<td><input type="${c.secret && !show ? 'password' : 'text'}" class="${c.secret ? 'info-secret' : ''}" data-k="${c.k}" value="${escapeHtml((r.c && r.c[c.k]) || '')}" autocomplete="off" spellcheck="false" aria-label="${escapeHtml(c.label)}"></td>`
+            ).join('') + `<td class="info-del"><button type="button" class="info-x" title="Delete row" aria-label="Delete row">&#10005;</button></td></tr>`;
+        }
+        tbl.innerHTML = h + '</tbody>';
+    }
+    function addRow(silent) {
+        const now = Date.now();
+        V.rows.push({ id: now.toString(36) + Math.random().toString(36).slice(2, 8), o: now, t: now, c: {} });
+        render();
+        queueSave();
+        if (!silent) { const ins = tbl.querySelectorAll('tbody tr:last-child input'); if (ins[0]) ins[0].focus(); }
+    }
+    function queueSave() {
+        clearTimeout(V.saveTimer);
+        V.savePending = true;
+        status('Saving…');
+        V.saveTimer = setTimeout(saveNow, 700);
+    }
+    // Failures retry with growing waits (5 s → 2 min) until synced.
+    function scheduleRetry(detail) {
+        V.failCount++;
+        const wait = Math.min(120, 5 * Math.pow(2, V.failCount - 1));
+        clearTimeout(V.retryTimer);
+        V.retryTimer = setTimeout(queueSave, wait * 1000);
+        const el = $('.vault-status');
+        el.innerHTML = `Saved on this device — not synced yet (${escapeHtml(detail)}). Retrying in ${wait}s. <button type="button" class="btn small vault-retry">Retry now</button>`;
+        el.style.color = '#c0392b';
+        el.querySelector('.vault-retry').onclick = () => { clearTimeout(V.retryTimer); queueSave(); };
+        console.warn(cfg.title + ' sync failed:', detail);
+    }
+    // Send the encrypted table, then READ IT BACK (backendPushVerified):
+    // only the read-back decides whether it's synced.
+    async function saveNow() {
+        if (!V.key) return;
+        if (V.saving) { queueSave(); return; }
+        V.saving = true; V.savePending = false;
+        clearTimeout(V.retryTimer);
+        try {
+            if (doorBackendOn()) {
+                const remote = await backendPullChecked(cfg.backendKey);
+                if (remote === undefined) { await writeLocal(); scheduleRetry('couldn’t reach the backend'); return; }
+                if (remote && remote.ct) {
+                    const rr = await doorDecrypt(remote, V.key);
+                    if (!rr) { await writeLocal(); status('Not synced: the shared table uses a different passphrase.', true); return; }
+                    V.rows = doorMerge(V.rows, rr);
+                }
+                const env = await writeLocal();
+                const r = await backendPushVerified(cfg.backendKey, env, b => !!b && b.ct === env.ct);
+                if (r.ok) { V.env = env; V.failCount = 0; status('All changes saved & synced'); }
+                else scheduleRetry(r.detail);
+            } else {
+                V.env = await writeLocal();
+                status('Saved on this device (no shared backend set)');
+            }
+            render();
+        } finally { V.saving = false; }
+    }
+    function startPoll() {
+        if (V.pollTimer || !doorBackendOn()) return;
+        V.pollTimer = setInterval(() => {
+            const visible = document.getElementById('tab-admin').classList.contains('active') && adminSubTab === 'info';
+            if (!V.key || !visible || V.saving || V.savePending) return;
+            pullMerge();
+        }, 20000);
+    }
+
+    $('.vault-unlock').addEventListener('click', unlock);
+    ['.vault-pass', '.vault-pass2'].forEach(s => $(s).addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); }));
+    $('.vault-lockbtn').addEventListener('click', lock);
+    $('.vault-add').addEventListener('click', () => addRow(false));
+    $('.vault-show').addEventListener('change', e => {
+        tbl.querySelectorAll('input.info-secret').forEach(i => { i.type = e.target.checked ? 'text' : 'password'; });
+    });
+    tbl.addEventListener('input', e => {
+        const inp = e.target.closest('input[data-k]'); if (!inp) return;
+        const r = V.rows.find(x => x.id === inp.closest('tr').dataset.id); if (!r) return;
+        r.c = Object.assign({}, r.c, { [inp.dataset.k]: inp.value }); r.t = Date.now();
+        queueSave();
+    });
+    tbl.addEventListener('focusout', () => {
+        setTimeout(() => { if (V.pendingRender && !tbl.contains(document.activeElement)) render(); }, 0);
+    });
+    tbl.addEventListener('click', e => {
+        const x = e.target.closest('.info-x'); if (!x) return;
+        const r = V.rows.find(y => y.id === x.closest('tr').dataset.id); if (!r) return;
+        const nm = cfg.rowName(r.c) || 'this row';
+        if (!confirm(`Delete ${nm}?`)) return;
+        r.del = true; r.c = {}; r.t = Date.now();
+        render(); queueSave();
+    });
+    Object.assign(V, { onShow, lock, saveNow, queueSave, pullMerge, render });
+    VAULTS[cfg.id] = V;
+    return V;
 }
-// Admin › INFO sub-tabs. Only DOOR Accounts has its own passphrase.
+makeVault({
+    id: 'door', title: 'DOOR Accounts', localKey: 'reve-info-door-enc', backendKey: 'info-door',
+    showLabel: 'Show passwords & codes', otherVaults: 'Passwords',
+    cols: [
+        { k: 'name', label: 'NAME' },
+        { k: 'email', label: 'Email' },
+        { k: 'password', label: 'Password', secret: true },
+        { k: 'latchName', label: 'Latch Name' },
+        { k: 'latchPassword', label: 'Latch Password', secret: true },
+        { k: 'keys', label: 'KEY(s)' },
+        { k: 'code', label: 'CODE:', secret: true },
+        { k: 'latchCard', label: 'Latch Card' }
+    ],
+    rowName: c => c.name || c.email
+});
+makeVault({
+    id: 'passwords', title: 'Passwords', localKey: 'reve-info-passwords-enc', backendKey: 'info-passwords',
+    showLabel: 'Show passwords', otherVaults: 'DOOR Accounts',
+    cols: [
+        { k: 'website', label: 'WEBSITE' },
+        { k: 'username', label: 'USERNAME' },
+        { k: 'password', label: 'PASSWORD', secret: true },
+        { k: 'other', label: 'OTHER' }
+    ],
+    rowName: c => c.website || c.username
+});
+
+// Admin › INFO sub-tabs. Only the encrypted tables have their own passphrase.
 let infoSubTab = 'units';
 document.querySelectorAll('#infoSubtabs .wl-subtab').forEach(btn => btn.addEventListener('click', () => {
     infoSubTab = btn.dataset.infoSubtab;
@@ -9731,221 +9948,12 @@ document.querySelectorAll('#infoSubtabs .wl-subtab').forEach(btn => btn.addEvent
     infoOnShow();
 }));
 function infoOnShow() {
-    ['units', 'retail', 'services', 'door', 'birthdays'].forEach(n => { document.getElementById('infoPanel-' + n).style.display = n === infoSubTab ? '' : 'none'; });
+    ['units', 'retail', 'services', 'door', 'passwords', 'birthdays'].forEach(n => { document.getElementById('infoPanel-' + n).style.display = n === infoSubTab ? '' : 'none'; });
     if (infoSubTab === 'units') { renderUnitStats(); renderUnitInfoTable(); }
     else if (infoSubTab === 'retail') renderRetailInfoTable();
     else if (INFO_LISTS[infoSubTab]) INFO_LISTS[infoSubTab].render();
-    else doorOnShow();
+    else if (VAULTS[infoSubTab]) VAULTS[infoSubTab].onShow();
 }
-async function doorOnShow() {
-    if (DOOR_KEY) { doorRender(); doorStartPoll(); return; }
-    const seq = ++doorLoadSeq;
-    DOOR_ENV = doorLocalEnv();
-    if (DOOR_ENV) doorShowLock('unlock');
-    else if (!doorBackendOn()) { doorShowLock('new'); return; }
-    else doorShowLock('loading', 'Checking for the shared table\u2026');
-    if (!doorBackendOn()) return;
-    const remote = await backendPullChecked(DOOR_BACKEND_KEY);
-    if (seq !== doorLoadSeq || DOOR_KEY) return;
-    if (remote && remote.ct) {
-        const had = DOOR_ENV;
-        DOOR_ENV = remote;
-        if (!had) doorShowLock('unlock');
-    } else if (!DOOR_ENV) {
-        if (remote === null) doorShowLock('new');
-        else doorShowLock('offline', 'Couldn\u2019t reach the shared backend to load this table. Check your connection, then try again.');
-    }
-}
-
-// Pull the shared copy and fold it in; if this device holds edits the
-// backend doesn't have yet (made offline), send them up.
-async function doorPullMerge() {
-    const remote = await backendPullChecked(DOOR_BACKEND_KEY);
-    // Nothing shared yet (e.g. earlier saves failed): share this device's table.
-    if (remote === null && DOOR_KEY && DOOR_ROWS) { doorQueueSave(); return; }
-    if (!DOOR_KEY || !remote || !remote.ct || (DOOR_ENV && remote.ct === DOOR_ENV.ct)) return;
-    const rr = await doorDecrypt(remote, DOOR_KEY);
-    if (!rr || !DOOR_KEY) return;
-    const m = doorMerge(DOOR_ROWS, rr);
-    DOOR_ENV = remote;
-    if (!doorSame(m, DOOR_ROWS)) { DOOR_ROWS = m; await doorWriteLocal(); doorRender(); }
-    if (!doorSame(m, doorMerge(rr, []))) doorQueueSave();
-}
-
-async function doorUnlock() {
-    const btn = document.getElementById('doorUnlockBtn');
-    if (btn.dataset.mode === 'offline') return doorOnShow();
-    if (btn.dataset.mode === 'loading') return;
-    const p1 = document.getElementById('doorPass').value, p2 = document.getElementById('doorPass2').value;
-    const err = msg => { const e = document.getElementById('doorLockErr'); e.textContent = msg; e.style.display = 'block'; };
-    if (!window.crypto || !crypto.subtle) return err('This browser can\u2019t encrypt here (the page must be opened over https).');
-    if (btn.dataset.mode === 'new') {
-        if (p1.length < 8) return err('Use at least 8 characters.');
-        if (p1 !== p2) return err('The two passphrases don\u2019t match.');
-        btn.disabled = true;
-        // Last check that nobody created the table in the meantime.
-        if (doorBackendOn()) {
-            const remote = await backendPullChecked(DOOR_BACKEND_KEY);
-            if (remote === undefined) { btn.disabled = false; return err('Couldn\u2019t reach the shared backend \u2014 try again.'); }
-            if (remote && remote.ct) { DOOR_ENV = remote; doorShowLock('unlock', 'A shared table already exists \u2014 enter its passphrase.'); return; }
-        }
-        DOOR_SALT = crypto.getRandomValues(new Uint8Array(16));
-        DOOR_KEY = await doorDeriveKey(p1, DOOR_SALT);
-        DOOR_ROWS = [];
-        btn.disabled = false;
-        doorAddRow(true);
-    } else {
-        btn.disabled = true;
-        const env = DOOR_ENV;
-        const salt = doorUnb64(env.salt), key = await doorDeriveKey(p1, salt);
-        const rows = await doorDecrypt(env, key);
-        btn.disabled = false;
-        if (!rows) return err('Incorrect passphrase \u2014 try again.');
-        DOOR_SALT = salt; DOOR_KEY = key; DOOR_ROWS = rows;
-        // Fold in the other copy (this device's, or the shared one) so
-        // nothing made offline or by someone else is lost.
-        const local = doorLocalEnv();
-        if (local && local.salt === env.salt && local.ct !== env.ct) {
-            const lr = await doorDecrypt(local, key);
-            if (lr) { const m = doorMerge(DOOR_ROWS, lr); if (!doorSame(m, DOOR_ROWS)) { DOOR_ROWS = m; doorQueueSave(); } }
-        }
-        if (doorBackendOn()) doorPullMerge();
-    }
-    doorLoadSeq++;
-    document.getElementById('doorPass').value = ''; document.getElementById('doorPass2').value = '';
-    document.getElementById('doorLock').style.display = 'none';
-    document.getElementById('doorBody').style.display = '';
-    doorRender();
-    doorStartPoll();
-}
-
-async function doorLock() {
-    // Finish a pending save first so the last edit isn't lost.
-    while (doorSaving) await new Promise(r => setTimeout(r, 100));
-    if (doorSavePending) { clearTimeout(doorSaveTimer); await doorSaveNow(); }
-    DOOR_KEY = null; DOOR_ROWS = null; DOOR_SALT = null;
-    clearInterval(doorPollTimer); doorPollTimer = null;
-    clearTimeout(doorRetryTimer); doorFailCount = 0;
-    document.getElementById('doorTable').innerHTML = '';
-    document.getElementById('doorShow').checked = false;
-    document.getElementById('doorBody').style.display = 'none';
-    doorOnShow();
-}
-
-function doorRender() {
-    const tbl = document.getElementById('doorTable');
-    if (!DOOR_ROWS) return;
-    if (tbl.contains(document.activeElement)) { doorPendingRender = true; return; }
-    doorPendingRender = false;
-    const show = document.getElementById('doorShow').checked;
-    const live = DOOR_ROWS.filter(r => !r.del);
-    let h = '<thead><tr>' + DOOR_COLS.map(c => `<th>${escapeHtml(c.label)}</th>`).join('') + '<th></th></tr></thead><tbody>';
-    if (!live.length) h += `<tr><td class="info-empty" colspan="${DOOR_COLS.length + 1}">No rows yet — click “+ Add Row”.</td></tr>`;
-    for (const r of live) {
-        h += `<tr data-id="${escapeHtml(r.id)}">` + DOOR_COLS.map(c =>
-            `<td><input type="${c.secret && !show ? 'password' : 'text'}" class="${c.secret ? 'info-secret' : ''}" data-k="${c.k}" value="${escapeHtml((r.c && r.c[c.k]) || '')}" autocomplete="off" spellcheck="false" aria-label="${escapeHtml(c.label)}"></td>`
-        ).join('') + `<td class="info-del"><button type="button" class="info-x" title="Delete row" aria-label="Delete row">&#10005;</button></td></tr>`;
-    }
-    tbl.innerHTML = h + '</tbody>';
-}
-
-function doorAddRow(silent) {
-    const now = Date.now();
-    DOOR_ROWS.push({ id: now.toString(36) + Math.random().toString(36).slice(2, 8), o: now, t: now, c: {} });
-    doorRender();
-    doorQueueSave();
-    if (!silent) { const ins = document.querySelectorAll('#doorTable tbody tr:last-child input'); if (ins[0]) ins[0].focus(); }
-}
-
-function doorQueueSave() {
-    clearTimeout(doorSaveTimer);
-    doorSavePending = true;
-    doorStatus('Saving…');
-    doorSaveTimer = setTimeout(doorSaveNow, 700);
-}
-// Send the encrypted table, then READ IT BACK: the Apps Script can answer
-// OK without saving, or save but fail to answer (a busy script often
-// returns an error page the browser blocks), so only the read-back
-// decides. Failures retry with growing waits (5 s → 2 min) until synced.
-let doorRetryTimer = null, doorFailCount = 0;
-async function doorPushVerified(env) {
-    return backendPushVerified(DOOR_BACKEND_KEY, env, b => !!b && b.ct === env.ct);
-}
-function doorScheduleRetry(detail) {
-    doorFailCount++;
-    const wait = Math.min(120, 5 * Math.pow(2, doorFailCount - 1));
-    clearTimeout(doorRetryTimer);
-    doorRetryTimer = setTimeout(doorQueueSave, wait * 1000);
-    const el = document.getElementById('doorStatus');
-    el.innerHTML = `Saved on this device \u2014 not synced yet (${escapeHtml(detail)}). Retrying in ${wait}s. <button type="button" class="btn small" id="doorRetryNow">Retry now</button>`;
-    el.style.color = '#c0392b';
-    el.querySelector('#doorRetryNow').onclick = () => { clearTimeout(doorRetryTimer); doorQueueSave(); };
-    console.warn('DOOR Accounts sync failed:', detail);
-}
-async function doorSaveNow() {
-    if (!DOOR_KEY) return;
-    if (doorSaving) { doorQueueSave(); return; }
-    doorSaving = true; doorSavePending = false;
-    clearTimeout(doorRetryTimer);
-    try {
-        if (doorBackendOn()) {
-            const remote = await backendPullChecked(DOOR_BACKEND_KEY);
-            if (remote === undefined) { await doorWriteLocal(); doorScheduleRetry('couldn\u2019t reach the backend'); return; }
-            if (remote && remote.ct) {
-                const rr = await doorDecrypt(remote, DOOR_KEY);
-                if (!rr) { await doorWriteLocal(); doorStatus('Not synced: the shared table uses a different passphrase.', true); return; }
-                DOOR_ROWS = doorMerge(DOOR_ROWS, rr);
-            }
-            const env = await doorWriteLocal();
-            const r = await doorPushVerified(env);
-            if (r.ok) { DOOR_ENV = env; doorFailCount = 0; doorStatus('All changes saved & synced'); }
-            else doorScheduleRetry(r.detail);
-        } else {
-            DOOR_ENV = await doorWriteLocal();
-            doorStatus('Saved on this device (no shared backend set)');
-        }
-        doorRender();
-    } finally { doorSaving = false; }
-}
-async function doorWriteLocal() {
-    const env = await doorEncrypt(DOOR_ROWS);
-    try { localStorage.setItem(DOOR_LOCAL_KEY, JSON.stringify(env)); } catch (e) {}
-    return env;
-}
-
-function doorStartPoll() {
-    if (doorPollTimer || !doorBackendOn()) return;
-    doorPollTimer = setInterval(() => {
-        const visible = document.getElementById('tab-admin').classList.contains('active') && adminSubTab === 'info';
-        if (!DOOR_KEY || !visible || doorSaving || doorSavePending) return;
-        doorPullMerge();
-    }, 20000);
-}
-
-document.getElementById('doorUnlockBtn').addEventListener('click', doorUnlock);
-['doorPass', 'doorPass2'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') doorUnlock(); }));
-document.getElementById('doorLockBtn').addEventListener('click', doorLock);
-document.getElementById('doorAddBtn').addEventListener('click', () => doorAddRow(false));
-document.getElementById('doorShow').addEventListener('change', e => {
-    document.querySelectorAll('#doorTable input.info-secret').forEach(i => { i.type = e.target.checked ? 'text' : 'password'; });
-});
-document.getElementById('doorTable').addEventListener('input', e => {
-    const inp = e.target.closest('input[data-k]'); if (!inp) return;
-    const r = DOOR_ROWS.find(x => x.id === inp.closest('tr').dataset.id); if (!r) return;
-    r.c = Object.assign({}, r.c, { [inp.dataset.k]: inp.value }); r.t = Date.now();
-    doorQueueSave();
-});
-document.getElementById('doorTable').addEventListener('focusout', () => {
-    setTimeout(() => { if (doorPendingRender && !document.getElementById('doorTable').contains(document.activeElement)) doorRender(); }, 0);
-});
-document.getElementById('doorTable').addEventListener('click', e => {
-    const x = e.target.closest('.info-x'); if (!x) return;
-    const r = DOOR_ROWS.find(y => y.id === x.closest('tr').dataset.id); if (!r) return;
-    const nm = (r.c && (r.c.name || r.c.email)) || 'this row';
-    if (!confirm(`Delete ${nm}?`)) return;
-    r.del = true; r.c = {}; r.t = Date.now();
-    doorRender(); doorQueueSave();
-});
 
 /* ============================================================
    Snake — simple, self-contained. Grid-based canvas, arrow/WASD/swipe
