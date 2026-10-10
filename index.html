@@ -9463,35 +9463,79 @@ function doorStatus(msg, bad) {
     el.textContent = msg || ''; el.style.color = bad ? '#c0392b' : '';
 }
 
-async function infoOnShow() {
-    if (DOOR_KEY) { doorRender(); doorStartPoll(); return; }
-    let env = doorLocalEnv();
-    if (doorBackendOn()) {
-        const remote = await backendPullChecked(DOOR_BACKEND_KEY);
-        if (remote && remote.ct) env = remote;
-    }
-    DOOR_ENV = env;
-    const isNew = !env;
+// The lock form appears at once. A copy saved on this device is enough to
+// unlock right away; the shared copy is folded in as soon as it arrives.
+// With no copy on this device, nothing can be typed until the backend has
+// answered, so an existing table is never mistaken for a new one.
+let doorLoadSeq = 0;
+function doorShowLock(mode, note) {
+    const isNew = mode === 'new', busy = mode === 'loading' || mode === 'offline';
     document.getElementById('doorLockTitle').textContent = isNew ? 'Set up DOOR Accounts' : 'DOOR Accounts are locked';
-    document.getElementById('doorLockNote').textContent = isNew
+    document.getElementById('doorLockNote').textContent = note || (isNew
         ? 'Choose a passphrase for this table. It is encrypted with the passphrase before it is saved or shared, and everyone who needs the table will need the passphrase too. It is not the Admin password, and it cannot be recovered if lost.'
-        : 'Enter the DOOR Accounts passphrase to view and edit this table.';
+        : 'Enter the DOOR Accounts passphrase to view and edit this table.');
+    document.getElementById('doorPass').style.display = mode === 'offline' ? 'none' : '';
+    document.getElementById('doorPass').disabled = mode === 'loading';
     document.getElementById('doorPass2').style.display = isNew ? '' : 'none';
-    document.getElementById('doorUnlockBtn').textContent = isNew ? 'Create & Unlock' : 'Unlock';
+    const btn = document.getElementById('doorUnlockBtn');
+    btn.textContent = isNew ? 'Create & Unlock' : mode === 'loading' ? 'Checking\u2026' : mode === 'offline' ? 'Try again' : 'Unlock';
+    btn.disabled = mode === 'loading';
+    btn.dataset.mode = mode;
     document.getElementById('doorLockErr').style.display = 'none';
     document.getElementById('doorLock').style.display = '';
     document.getElementById('doorBody').style.display = 'none';
+    if (!busy) document.getElementById('doorPass').focus();
+}
+async function infoOnShow() {
+    if (DOOR_KEY) { doorRender(); doorStartPoll(); return; }
+    const seq = ++doorLoadSeq;
+    DOOR_ENV = doorLocalEnv();
+    if (DOOR_ENV) doorShowLock('unlock');
+    else if (!doorBackendOn()) { doorShowLock('new'); return; }
+    else doorShowLock('loading', 'Checking for the shared table\u2026');
+    if (!doorBackendOn()) return;
+    const remote = await backendPullChecked(DOOR_BACKEND_KEY);
+    if (seq !== doorLoadSeq || DOOR_KEY) return;
+    if (remote && remote.ct) {
+        const had = DOOR_ENV;
+        DOOR_ENV = remote;
+        if (!had) doorShowLock('unlock');
+    } else if (!DOOR_ENV) {
+        if (remote === null) doorShowLock('new');
+        else doorShowLock('offline', 'Couldn\u2019t reach the shared backend to load this table. Check your connection, then try again.');
+    }
+}
+
+// Pull the shared copy and fold it in; if this device holds edits the
+// backend doesn't have yet (made offline), send them up.
+async function doorPullMerge() {
+    const remote = await backendPullChecked(DOOR_BACKEND_KEY);
+    if (!DOOR_KEY || !remote || !remote.ct || (DOOR_ENV && remote.ct === DOOR_ENV.ct)) return;
+    const rr = await doorDecrypt(remote, DOOR_KEY);
+    if (!rr || !DOOR_KEY) return;
+    const m = doorMerge(DOOR_ROWS, rr);
+    DOOR_ENV = remote;
+    if (!doorSame(m, DOOR_ROWS)) { DOOR_ROWS = m; await doorWriteLocal(); doorRender(); }
+    if (!doorSame(m, doorMerge(rr, []))) doorQueueSave();
 }
 
 async function doorUnlock() {
+    const btn = document.getElementById('doorUnlockBtn');
+    if (btn.dataset.mode === 'offline') return infoOnShow();
+    if (btn.dataset.mode === 'loading') return;
     const p1 = document.getElementById('doorPass').value, p2 = document.getElementById('doorPass2').value;
     const err = msg => { const e = document.getElementById('doorLockErr'); e.textContent = msg; e.style.display = 'block'; };
-    const btn = document.getElementById('doorUnlockBtn');
-    if (!window.crypto || !crypto.subtle) return err('This browser can’t encrypt here (the page must be opened over https).');
-    if (!DOOR_ENV) {
+    if (!window.crypto || !crypto.subtle) return err('This browser can\u2019t encrypt here (the page must be opened over https).');
+    if (btn.dataset.mode === 'new') {
         if (p1.length < 8) return err('Use at least 8 characters.');
-        if (p1 !== p2) return err('The two passphrases don’t match.');
+        if (p1 !== p2) return err('The two passphrases don\u2019t match.');
         btn.disabled = true;
+        // Last check that nobody created the table in the meantime.
+        if (doorBackendOn()) {
+            const remote = await backendPullChecked(DOOR_BACKEND_KEY);
+            if (remote === undefined) { btn.disabled = false; return err('Couldn\u2019t reach the shared backend \u2014 try again.'); }
+            if (remote && remote.ct) { DOOR_ENV = remote; doorShowLock('unlock', 'A shared table already exists \u2014 enter its passphrase.'); return; }
+        }
         DOOR_SALT = crypto.getRandomValues(new Uint8Array(16));
         DOOR_KEY = await doorDeriveKey(p1, DOOR_SALT);
         DOOR_ROWS = [];
@@ -9499,19 +9543,22 @@ async function doorUnlock() {
         doorAddRow(true);
     } else {
         btn.disabled = true;
-        const salt = doorUnb64(DOOR_ENV.salt), key = await doorDeriveKey(p1, salt);
-        const rows = await doorDecrypt(DOOR_ENV, key);
+        const env = DOOR_ENV;
+        const salt = doorUnb64(env.salt), key = await doorDeriveKey(p1, salt);
+        const rows = await doorDecrypt(env, key);
         btn.disabled = false;
-        if (!rows) return err('Incorrect passphrase — try again.');
+        if (!rows) return err('Incorrect passphrase \u2014 try again.');
         DOOR_SALT = salt; DOOR_KEY = key; DOOR_ROWS = rows;
-        // A newer local copy that never reached the backend (made offline)
-        // is folded in rather than lost.
+        // Fold in the other copy (this device's, or the shared one) so
+        // nothing made offline or by someone else is lost.
         const local = doorLocalEnv();
-        if (local && local.salt === DOOR_ENV.salt && local.ct !== DOOR_ENV.ct) {
+        if (local && local.salt === env.salt && local.ct !== env.ct) {
             const lr = await doorDecrypt(local, key);
             if (lr) { const m = doorMerge(DOOR_ROWS, lr); if (!doorSame(m, DOOR_ROWS)) { DOOR_ROWS = m; doorQueueSave(); } }
         }
+        if (doorBackendOn()) doorPullMerge();
     }
+    doorLoadSeq++;
     document.getElementById('doorPass').value = ''; document.getElementById('doorPass2').value = '';
     document.getElementById('doorLock').style.display = 'none';
     document.getElementById('doorBody').style.display = '';
@@ -9629,16 +9676,10 @@ async function doorWriteLocal() {
 
 function doorStartPoll() {
     if (doorPollTimer || !doorBackendOn()) return;
-    doorPollTimer = setInterval(async () => {
+    doorPollTimer = setInterval(() => {
         const visible = document.getElementById('tab-admin').classList.contains('active') && adminSubTab === 'info';
         if (!DOOR_KEY || !visible || doorSaving || doorSavePending) return;
-        const remote = await backendPullChecked(DOOR_BACKEND_KEY);
-        if (!remote || !remote.ct || !DOOR_KEY || (DOOR_ENV && remote.ct === DOOR_ENV.ct)) return;
-        const rr = await doorDecrypt(remote, DOOR_KEY);
-        if (!rr) return;
-        const m = doorMerge(DOOR_ROWS, rr);
-        DOOR_ENV = remote;
-        if (!doorSame(m, DOOR_ROWS)) { DOOR_ROWS = m; await doorWriteLocal(); doorRender(); }
+        doorPullMerge();
     }, 20000);
 }
 
