@@ -9665,7 +9665,7 @@ function doorShowLock(mode, note) {
     const isNew = mode === 'new', busy = mode === 'loading' || mode === 'offline';
     document.getElementById('doorLockTitle').textContent = isNew ? 'Set up DOOR Accounts' : 'DOOR Accounts are locked';
     document.getElementById('doorLockNote').textContent = note || (isNew
-        ? 'Choose a passphrase for this table. It is encrypted with the passphrase before it is saved or shared, and everyone who needs the table will need the passphrase too. It is not the Admin password, and it cannot be recovered if lost.'
+        ? 'Choose a passphrase for this table. It is encrypted with the passphrase before it is saved or shared, and everyone who needs the table will need the passphrase too. It is not the Admin password, and it cannot be recovered if lost. If you already set this table up on another device, don\u2019t create a new one here \u2014 open Admin \u203a INFO on that device first so it can share the table.'
         : 'Enter the DOOR Accounts passphrase to view and edit this table.');
     document.getElementById('doorPass').style.display = mode === 'offline' ? 'none' : '';
     document.getElementById('doorPass').disabled = mode === 'loading';
@@ -9703,6 +9703,8 @@ async function infoOnShow() {
 // backend doesn't have yet (made offline), send them up.
 async function doorPullMerge() {
     const remote = await backendPullChecked(DOOR_BACKEND_KEY);
+    // Nothing shared yet (e.g. earlier saves failed): share this device's table.
+    if (remote === null && DOOR_KEY && DOOR_ROWS) { doorQueueSave(); return; }
     if (!DOOR_KEY || !remote || !remote.ct || (DOOR_ENV && remote.ct === DOOR_ENV.ct)) return;
     const rr = await doorDecrypt(remote, DOOR_KEY);
     if (!rr || !DOOR_KEY) return;
