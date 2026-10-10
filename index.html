@@ -370,6 +370,42 @@
     .info-list-table tr.il-next td { background: #fff4e0; }
     .info-list-table tr.il-next td:first-child { box-shadow: inset 3px 0 0 var(--reve-orange); }
     .info-list-table .il-tag { display: block; font-size: 10.5px; font-weight: 700; color: var(--reve-orange); margin: 2px 0 0 2px; }
+    /* Birthdays: party theme, compact table, calendar dates */
+    #infoPanel-birthdays { position: relative; border-radius: 12px; padding: 0 14px 14px; margin: 0 -14px;
+        background:
+            radial-gradient(circle, #f9a8d4 1.6px, transparent 2px) 0 0 / 46px 46px,
+            radial-gradient(circle, #93c5fd 1.6px, transparent 2px) 23px 17px / 46px 46px,
+            radial-gradient(circle, #fcd34d 1.4px, transparent 1.8px) 11px 31px / 46px 46px,
+            linear-gradient(#fffaf3, #fff6fb); }
+    .il-banner { position: relative; overflow: hidden; margin: 0 -14px 12px; padding: 30px 90px 16px 18px; border-radius: 12px 12px 0 0; background: linear-gradient(100deg, #fde2ef, #fff1d6 55%, #e0efff); }
+    .il-bunting { position: absolute; left: 0; right: 0; top: 0; height: 26px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='26'%3E%3Cpath d='M0 3 Q60 12 120 3' stroke='%23b8a99a' fill='none'/%3E%3Cpath d='M6 4.6 L22 6.7 L13 22Z' fill='%23f472b6'/%3E%3Cpath d='M30 7 L46 8.2 L37 24Z' fill='%23fbbf24'/%3E%3Cpath d='M54 8.4 L70 8.4 L62 25Z' fill='%2360a5fa'/%3E%3Cpath d='M78 8.2 L94 7 L85 24Z' fill='%2334d399'/%3E%3Cpath d='M102 6.7 L118 4.6 L109 22Z' fill='%23a78bfa'/%3E%3C/svg%3E") repeat-x; }
+    .il-balloons { position: absolute; right: 14px; top: 8px; width: 64px; height: 80px; }
+    .il-banner-body { position: relative; display: flex; align-items: center; gap: 12px; }
+    .il-cake { width: 18px; height: 18px; flex: none; }
+    .il-cake-big { width: 46px; height: 46px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.12)); }
+    .il-banner-h { font-size: 19px; font-weight: 800; color: #b4235a; letter-spacing: .01em; }
+    .il-banner-s { font-size: 13px; color: #7a4b2e; margin-top: 2px; }
+    .il-bdays-wrap { width: fit-content; max-width: 100%; border-radius: 10px; box-shadow: 0 1px 0 rgba(0,0,0,.03); }
+    .info-list-table.il-bdays { width: auto; }
+    .info-list-table.il-bdays th { background: #fde2ef; color: #9d2353; }
+    .info-list-table.il-bdays td textarea { min-width: 0; }
+    .il-date-cell { position: relative; white-space: nowrap; }
+    .il-date { border: 1px solid var(--line); background: #fff; border-radius: 5px; padding: 6px 9px; font: inherit; font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; min-width: 82px; text-align: left; }
+    .il-date:hover { border-color: #f472b6; }
+    .il-date-in { position: absolute; left: 5px; bottom: 4px; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+    .il-date-in.il-date-show { position: static; width: auto; height: auto; opacity: 1; pointer-events: auto; margin-top: 4px; }
+    .il-iconcell { display: flex; align-items: center; gap: 6px; }
+    .info-list-table.il-bdays tr.il-next td { background: #fff1d6; }
+    .info-list-table.il-bdays tr.il-next td:first-child { box-shadow: inset 3px 0 0 #f472b6; }
+    .info-list-table.il-bdays .il-tag { color: #db2777; }
+    body.dark-mode #infoPanel-birthdays { background: radial-gradient(circle, #9d174d 1.6px, transparent 2px) 0 0 / 46px 46px, radial-gradient(circle, #1e40af 1.6px, transparent 2px) 23px 17px / 46px 46px, var(--paper); }
+    body.dark-mode .il-banner { background: linear-gradient(100deg, #4a1d33, #4a3518 55%, #1b2f4a); }
+    body.dark-mode .il-banner-h { color: #f9a8d4; }
+    body.dark-mode .il-banner-s { color: #e8d5c4; }
+    body.dark-mode .info-list-table.il-bdays th { background: #4a1d33; color: #f9a8d4; }
+    body.dark-mode .il-date { background: var(--dm-card); color: var(--ink); }
+    body.dark-mode .info-list-table.il-bdays tr.il-next td { background: #3d2e17; }
     .sitemap-suite-link { cursor: pointer; }
     .sitemap-suite-link:hover .sitemap-amenity { stroke: var(--reve-orange-dark); stroke-width: 2; }
     .sitemap-suite-link .sitemap-amenity-label { text-decoration: underline; }
@@ -16938,6 +16974,19 @@ function ilDayOfYear(txt) {
     if (m < 0 || m > 11 || !d) return null;
     return Math.round((Date.UTC(2024, m, d) - Date.UTC(2024, 0, 1)) / 864e5) + 1;
 }
+// Day of year -> "2024-MM-DD" (a leap year, so Feb 29 works) for the date picker.
+function ilIsoForDay(doy) { return new Date(Date.UTC(2024, 0, doy)).toISOString().slice(0, 10); }
+// "2026-08-22" -> "Aug. 22nd" (same style as the list)
+function ilFmtMonthDay(iso) {
+    const [, m, d] = iso.split('-').map(Number);
+    const names = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'June', 'July', 'Aug.', 'Sep.', 'Oct.', 'Nov.', 'Dec.'];
+    const sfx = (d % 100 >= 11 && d % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[d % 10] || 'th');
+    return `${names[m - 1]} ${d}${sfx}`;
+}
+function ilTodayDoy() { const n = new Date(); return Math.round((Date.UTC(2024, n.getMonth(), n.getDate()) - Date.UTC(2024, 0, 1)) / 864e5) + 1; }
+// Days until this day of year comes round again (0 = today).
+function ilDaysAhead(doy) { return (doy - ilTodayDoy() + 366) % 366; }
+const IL_CAKE_SVG = '<svg class="il-cake" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.6c1 1.2 1 2.4 0 3.4-1-1-1-2.2 0-3.4z" fill="#f6a609"/><rect x="11.3" y="5" width="1.4" height="3.6" rx=".5" fill="#e85d75"/><rect x="4" y="8.6" width="16" height="5.4" rx="1.6" fill="#f9a8d4"/><path d="M4 11.4c1.33 1.3 2.67 1.3 4 0s2.67-1.3 4 0 2.67 1.3 4 0 2.67-1.3 4 0" stroke="#fff" stroke-width="1.2" fill="none"/><rect x="3" y="14" width="18" height="6" rx="1.6" fill="#fbcfe8"/><circle cx="7" cy="17" r=".9" fill="#60a5fa"/><circle cx="12" cy="17.4" r=".9" fill="#34d399"/><circle cx="17" cy="17" r=".9" fill="#fbbf24"/><rect x="1.6" y="20" width="20.8" height="2.2" rx="1.1" fill="#e85d75"/></svg>';
 const INFO_LISTS = {};
 function makeInfoList(cfg) {
     const L = { cfg, rows: [] };
@@ -16953,9 +17002,9 @@ function makeInfoList(cfg) {
     let built = false;
     function build() {
         built = true;
-        panel().innerHTML = `<p class="empty-note" style="font-size:12.5px;margin-top:0;">${cfg.intro}</p>
-            <div class="mmr-table-wrap" style="max-height:560px;overflow-y:auto;">
-                <table class="mmr-table retail-info-table info-list-table">
+        panel().innerHTML = `${cfg.banner ? '<div class="il-banner"></div>' : ''}<p class="empty-note" style="font-size:12.5px;margin-top:0;">${cfg.intro}</p>
+            <div class="mmr-table-wrap${cfg.tableClass ? ' ' + cfg.tableClass + '-wrap' : ''}" style="max-height:560px;overflow-y:auto;">
+                <table class="mmr-table retail-info-table info-list-table${cfg.tableClass ? ' ' + cfg.tableClass : ''}">
                     <thead><tr>${cfg.fields.map(f => `<th>${escapeHtml(f.label)}</th>`).join('')}<th></th></tr></thead>
                     <tbody></tbody>
                 </table>
@@ -16974,7 +17023,7 @@ function makeInfoList(cfg) {
             </div>`;
         const p = panel(), tbody = p.querySelector('tbody');
         tbody.addEventListener('input', e => {
-            const el = e.target.closest('[data-il-f]'); if (!el) return;
+            const el = e.target.closest('[data-il-f]'); if (!el || el.classList.contains('il-date-in')) return;
             const r = L.rows.find(x => x.id === el.closest('tr').dataset.id); if (!r) return;
             r.c = Object.assign({}, r.c, { [el.dataset.ilF]: el.value }); r.t = Date.now();
             const a = el.parentElement.querySelector('.il-open');
@@ -16982,6 +17031,18 @@ function makeInfoList(cfg) {
             changed();
         });
         tbody.addEventListener('focusout', () => setTimeout(() => { if (L.pendingRender && !tbody.contains(document.activeElement)) render(); }, 0));
+        // Date cells: show the date as text; clicking opens the browser's calendar.
+        tbody.addEventListener('click', e => {
+            const b = e.target.closest('[data-il-date]'); if (!b) return;
+            const inp = b.parentElement.querySelector('.il-date-in');
+            try { inp.showPicker(); } catch (err) { inp.classList.add('il-date-show'); inp.focus(); }
+        });
+        tbody.addEventListener('change', e => {
+            const inp = e.target.closest('.il-date-in'); if (!inp || !inp.value) return;
+            const r = L.rows.find(x => x.id === inp.closest('tr').dataset.id); if (!r) return;
+            r.c = Object.assign({}, r.c, { [inp.dataset.ilF]: ilFmtMonthDay(inp.value) }); r.t = Date.now();
+            inp.blur(); changed(); render();
+        });
         tbody.addEventListener('click', e => {
             const b = e.target.closest('[data-il-remove]'); if (!b) return;
             const r = L.rows.find(x => x.id === b.closest('tr').dataset.id); if (!r) return;
@@ -17010,8 +17071,14 @@ function makeInfoList(cfg) {
         let rows = live();
         if (cfg.sort) rows = cfg.sort(rows);
         const mark = cfg.mark ? cfg.mark(rows) : {};
+        if (cfg.banner) panel().querySelector('.il-banner').innerHTML = cfg.banner(rows, mark);
         tbody.innerHTML = rows.length ? rows.map(r => `<tr data-id="${escapeAttr(r.id)}"${mark[r.id] ? ' class="il-next"' : ''}>${cfg.fields.map((f, i) => {
             const v = (r.c && r.c[f.k]) || '';
+            if (f.date) {
+                const doy = ilDayOfYear(v);
+                return `<td class="il-date-cell"><button type="button" class="il-date" data-il-date title="Click to pick a date">${escapeHtml(v || 'Pick a date')}</button><input type="date" class="il-date-in" data-il-f="${f.k}" value="${doy ? ilIsoForDay(doy) : ''}" tabindex="-1" aria-label="${escapeAttr(f.label)}">${mark[r.id] ? `<span class="il-tag">${escapeHtml(mark[r.id])}</span>` : ''}</td>`;
+            }
+            if (f.icon) return `<td><div class="il-iconcell">${f.icon}<textarea rows="1" data-il-f="${f.k}" style="min-width:${f.w || 110}px;">${escapeHtml(v)}</textarea></div></td>`;
             const u = f.link ? normalizeWebUrl(v) : '';
             return `<td${f.link ? ' class="il-link-cell"' : ''}><textarea rows="1" data-il-f="${f.k}"${f.ph ? ` placeholder="${escapeAttr(f.ph)}"` : ''} style="min-width:${f.w || 110}px;${i === 0 ? 'font-weight:700;' : ''}">${escapeHtml(v)}</textarea>${f.link ? `<a class="il-open" href="${escapeAttr(u || '#')}" target="_blank" rel="noopener" title="Open website" style="${u ? '' : 'display:none;'}">&#8599;</a>` : ''}${i === 0 && mark[r.id] ? `<span class="il-tag">${escapeHtml(mark[r.id])}</span>` : ''}</td>`;
         }).join('')}<td class="mmr-remove-cell"><button type="button" class="wl-remove" data-il-remove title="Remove">&times;</button></td></tr>`).join('')
@@ -17075,28 +17142,44 @@ makeInfoList({
 });
 makeInfoList({
     id: 'birthdays', key: 'info-birthdays', localKey: 'reve-info-birthdays',
-    intro: 'Team birthdays and favorite cakes, in calendar order &mdash; the next upcoming birthday is highlighted. Stored in your shared backend, not in the site&rsquo;s public code.',
-    addLabel: 'Add Birthday', matchLabel: 'Date + Name',
+    intro: 'Upcoming birthdays come first; once a birthday has passed this year it moves to the end of the list. Click a date to change it. Stored in your shared backend, not in the site&rsquo;s public code.',
+    addLabel: 'Add Birthday', matchLabel: 'Date + Name', tableClass: 'il-bdays',
     fields: [
-        { k: 'date', label: 'Date', w: 100, ph: 'e.g. Jan. 18th' },
-        { k: 'name', label: 'Name', w: 170 },
-        { k: 'cake', label: 'Favorite Cake', w: 260 }
+        { k: 'date', label: 'Date', date: true },
+        { k: 'name', label: 'Name', w: 140 },
+        { k: 'cake', label: 'Favorite Cake', w: 240, icon: IL_CAKE_SVG }
     ],
     headerMap: { date: 'date', birthday: 'date', name: 'name', 'favorite cake': 'cake', cake: 'cake' },
     matchKey: c => String(c.name || '').trim().toLowerCase() + '|' + (ilDayOfYear(c.date) || String(c.date || '').trim().toLowerCase()),
     rowName: c => c.name,
-    sort: rows => rows.slice().sort((a, b) => (ilDayOfYear(a.c.date) || 999) - (ilDayOfYear(b.c.date) || 999) || (a.o || 0) - (b.o || 0)),
+    // Next birthday first, wrapping round the year; undated rows last.
+    sort: rows => rows.slice().sort((a, b) => {
+        const da = ilDayOfYear(a.c.date), db = ilDayOfYear(b.c.date);
+        return (da ? ilDaysAhead(da) : 999) - (db ? ilDaysAhead(db) : 999) || (a.o || 0) - (b.o || 0);
+    }),
     mark: rows => {
-        const now = new Date(), today = Math.round((Date.UTC(2024, now.getMonth(), now.getDate()) - Date.UTC(2024, 0, 1)) / 864e5) + 1;
         const withDay = rows.map(r => ({ r, d: ilDayOfYear(r.c.date) })).filter(x => x.d);
         if (!withDay.length) return {};
-        const ahead = x => (x.d - today + 366) % 366;
-        const soonest = Math.min(...withDay.map(ahead));
+        const soonest = Math.min(...withDay.map(x => ilDaysAhead(x.d)));
         const out = {};
-        withDay.filter(x => ahead(x) === soonest).forEach(x => { out[x.r.id] = soonest === 0 ? '🎂 Today!' : soonest === 1 ? 'Tomorrow' : `Next — in ${soonest} days`; });
+        withDay.filter(x => ilDaysAhead(x.d) === soonest).forEach(x => { out[x.r.id] = soonest === 0 ? 'Today!' : soonest === 1 ? 'Tomorrow' : `Next \u2014 in ${soonest} days`; });
         return out;
+    },
+    banner: (rows, mark) => {
+        const next = rows.filter(r => mark[r.id]);
+        const days = next.length ? ilDaysAhead(ilDayOfYear(next[0].c.date)) : null;
+        const names = next.map(r => escapeHtml(r.c.name || 'Someone')).join(' &amp; ');
+        const headline = !next.length ? 'Birthdays'
+            : days === 0 ? `Happy Birthday, ${names}!`
+            : `Next up: ${names}`;
+        const sub = !next.length ? 'Add the team&rsquo;s birthdays below.'
+            : `${escapeHtml(next[0].c.date || '')} &middot; ${days === 0 ? 'today!' : days === 1 ? 'tomorrow' : `in ${days} days`}${next[0].c.cake ? ` &middot; ${escapeHtml(next[0].c.cake.split('\n')[0])}` : ''}`;
+        return `<div class="il-bunting" aria-hidden="true"></div>
+            <svg class="il-balloons" viewBox="0 0 64 80" aria-hidden="true"><path d="M20 44c3 8-4 14 0 22M44 40c-2 9 5 15 1 24" stroke="#b8a99a" fill="none"/><ellipse cx="20" cy="26" rx="13" ry="16" fill="#f472b6"/><ellipse cx="44" cy="22" rx="12" ry="15" fill="#60a5fa"/><path d="M18 42l2 3 2-3zM42 37l2 3 2-3z" fill="#9a8a7a"/><ellipse cx="15" cy="19" rx="3" ry="5" fill="#fff" opacity=".45"/><ellipse cx="40" cy="15" rx="3" ry="4.5" fill="#fff" opacity=".45"/></svg>
+            <div class="il-banner-body">${IL_CAKE_SVG.replace('class="il-cake"', 'class="il-cake il-cake-big"')}<div><div class="il-banner-h">${headline}</div><div class="il-banner-s">${sub}</div></div></div>`;
     }
 });
+
 
 /* ============================================================
    DOCUMENTS TAB — printable common-use documents, grouped into
