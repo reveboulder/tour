@@ -3223,7 +3223,7 @@
                 <div class="field">
                     <label>Floorplan image URL</label>
                     <input type="text" id="fFloorplanImg" placeholder="https://... .jpg / .png">
-                    <div class="empty-note">Auto-fills with the unit&rsquo;s floorplan (pick a different one per unit in Settings &rsaquo; Unit Info &rsaquo; Tour Floorplan). Overwrite with any URL, or leave blank for a placeholder.</div>
+                    <div class="empty-note">Auto-fills with the unit&rsquo;s floorplan (pick a different one per unit in Admin &rsaquo; INFO &rsaquo; Unit Info &rsaquo; Tour Floorplan). Overwrite with any URL, or leave blank for a placeholder.</div>
                 </div>
                 <div class="field">
                     <label>Apply Now URL</label>
@@ -3998,8 +3998,8 @@
         <img class="mark mark-logo-img" alt="RÊVE">
         <div>
             <h1>Admin</h1>
-            <div class="tag">Restricted &mdash; MMR, Commissions, PCard</div>
-                <div class="save-note" data-save-keys="mmr-* comm-* pcard-items pay-period-start" aria-live="polite"></div>
+            <div class="tag">Restricted &mdash; MMR, Commissions, PCard, Deposits, Blueprints, INFO</div>
+                <div class="save-note" data-save-keys="mmr-* comm-* pcard-items pay-period-start unit-overrides retail-info" aria-live="polite"></div>
         </div>
     </div>
 
@@ -4585,8 +4585,60 @@
         <div id="adminPanel-info" class="admin-subpanel" style="display:none;">
             <div class="wl-subtabs" id="infoSubtabs">
                 <button type="button" class="wl-subtab active" data-info-subtab="door">DOOR Accounts</button>
+                <button type="button" class="wl-subtab" data-info-subtab="units">Unit Info</button>
+                <button type="button" class="wl-subtab" data-info-subtab="retail">Retail</button>
             </div>
-            <div id="infoPanel-door">
+            <div id="infoPanel-units" class="info-subpanel" style="display:none;">
+            <div id="unitInfoBody">
+            <p class="empty-note" style="font-size:12.5px;margin-top:0;">Editable roster of all 242 units &mdash; changes here update everywhere else in the app that reads unit data (Tour, Waitlist matching, etc.) and sync across agents.</p>
+            <div class="unit-stats" id="unitStats"></div>
+            <div class="unit-stats-filter" id="unitStatsFilter"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+                <input type="text" id="unitInfoSearch" class="wl-field" placeholder="Search unit #, floorplan, Yardi type or bed/bath&hellip;" style="max-width:320px;flex:1 1 220px;">
+                <button type="button" class="btn" id="unitRentPasteToggle" style="width:auto;padding:7px 12px;">Paste Market Rents</button>
+            </div>
+            <div id="unitRentPasteBox" style="display:none;margin-bottom:10px;">
+                <textarea id="unitRentPasteText" rows="4" style="width:100%;box-sizing:border-box;font-family:var(--sans);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:6px 8px;" placeholder="One unit per line: unit number, then market rent (e.g. 4334  2895) &mdash; paste two columns from a spreadsheet"></textarea>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+                    <button type="button" class="btn primary" id="unitRentPasteImport" style="width:auto;padding:7px 14px;">Import</button>
+                    <span class="empty-note" id="unitRentPasteStatus" style="margin:0;"></span>
+                </div>
+            </div>
+            <div class="mmr-table-wrap" style="max-height:520px;overflow-y:auto;">
+                <table class="mmr-table" id="unitInfoTable">
+                    <thead><tr>
+                        <th>Unit</th><th>Floorplan</th><th>Sq Ft</th><th>Bldg</th><th>Floor</th>
+                        <th>Yardi</th><th>Bed/Bath</th><th>Address</th><th>View</th><th>Mailbox</th><th>Amenity</th><th>Commission</th><th>Market Rent</th><th>Video Name</th><th>Video Link</th><th>Tour Floorplan</th>
+                    </tr></thead>
+                    <tbody id="unitInfoTbody"></tbody>
+                </table>
+            </div>
+        </div>
+            </div>
+            <div id="infoPanel-retail" class="info-subpanel" style="display:none;">
+            <div id="retailInfoBody">
+            <p class="empty-note" style="font-size:12.5px;margin-top:0;">Retail suites on Level 1 of Building 1. Contact details are stored in your shared backend (not in the site's public code) and sync across agents. A suite's <b>Website</b> becomes the link for that suite on the Sitemap tab's map.</p>
+            <div class="mmr-table-wrap" style="max-height:520px;overflow-y:auto;">
+                <table class="mmr-table retail-info-table">
+                    <thead><tr><th>Suite</th><th>Business</th><th>Owner/Manager</th><th>2nd Contact</th><th>Email</th><th>Phone</th><th>Alt Contact</th><th>Website</th><th></th></tr></thead>
+                    <tbody id="retailInfoTbody"></tbody>
+                </table>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                <button type="button" class="btn" id="retailInfoAddBtn" style="width:auto;flex:none;padding:7px 14px;">+ Add Suite</button>
+                <button type="button" class="btn" id="retailInfoPasteToggle" style="width:auto;flex:none;padding:7px 14px;">Paste from Spreadsheet</button>
+            </div>
+            <div id="retailInfoPasteBox" style="display:none;margin-top:10px;">
+                <p class="empty-note" style="font-size:12px;margin:0 0 6px;">Copy the rows from your spreadsheet (including the header row, if you like) and paste them here. Rows are matched by Suite; "--" counts as blank; a row with no Suite adds to the suite above it.</p>
+                <textarea id="retailInfoPasteText" rows="6" class="wl-field" style="width:100%;box-sizing:border-box;font-family:var(--mono);font-size:11.5px;" placeholder="Suite&#9;Business&#9;Owner/Manager&#9;...&#10;1100&#9;Transform Colorado&#9;..."></textarea>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+                    <button type="button" class="btn primary" id="retailInfoImportBtn" style="width:auto;flex:none;padding:7px 14px;">Import</button>
+                    <span class="empty-note" id="retailInfoImportStatus" style="margin:0;"></span>
+                </div>
+            </div>
+        </div>
+            </div>
+            <div id="infoPanel-door" class="info-subpanel">
                 <div class="settings-card info-lock" id="doorLock">
                     <div class="section-label" style="margin-top:0;"><span class="dot"></span><span id="doorLockTitle">DOOR Accounts are locked</span></div>
                     <p class="empty-note" id="doorLockNote" style="font-size:12.5px;"></p>
@@ -4876,7 +4928,6 @@
         <div>
             <h1>Settings</h1>
             <div class="tag">App-wide preferences</div>
-                <div class="save-note" data-save-keys="unit-overrides retail-info" aria-live="polite"></div>
         </div>
     </div>
 
@@ -4923,66 +4974,6 @@
         </div>
         <div class="empty-note" id="backendStatusNote" style="margin-top:10px;">Not configured &mdash; data stays local to this browser only.</div>
         <div class="empty-note" id="backendSetupHint" style="margin-top:10px;">Need this set up? Ask Claude for the Apps Script code and step-by-step deployment instructions &mdash; it's a one-time, ~5 minute setup on a Google Sheet you control.</div>
-    </div>
-
-    <div class="settings-card" style="margin-top:18px;">
-        <button type="button" class="unit-info-toggle" id="unitInfoToggle">
-            <span><span class="dot"></span>UNIT INFO <span class="hint">Click to View</span></span>
-            <span class="fc-chevron" id="unitInfoChevron">&rsaquo;</span>
-        </button>
-        <div id="unitInfoBody" style="display:none;margin-top:12px;">
-            <p class="empty-note" style="font-size:12.5px;">Editable roster of all 242 units &mdash; changes here update everywhere else in the app that reads unit data (Tour, Waitlist matching, etc.) and sync across agents.</p>
-            <div class="unit-stats" id="unitStats"></div>
-            <div class="unit-stats-filter" id="unitStatsFilter"></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
-                <input type="text" id="unitInfoSearch" class="wl-field" placeholder="Search unit #, floorplan, Yardi type or bed/bath&hellip;" style="max-width:320px;flex:1 1 220px;">
-                <button type="button" class="btn" id="unitRentPasteToggle" style="width:auto;padding:7px 12px;">Paste Market Rents</button>
-            </div>
-            <div id="unitRentPasteBox" style="display:none;margin-bottom:10px;">
-                <textarea id="unitRentPasteText" rows="4" style="width:100%;box-sizing:border-box;font-family:var(--sans);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:6px 8px;" placeholder="One unit per line: unit number, then market rent (e.g. 4334  2895) &mdash; paste two columns from a spreadsheet"></textarea>
-                <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-                    <button type="button" class="btn primary" id="unitRentPasteImport" style="width:auto;padding:7px 14px;">Import</button>
-                    <span class="empty-note" id="unitRentPasteStatus" style="margin:0;"></span>
-                </div>
-            </div>
-            <div class="mmr-table-wrap" style="max-height:520px;overflow-y:auto;">
-                <table class="mmr-table" id="unitInfoTable">
-                    <thead><tr>
-                        <th>Unit</th><th>Floorplan</th><th>Sq Ft</th><th>Bldg</th><th>Floor</th>
-                        <th>Yardi</th><th>Bed/Bath</th><th>Address</th><th>View</th><th>Mailbox</th><th>Amenity</th><th>Commission</th><th>Market Rent</th><th>Video Name</th><th>Video Link</th><th>Tour Floorplan</th>
-                    </tr></thead>
-                    <tbody id="unitInfoTbody"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="settings-card" style="margin-top:18px;">
-        <button type="button" class="unit-info-toggle" id="retailInfoToggle">
-            <span><span class="dot"></span>RETAIL INFO <span class="hint">Click to View</span></span>
-            <span class="fc-chevron">&rsaquo;</span>
-        </button>
-        <div id="retailInfoBody" style="display:none;margin-top:12px;">
-            <p class="empty-note" style="font-size:12.5px;">Retail suites on Level 1 of Building 1. Contact details are stored in your shared backend (not in the site's public code) and sync across agents. A suite's <b>Website</b> becomes the link for that suite on the Sitemap tab's map.</p>
-            <div class="mmr-table-wrap" style="max-height:520px;overflow-y:auto;">
-                <table class="mmr-table retail-info-table">
-                    <thead><tr><th>Suite</th><th>Business</th><th>Owner/Manager</th><th>2nd Contact</th><th>Email</th><th>Phone</th><th>Alt Contact</th><th>Website</th><th></th></tr></thead>
-                    <tbody id="retailInfoTbody"></tbody>
-                </table>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-                <button type="button" class="btn" id="retailInfoAddBtn" style="width:auto;flex:none;padding:7px 14px;">+ Add Suite</button>
-                <button type="button" class="btn" id="retailInfoPasteToggle" style="width:auto;flex:none;padding:7px 14px;">Paste from Spreadsheet</button>
-            </div>
-            <div id="retailInfoPasteBox" style="display:none;margin-top:10px;">
-                <p class="empty-note" style="font-size:12px;margin:0 0 6px;">Copy the rows from your spreadsheet (including the header row, if you like) and paste them here. Rows are matched by Suite; "--" counts as blank; a row with no Suite adds to the suite above it.</p>
-                <textarea id="retailInfoPasteText" rows="6" class="wl-field" style="width:100%;box-sizing:border-box;font-family:var(--mono);font-size:11.5px;" placeholder="Suite&#9;Business&#9;Owner/Manager&#9;...&#10;1100&#9;Transform Colorado&#9;..."></textarea>
-                <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-                    <button type="button" class="btn primary" id="retailInfoImportBtn" style="width:auto;flex:none;padding:7px 14px;">Import</button>
-                    <span class="empty-note" id="retailInfoImportStatus" style="margin:0;"></span>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div class="settings-card" style="margin-top:18px;">
@@ -5054,7 +5045,7 @@ UNITS.forEach(u => byUnit[u.unit] = u);
 const UNIT_IMAGE_MAP = {"1101":"LW3-2471","1102":"LW2-1968","1103":"LW1-2122","1104":"TH2-2153","1105":"TH2-2153","1106":"TH2-2153","1107":"TH2-2153","1201":"B2-1148","1202":"A2-737","1203":"A3-741-767","1204":"A3-741","1205":"A3-741-767","1206":"A3-741-767","1208":"S4-686-703","1209":"A3-741-767","1210":"A3-741-767","1211":"A3-741-767","1212":"A3-741-767","1213":"A3-741-767","1214":"S4-686-703","1215":"A6-924","1217":"A3-741-767","1219":"S4-686-703","1221":"A3-741-767","1223":"A3-741-767","1225":"A3-741-767","1227":"B7-1243","1229":"A3-741-767","1231":"S4-686-703","1233":"A3-741-767","1234":"A3-741-767","1235":"A3-741-767","1236":"A3-741-767","1237":"A3-741-767","1238":"S4-686-703","1239":"A3-741-767","1240":"A3-741-767","1241":"A3-741-767","1242":"A3-741-767","1243":"A3-741-767","1244":"A3-741-767","1245":"S4-686-703","1247":"A4-824","1248":"A4-824","1301":"B2-1148","1302":"A2-737","1303":"A3-741-767","1304":"A3-741","1305":"A3-741-767","1306":"A3-741-767","1308":"S4-686-703","1309":"A3-741-767","1310":"A3-741-767","1311":"A3-741-767","1312":"A3-741-767","1313":"A3-741-767","1314":"S4-686-703","1315":"A6-924","1317":"A3-741-767","1318":"B8-1716","1319":"S4-686-703","1321":"A3-741-767","1322":"S3-647-balcony","1323":"A3-741-767","1325":"A3-741-767","1327":"B7-1243","1329":"A3-741-767","1331":"S4-686-703","1332":"S4-686","1333":"A3-741-767","1334":"A3-741-767","1335":"A3-741-767","1336":"A3-741-767","1337":"A3-741-767","1338":"S4-686-703","1339":"A3-741-767","1340":"A3-741-767","1341":"A3-741-767","1342":"A3-741-767","1343":"A3-741-767","1344":"A3-741-767","1345":"S4-686-703","1347":"A4-824","1348":"A4-824","1404":"A3-741","1406":"A3-741-767","1408":"S4-686-703","1410":"A3-741-767","1412":"A3-741-767","1414":"S4-686-703","1415":"A6-924","1417":"A3-741-767","1419":"S2-581","1420":"B8-1716","1422":"S3-647","1427":"A8-1004","1429":"A3-741-767","1431":"S4-686-703","1432":"S4-686","1433":"A3-741-767","1434":"A3-741-767","1435":"A3-741-767","1436":"A3-741-767","1437":"A3-741-767","1438":"S4-686-703","1439":"A3-741-767","1440":"A3-741-767","1441":"A3-741-767","1442":"A3-741-767","1443":"A3-741-767","1444":"A3-741-767","1445":"S4-686-703","1447":"B4-1173","3103":"LW4-1732","3104":"A5-872-895","3105":"LW4-1732","3106":"A1-548","3107":"LW4-1732","3108":"A5-872-895","3109":"LW4-1732","3110":"A1-548","3111":"LW4-1732","3112":"A1-548","3113":"A9-1090","3114":"B1-1020","3202":"C3-2030","3204":"A5-872-895","3206":"A1-548","3208":"A5-872-895","3210":"A1-548","3212":"A5-872-895","3213":"A9-1090","3214":"B1-1020","3301":"A9-1150","3302":"A1-548","3304":"A5-872-895","3305":"C2-1740","3306":"A1-548","3307":"C2-1740","3308":"A5-872-895","3309":"A9-1090","3310":"A1-548","3312":"A5-872-895","3404":"A5-872-895","3405":"C2-1740","3406":"A1-548","3407":"C2-1740","3408":"A5-872-895","3410":"A1-548","3412":"A5-872-895","3414":"PH2-1800","4116":"TH1-1350","4118":"TH1-1350","4120":"B6-1240","4121":"A5-872-895","4122":"B5-1211","4123":"A5-872-895","4124":"B5-1211","4125":"A1-548","4126":"B5-1211","4127":"A5-872-895","4129":"A1-548","4130":"B5-1211","4131":"A5-872-895","4132":"A9-1090","4134":"TH1-1350","4136":"TH1-1350","4138":"TH2-1765","4139":"A1-548","4140":"TH2-1765","4141":"B3-1150","4144":"TH2-1800","4146":"A7-1050","4221":"A5-872-895","4222":"B5-1211","4223":"A5-872-895","4224":"B5-1211","4225":"A1-548","4226":"B5-1211","4227":"A5-872-895","4229":"A1-548","4230":"B5-1211","4231":"A5-872-895","4232":"A9-1090","4239":"A1-548","4241":"A5-872-895","4243":"A1-548","4245":"S1-530","4246":"B5-1211","4320":"B9-2200","4323":"A5-872-895","4324":"B5-1211","4325":"A1-548","4326":"B5-1211","4327":"A5-872-895","4329":"A1-548","4330":"B5-1211","4331":"A5-872-895","4332":"A9-1090","4335":"A1-548","4337":"A5-872-895","4339":"A1-548","4340":"B5-1211","4341":"S1-530","4420":"PH1-2150","4421":"B5-1211","4422":"A5-872-895","4423":"B5-1211","4424":"A1-548","4425":"B5-1211","4426":"A5-872-895","4428":"A1-548","4430":"A5-872-895","4431":"PH2-1800","4432":"A1-548","4433":"C1-1590","4434":"A5-872-895","4435":"PH3-1690","1405":"A3-664","1409":"A3-664","1411":"A3-664","1413":"A3-664","1421":"A3-664","1423":"A3-664","1425":"A3-664","3303":"A9-1062","4128":"A9-1062","4228":"A9-1062","4328":"A9-1062","4427":"A9-1062","4334":"B4-1193","4336":"B4-1193","4338":"B4-1193","1407":"A7-882","3314":"A7-940","1403":"B5-1285","4322":"B6-1500","4220":"B6-1521","3403":"PH6-1890","1207":"A7-983","1307":"A7-983","4429":"PH4-1870"};
 
 function floorplanPathForUnit(u) {
-    // A floorplan picked for this unit in Settings › Unit Info (from
+    // A floorplan picked for this unit in Admin › INFO › Unit Info (from
     // Documents › Floorplans) wins; otherwise the print-archive image.
     if (u.tourFloorplan) return 'doc:' + u.tourFloorplan;
     const key = UNIT_IMAGE_MAP[u.unit];
@@ -5483,7 +5474,7 @@ function ordinalFloor(f) {
 // fields avoid a stale concession sticking around after the qualifying
 // rules change (or not auto-applying to a unit that newly qualifies).
 // Video/location/floorplan/apply-link fields are also always-fresh —
-// these all derive straight from Settings > Unit Info, and a unit's
+// these all derive straight from Admin › INFO › Unit Info, and a unit's
 // FIRST ever Tour visit silently saves a draft snapshot that would
 // otherwise shadow every later Unit Info edit forever, since drafts
 // are loaded local-storage-first. Title/subtitle-as-typed stay as
@@ -9679,7 +9670,20 @@ function doorShowLock(mode, note) {
     document.getElementById('doorBody').style.display = 'none';
     if (!busy) document.getElementById('doorPass').focus();
 }
-async function infoOnShow() {
+// Admin › INFO sub-tabs. Only DOOR Accounts has its own passphrase.
+let infoSubTab = 'door';
+document.querySelectorAll('#infoSubtabs .wl-subtab').forEach(btn => btn.addEventListener('click', () => {
+    infoSubTab = btn.dataset.infoSubtab;
+    document.querySelectorAll('#infoSubtabs .wl-subtab').forEach(b => b.classList.toggle('active', b === btn));
+    infoOnShow();
+}));
+function infoOnShow() {
+    ['door', 'units', 'retail'].forEach(n => { document.getElementById('infoPanel-' + n).style.display = n === infoSubTab ? '' : 'none'; });
+    if (infoSubTab === 'units') { renderUnitStats(); renderUnitInfoTable(); }
+    else if (infoSubTab === 'retail') renderRetailInfoTable();
+    else doorOnShow();
+}
+async function doorOnShow() {
     if (DOOR_KEY) { doorRender(); doorStartPoll(); return; }
     const seq = ++doorLoadSeq;
     DOOR_ENV = doorLocalEnv();
@@ -9716,7 +9720,7 @@ async function doorPullMerge() {
 
 async function doorUnlock() {
     const btn = document.getElementById('doorUnlockBtn');
-    if (btn.dataset.mode === 'offline') return infoOnShow();
+    if (btn.dataset.mode === 'offline') return doorOnShow();
     if (btn.dataset.mode === 'loading') return;
     const p1 = document.getElementById('doorPass').value, p2 = document.getElementById('doorPass2').value;
     const err = msg => { const e = document.getElementById('doorLockErr'); e.textContent = msg; e.style.display = 'block'; };
@@ -9771,7 +9775,7 @@ async function doorLock() {
     document.getElementById('doorTable').innerHTML = '';
     document.getElementById('doorShow').checked = false;
     document.getElementById('doorBody').style.display = 'none';
-    infoOnShow();
+    doorOnShow();
 }
 
 function doorRender() {
@@ -16368,7 +16372,7 @@ document.getElementById('forceRefreshBtn').addEventListener('click', (e) => forc
 document.getElementById('residentRefreshBtn').addEventListener('click', (e) => forceSiteRefresh(e.currentTarget));
 
 /* ============================================================
-   UNIT INFO — an editable view of the full unit roster, in Settings.
+   UNIT INFO — an editable view of the full unit roster, in Admin › INFO.
    Edits mutate byUnit/UNITS directly (the same live objects everything
    else in the app reads from), so a corrected sqft or floorplan shows
    up immediately in Tour, Waitlist matching, etc. Only the OVERRIDES
@@ -16425,7 +16429,7 @@ async function pullUnitOverridesFromBackend() {
         UNIT_OVERRIDES = merged;
         applyUnitOverrides();
         persistUnitOverrides();
-        if (document.getElementById('unitInfoBody').style.display !== 'none') { renderUnitStats(); renderUnitInfoTable(); }
+        if (unitInfoVisible()) { renderUnitStats(); renderUnitInfoTable(); }
         if (UNIT_OVERRIDES_DIRTY.size) pushUnitOverridesDebounced();
     } else if (Object.keys(UNIT_OVERRIDES).length) {
         backendPush(UNIT_OVERRIDES_BACKEND_KEY, UNIT_OVERRIDES);
@@ -16458,14 +16462,7 @@ function renderUnitInfoTable() {
         });
     });
 }
-document.getElementById('unitInfoToggle').addEventListener('click', () => {
-    const body = document.getElementById('unitInfoBody');
-    const toggleBtn = document.getElementById('unitInfoToggle');
-    const isHidden = body.style.display === 'none';
-    body.style.display = isHidden ? 'block' : 'none';
-    toggleBtn.classList.toggle('open', isHidden);
-    if (isHidden) { renderUnitStats(); renderUnitInfoTable(); }
-});
+function unitInfoVisible() { return adminUnlocked && adminSubTab === 'info' && infoSubTab === 'units'; }
 document.getElementById('unitInfoSearch').addEventListener('input', renderUnitInfoTable);
 /* ---------- Unit Info › Tour Floorplan: which floorplan shows on the
    unit's Tour flyer. Default = the print-archive image it has always
@@ -16641,7 +16638,7 @@ document.getElementById('unitRentPasteImport').addEventListener('click', () => {
 });
 
 /* ============================================================
-   RETAIL INFO (Settings) — the Level 1 retail suites' businesses and
+   RETAIL INFO (Admin › INFO) — the Level 1 retail suites' businesses and
    contacts. Only suite numbers and business names ship in the page;
    contact details live in localStorage + the shared backend, never in
    the site's (public) code. A suite's Website is its link on the
@@ -16871,13 +16868,6 @@ document.getElementById('defaultChargesResetBtn').addEventListener('click', () =
     defaultChargesChanged();
 });
 
-document.getElementById('retailInfoToggle').addEventListener('click', () => {
-    const body = document.getElementById('retailInfoBody');
-    const isHidden = body.style.display === 'none';
-    body.style.display = isHidden ? 'block' : 'none';
-    document.getElementById('retailInfoToggle').classList.toggle('open', isHidden);
-    if (isHidden) renderRetailInfoTable();
-});
 document.getElementById('retailInfoAddBtn').addEventListener('click', () => {
     const row = {}; RETAIL_FIELDS.forEach(f => { row[f] = ''; });
     RETAIL_INFO.rows.push(row);
@@ -18987,7 +18977,7 @@ function seedHowToGuides() {
 // guides still gets them, and nothing existing is overwritten. Deleting a
 // built-in leaves a { deleted: true } marker so it isn't re-added.
 const HOWTO_BUILTIN_GUIDES = {
-    "builtin-app-tour": {"title": "Getting Around the App", "icon": "🧭", "category": "General", "steps": ["Top row: Tour (flyers), Availability (calendar), Expiring (upcoming lease ends), Waitlist (prospects), Sitemap (site map & videos), Documents (printables).", "Top right: Help (How-To guides and Questions) and Settings (preferences, backend, Unit & Retail Info).", "Second row: Residents (move-in tracking), WL (Welcome Letter), Lease (new lease data), Renewals (renewal decisions & offers), and Admin (password-protected: MMR, Commissions, PCard).", "Anything marked \"shared across agents\" syncs for the whole team when the backend is connected in Settings — changes show up for everyone within about 25 seconds.", "Uploaded reports (pricing sheet, lease expirations, renewals) feed several tabs at once — upload them once and Tour, Availability, Expiring, Waitlist and Renewals all update.", "Not seeing a recent change? Go to Settings and click \"Refresh Site to Update\"."]},
+    "builtin-app-tour": {"title": "Getting Around the App", "icon": "🧭", "category": "General", "steps": ["Top row: Tour (flyers), Availability (calendar), Expiring (upcoming lease ends), Waitlist (prospects), Sitemap (site map & videos), Documents (printables).", "Top right: Help (How-To guides and Questions) and Settings (preferences, backend, Default Charges).", "Second row: Residents (move-in tracking), WL (Welcome Letter), Lease (new lease data), Renewals (renewal decisions & offers), and Admin (password-protected: MMR, Commissions, PCard, Blueprints, and INFO with DOOR Accounts, Unit Info and Retail).", "Anything marked \"shared across agents\" syncs for the whole team when the backend is connected in Settings — changes show up for everyone within about 25 seconds.", "Uploaded reports (pricing sheet, lease expirations, renewals) feed several tabs at once — upload them once and Tour, Availability, Expiring, Waitlist and Renewals all update.", "Not seeing a recent change? Go to Settings and click \"Refresh Site to Update\"."]},
     "builtin-search-filters": {"title": "Use the Search Filters (Tour, Availability, Expiring)", "icon": "🔎", "category": "Tour", "steps": ["The round filter icons sit above the unit list on Tour, above the calendar on Availability, and above the list on Expiring.", "Click an icon to open its options, then click as many options as you like — the list updates as you pick. Click outside (or the icon again) to close it.", "Move-In Date: shows units available on or before that date. On Expiring it shows leases ending on or before that date (leave blank for all).", "Beds: Studio, 1-Bed, 2-Bed, 3-Bed, Townhome or Live/Work. Floorplan: specific plans (e.g. B5). Floor and Building narrow by location.", "Price and Sq Ft (Tour and Availability): enter a Min, a Max, or both.", "Amenity: Mountain View or Corner Unit.", "An active filter shows your choice under its icon. Filters combine — a unit has to match all of them.", "Click \"Clear filters\" to reset everything.", "Tip: on Tour, typing an exact unit number always puts that unit at the top of the results, even if it is filtered out or not in today's pricing sheet."]},
     "builtin-pricing-concession": {"title": "Set the Current Concession", "icon": "🏷️", "category": "Tour", "steps": ["On the Tour tab, find \"Current Concession\" at the top of the left panel and click Edit.", "Describe the special (e.g. \"6 weeks free for LW units, 4 weeks free for 2-Beds\") and add any internal notes for agents.", "Click \"Save Concession Settings\" — it applies automatically across the Tour tab.", "On each flyer, use \"Show concession calculator on flyer\" and \"Concession length (weeks free)\" to control what that flyer shows.", "The calculator uses the unit's 3 cheapest 12–15 month rates from the pricing sheet and hides itself if none qualify."]},
     "builtin-compare-units": {"title": "Put Several Units on One Flyer", "icon": "🗂️", "category": "Tour", "steps": ["Open the first unit on the Tour tab as usual.", "Click \"+ Add unit\", then search for and pick the next unit.", "The units appear under \"Units in this pamphlet\" — click one to edit its price, terms and links.", "Repeat for more units, or click \"Cancel add\" to stop adding.", "Download PDF or Download Printable PDF includes every unit you added."]},
@@ -19014,8 +19004,8 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx)\". The file stays in your browser tab only and is never saved.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code (suggestions come from the file), To, Amount and For.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Check the summary under the table — it warns if the items won't fit in the sheet.", "Click \"Export to Excel\". Items go into the table, the approval date is set to today, and the rest of the file is unchanged.", "When asked, clear the exported items so they aren't added twice next time."]},
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
     "builtin-refresh-theme": {"title": "Update the App and Change Light/Dark Mode", "icon": "🌓", "category": "Settings", "steps": ["Go to Settings.", "Click Light or Dark to change the look.", "Click \"Refresh Site to Update\" to load the latest version of the app — do this if a new feature or fix isn't showing."]},
-    "builtin-unit-info": {"title": "Update Unit Info (Videos, Mailbox, Commission)", "icon": "🏢", "category": "Settings", "steps": ["Go to Settings and click \"UNIT INFO — Click to View\".", "Search for a unit by number.", "Edit any field — e.g. Video Name and Video Link, Mailbox, View, Amenity or Commission. Changes save automatically and are shared with the team.", "Video links here power the Tour flyers and \"Watch Video\" on the Sitemap tab's map."]},
-    "builtin-retail-info": {"title": "Keep Retail Tenant Contacts and Websites Up to Date", "icon": "🏬", "category": "Settings", "steps": ["Go to Settings and click \"RETAIL INFO — Click to View\".", "Edit any cell directly, or click \"+ Add Suite\" for a new tenant.", "To load many at once, click \"Paste from Spreadsheet\", paste the rows (with the header row), and click Import.", "Add a Website for a suite and that suite becomes a clickable link on the Sitemap tab's map.", "Contacts are stored in the shared backend, not in the public site code."]},
+    "builtin-unit-info": {"title": "Update Unit Info (Videos, Mailbox, Commission)", "icon": "🏢", "category": "Admin", "steps": ["Go to Admin (enter the Admin password), open INFO, then the \"Unit Info\" sub-tab.", "Search for a unit by number.", "Edit any field — e.g. Video Name and Video Link, Mailbox, View, Amenity or Commission. Changes save automatically and are shared with the team.", "Video links here power the Tour flyers and \"Watch Video\" on the Sitemap tab's map."]},
+    "builtin-retail-info": {"title": "Keep Retail Tenant Contacts and Websites Up to Date", "icon": "🏬", "category": "Admin", "steps": ["Go to Admin (enter the Admin password), open INFO, then the \"Retail\" sub-tab.", "Edit any cell directly, or click \"+ Add Suite\" for a new tenant.", "To load many at once, click \"Paste from Spreadsheet\", paste the rows (with the header row), and click Import.", "Add a Website for a suite and that suite becomes a clickable link on the Sitemap tab's map.", "Contacts are stored in the shared backend, not in the public site code."]},
     "builtin-backend": {"title": "Connect the Shared Backend", "icon": "🔗", "category": "Settings", "steps": ["This is a one-time setup, usually already done for the team.", "Go to Settings and paste the Google Apps Script \"Web App URL\".", "Click Save, then \"Test Connection\" — it should say Connected.", "Once connected, Residents, Waitlist, Renewals notes, How-To guides, Documents and more are shared across agents.", "Without it, data stays in your browser only."]},
     "builtin-questions": {"title": "Ask the Questions Assistant", "icon": "💬", "category": "Help", "steps": ["Open Help and click the Questions sub-tab.", "Type a question and press Enter (or click Ask). Ask several at once by separating them with a question mark.", "It answers from the app's own data: a unit number (e.g. \"Tell me about 4334\"), a floorplan (\"B5\"), availability (\"2-beds available under $3000\"), fees (\"pet deposit\"), move-ins/move-outs (\"who is moving in this week\"), expiring leases, residents or prospects by name, retail suites, documents, and how to do things.", "Use the buttons under an answer to open the unit in Tour, jump to the right tab, or open the full guide.", "Answers are only as current as the uploaded reports — upload today's pricing sheet and lease expiration report for the best results.", "\"Clear chat\" empties the conversation. Nothing you ask leaves your browser."]},
     "builtin-howto": {"title": "Add or Edit a How-To Guide", "icon": "➕", "category": "How-To", "steps": ["Open Help > How-To and click \"+ Add Guide\".", "Enter a Title, an Icon (any emoji), a Category (e.g. the tab it's about), and the Steps, one per line.", "Click \"Save Guide\" — it's shared with the whole team.", "To change a guide, open it and click Edit; \"Delete Guide\" removes it.", "Use the search box or the category chips to find guides quickly."]}
@@ -19229,8 +19219,8 @@ const QA_GLOSSARY = [
     ['Admin tab', 'Admin is password-protected and holds MMR (weekly report), Commissions (pay-period export), PCard (reconciliation) and Deposit Accounting (move-out proration + email).', 'admin', 'mmr commission pcard password deposit accounting'],
     ['MMR', 'MMR is the weekly Management/Marketing Report in Admin: enter Weekly Stats, New Leases, Unit Renewals and Weekly Traffic, upload last week’s file and click Download New MMR.', 'admin', 'weekly report traffic stats'],
     ['Deposit Accounting', 'Admin > Deposit Accounting prorates move-out charges (rent, garage, pet, storage, bundle, trash, valet, admin, utilities, other) and builds an email you can copy or open as a draft.', 'admin', 'move out prorate proration refund deposit email'],
-    ['Settings tab', 'Settings has Light/Dark mode, Refresh Site to Update, Live/Test mode, the shared backend URL, Unit Info (roster, stats, videos), Retail Info and Default Charges.', 'settings', 'preferences dark light test backend'],
-    ['Unit Info', 'Settings > Unit Info is the unit roster (floorplan, sq ft, building, floor, Yardi code, bed/bath, address, view, mailbox, amenity, commission, market rent, video) with statistics you can click to filter.', 'settings', 'roster unit data statistics stats'],
+    ['Settings tab', 'Settings has Light/Dark mode, Refresh Site to Update, Live/Test mode, the shared backend URL and Default Charges. Unit Info and Retail Info are in Admin › INFO.', 'settings', 'preferences dark light test backend'],
+    ['Unit Info', 'Admin › INFO › Unit Info is the unit roster (floorplan, sq ft, building, floor, Yardi code, bed/bath, address, view, mailbox, amenity, commission, market rent, video) with statistics you can click to filter.', 'admin', 'roster unit data statistics stats'],
     ['Default Charges', 'Settings > Default Charges is the property fee sheet. Every fee used in the Welcome Letter, Lease, Commissions and Deposit Accounting comes from this table.', 'settings', 'fee sheet charges cost price'],
     ['Test mode', 'Settings > Test switches every tab to sample data; nothing you do touches real data. Click Live to return.', 'settings', 'practice sample demo sandbox'],
     ['Refresh Site to Update', 'Settings > "Refresh Site to Update" (or a hard refresh, Cmd/Ctrl+Shift+R) loads the newest version of the app. Do this after a new feature is deployed.', 'settings', 'update reload new version cache hard refresh'],
@@ -20009,7 +19999,7 @@ function qaRetailAnswer(rows) {
             const site = r.website ? ` — <a href="${escapeAttr(/^https?:/i.test(r.website) ? r.website : 'https://' + r.website)}" target="_blank" rel="noopener">${escapeHtml(r.website)}</a>` : '';
             return `<li><b>Suite ${escapeHtml(r.suite)}</b>: ${escapeHtml(r.business || 'vacant')}${site}${contact ? `<br><span class="qa-muted">${escapeHtml(contact)}</span>` : ''}</li>`;
         }).join('') + '</ul>',
-        actions: [{ label: 'Retail Info', act: 'tab:settings' }], source: 'Settings › Retail Info'
+        actions: [{ label: 'Retail Info', act: 'tab:admin' }], source: 'Admin › INFO › Retail'
     };
 }
 function qaGuideAnswer(p, qToks, wantsSteps) {
@@ -20342,7 +20332,7 @@ function renderSitemap() {
         // lbox: the part of an irregular suite its label should sit in.
         const box = a.lbox ? { x0: a.lbox[0], y0: a.lbox[1], x1: a.lbox[2], y1: a.lbox[3], w: a.lbox[2] - a.lbox[0], h: a.lbox[3] - a.lbox[1], cx: (a.lbox[0] + a.lbox[2]) / 2, cy: (a.lbox[1] + a.lbox[3]) / 2 } : sitemapPolyBox(a.poly);
         const title = a.suite ? `Suite ${a.suite} \u2014 ${a.label}` : a.label;
-        // Retail suites link to their Website from Settings > Retail Info.
+        // Retail suites link to their Website from Admin › INFO › Retail.
         const retail = a.suite ? retailRowForSuite(a.suite) : null;
         const site = retail ? normalizeWebUrl(retail.website) : (SITEMAP_AMENITY_LINKS[a.label] || '');
         if (site) svg += `<a class="sitemap-suite-link" href="${escapeAttr(site)}" target="_blank" rel="noopener">`;
