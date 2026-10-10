@@ -9480,12 +9480,11 @@ function adminLockRender() {
     document.getElementById('adminCancelChangeBtn').style.display = st === 'change' ? '' : 'none';
 }
 
+// { ok } or { ok: false, detail } — the detail is shown to the user.
 async function adminSaveAuth(auth) {
     adminStoreLocal(auth);
-    if (!adminBackendOn()) return true;
-    if (!(await backendPush(ADMIN_AUTH_KEY, auth))) { /* checked below */ }
-    const back = await backendPullChecked(ADMIN_AUTH_KEY);
-    return !!(back && back.hash === auth.hash);
+    if (!adminBackendOn()) return { ok: true };
+    return backendPushVerified(ADMIN_AUTH_KEY, auth, b => !!b && b.hash === auth.hash);
 }
 
 function adminShowContent() {
@@ -9507,9 +9506,9 @@ async function tryAdminUnlock() {
         if (nv !== val2) return err('The new passwords don’t match.');
         btn.disabled = true;
         const auth = adminMakeAuth(nv);
-        const ok = await adminSaveAuth(auth);
+        const r = await adminSaveAuth(auth);
         btn.disabled = false;
-        if (!ok) { adminStoreLocal(ADMIN_AUTH); return err('Couldn’t save the new password to the shared backend — nothing was changed. Try again.'); }
+        if (!r.ok) { adminStoreLocal(ADMIN_AUTH); return err(`Couldn’t save the new password to the shared backend (${r.detail}) — nothing was changed. Try again.`); }
         ADMIN_AUTH = auth;
         adminShowContent();
         alert('Admin password changed for everyone.');
@@ -9528,9 +9527,9 @@ async function tryAdminUnlock() {
             if (remote && remote.hash) { btn.disabled = false; ADMIN_AUTH = remote; adminAuthState = 'ready'; adminStoreLocal(remote); adminLockRender(); return err('An Admin password was already set by someone else — enter that password.'); }
         }
         const auth = adminMakeAuth(val);
-        const ok = await adminSaveAuth(auth);
+        const r = await adminSaveAuth(auth);
         btn.disabled = false;
-        if (!ok) { try { localStorage.removeItem(ADMIN_AUTH_LOCAL); } catch (e) {} return err('Couldn’t save the password to the shared backend — try again.'); }
+        if (!r.ok) { try { localStorage.removeItem(ADMIN_AUTH_LOCAL); } catch (e) {} return err(`Couldn’t save the password to the shared backend (${r.detail}) — try again.`); }
         ADMIN_AUTH = auth; adminAuthState = 'ready';
         adminShowContent();
         return;
@@ -9790,21 +9789,7 @@ function doorQueueSave() {
 // decides. Failures retry with growing waits (5 s → 2 min) until synced.
 let doorRetryTimer = null, doorFailCount = 0;
 async function doorPushVerified(env) {
-    let detail = '';
-    if (BACKEND_URL && JSON.stringify(env).length <= BACKEND_CHUNK_CHARS) {
-        try {
-            const res = await fetch(BACKEND_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key: DOOR_BACKEND_KEY, value: env }) });
-            if (!res.ok) detail = 'the backend answered HTTP ' + res.status;
-        } catch (e) { detail = 'the request was blocked or dropped (' + (e && e.message || 'network error') + ')'; }
-    } else if (!(await backendPush(DOOR_BACKEND_KEY, env))) detail = 'the upload did not complete';
-    for (let i = 0; i < 2; i++) {
-        const back = await backendPullChecked(DOOR_BACKEND_KEY);
-        if (back && back.ct === env.ct) return { ok: true };
-        if (back === undefined) detail = detail || 'couldn\u2019t read the backend back';
-        else detail = detail || 'the backend didn\u2019t keep the save';
-        await new Promise(r => setTimeout(r, 1500));
-    }
-    return { ok: false, detail };
+    return backendPushVerified(DOOR_BACKEND_KEY, env, b => !!b && b.ct === env.ct);
 }
 function doorScheduleRetry(detail) {
     doorFailCount++;
@@ -18514,6 +18499,35 @@ async function backendPush(key, value, onProgress) {
         if (onProgress) onProgress(i + 1, parts.length + 1);
     }
     return backendPushRaw(key, { __chunks: parts.length, length: json.length });
+}
+
+// Send a value and READ IT BACK until same(readBack) holds. The Apps
+// Script can answer OK without saving, or save but have its answer blocked
+// by the browser, and the Sheet may lag a moment behind the write, so only
+// the read-back (a few tries, a couple of seconds apart) decides.
+// Returns { ok: true } or { ok: false, detail } with a readable reason.
+async function backendPushVerified(key, value, same) {
+    if (!BACKEND_URL) return { ok: false, detail: 'no shared backend is set' };
+    let detail = '';
+    if (JSON.stringify(value).length <= BACKEND_CHUNK_CHARS) {
+        try {
+            const res = await fetch(BACKEND_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key, value }) });
+            if (!res.ok) detail = 'the backend answered HTTP ' + res.status;
+            else {
+                const txt = await res.text().catch(() => '');
+                let j = null; try { j = JSON.parse(txt); } catch (e) {}
+                if (j && j.error) detail = 'the backend script reported: ' + j.error;
+                else if (!j) detail = 'the backend sent back a page instead of a reply: ' + txt.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+            }
+        } catch (e) { detail = 'the request was blocked or dropped (' + (e && e.message || 'network error') + ')'; }
+    } else if (!(await backendPush(key, value))) detail = 'the upload did not complete';
+    for (let i = 0; i < 4; i++) {
+        if (i) await new Promise(r => setTimeout(r, 1500));
+        const back = await backendPullChecked(key);
+        if (same(back)) return { ok: true };
+        if (back === undefined) detail = detail || 'couldn’t read the backend back';
+    }
+    return { ok: false, detail: detail || 'the backend didn’t keep the save' };
 }
 
 async function backendPushRaw(key, value) {
