@@ -3509,6 +3509,18 @@
                     </div>
                 </div>
                 <div class="filter-group icon-mode">
+                    <button type="button" class="filter-caption icon-mode" data-target="expSqftFilters" title="Square Footage">
+                        <span class="filter-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2.5" y="9" width="19" height="6" rx="1"/><line x1="6.5" y1="9" x2="6.5" y2="12"/><line x1="10.5" y1="9" x2="10.5" y2="12"/><line x1="14.5" y1="9" x2="14.5" y2="12"/><line x1="18.5" y1="9" x2="18.5" y2="12"/></svg></span>
+                        <span class="filter-icon-label-text" id="expSqftFiltersLabel">Sq Ft</span>
+                    </button>
+                    <div class="quick-filters collapsed popover-mode" id="expSqftFilters">
+                        <div class="field-row">
+                            <div class="field"><label>Min</label><input type="text" id="expSqftMin" placeholder="e.g. 600"></div>
+                            <div class="field"><label>Max</label><input type="text" id="expSqftMax" placeholder="e.g. 1200"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-group icon-mode">
                     <button type="button" class="filter-caption icon-mode" data-target="expTypeFilters" title="Beds">
                         <span class="filter-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10V4.8a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1V10"/><rect x="4" y="10.3" width="5.5" height="3" rx="1.2"/><path d="M2.5 18.5v-5.2a1.3 1.3 0 0 1 1.3-1.3h16.4a1.3 1.3 0 0 1 1.3 1.3v5.2"/><line x1="2.5" y1="18.5" x2="2.5" y2="20.3"/><line x1="21.5" y1="18.5" x2="21.5" y2="20.3"/></svg></span>
                         <span class="filter-icon-label-text" id="expTypeFiltersLabel">Beds</span>
@@ -4118,15 +4130,15 @@
 
     <div id="adminContent" style="display:none;">
         <div class="wl-subtabs" id="adminTopSubtabs">
-            <button type="button" class="wl-subtab active" data-admin-subtab="mmr">MMR</button>
+            <button type="button" class="wl-subtab active" data-admin-subtab="info">INFO</button>
+            <button type="button" class="wl-subtab" data-admin-subtab="mmr">MMR</button>
             <button type="button" class="wl-subtab" data-admin-subtab="commissions">Commissions</button>
             <button type="button" class="wl-subtab" data-admin-subtab="pcard">PCard</button>
             <button type="button" class="wl-subtab" data-admin-subtab="deposit">Deposit Accounting</button>
             <button type="button" class="wl-subtab" data-admin-subtab="blueprints">Blueprints</button>
-            <button type="button" class="wl-subtab" data-admin-subtab="info">INFO</button>
             <button type="button" class="btn small wl-subtab-right" id="adminChangePassBtn" title="Change the Admin password for everyone">Change Admin Password</button>
         </div>
-        <div id="adminPanel-mmr" class="admin-subpanel">
+        <div id="adminPanel-mmr" class="admin-subpanel" style="display:none;">
             <div class="mmr-io-bar">
                 <label class="file-label" for="mmrTemplateUpload">Upload Previous Week's MMR (.xlsx)</label>
                 <input type="file" id="mmrTemplateUpload" accept=".xlsx">
@@ -4679,7 +4691,7 @@
                 </div>
             </div>
         </div>
-        <div id="adminPanel-info" class="admin-subpanel" style="display:none;">
+        <div id="adminPanel-info" class="admin-subpanel">
             <div class="wl-subtabs" id="infoSubtabs">
                 <button type="button" class="wl-subtab active" data-info-subtab="units">Unit Info</button>
                 <button type="button" class="wl-subtab" data-info-subtab="retail">Retail</button>
@@ -7681,8 +7693,11 @@ document.getElementById('expiringClearBtn').addEventListener('click', () => {
 
 function updateExpCaptionStates() {
     const moveInVal = document.getElementById('expiringMoveInDate').value;
+    const expSqftMin = document.getElementById('expSqftMin').value.trim(), expSqftMax = document.getElementById('expSqftMax').value.trim();
+    const expSqftActive = !!(expSqftMin || expSqftMax);
     const map = [
         ['expMoveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
+        ['expSqftFilters', expSqftActive, expSqftActive ? `${expSqftMin || '0'}\u2013${expSqftMax || '\u221e'}` : 'Sq Ft'],
         ['expTypeFilters', activeExpType.length > 0, chipFilterLabel(activeExpType, t => t, 'Beds')],
         ['expNameFilters', activeExpFloorplan.length > 0, chipFilterLabel(activeExpFloorplan, c => c, 'Floorplan')],
         ['expFloorFilters', activeExpFloor.length > 0, chipFilterLabel(activeExpFloor, f => `Fl ${f}`, 'Floor')],
@@ -7734,8 +7749,10 @@ function rebuildExpiringFilters() {
 }
 
 document.getElementById('expiringMoveInDate').addEventListener('input', () => { updateExpCaptionStates(); renderExpiringList(); });
+['expSqftMin', 'expSqftMax'].forEach(id => document.getElementById(id).addEventListener('input', () => { updateExpCaptionStates(); renderExpiringList(); }));
 document.getElementById('expClearFiltersBtn').addEventListener('click', () => {
     document.getElementById('expiringMoveInDate').value = '';
+    document.getElementById('expSqftMin').value = ''; document.getElementById('expSqftMax').value = '';
     activeExpType = []; activeExpFloorplan = []; activeExpFloor = []; activeExpBldg = []; activeExpAmenity = [];
     rebuildExpiringFilters();
     renderExpiringList();
@@ -7755,8 +7772,11 @@ function renderExpiringList() {
     const moveInVal = document.getElementById('expiringMoveInDate').value;
     const moveInDate = moveInVal ? new Date(moveInVal + 'T23:59:59') : null;
 
+    const sqftB = availNumBounds('expSqftMin', 'expSqftMax');
     const list = EXPIRING_UNITS.filter(r => {
         if (moveInDate && r.leaseTo > moveInDate) return false;
+        const sqft = parseFloat((byUnit[r.unit] || {}).sqft);
+        if (!isNaN(sqft) && (sqft < sqftB.min || sqft > sqftB.max)) return false;
         if (activeExpFloorplan.length && !activeExpFloorplan.includes(r.floorplan)) return false;
         if (activeExpFloor.length && !activeExpFloor.includes(r.floor)) return false;
         if (activeExpBldg.length && !activeExpBldg.includes(r.bldg)) return false;
@@ -9599,6 +9619,7 @@ function adminShowContent() {
     document.getElementById('adminContent').style.display = 'block';
     document.getElementById('adminPasswordError').style.display = 'none';
     ['adminPasswordInput', 'adminPasswordInput2', 'adminPasswordNew'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    if (adminSubTab === 'info') infoOnShow(); // INFO opens first
 }
 async function tryAdminUnlock() {
     const err = msg => { const e = document.getElementById('adminPasswordError'); e.textContent = msg; e.style.display = 'block'; };
@@ -9669,7 +9690,7 @@ document.querySelector('#tab-settings .brand-strip .mark').addEventListener('cli
 });
 document.getElementById('gamesBackBtn').addEventListener('click', () => switchTab('settings'));
 
-let adminSubTab = 'mmr';
+let adminSubTab = 'info';
 [...document.querySelectorAll('#adminTopSubtabs .wl-subtab')].forEach(btn => {
     btn.addEventListener('click', () => {
         adminSubTab = btn.getAttribute('data-admin-subtab');
