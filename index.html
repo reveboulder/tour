@@ -1355,6 +1355,25 @@
     .mmr-autofill { background: var(--line-soft); color: var(--ink-soft); font-weight: 600; font-size: 12px; white-space: nowrap; }
     .mmr-remove-cell { width: 34px; text-align: center; }
 
+    /* -- Admin › INFO -- */
+    .info-lock { max-width: 480px; }
+    .info-lock input { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-family: var(--sans); font-size: 13px; margin-bottom: 8px; background: var(--panel); color: var(--ink); }
+    .info-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .info-show { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-soft); cursor: pointer; }
+    .info-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+    .info-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .info-table th { position: sticky; top: 0; background: var(--line-soft); color: var(--ink-soft); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    .info-table td { border-bottom: 1px solid var(--line-soft); padding: 2px 3px; }
+    .info-table tr:last-child td { border-bottom: 0; }
+    .info-table input { width: 100%; min-width: 110px; box-sizing: border-box; border: 1px solid transparent; border-radius: 5px; padding: 6px 6px; font-family: var(--sans); font-size: 13px; background: transparent; color: var(--ink); }
+    .info-table input:hover { border-color: var(--line); }
+    .info-table input:focus { outline: none; border-color: var(--reve-orange); background: var(--panel); }
+    .info-table input.info-secret { font-family: var(--mono); }
+    .info-table td.info-del { width: 30px; text-align: center; }
+    .info-table .info-x { border: 0; background: none; color: #c0392b; font-size: 16px; font-weight: 700; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+    .info-table .info-x:hover { background: #fbe9e7; }
+    .info-table .info-empty { text-align: center; color: var(--ink-soft); padding: 18px; font-size: 12.5px; }
+    .info-fine { font-size: 11.5px; margin-top: 8px; }
     /* -- Admin › Blueprints -- */
     .bp-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
     .bp-file-name { font-weight: 700; font-size: 13px; }
@@ -3984,6 +4003,7 @@
             <button type="button" class="wl-subtab" data-admin-subtab="pcard">PCard</button>
             <button type="button" class="wl-subtab" data-admin-subtab="deposit">Deposit Accounting</button>
             <button type="button" class="wl-subtab" data-admin-subtab="blueprints">Blueprints</button>
+            <button type="button" class="wl-subtab" data-admin-subtab="info">INFO</button>
         </div>
         <div id="adminPanel-mmr" class="admin-subpanel">
             <div class="mmr-io-bar">
@@ -4535,6 +4555,31 @@
                             <div class="bp-blank-tip">Click an item to add it, then drag it into place. A selected label&rsquo;s corner squares make its text bigger or smaller; the side squares make its box narrower or wider and the words wrap onto more lines. Drag the round handle above a selected item to turn it to any angle (Shift = 15&deg; steps), type an angle, or Alt + scroll over it. Select one to rotate (R), resize or delete it; arrow keys nudge. Selecting an item shows its edit bar above it. Ctrl/&#8984;+C and Ctrl/&#8984;+V copy and paste the selected item(s). Ctrl/&#8984;-click more items to select several, then Group them to move and rotate them together. The layer buttons bring an item in front of (or behind) what it overlaps. Resizable items show white squares: drag a corner to set the width and length (doors and closets: drag an end). Place a door's straight top edge along the wall; size a sliding door to the wall's thickness so it opens the wall up. Ctrl/&#8984; + scroll or &minus;/+ zooms; drag the background to pan when zoomed in. Labels and additions are saved with this unit.</div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+        <div id="adminPanel-info" class="admin-subpanel" style="display:none;">
+            <div class="wl-subtabs" id="infoSubtabs">
+                <button type="button" class="wl-subtab active" data-info-subtab="door">DOOR Accounts</button>
+            </div>
+            <div id="infoPanel-door">
+                <div class="settings-card info-lock" id="doorLock">
+                    <div class="section-label" style="margin-top:0;"><span class="dot"></span><span id="doorLockTitle">DOOR Accounts are locked</span></div>
+                    <p class="empty-note" id="doorLockNote" style="font-size:12.5px;"></p>
+                    <input type="password" id="doorPass" placeholder="Passphrase" autocomplete="new-password">
+                    <input type="password" id="doorPass2" placeholder="Type the passphrase again" autocomplete="new-password" style="display:none;">
+                    <button type="button" class="btn primary" id="doorUnlockBtn" style="width:100%;">Unlock</button>
+                    <div class="empty-note" id="doorLockErr" style="display:none;color:#c0392b;margin-top:8px;"></div>
+                </div>
+                <div id="doorBody" style="display:none;">
+                    <div class="info-bar">
+                        <button type="button" class="btn small primary" id="doorAddBtn">+ Add Row</button>
+                        <label class="info-show"><input type="checkbox" id="doorShow"> Show passwords &amp; codes</label>
+                        <span class="empty-note" id="doorStatus" style="margin:0;font-weight:600;"></span>
+                        <button type="button" class="btn small" id="doorLockBtn" style="margin-left:auto;">Lock</button>
+                    </div>
+                    <div class="info-table-wrap"><table class="info-table" id="doorTable"></table></div>
+                    <div class="empty-note info-fine">This table is encrypted in your browser with the passphrase before it is saved or synced, so the shared backend only ever holds scrambled text. Anyone who needs it must be given the passphrase. If the passphrase is lost, the table cannot be recovered.</div>
                 </div>
             </div>
         </div>
@@ -9350,12 +9395,239 @@ let adminSubTab = 'mmr';
     btn.addEventListener('click', () => {
         adminSubTab = btn.getAttribute('data-admin-subtab');
         [...document.querySelectorAll('#adminTopSubtabs .wl-subtab')].forEach(b => b.classList.toggle('active', b === btn));
-        ['mmr', 'commissions', 'pcard', 'deposit', 'blueprints'].forEach(name => {
+        ['mmr', 'commissions', 'pcard', 'deposit', 'blueprints', 'info'].forEach(name => {
             document.getElementById('adminPanel-' + name).style.display = (name === adminSubTab) ? 'block' : 'none';
         });
         if (adminSubTab === 'commissions' && typeof renderCommSuggested === 'function') renderCommSuggested();
         if (adminSubTab === 'blueprints') bpOnShow();
+        if (adminSubTab === 'info') infoOnShow();
     });
+});
+
+/* ============================================================
+   Admin › INFO › DOOR Accounts — an editable table of logins, codes
+   and keys. The admin password lives in this page's public source,
+   so it can't protect secrets. Instead the table is encrypted in the
+   browser (AES-GCM, key from a passphrase via PBKDF2) before it touches
+   localStorage or the shared backend; only ciphertext ever leaves the
+   page, and the decrypted rows exist only in memory while unlocked.
+   Rows merge per row by edit time (deletes kept as tombstones), so two
+   people editing different rows don't overwrite each other.
+   ============================================================ */
+const DOOR_COLS = [
+    { k: 'name', label: 'NAME' },
+    { k: 'email', label: 'Email' },
+    { k: 'password', label: 'Password', secret: true },
+    { k: 'latchName', label: 'Latch Name' },
+    { k: 'latchPassword', label: 'Latch Password', secret: true },
+    { k: 'keys', label: 'KEY(s)' },
+    { k: 'code', label: 'CODE:', secret: true },
+    { k: 'latchCard', label: 'Latch Card' }
+];
+const DOOR_LOCAL_KEY = 'reve-info-door-enc';
+const DOOR_BACKEND_KEY = 'info-door';
+let DOOR_KEY = null, DOOR_SALT = null, DOOR_ROWS = null, DOOR_ENV = null;
+let doorSaveTimer = null, doorPollTimer = null, doorSaving = false, doorSavePending = false, doorPendingRender = false;
+
+const doorB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const doorUnb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function doorDeriveKey(pass, salt) {
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function doorEncrypt(rows) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, DOOR_KEY, new TextEncoder().encode(JSON.stringify({ rows })));
+    return { v: 1, salt: doorB64(DOOR_SALT), iv: doorB64(iv), ct: doorB64(ct), t: Date.now() };
+}
+// null = wrong passphrase / different salt / corrupt.
+async function doorDecrypt(env, key) {
+    try {
+        const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: doorUnb64(env.iv) }, key, doorUnb64(env.ct));
+        const d = JSON.parse(new TextDecoder().decode(pt));
+        return Array.isArray(d.rows) ? d.rows : [];
+    } catch (e) { return null; }
+}
+function doorLocalEnv() {
+    try { const v = JSON.parse(localStorage.getItem(DOOR_LOCAL_KEY) || 'null'); return v && v.ct ? v : null; } catch (e) { return null; }
+}
+function doorBackendOn() { return !!BACKEND_URL && APP_MODE !== 'test'; }
+function doorMerge(a, b) {
+    const m = new Map();
+    for (const r of a.concat(b)) { const o = m.get(r.id); if (!o || (r.t || 0) > (o.t || 0)) m.set(r.id, r); }
+    return [...m.values()].sort((x, y) => (x.o || 0) - (y.o || 0));
+}
+function doorSame(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function doorStatus(msg, bad) {
+    const el = document.getElementById('doorStatus');
+    el.textContent = msg || ''; el.style.color = bad ? '#c0392b' : '';
+}
+
+async function infoOnShow() {
+    if (DOOR_KEY) { doorRender(); doorStartPoll(); return; }
+    let env = doorLocalEnv();
+    if (doorBackendOn()) {
+        const remote = await backendPullChecked(DOOR_BACKEND_KEY);
+        if (remote && remote.ct) env = remote;
+    }
+    DOOR_ENV = env;
+    const isNew = !env;
+    document.getElementById('doorLockTitle').textContent = isNew ? 'Set up DOOR Accounts' : 'DOOR Accounts are locked';
+    document.getElementById('doorLockNote').textContent = isNew
+        ? 'Choose a passphrase for this table. It is encrypted with the passphrase before it is saved or shared, and everyone who needs the table will need the passphrase too. It is not the Admin password, and it cannot be recovered if lost.'
+        : 'Enter the DOOR Accounts passphrase to view and edit this table.';
+    document.getElementById('doorPass2').style.display = isNew ? '' : 'none';
+    document.getElementById('doorUnlockBtn').textContent = isNew ? 'Create & Unlock' : 'Unlock';
+    document.getElementById('doorLockErr').style.display = 'none';
+    document.getElementById('doorLock').style.display = '';
+    document.getElementById('doorBody').style.display = 'none';
+}
+
+async function doorUnlock() {
+    const p1 = document.getElementById('doorPass').value, p2 = document.getElementById('doorPass2').value;
+    const err = msg => { const e = document.getElementById('doorLockErr'); e.textContent = msg; e.style.display = 'block'; };
+    const btn = document.getElementById('doorUnlockBtn');
+    if (!window.crypto || !crypto.subtle) return err('This browser can’t encrypt here (the page must be opened over https).');
+    if (!DOOR_ENV) {
+        if (p1.length < 8) return err('Use at least 8 characters.');
+        if (p1 !== p2) return err('The two passphrases don’t match.');
+        btn.disabled = true;
+        DOOR_SALT = crypto.getRandomValues(new Uint8Array(16));
+        DOOR_KEY = await doorDeriveKey(p1, DOOR_SALT);
+        DOOR_ROWS = [];
+        btn.disabled = false;
+        doorAddRow(true);
+    } else {
+        btn.disabled = true;
+        const salt = doorUnb64(DOOR_ENV.salt), key = await doorDeriveKey(p1, salt);
+        const rows = await doorDecrypt(DOOR_ENV, key);
+        btn.disabled = false;
+        if (!rows) return err('Incorrect passphrase — try again.');
+        DOOR_SALT = salt; DOOR_KEY = key; DOOR_ROWS = rows;
+        // A newer local copy that never reached the backend (made offline)
+        // is folded in rather than lost.
+        const local = doorLocalEnv();
+        if (local && local.salt === DOOR_ENV.salt && local.ct !== DOOR_ENV.ct) {
+            const lr = await doorDecrypt(local, key);
+            if (lr) { const m = doorMerge(DOOR_ROWS, lr); if (!doorSame(m, DOOR_ROWS)) { DOOR_ROWS = m; doorQueueSave(); } }
+        }
+    }
+    document.getElementById('doorPass').value = ''; document.getElementById('doorPass2').value = '';
+    document.getElementById('doorLock').style.display = 'none';
+    document.getElementById('doorBody').style.display = '';
+    doorRender();
+    doorStartPoll();
+}
+
+function doorLock() {
+    DOOR_KEY = null; DOOR_ROWS = null; DOOR_SALT = null;
+    clearInterval(doorPollTimer); doorPollTimer = null;
+    document.getElementById('doorTable').innerHTML = '';
+    document.getElementById('doorShow').checked = false;
+    document.getElementById('doorBody').style.display = 'none';
+    infoOnShow();
+}
+
+function doorRender() {
+    const tbl = document.getElementById('doorTable');
+    if (!DOOR_ROWS) return;
+    if (tbl.contains(document.activeElement)) { doorPendingRender = true; return; }
+    doorPendingRender = false;
+    const show = document.getElementById('doorShow').checked;
+    const live = DOOR_ROWS.filter(r => !r.del);
+    let h = '<thead><tr>' + DOOR_COLS.map(c => `<th>${escapeHtml(c.label)}</th>`).join('') + '<th></th></tr></thead><tbody>';
+    if (!live.length) h += `<tr><td class="info-empty" colspan="${DOOR_COLS.length + 1}">No rows yet — click “+ Add Row”.</td></tr>`;
+    for (const r of live) {
+        h += `<tr data-id="${escapeHtml(r.id)}">` + DOOR_COLS.map(c =>
+            `<td><input type="${c.secret && !show ? 'password' : 'text'}" class="${c.secret ? 'info-secret' : ''}" data-k="${c.k}" value="${escapeHtml((r.c && r.c[c.k]) || '')}" autocomplete="off" spellcheck="false" aria-label="${escapeHtml(c.label)}"></td>`
+        ).join('') + `<td class="info-del"><button type="button" class="info-x" title="Delete row" aria-label="Delete row">&#10005;</button></td></tr>`;
+    }
+    tbl.innerHTML = h + '</tbody>';
+}
+
+function doorAddRow(silent) {
+    const now = Date.now();
+    DOOR_ROWS.push({ id: now.toString(36) + Math.random().toString(36).slice(2, 8), o: now, t: now, c: {} });
+    doorRender();
+    doorQueueSave();
+    if (!silent) { const ins = document.querySelectorAll('#doorTable tbody tr:last-child input'); if (ins[0]) ins[0].focus(); }
+}
+
+function doorQueueSave() {
+    clearTimeout(doorSaveTimer);
+    doorSavePending = true;
+    doorStatus('Saving…');
+    doorSaveTimer = setTimeout(doorSaveNow, 700);
+}
+async function doorSaveNow() {
+    if (!DOOR_KEY) return;
+    if (doorSaving) { doorQueueSave(); return; }
+    doorSaving = true; doorSavePending = false;
+    try {
+        if (doorBackendOn()) {
+            const remote = await backendPullChecked(DOOR_BACKEND_KEY);
+            if (remote === undefined) { await doorWriteLocal(); doorStatus('Saved on this device — couldn’t reach the backend, will retry.', true); setTimeout(doorQueueSave, 15000); return; }
+            if (remote && remote.ct) {
+                const rr = await doorDecrypt(remote, DOOR_KEY);
+                if (!rr) { await doorWriteLocal(); doorStatus('Not synced: the shared table uses a different passphrase.', true); return; }
+                DOOR_ROWS = doorMerge(DOOR_ROWS, rr);
+            }
+            const env = await doorWriteLocal();
+            const ok = await backendPush(DOOR_BACKEND_KEY, env);
+            DOOR_ENV = env;
+            doorStatus(ok ? 'All changes saved & synced' : 'Saved on this device — sync failed, will retry.', !ok);
+            if (!ok) setTimeout(doorQueueSave, 15000);
+        } else {
+            DOOR_ENV = await doorWriteLocal();
+            doorStatus('Saved on this device (no shared backend set)');
+        }
+        doorRender();
+    } finally { doorSaving = false; }
+}
+async function doorWriteLocal() {
+    const env = await doorEncrypt(DOOR_ROWS);
+    try { localStorage.setItem(DOOR_LOCAL_KEY, JSON.stringify(env)); } catch (e) {}
+    return env;
+}
+
+function doorStartPoll() {
+    if (doorPollTimer || !doorBackendOn()) return;
+    doorPollTimer = setInterval(async () => {
+        const visible = document.getElementById('tab-admin').classList.contains('active') && adminSubTab === 'info';
+        if (!DOOR_KEY || !visible || doorSaving || doorSavePending) return;
+        const remote = await backendPullChecked(DOOR_BACKEND_KEY);
+        if (!remote || !remote.ct || !DOOR_KEY || (DOOR_ENV && remote.ct === DOOR_ENV.ct)) return;
+        const rr = await doorDecrypt(remote, DOOR_KEY);
+        if (!rr) return;
+        const m = doorMerge(DOOR_ROWS, rr);
+        DOOR_ENV = remote;
+        if (!doorSame(m, DOOR_ROWS)) { DOOR_ROWS = m; await doorWriteLocal(); doorRender(); }
+    }, 20000);
+}
+
+document.getElementById('doorUnlockBtn').addEventListener('click', doorUnlock);
+['doorPass', 'doorPass2'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') doorUnlock(); }));
+document.getElementById('doorLockBtn').addEventListener('click', doorLock);
+document.getElementById('doorAddBtn').addEventListener('click', () => doorAddRow(false));
+document.getElementById('doorShow').addEventListener('change', e => {
+    document.querySelectorAll('#doorTable input.info-secret').forEach(i => { i.type = e.target.checked ? 'text' : 'password'; });
+});
+document.getElementById('doorTable').addEventListener('input', e => {
+    const inp = e.target.closest('input[data-k]'); if (!inp) return;
+    const r = DOOR_ROWS.find(x => x.id === inp.closest('tr').dataset.id); if (!r) return;
+    r.c = Object.assign({}, r.c, { [inp.dataset.k]: inp.value }); r.t = Date.now();
+    doorQueueSave();
+});
+document.getElementById('doorTable').addEventListener('focusout', () => {
+    setTimeout(() => { if (doorPendingRender && !document.getElementById('doorTable').contains(document.activeElement)) doorRender(); }, 0);
+});
+document.getElementById('doorTable').addEventListener('click', e => {
+    const x = e.target.closest('.info-x'); if (!x) return;
+    const r = DOOR_ROWS.find(y => y.id === x.closest('tr').dataset.id); if (!r) return;
+    const nm = (r.c && (r.c.name || r.c.email)) || 'this row';
+    if (!confirm(`Delete ${nm}?`)) return;
+    r.del = true; r.c = {}; r.t = Date.now();
+    doorRender(); doorQueueSave();
 });
 
 /* ============================================================
