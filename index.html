@@ -364,6 +364,12 @@
     }
     .retail-info-table td.retail-suite textarea { min-width: 70px; font-weight: 700; }
     .retail-info-table td textarea[data-retail-field="website"] { min-width: 160px; }
+    .info-list-table td.il-link-cell { position: relative; }
+    .info-list-table .il-open { position: absolute; right: 9px; top: 9px; font-size: 12px; text-decoration: none; color: var(--reve-orange); }
+    .info-list-table td.il-link-cell textarea { padding-right: 22px; }
+    .info-list-table tr.il-next td { background: #fff4e0; }
+    .info-list-table tr.il-next td:first-child { box-shadow: inset 3px 0 0 var(--reve-orange); }
+    .info-list-table .il-tag { display: block; font-size: 10.5px; font-weight: 700; color: var(--reve-orange); margin: 2px 0 0 2px; }
     .sitemap-suite-link { cursor: pointer; }
     .sitemap-suite-link:hover .sitemap-amenity { stroke: var(--reve-orange-dark); stroke-width: 2; }
     .sitemap-suite-link .sitemap-amenity-label { text-decoration: underline; }
@@ -2652,6 +2658,13 @@
     .unit-stats { margin-bottom: 8px; }
     .us-total { font-size: 12px; color: var(--ink-soft); margin-bottom: 6px; }
     .us-total b { color: var(--ink); }
+    .us-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .us-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 12px; font-family: var(--sans); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); cursor: pointer; }
+    .us-chip:hover { border-color: var(--reve-orange); color: var(--ink); }
+    .us-chip.open { border-color: var(--reve-orange); color: var(--reve-orange); }
+    .us-chip.filtered::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--reve-orange); }
+    .us-chev { font-size: 14px; line-height: 1; transition: transform .15s; }
+    .us-chip.open .us-chev { transform: rotate(90deg); }
     .us-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .us-group { border: 1px solid var(--line); border-radius: 8px; padding: 6px 6px 4px; background: #fff; min-width: 0; }
     .us-title { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); margin: 0 2px 4px; }
@@ -3999,7 +4012,7 @@
         <div>
             <h1>Admin</h1>
             <div class="tag">Restricted &mdash; MMR, Commissions, PCard, Deposits, Blueprints, INFO</div>
-                <div class="save-note" data-save-keys="mmr-* comm-* pcard-items pay-period-start unit-overrides retail-info" aria-live="polite"></div>
+                <div class="save-note" data-save-keys="mmr-* comm-* pcard-items pay-period-start unit-overrides retail-info info-services info-birthdays" aria-live="polite"></div>
         </div>
     </div>
 
@@ -4584,11 +4597,15 @@
         </div>
         <div id="adminPanel-info" class="admin-subpanel" style="display:none;">
             <div class="wl-subtabs" id="infoSubtabs">
-                <button type="button" class="wl-subtab active" data-info-subtab="door">DOOR Accounts</button>
-                <button type="button" class="wl-subtab" data-info-subtab="units">Unit Info</button>
+                <button type="button" class="wl-subtab active" data-info-subtab="units">Unit Info</button>
                 <button type="button" class="wl-subtab" data-info-subtab="retail">Retail</button>
+                <button type="button" class="wl-subtab" data-info-subtab="services">Services</button>
+                <button type="button" class="wl-subtab" data-info-subtab="door">DOOR Accounts</button>
+                <button type="button" class="wl-subtab" data-info-subtab="birthdays">Birthdays</button>
             </div>
-            <div id="infoPanel-units" class="info-subpanel" style="display:none;">
+            <div id="infoPanel-services" class="info-subpanel" style="display:none;"></div>
+            <div id="infoPanel-birthdays" class="info-subpanel" style="display:none;"></div>
+            <div id="infoPanel-units" class="info-subpanel">
             <div id="unitInfoBody">
             <p class="empty-note" style="font-size:12.5px;margin-top:0;">Editable roster of all 242 units &mdash; changes here update everywhere else in the app that reads unit data (Tour, Waitlist matching, etc.) and sync across agents.</p>
             <div class="unit-stats" id="unitStats"></div>
@@ -4638,7 +4655,7 @@
             </div>
         </div>
             </div>
-            <div id="infoPanel-door" class="info-subpanel">
+            <div id="infoPanel-door" class="info-subpanel" style="display:none;">
                 <div class="settings-card info-lock" id="doorLock">
                     <div class="section-label" style="margin-top:0;"><span class="dot"></span><span id="doorLockTitle">DOOR Accounts are locked</span></div>
                     <p class="empty-note" id="doorLockNote" style="font-size:12.5px;"></p>
@@ -9671,16 +9688,17 @@ function doorShowLock(mode, note) {
     if (!busy) document.getElementById('doorPass').focus();
 }
 // Admin › INFO sub-tabs. Only DOOR Accounts has its own passphrase.
-let infoSubTab = 'door';
+let infoSubTab = 'units';
 document.querySelectorAll('#infoSubtabs .wl-subtab').forEach(btn => btn.addEventListener('click', () => {
     infoSubTab = btn.dataset.infoSubtab;
     document.querySelectorAll('#infoSubtabs .wl-subtab').forEach(b => b.classList.toggle('active', b === btn));
     infoOnShow();
 }));
 function infoOnShow() {
-    ['door', 'units', 'retail'].forEach(n => { document.getElementById('infoPanel-' + n).style.display = n === infoSubTab ? '' : 'none'; });
+    ['units', 'retail', 'services', 'door', 'birthdays'].forEach(n => { document.getElementById('infoPanel-' + n).style.display = n === infoSubTab ? '' : 'none'; });
     if (infoSubTab === 'units') { renderUnitStats(); renderUnitInfoTable(); }
     else if (infoSubTab === 'retail') renderRetailInfoTable();
+    else if (INFO_LISTS[infoSubTab]) INFO_LISTS[infoSubTab].render();
     else doorOnShow();
 }
 async function doorOnShow() {
@@ -16552,6 +16570,8 @@ function unitStatsBins(values, start, step) {
     for (let lo = lo0; lo <= hiMax; lo += step) bins.push({ lo, hi: lo + step - 1, units: nums.filter(v => v.n >= lo && v.n < lo + step).map(v => v.unit) });
     return bins;
 }
+// Which count cards are expanded (this browser only); all start condensed.
+const UNIT_STATS_OPEN = new Set((() => { try { return JSON.parse(localStorage.getItem('reve-unit-stats-open') || '[]'); } catch (e) { return []; } })());
 function renderUnitStats() {
     const box = document.getElementById('unitStats');
     if (!box) return;
@@ -16579,13 +16599,19 @@ function renderUnitStats() {
     groups.push({ title: 'Yardi Type · Web Type (Sq Ft)', wide: true, rows: Object.keys(yt).sort((a, b) => yt[b].length - yt[a].length || a.localeCompare(b))
         .map(k => { const [y, w] = k.split('|'); return { id: 'yt:' + k, label: `${y} · ${w}`, units: yt[k] }; }) });
 
-    box.innerHTML = `<div class="us-total"><b>${UNITS.length}</b> units &middot; click any count to list those units</div><div class="us-grid">` + groups.map(g => `<div class="us-group${g.wide ? ' us-wide' : ''}">
+    // Condensed: one button per card; a clicked button opens its full card.
+    const gid = g => g.title.toLowerCase().replace(/[^a-z]+/g, '-');
+    const filterGroup = unitStatsFilter ? groups.find(g => g.rows.some(r => r.id === unitStatsFilter.id)) : null;
+    const open = groups.filter(g => UNIT_STATS_OPEN.has(gid(g)));
+    box.innerHTML = `<div class="us-total"><b>${UNITS.length}</b> units &middot; open a count below, then click any count to list those units</div>
+        <div class="us-chips">${groups.map(g => `<button type="button" class="us-chip${UNIT_STATS_OPEN.has(gid(g)) ? ' open' : ''}${filterGroup === g ? ' filtered' : ''}" data-us-toggle="${gid(g)}" aria-expanded="${UNIT_STATS_OPEN.has(gid(g))}">${escapeHtml(g.title)}<span class="us-chev">&rsaquo;</span></button>`).join('')}</div>
+        ${open.length ? '<div class="us-grid">' : ''}` + open.map(g => `<div class="us-group${g.wide ? ' us-wide' : ''}">
         <div class="us-title">${escapeHtml(g.title)}</div>
         ${g.note ? `<div class="us-note">${escapeHtml(g.note)}</div>` : ''}
         <div class="us-rows">${g.rows.map(r => r.sep ? '<div class="us-sep"></div>' : r.id
             ? `<button type="button" class="us-row${r.strong ? ' us-strong' : ''}${unitStatsFilter && unitStatsFilter.id === r.id ? ' active' : ''}${r.units.length ? '' : ' us-zero'}" data-us-id="${escapeAttr(r.id)}"><span>${escapeHtml(r.label)}</span><b>${r.units.length}</b></button>`
             : `<div class="us-row us-static"><span>${escapeHtml(r.label)}</span><b>${r.count}</b></div>`).join('')}</div>
-    </div>`).join('') + '</div>';
+    </div>`).join('') + (open.length ? '</div>' : '');
     box._rows = {};
     groups.forEach(g => g.rows.forEach(r => { if (r.id) box._rows[r.id] = r; }));
     // Keep an active filter in sync with edits.
@@ -16604,6 +16630,14 @@ function renderUnitStatsFilterNote() {
     document.getElementById('unitStatsClear').addEventListener('click', () => { unitStatsFilter = null; renderUnitStats(); renderUnitInfoTable(); });
 }
 document.getElementById('unitStats').addEventListener('click', e => {
+    const tog = e.target.closest('[data-us-toggle]');
+    if (tog) {
+        const k = tog.getAttribute('data-us-toggle');
+        if (UNIT_STATS_OPEN.has(k)) UNIT_STATS_OPEN.delete(k); else UNIT_STATS_OPEN.add(k);
+        try { localStorage.setItem('reve-unit-stats-open', JSON.stringify([...UNIT_STATS_OPEN])); } catch (err) {}
+        renderUnitStats();
+        return;
+    }
     const btn = e.target.closest('[data-us-id]');
     if (!btn) return;
     const r = document.getElementById('unitStats')._rows[btn.getAttribute('data-us-id')];
@@ -16884,6 +16918,184 @@ document.getElementById('retailInfoImportBtn').addEventListener('click', () => {
     const r = importRetailPaste(text);
     document.getElementById('retailInfoImportStatus').textContent = `Imported: ${r.updated} suite${r.updated === 1 ? '' : 's'} updated${r.added ? `, ${r.added} added` : ''}.`;
     document.getElementById('retailInfoPasteText').value = '';
+});
+
+/* ============================================================
+   Admin › INFO › Services and Birthdays — simple shared tables.
+   Like Retail, the contents (contacts, names, birthdays) live only in
+   localStorage + the shared backend, never in this public page; they are
+   filled in by hand or with "Paste from Spreadsheet". Rows carry an id
+   and an edit time, so two people editing different rows don't
+   overwrite each other (deletes are kept as markers).
+   ============================================================ */
+const IL_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+// "Aug. 22nd", "June 27th", "8/22" -> day of year (1..366), or null
+function ilDayOfYear(txt) {
+    const t = String(txt || '').toLowerCase();
+    let m = -1, d = 0, x;
+    if ((x = t.match(/([a-z]{3})[a-z]*\.?\s*(\d{1,2})/))) { m = IL_MONTHS.indexOf(x[1]); d = +x[2]; }
+    else if ((x = t.match(/(\d{1,2})\s*[\/\-.]\s*(\d{1,2})/))) { m = +x[1] - 1; d = +x[2]; }
+    if (m < 0 || m > 11 || !d) return null;
+    return Math.round((Date.UTC(2024, m, d) - Date.UTC(2024, 0, 1)) / 864e5) + 1;
+}
+const INFO_LISTS = {};
+function makeInfoList(cfg) {
+    const L = { cfg, rows: [] };
+    const fk = cfg.fields.map(f => f.k);
+    try { const v = JSON.parse(localStorage.getItem(cfg.localKey) || 'null'); if (v && Array.isArray(v.rows)) L.rows = v.rows; } catch (e) {}
+    const live = () => L.rows.filter(r => !r.del);
+    const persist = () => { try { localStorage.setItem(cfg.localKey, JSON.stringify({ rows: L.rows })); } catch (e) {} };
+    let seq = 0; // keeps rows added in the same instant (a paste) in their order
+    const newRow = c => { const now = Date.now(); return { id: now.toString(36) + Math.random().toString(36).slice(2, 7), o: now + (++seq % 1000) / 1000, t: now, c: c || {} }; };
+    const push = debounce(() => { if (BACKEND_URL && APP_MODE !== 'test') backendPush(cfg.key, { rows: L.rows }); }, 900);
+    const changed = () => { persist(); if (BACKEND_URL && APP_MODE !== 'test') saveTrack(cfg.key, 'pending'); push(); };
+    const panel = () => document.getElementById('infoPanel-' + cfg.id);
+    let built = false;
+    function build() {
+        built = true;
+        panel().innerHTML = `<p class="empty-note" style="font-size:12.5px;margin-top:0;">${cfg.intro}</p>
+            <div class="mmr-table-wrap" style="max-height:560px;overflow-y:auto;">
+                <table class="mmr-table retail-info-table info-list-table">
+                    <thead><tr>${cfg.fields.map(f => `<th>${escapeHtml(f.label)}</th>`).join('')}<th></th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                <button type="button" class="btn" data-il="add" style="width:auto;flex:none;padding:7px 14px;">+ ${escapeHtml(cfg.addLabel)}</button>
+                <button type="button" class="btn" data-il="paste" style="width:auto;flex:none;padding:7px 14px;">Paste from Spreadsheet</button>
+            </div>
+            <div data-il="pastebox" style="display:none;margin-top:10px;">
+                <p class="empty-note" style="font-size:12px;margin:0 0 6px;">Copy the rows from your spreadsheet (including the header row) and paste them here. Blank rows are skipped, &ldquo;--&rdquo; counts as blank, and a row matching an existing ${escapeHtml(cfg.matchLabel)} updates it instead of adding a duplicate.</p>
+                <textarea rows="6" class="wl-field" data-il="pastetext" style="width:100%;box-sizing:border-box;font-family:var(--mono);font-size:11.5px;" placeholder="${escapeAttr(cfg.fields.map(f => f.label).join('\t'))}"></textarea>
+                <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+                    <button type="button" class="btn primary" data-il="import" style="width:auto;flex:none;padding:7px 14px;">Import</button>
+                    <span class="empty-note" data-il="status" style="margin:0;"></span>
+                </div>
+            </div>`;
+        const p = panel(), tbody = p.querySelector('tbody');
+        tbody.addEventListener('input', e => {
+            const el = e.target.closest('[data-il-f]'); if (!el) return;
+            const r = L.rows.find(x => x.id === el.closest('tr').dataset.id); if (!r) return;
+            r.c = Object.assign({}, r.c, { [el.dataset.ilF]: el.value }); r.t = Date.now();
+            const a = el.parentElement.querySelector('.il-open');
+            if (a) { const u = normalizeWebUrl(el.value); a.href = u || '#'; a.style.display = u ? '' : 'none'; }
+            changed();
+        });
+        tbody.addEventListener('focusout', () => setTimeout(() => { if (L.pendingRender && !tbody.contains(document.activeElement)) render(); }, 0));
+        tbody.addEventListener('click', e => {
+            const b = e.target.closest('[data-il-remove]'); if (!b) return;
+            const r = L.rows.find(x => x.id === b.closest('tr').dataset.id); if (!r) return;
+            if (!confirm(`Remove ${cfg.rowName(r.c) || 'this row'}?`)) return;
+            r.del = true; r.c = {}; r.t = Date.now();
+            changed(); render();
+        });
+        p.querySelector('[data-il="add"]').addEventListener('click', () => {
+            const r = newRow(); L.rows.push(r); changed(); render();
+            const f = tbody.querySelector(`tr[data-id="${r.id}"] [data-il-f]`); if (f) f.focus();
+        });
+        p.querySelector('[data-il="paste"]').addEventListener('click', () => { const b = p.querySelector('[data-il="pastebox"]'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; });
+        p.querySelector('[data-il="import"]').addEventListener('click', () => {
+            const ta = p.querySelector('[data-il="pastetext"]');
+            if (!ta.value.trim()) return;
+            const n = importPaste(ta.value);
+            p.querySelector('[data-il="status"]').textContent = `Imported: ${n.updated} updated, ${n.added} added.`;
+            ta.value = '';
+        });
+    }
+    function render() {
+        if (!built) build();
+        const tbody = panel().querySelector('tbody');
+        if (tbody.contains(document.activeElement)) { L.pendingRender = true; return; }
+        L.pendingRender = false;
+        let rows = live();
+        if (cfg.sort) rows = cfg.sort(rows);
+        const mark = cfg.mark ? cfg.mark(rows) : {};
+        tbody.innerHTML = rows.length ? rows.map(r => `<tr data-id="${escapeAttr(r.id)}"${mark[r.id] ? ' class="il-next"' : ''}>${cfg.fields.map((f, i) => {
+            const v = (r.c && r.c[f.k]) || '';
+            const u = f.link ? normalizeWebUrl(v) : '';
+            return `<td${f.link ? ' class="il-link-cell"' : ''}><textarea rows="1" data-il-f="${f.k}"${f.ph ? ` placeholder="${escapeAttr(f.ph)}"` : ''} style="min-width:${f.w || 110}px;${i === 0 ? 'font-weight:700;' : ''}">${escapeHtml(v)}</textarea>${f.link ? `<a class="il-open" href="${escapeAttr(u || '#')}" target="_blank" rel="noopener" title="Open website" style="${u ? '' : 'display:none;'}">&#8599;</a>` : ''}${i === 0 && mark[r.id] ? `<span class="il-tag">${escapeHtml(mark[r.id])}</span>` : ''}</td>`;
+        }).join('')}<td class="mmr-remove-cell"><button type="button" class="wl-remove" data-il-remove title="Remove">&times;</button></td></tr>`).join('')
+            : `<tr><td colspan="${cfg.fields.length + 1}" class="empty-note" style="text-align:center;padding:16px;">Nothing here yet — click “+ ${escapeHtml(cfg.addLabel)}” or “Paste from Spreadsheet”.</td></tr>`;
+    }
+    function importPaste(text) {
+        const grid = parseSpreadsheetPaste(text);
+        // Drop leading arrows ("⟶ Tres Leches") and "--" placeholders.
+        const clean = v => String(v || '').split('\n').map(x => x.replace(/^\s*[⟶→➝➔]+\s*/, '').trim()).filter(x => x && x !== '--').join('\n');
+        let cols = fk.slice();
+        const hi = grid.findIndex(r => r.some(c => c.trim()));
+        if (hi !== -1 && cfg.headerMap[(grid[hi][0] || '').trim().toLowerCase()]) {
+            cols = grid[hi].map(h => cfg.headerMap[h.trim().toLowerCase()] || null);
+            grid.splice(0, hi + 1);
+        }
+        let added = 0, updated = 0;
+        grid.forEach(r => {
+            const rec = {};
+            cols.forEach((f, i) => { const v = clean(r[i]); if (f && v) rec[f] = v; });
+            if (!Object.keys(rec).length) return;
+            const k = cfg.matchKey(rec);
+            const target = k && live().find(x => cfg.matchKey(x.c) === k);
+            if (target) { target.c = Object.assign({}, target.c, rec); target.t = Date.now(); updated++; }
+            else { L.rows.push(newRow(rec)); added++; }
+        });
+        changed(); render();
+        return { added, updated };
+    }
+    L.render = () => { if (adminUnlocked && adminSubTab === 'info' && infoSubTab === cfg.id) render(); };
+    L.pull = async () => {
+        if (!BACKEND_URL || APP_MODE === 'test') return;
+        const remote = await backendPullChecked(cfg.key);
+        if (remote === undefined) return;
+        const rr = remote && Array.isArray(remote.rows) ? remote.rows : [];
+        const m = doorMerge(L.rows, rr);
+        const changedHere = JSON.stringify(m) !== JSON.stringify(doorMerge(L.rows, []));
+        L.rows = m;
+        if (changedHere) { persist(); L.render(); }
+        // This device has rows/edits the backend lacks: share them.
+        if (m.length && JSON.stringify(m) !== JSON.stringify(doorMerge(rr, []))) push();
+    };
+    INFO_LISTS[cfg.id] = L;
+    return L;
+}
+makeInfoList({
+    id: 'services', key: 'info-services', localKey: 'reve-info-services',
+    intro: 'Vendors and services the office uses &mdash; logins, support and contacts. Stored in your shared backend (not in the site&rsquo;s public code) and shared with everyone who can open Admin.',
+    addLabel: 'Add Service', matchLabel: 'Business',
+    fields: [
+        { k: 'business', label: 'Business', w: 130 },
+        { k: 'website', label: 'Website', w: 190, link: true, ph: 'https://' },
+        { k: 'support', label: 'Customer Support', w: 190 },
+        { k: 'contact', label: 'Business Contact', w: 190 },
+        { k: 'phone', label: 'Phone', w: 120 },
+        { k: 'alt', label: 'Alt Contact', w: 120 }
+    ],
+    headerMap: { business: 'business', website: 'website', 'customer support': 'support', support: 'support', 'business contact': 'contact', contact: 'contact', phone: 'phone', 'alt contact': 'alt', alt: 'alt' },
+    matchKey: c => String(c.business || '').trim().toLowerCase(),
+    rowName: c => c.business,
+    sort: rows => rows.slice().sort((a, b) => (a.o || 0) - (b.o || 0))
+});
+makeInfoList({
+    id: 'birthdays', key: 'info-birthdays', localKey: 'reve-info-birthdays',
+    intro: 'Team birthdays and favorite cakes, in calendar order &mdash; the next upcoming birthday is highlighted. Stored in your shared backend, not in the site&rsquo;s public code.',
+    addLabel: 'Add Birthday', matchLabel: 'Date + Name',
+    fields: [
+        { k: 'date', label: 'Date', w: 100, ph: 'e.g. Jan. 18th' },
+        { k: 'name', label: 'Name', w: 170 },
+        { k: 'cake', label: 'Favorite Cake', w: 260 }
+    ],
+    headerMap: { date: 'date', birthday: 'date', name: 'name', 'favorite cake': 'cake', cake: 'cake' },
+    matchKey: c => String(c.name || '').trim().toLowerCase() + '|' + (ilDayOfYear(c.date) || String(c.date || '').trim().toLowerCase()),
+    rowName: c => c.name,
+    sort: rows => rows.slice().sort((a, b) => (ilDayOfYear(a.c.date) || 999) - (ilDayOfYear(b.c.date) || 999) || (a.o || 0) - (b.o || 0)),
+    mark: rows => {
+        const now = new Date(), today = Math.round((Date.UTC(2024, now.getMonth(), now.getDate()) - Date.UTC(2024, 0, 1)) / 864e5) + 1;
+        const withDay = rows.map(r => ({ r, d: ilDayOfYear(r.c.date) })).filter(x => x.d);
+        if (!withDay.length) return {};
+        const ahead = x => (x.d - today + 366) % 366;
+        const soonest = Math.min(...withDay.map(ahead));
+        const out = {};
+        withDay.filter(x => ahead(x) === soonest).forEach(x => { out[x.r.id] = soonest === 0 ? '🎂 Today!' : soonest === 1 ? 'Tomorrow' : `Next — in ${soonest} days`; });
+        return out;
+    }
 });
 
 /* ============================================================
@@ -18739,6 +18951,7 @@ setInterval(() => {
     pullPayPeriodFromBackend();
     pullUnitOverridesFromBackend();
     pullRetailInfoFromBackend();
+    Object.values(INFO_LISTS).forEach(l => l.pull());
     pullDocumentsFromBackend();
     pullResidentsFromBackend();
     pullTurnsFromBackend();
@@ -20389,6 +20602,7 @@ if (BACKEND_URL) {
     pullPayPeriodFromBackend();
     pullUnitOverridesFromBackend();
     pullRetailInfoFromBackend();
+    Object.values(INFO_LISTS).forEach(l => l.pull());
     pullDocumentsFromBackend();
     pullResidentsFromBackend();
     pullTurnsFromBackend();
