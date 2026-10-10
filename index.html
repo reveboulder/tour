@@ -1357,6 +1357,15 @@
     .mmr-autofill { background: var(--line-soft); color: var(--ink-soft); font-weight: 600; font-size: 12px; white-space: nowrap; }
     .mmr-remove-cell { width: 34px; text-align: center; }
 
+    /* -- Backend save notes ("Saving…" / "Changes saved") -- */
+    .save-note { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); min-height: 15px; margin-top: 3px; display: flex; align-items: center; gap: 5px; }
+    .save-note.saving { color: var(--ink-soft); }
+    .save-note.saved { color: var(--good); }
+    .save-note.failed { color: #c0392b; }
+    .save-note.saving::before { content: ""; width: 9px; height: 9px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: save-spin .8s linear infinite; }
+    .save-note-right { margin: 0 0 0 auto; }
+    .renewal-save-row { max-width: 900px; min-width: 640px; margin: -8px auto 4px; display: flex; justify-content: flex-end; }
+    @keyframes save-spin { to { transform: rotate(360deg); } }
     /* -- Admin › INFO -- */
     .info-lock { max-width: 480px; }
     .info-lock input { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-family: var(--sans); font-size: 13px; margin-bottom: 8px; background: var(--panel); color: var(--ink); }
@@ -3047,6 +3056,7 @@
                     <input type="file" id="pricingFileInput" accept=".csv">
                 </div>
                 <button type="button" class="pricing-clear" id="pricingClearBtn" style="display:none;">Clear pricing sheet</button>
+                <div class="save-note" data-save-keys="pricing-summary" aria-live="polite"></div>
             </div>
 
             <div class="section-label"><span class="dot"></span>Find a unit</div>
@@ -3376,6 +3386,7 @@
             <div>
                 <h1>Lease Expirations</h1>
                 <div class="tag">Future potential availability</div>
+                <div class="save-note" data-save-keys="expiring-units" aria-live="polite"></div>
             </div>
         </div>
         <div class="editor-scroll">
@@ -3523,6 +3534,7 @@
                 <span id="renewalCountLabel">No renewal report loaded</span>
             </div>
         </div>
+        <div class="renewal-save-row"><div class="save-note save-note-right" data-save-keys="renewal-state renewal-units" aria-live="polite"></div></div>
         <div id="renewalList"></div>
     </div>
 </div>
@@ -3742,6 +3754,7 @@
             <div>
                 <h1>Welcome Letter</h1>
                 <div class="tag">Move-in paperwork data entry &mdash; shared across agents</div>
+                <div class="save-note" data-save-keys="welcome-letters default-charges" aria-live="polite"></div>
             </div>
         </div>
 
@@ -3826,6 +3839,7 @@
         <div>
             <h1>New Lease</h1>
             <div class="tag">Auto-filled from Welcome Letter &mdash; shared across agents</div>
+                <div class="save-note" data-save-keys="lease-records lease-sample" aria-live="polite"></div>
         </div>
     </div>
 
@@ -3904,6 +3918,7 @@
         <div>
             <h1 id="waitlistHeading">Waitlist</h1>
             <div class="tag" id="waitlistTagline">Prospect tracking &mdash; shared across agents</div>
+                <div class="save-note" data-save-keys="waitlist-rows storage-rows storage-lockers" aria-live="polite"></div>
         </div>
         <button type="button" class="btn primary" id="waitlistAddBtn" style="margin-left:auto;flex:none;">+ Add Prospect</button>
         <button type="button" class="btn primary" id="storageAddBtn" style="margin-left:auto;flex:none;display:none;">+ Add Entry</button>
@@ -3984,6 +3999,7 @@
         <div>
             <h1>Admin</h1>
             <div class="tag">Restricted &mdash; MMR, Commissions, PCard</div>
+                <div class="save-note" data-save-keys="mmr-* comm-* pcard-items pay-period-start" aria-live="polite"></div>
         </div>
     </div>
 
@@ -4685,6 +4701,7 @@
         <div>
             <h1>Documents</h1>
             <div class="tag">Printable common-use documents &mdash; move-in docs, building signs and more</div>
+                <div class="save-note" data-save-keys="documents-* document-* email-templates" aria-live="polite"></div>
         </div>
     </div>
     <div class="docs-toolbar">
@@ -4776,6 +4793,7 @@
         <div>
             <h2>Help</h2>
             <div class="subtle">Step-by-step guides and answers from the app&rsquo;s own data</div>
+                <div class="save-note" data-save-keys="howto-guides" aria-live="polite"></div>
         </div>
     </div>
     <div class="wl-subtabs" id="helpSubtabs">
@@ -4858,6 +4876,7 @@
         <div>
             <h1>Settings</h1>
             <div class="tag">App-wide preferences</div>
+                <div class="save-note" data-save-keys="unit-overrides retail-info" aria-live="polite"></div>
         </div>
     </div>
 
@@ -4996,6 +5015,7 @@
         <div>
             <h1>Concession</h1>
             <div class="tag">Applies automatically across the Tour tab</div>
+                <div class="save-note" data-save-keys="concession-settings" aria-live="polite"></div>
         </div>
         <button type="button" class="btn" id="concessionBackBtn" style="margin-left:auto;">&lsaquo; Back to Tour</button>
     </div>
@@ -18443,6 +18463,41 @@ function debounce(fn, wait) {
 // the Apps Script while the request itself still comes back "OK".
 const BACKEND_CHUNK_CHARS = 40000;
 
+// Save notes: every push to the backend reports here, and each
+// .save-note[data-save-keys] element (keys separated by spaces; "x-*"
+// matches a prefix) shows "Saving…", then "Changes saved" or a failure.
+const SAVE_TRACK = {}; // base key -> { n, state, at }
+function saveTrackBase(key) { return String(key).replace(/__part\d+$/, ''); }
+function saveTrack(key, phase, ok) {
+    const k = saveTrackBase(key);
+    if (k === 'connection-test') return;
+    const t = SAVE_TRACK[k] = SAVE_TRACK[k] || { n: 0, state: '', at: 0 };
+    if (phase === 'start') { t.n++; t.state = 'saving'; }
+    else if (phase === 'pending') { if (!t.n) t.state = 'saving'; }
+    else { t.n = Math.max(0, t.n - 1); if (!t.n) t.state = ok ? 'saved' : 'failed'; }
+    t.at = Date.now();
+    saveNotesRender();
+}
+function saveNoteMatches(pats, k) { return pats.some(p => p.endsWith('*') ? k.startsWith(p.slice(0, -1)) : p === k); }
+function saveNotesRender() {
+    document.querySelectorAll('.save-note[data-save-keys]').forEach(el => {
+        const pats = el.dataset.saveKeys.split(/\s+/).filter(Boolean);
+        let saving = false, last = null;
+        Object.keys(SAVE_TRACK).forEach(k => {
+            if (!saveNoteMatches(pats, k)) return;
+            const t = SAVE_TRACK[k];
+            if (t.state === 'saving') saving = true;
+            else if (t.state && (!last || t.at > last.at)) last = t;
+        });
+        const state = saving ? 'saving' : last ? last.state : '';
+        el.className = 'save-note' + (el.classList.contains('save-note-right') ? ' save-note-right' : '') + (state ? ' ' + state : '');
+        el.textContent = state === 'saving' ? 'Saving\u2026'
+            : state === 'saved' ? '\u2713 Changes saved'
+            : state === 'failed' ? '\u26a0 Couldn\u2019t save to the shared backend \u2014 kept on this device'
+            : '';
+    });
+}
+
 async function backendPullRaw(key) {
     const r = await backendPullRawChecked(key);
     return r.ok ? r.value : null;
@@ -18487,6 +18542,13 @@ async function backendPull(key) {
 
 async function backendPush(key, value, onProgress) {
     if (!BACKEND_URL) return false;
+    saveTrack(key, 'start');
+    let ok = false;
+    try { ok = await backendPushUntracked(key, value, onProgress); }
+    finally { saveTrack(key, 'end', ok); }
+    return ok;
+}
+async function backendPushUntracked(key, value, onProgress) {
     const json = JSON.stringify(value);
     if (json.length <= BACKEND_CHUNK_CHARS) { const ok = await backendPushRaw(key, value); if (onProgress) onProgress(1, 1); return ok; }
     const parts = [];
@@ -18508,6 +18570,13 @@ async function backendPush(key, value, onProgress) {
 // Returns { ok: true } or { ok: false, detail } with a readable reason.
 async function backendPushVerified(key, value, same) {
     if (!BACKEND_URL) return { ok: false, detail: 'no shared backend is set' };
+    saveTrack(key, 'start');
+    let r = { ok: false };
+    try { r = await backendPushVerifiedUntracked(key, value, same); }
+    finally { saveTrack(key, 'end', r.ok); }
+    return r;
+}
+async function backendPushVerifiedUntracked(key, value, same) {
     let detail = '';
     if (JSON.stringify(value).length <= BACKEND_CHUNK_CHARS) {
         try {
@@ -18520,7 +18589,7 @@ async function backendPushVerified(key, value, same) {
                 else if (!j) detail = 'the backend sent back a page instead of a reply: ' + txt.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
             }
         } catch (e) { detail = 'the request was blocked or dropped (' + (e && e.message || 'network error') + ')'; }
-    } else if (!(await backendPush(key, value))) detail = 'the upload did not complete';
+    } else if (!(await backendPushUntracked(key, value))) detail = 'the upload did not complete';
     for (let i = 0; i < 4; i++) {
         if (i) await new Promise(r => setTimeout(r, 1500));
         const back = await backendPullChecked(key);
@@ -18542,7 +18611,10 @@ async function backendPushRaw(key, value) {
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({ key, value })
         });
-        return res.ok;
+        if (!res.ok) return false;
+        // The script reports its own failures (e.g. a full spreadsheet) in the body.
+        const j = await res.json().catch(() => null);
+        return !(j && j.error);
     } catch (e) {
         return false;
     }
@@ -18585,7 +18657,8 @@ document.getElementById('backendTestBtn').addEventListener('click', async () => 
 
 // Debounced so rapid keystrokes in a notes box don't fire a request per
 // character — checkbox toggles are infrequent enough to push immediately.
-const pushRenewalStateDebounced = debounce(() => { backendPush('renewal-state', RENEWAL_STATE); }, 900);
+const pushRenewalStateDebouncedInner = debounce(() => { backendPush('renewal-state', RENEWAL_STATE); }, 900);
+function pushRenewalStateDebounced() { if (BACKEND_URL) saveTrack('renewal-state', 'pending'); pushRenewalStateDebouncedInner(); }
 
 // Pulls every shared dataset and applies whatever the backend has. If the
 // backend has nothing yet for a dataset but this browser does, that local
