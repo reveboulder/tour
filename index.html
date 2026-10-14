@@ -15267,7 +15267,7 @@ function renderWlForm() {
 
     [...document.querySelectorAll('.wl-sticker-name')].forEach(inp => {
         if (document.activeElement !== inp) inp.value = r.stickerNameManual || '';
-        inp.placeholder = wlStickerAutoName(resident) || 'Resident name';
+        inp.placeholder = wlStickerAutoName(resident, r) || 'Resident name';
     });
 
     document.getElementById('wlNamesSection').innerHTML = `
@@ -15477,6 +15477,8 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
     // Always four applicant rows, matching the original document —
     // unused slots show N/A rather than disappearing.
     const names = [fullName1, r.fullName2, r.fullName3, r.fullName4].map(n => n && n.trim() ? n : 'N/A');
+    // Everyone listed (Full Name 1-4), for the greeting and "paid by" line.
+    const allNames = wlAllNames(r, resident);
 
     return `<div class="wlp-page">
         <div class="wlp-header">
@@ -15484,7 +15486,7 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
             <div class="wlp-issued">Issued: ${fmtResidentDate(today)}</div>
         </div>
         <div class="wlp-title">Welcome to Reve Boulder</div>
-        <div class="wlp-greeting">${escapeHtml(fullName1)}, we are excited that you have decided to make REVE Boulder your new home.</div>
+        <div class="wlp-greeting">${escapeHtml(wlJoinNames(allNames))}, we are excited that you have decided to make REVE Boulder your new home.</div>
         <div class="wlp-topgrid">
             <div>
                 <div class="wlp-addr-label">Your new address will be:</div>
@@ -15543,7 +15545,7 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
                 ${wlConcessionSchedule(r, resident).lines.map(l => `<div class="wlp-row"><span>${escapeHtml(l.month || 'N/A')}</span><span class="v">${l.amt ? fmt(l.amt) : 'N/A'}</span></div>`).join('')}
             </div>
         </div>
-        <div class="wlp-lead">The following items are to be paid by ${escapeHtml(fullName1)}:</div>
+        <div class="wlp-lead">The following items are to be paid by ${escapeHtml(wlJoinNames(allNames))}:</div>
         <table class="wlp-util-table">
             ${utilRows.map(([label, provider, party]) => `<tr><td style="font-weight:bold;width:150px;">${label}</td><td style="width:220px;">${escapeHtml(provider || '')}</td><td>${escapeHtml(party || '')}</td></tr>`).join('')}
         </table>
@@ -15633,8 +15635,24 @@ async function wlDownloadPdf(btn) {
 const STICKER_TEMPLATE_SRC = 'stickers/move-in-folder-sticker.jpg';
 const STICKER_DPI = 182, STICKER_W = 913, STICKER_H = 1190, STICKER_OFFSET = 21; // px at STICKER_DPI
 const STICKER_TEXT_COLOR = '#D9562B';
-function wlStickerAutoName(resident) {
-    return resident ? `${resident.first || ''} ${resident.last || ''}`.trim() : '';
+// Full Names 1-4 from the left menu (1 = the resident record), skipping blanks.
+function wlAllNames(rec, resident) {
+    rec = rec || {};
+    const first = resident ? `${resident.first || ''} ${resident.last || ''}`.trim() : '';
+    return [first, rec.fullName2, rec.fullName3, rec.fullName4].map(n => String(n || '').trim()).filter(Boolean);
+}
+// "A", "A & B", "A, B & C"
+function wlJoinNames(list) {
+    if (!list.length) return 'Resident';
+    return list.length === 1 ? list[0] : list.slice(0, -1).join(', ') + ' & ' + list[list.length - 1];
+}
+// Sticker default: everyone's first name, joined with "&" (editable in "Name on sticker").
+function wlStickerAutoName(resident, rec) {
+    const firsts = [];
+    if (resident && String(resident.first || '').trim()) firsts.push(String(resident.first).trim());
+    if (rec) [rec.fullName2, rec.fullName3, rec.fullName4].forEach(n => { const f = String(n || '').trim().split(/\s+/)[0]; if (f) firsts.push(f); });
+    if (!firsts.length && resident) return `${resident.first || ''} ${resident.last || ''}`.trim();
+    return firsts.join(' & ');
 }
 // The same controls appear at the top and bottom of the editor; the two
 // "Name on Sticker" boxes mirror each other.
@@ -15671,7 +15689,7 @@ async function wlDownloadSticker(btn) {
     if (!wlKey || wlKey === '_new') { alert('Select a resident first.'); return; }
     if (!WL_RECORDS[wlKey]) WL_RECORDS[wlKey] = wlDefaultRecord();
     const resident = wlKeyResident(wlKey);
-    const name = (WL_RECORDS[wlKey].stickerNameManual || '').trim() || wlStickerAutoName(resident);
+    const name = (WL_RECORDS[wlKey].stickerNameManual || '').trim() || wlStickerAutoName(resident, WL_RECORDS[wlKey]);
     if (!name) { alert('No resident name found \u2014 type one in "Name on sticker".'); return; }
     const originalLabel = btn.textContent;
     btn.disabled = true;
@@ -16038,7 +16056,7 @@ function wlCreateEmailDraft() {
     if (!wlKey || wlKey === '_new') { alert('Select a resident first.'); return; }
     if (!WL_RECORDS[wlKey]) WL_RECORDS[wlKey] = wlDefaultRecord();
     const resident = wlKeyResident(wlKey);
-    const who = wlStickerAutoName(resident);
+    const who = resident ? `${resident.first || ''} ${resident.last || ''}`.trim() : '';
     const entered = prompt(`Email address for ${who || 'Apt ' + unit}:\n(separate several with commas)`, WL_RECORDS[wlKey].residentEmail || '');
     if (entered === null) return; // cancelled
     const emails = entered.split(/[,;\s]+/).map(e => e.trim()).filter(Boolean);
