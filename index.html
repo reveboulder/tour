@@ -11496,6 +11496,25 @@ function xmlReadTitleCount(sheetXml, sharedStrings, cellRef) {
     const countMatch = text.match(/\((\d+)\)/);
     return countMatch ? parseInt(countMatch[1], 10) : 0;
 }
+// Text of the first text cell in a row's XML: a shared string (t="s"),
+// an inline string (t="inlineStr" — what this app's own exports write,
+// and what Google Sheets keeps when a file is re-saved) or a formula
+// string (t="str"). '' if none.
+function xmlFirstTextInRow(rowInner, sharedStrings) {
+    const cRe = /<c r="[A-Z]+\d+"([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let c;
+    while ((c = cRe.exec(rowInner))) {
+        const t = (c[1].match(/\st="([^"]+)"/) || [])[1], inner = c[2] || '';
+        if (t === 's') { const v = inner.match(/<v>(\d+)<\/v>/); if (v) return sharedStrings[parseInt(v[1], 10)] || ''; }
+        else if (t === 'inlineStr' || t === 'str') {
+            let text = '', tm; const tRe = /<t[^>]*>([^<]*)<\/t>/g;
+            while ((tm = tRe.exec(inner))) text += tm[1];
+            if (!text && t === 'str') text = ((inner.match(/<v>([^<]*)<\/v>/) || [])[1] || '');
+            if (text) return text;
+        }
+    }
+    return '';
+}
 function xmlParseSharedStrings(xml) {
     const strings = [];
     const siRe = /<si>([\s\S]*?)<\/si>/g;
@@ -11534,8 +11553,8 @@ async function exportCommissionsViaXmlSurgery() {
     const zip = await JSZip.loadAsync(COMM_TEMPLATE_BYTES);
     const sheetPath = 'xl/worksheets/sheet1.xml';
     let xml = await zip.file(sheetPath).async('string');
-    const sharedStringsXml = await zip.file('xl/sharedStrings.xml').async('string');
-    const sharedStrings = xmlParseSharedStrings(sharedStringsXml);
+    const ssFile = zip.file('xl/sharedStrings.xml');
+    const sharedStrings = ssFile ? xmlParseSharedStrings(await ssFile.async('string')) : [];
 
     // Locate the two section title rows ("MOVE - INS   (N)" / "RENEWALS   (N)")
     // by content rather than assuming fixed row numbers, since a
@@ -11545,11 +11564,9 @@ async function exportCommissionsViaXmlSurgery() {
     let moveInTitleRow = null, renewalTitleRow = null, m;
     while ((m = rowRe.exec(xml))) {
         const rNum = parseInt(m[1], 10);
-        const cellMatch = m[2].match(/<c r="[A-Z]+\d+"[^>]*t="s"[^>]*><v>(\d+)<\/v><\/c>/);
-        if (!cellMatch) continue;
-        const text = sharedStrings[parseInt(cellMatch[1], 10)] || '';
-        if (/MOVE\s*-?\s*INS/i.test(text)) moveInTitleRow = rNum;
-        else if (/RENEWALS/i.test(text)) renewalTitleRow = rNum;
+        const text = xmlFirstTextInRow(m[2], sharedStrings);
+        if (moveInTitleRow === null && /MOVE\s*-?\s*INS/i.test(text)) moveInTitleRow = rNum;
+        else if (renewalTitleRow === null && /^\s*RENEWALS/i.test(text)) renewalTitleRow = rNum;
     }
     if (moveInTitleRow === null || renewalTitleRow === null) {
         throw new Error('Could not locate the Move-Ins / Renewals section titles in this file.');
@@ -11621,11 +11638,16 @@ async function exportCommissionsViaXmlSurgery() {
     });
 
     // Title counts now reflect exactly what was exported.
-    const moveInTitleCell = xml.match(new RegExp(`<row r="${moveInTitleRow}"[^>]*>(<c r="([A-Z]+)${moveInTitleRow}"[^>]*t="s")`));
+    const moveInTitleCell = xml.match(new RegExp(`<row r="${moveInTitleRow}"[^>]*>(<c r="([A-Z]+)${moveInTitleRow}")`));
     if (moveInTitleCell) xml = xmlSetCellValue(xml, moveInTitleCell[2] + moveInTitleRow, `MOVE - INS   (${moveInRows.length})`);
     const shiftedRenewalTitleRow = renewalTitleRow + moveInShift;
-    const renewalTitleCell = xml.match(new RegExp(`<row r="${shiftedRenewalTitleRow}"[^>]*>(<c r="([A-Z]+)${shiftedRenewalTitleRow}"[^>]*t="s")`));
+    const renewalTitleCell = xml.match(new RegExp(`<row r="${shiftedRenewalTitleRow}"[^>]*>(<c r="([A-Z]+)${shiftedRenewalTitleRow}")`));
     if (renewalTitleCell) xml = xmlSetCellValue(xml, renewalTitleCell[2] + shiftedRenewalTitleRow, `RENEWALS   (${renewalRows.length})`);
+
+    // A dropdown (e.g. Agent) on the Move-In data rows: stretch it over
+    // exactly the exported Move-In rows.
+    if (moveInRows.length) xml = xml.replace(/(<dataValidation\b[^>]*\ssqref=")([A-Z]+)(\d+):\2(\d+)"/g, (all, pre, col, a, z) =>
+        +a === moveInHeaderRow + 1 && +z <= lastOldMoveInRow ? `${pre}${col}${a}:${col}${moveInHeaderRow + moveInRows.length}"` : all);
 
     // Move Out (K) at least as wide as Move In (I), so its dates don't
     // show as ##### when the old file's K column was narrow.
