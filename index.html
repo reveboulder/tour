@@ -4409,7 +4409,7 @@
             </div>
             <div class="pcard-mode" role="radiogroup" aria-label="Export mode">
                 <label><input type="radio" name="pcardMode" value="append" checked> Add to the file&rsquo;s existing items (next empty row)</label>
-                <label><input type="radio" name="pcardMode" value="clear"> Clear the file&rsquo;s items (B33:H95) and start fresh</label>
+                <label><input type="radio" name="pcardMode" value="clear"> Clear the file&rsquo;s items (<span id="pcardClearRange">B33:H95</span>) and start fresh</label>
             </div>
             <div class="commissions-layout">
                 <div class="commissions-main">
@@ -12573,9 +12573,12 @@ function commNumOrRaw(v) {
    row by row like the concessions tables, then written into an
    uploaded previous PCard Reconciliation .xlsx by editing its XML
    directly, so everything else in the file keeps its formatting:
-   items go in B33:H95 (appended after the last used row, or after
-   clearing those rows), E98 becomes today's date, and the Split
-   Charges column (K31:K95) is removed. The uploaded file is only
+   items go in the item rows (appended after the last used row, or after
+   clearing those rows), the manager approval date becomes today, and a
+   Split Charges column (older template) is removed. Where the item rows,
+   total and approval date sit is read from each uploaded file (see
+   pcardDetectLayout): the older template uses B33:H95 / G96 / E98, the
+   10-26 one B31:H96 / G97 / E99. The uploaded file is only
    held in memory for this tab and is never saved anywhere.
    ============================================================ */
 /* ---------- GL code matching from an uploaded Chart of Accounts ----------
@@ -12850,7 +12853,25 @@ function pcardParseCoa(bytes, fileName) {
     });
     return { name: fileName, accounts };
 }
-const PCARD_FIRST_ROW = 33, PCARD_LAST_ROW = 95;
+// Layout of the uploaded file (defaults = the older template).
+let PCARD_FIRST_ROW = 33, PCARD_LAST_ROW = 95, PCARD_TOTAL_CELL = 'G96', PCARD_APPROVAL_CELL = 'E98', PCARD_SPLIT_COL = true;
+// Finds the item table in a parsed sheet: the header row with DATE (B) and
+// GL Code (C), the "Total of Expenses" row under it, and the manager
+// approval date (column E, the row above "MANAGER APPROVAL").
+function pcardDetectLayout(ws) {
+    const txt = ref => String(ws[ref] && ws[ref].v !== undefined ? ws[ref].v : '').trim();
+    let hdr = 0, total = 0, approval = 0;
+    for (let r = 1; r <= 200 && !hdr; r++) if (/^date$/i.test(txt('B' + r)) && /gl/i.test(txt('C' + r))) hdr = r;
+    if (!hdr) return null;
+    for (let r = hdr + 2; r <= hdr + 150 && !total; r++) {
+        if (['D', 'E', 'F'].some(c => /total of expenses/i.test(txt(c + r))) || (ws['G' + r] && /SUM\(G\d+:G\d+\)/i.test(ws['G' + r].f || ''))) total = r;
+    }
+    if (!total) return null;
+    for (let r = total + 1; r <= total + 15 && !approval; r++) if (/manager approval/i.test(txt('B' + r))) approval = r - 1;
+    let split = false;
+    for (let r = hdr - 2; r <= hdr + 1; r++) if (/split/i.test(txt('K' + r))) split = true;
+    return { first: hdr + 1, last: total - 1, total: 'G' + total, approval: 'E' + (approval || total + 1), split };
+}
 const PCARD_DATA_COLS = ['B', 'C', 'D', 'E', 'F', 'G', 'H'];
 let PCARD_TEMPLATE_BYTES = null;
 let PCARD_TEMPLATE_NAME = '';
@@ -12907,7 +12928,7 @@ function pcardRenderPrev() {
     const fmtDate = d => d instanceof Date && !isNaN(d) ? d.toLocaleDateString('en-US') : (d || '');
     document.getElementById('pcardPrevBody').innerHTML = PCARD_PREV.length
         ? PCARD_PREV.map(r => `<tr><td>${r.row}</td><td>${escapeHtml(fmtDate(r.date))}</td><td>${escapeHtml(String(r.gl || ''))}</td><td>${escapeHtml(String(r.to || ''))}</td><td>${typeof r.amount === 'number' ? pcardMoney(r.amount) : escapeHtml(String(r.amount || ''))}</td><td>${escapeHtml(String(r.forText || ''))}</td></tr>`).join('')
-        : '<tr><td colspan="6" class="no-unit" style="border:none;">No items in rows 33–95.</td></tr>';
+        : `<tr><td colspan="6" class="no-unit" style="border:none;">No items in rows ${PCARD_FIRST_ROW}\u2013${PCARD_LAST_ROW}.</td></tr>`;
 }
 // GL code suggestions: every code in the uploaded file (items + Auto Pays list).
 function pcardFillGlList(codes) {
@@ -12929,19 +12950,21 @@ document.getElementById('pcardTemplateUpload').addEventListener('change', e => {
             // An older .xls (not a zip) is converted to .xlsx here, since the
             // export edits the .xlsx's XML directly.
             if (!(bytes[0] === 0x50 && bytes[1] === 0x4b)) {
-                const old = XLSX.read(bytes, { type: 'array', cellStyles: true, cellNF: true, sheetStubs: true }); // keep blank formatted cells (rows 33-95) for the export to fill
+                const old = XLSX.read(bytes, { type: 'array', cellStyles: true, cellNF: true, sheetStubs: true }); // keep blank formatted cells (the item rows) for the export to fill
                 bytes = new Uint8Array(XLSX.write(old, { type: 'array', bookType: 'xlsx', cellStyles: true }));
                 converted = true;
             }
-            const wb = XLSX.read(bytes, { type: 'array', cellDates: true });
+            const wb = XLSX.read(bytes, { type: 'array', cellDates: true, cellFormula: true });
             const ws = wb.Sheets[wb.SheetNames[0]];
             const val = ref => (ws[ref] ? ws[ref].v : '');
+            const lay = pcardDetectLayout(ws) || { first: 33, last: 95, total: 'G96', approval: 'E98', split: true };
+            PCARD_FIRST_ROW = lay.first; PCARD_LAST_ROW = lay.last; PCARD_TOTAL_CELL = lay.total; PCARD_APPROVAL_CELL = lay.approval; PCARD_SPLIT_COL = lay.split;
             for (let r = PCARD_FIRST_ROW; r <= PCARD_LAST_ROW; r++) {
                 const item = { row: r, date: val('B' + r), gl: val('C' + r), to: val('E' + r), amount: val('G' + r), forText: val('H' + r) };
                 if ([item.date, item.gl, item.to, item.amount, item.forText].some(v => v !== '' && v !== null && v !== undefined)) prev.push(item);
             }
             glCodes = prev.map(r => r.gl);
-            for (let r = 96; r <= 130; r++) if (/^\d{4}/.test(String(val('L' + r)))) glCodes.push(val('L' + r));
+            for (let r = PCARD_LAST_ROW + 1; r <= PCARD_LAST_ROW + 40; r++) if (/^\d{4}/.test(String(val('L' + r)))) glCodes.push(val('L' + r));
         } catch (err) {
             alert("Could not read that file. Make sure it's the PCard Reconciliation (.xlsx or .xls).");
             return;
@@ -12950,8 +12973,9 @@ document.getElementById('pcardTemplateUpload').addEventListener('change', e => {
         PCARD_TEMPLATE_NAME = file.name;
         PCARD_PREV = prev;
         pcardFillGlList(glCodes);
-        document.getElementById('pcardTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; ${prev.length} existing item${prev.length === 1 ? '' : 's'} in rows 33–95. Held in this tab only.`
+        document.getElementById('pcardTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; ${prev.length} existing item${prev.length === 1 ? '' : 's'} in B${PCARD_FIRST_ROW}:H${PCARD_LAST_ROW} (new items go after them; total ${PCARD_TOTAL_CELL}, approval date ${PCARD_APPROVAL_CELL}). Held in this tab only.`
             + (converted ? ' <span class="pcard-warn">Converted from the older .xls format, so some formatting (colors, borders, fonts) may not carry over to the export. For an exact copy, open the file in Excel, choose File \u203a Save As \u203a Excel Workbook (.xlsx), and upload that instead.</span>' : '');
+        document.getElementById('pcardClearRange').textContent = `B${PCARD_FIRST_ROW}:H${PCARD_LAST_ROW}`;
         pcardRenderPrev();
         renderPcardSummary();
     };
@@ -13031,6 +13055,14 @@ async function exportPcardViaXmlSurgery() {
     const sheetPath = firstSheet && xmlResolveSheetPath(wbXml, relsXml, firstSheet);
     if (!sheetPath || !zip.file(sheetPath)) throw new Error('Could not find the first sheet in that file.');
     let xml = await zip.file(sheetPath).async('string');
+    // A file converted from .xls carries a non-standard level="" on <col>
+    // (every sheet), which Excel flags as needing repair.
+    xml = xml.replace(/(<col\b[^>]*?)\s+level="\d+"/g, '$1');
+    for (const f of zip.file(/^xl\/worksheets\/[^/]+\.xml$/)) {
+        if (f.name === sheetPath) continue;
+        const x = await f.async('string');
+        if (/<col\b[^>]*\slevel="/.test(x)) zip.file(f.name, x.replace(/(<col\b[^>]*?)\s+level="\d+"/g, '$1'));
+    }
     const items = pcardItems();
     const stylesFile = zip.file('xl/styles.xml');
     const styles = stylesFile ? pcardStyleEditor(await stylesFile.async('string')) : null;
@@ -13040,7 +13072,7 @@ async function exportPcardViaXmlSurgery() {
     for (let r = PCARD_FIRST_ROW; r <= PCARD_LAST_ROW && styles; r++) {
         if (pcardCellHasValue(xml, 'B' + r)) { const f = styles.numFmtOf(pcardCellStyle(xml, 'B' + r)); if (f !== '0') { dateFmt = f; break; } }
     }
-    const moneyFmt = styles ? styles.numFmtOf(pcardCellStyle(xml, 'G96')) : '0';
+    const moneyFmt = styles ? styles.numFmtOf(pcardCellStyle(xml, PCARD_TOTAL_CELL)) : '0';
 
     let start;
     if (pcardMode() === 'clear') {
@@ -13078,11 +13110,13 @@ async function exportPcardViaXmlSurgery() {
     });
     if (styles) zip.file('xl/styles.xml', styles.toXml());
     // Manager approval date.
-    xml = xmlEnsureCell(xml, 'E98');
-    xml = xmlSetCellValue(xml, 'E98', new Date());
+    xml = xmlEnsureCell(xml, PCARD_APPROVAL_CELL);
+    xml = xmlSetCellValue(xml, PCARD_APPROVAL_CELL, new Date());
     // Split Charges removed completely: K31:K95 and its merged header.
-    xml = xml.replace(/<c r="K(\d+)"(?:[^>]*?\/>|[^>]*?>[\s\S]*?<\/c>)/g, (m, n) => (+n >= 31 && +n <= PCARD_LAST_ROW ? '' : m));
-    xml = xml.replace(/<mergeCell ref="K31:K32"\/>/, '');
+    if (PCARD_SPLIT_COL) {
+        xml = xml.replace(/<c r="K(\d+)"(?:[^>]*?\/>|[^>]*?>[\s\S]*?<\/c>)/g, (m, n) => (+n >= PCARD_FIRST_ROW - 2 && +n <= PCARD_LAST_ROW ? '' : m));
+        xml = xml.replace(new RegExp(`<mergeCell ref="K${PCARD_FIRST_ROW - 2}:K${PCARD_FIRST_ROW - 1}"\\/>`), '');
+    }
     const mergeCount = (xml.match(/<mergeCell /g) || []).length;
     xml = xml.replace(/<mergeCells count="\d+"/, `<mergeCells count="${mergeCount}"`);
     zip.file(sheetPath, xml);
@@ -13107,10 +13141,10 @@ document.getElementById('pcardExportBtn').addEventListener('click', async () => 
     if (!PCARD_TEMPLATE_BYTES) { alert('Upload the previous PCard Reconciliation file first — the export adds your items to it.'); return; }
     const items = pcardItems();
     if (!items.length && pcardMode() !== 'clear') { alert('Add at least one PCard item to export.'); return; }
-    if (pcardMode() === 'clear' && PCARD_PREV.length && !confirm(`Clear the ${PCARD_PREV.length} item(s) already in the file (B33:H95) and start fresh with ${items.length} new item(s)?`)) return;
+    if (pcardMode() === 'clear' && PCARD_PREV.length && !confirm(`Clear the ${PCARD_PREV.length} item(s) already in the file (B${PCARD_FIRST_ROW}:H${PCARD_LAST_ROW}) and start fresh with ${items.length} new item(s)?`)) return;
     try {
         const r = await exportPcardViaXmlSurgery();
-        status.innerHTML = `<b style="color:var(--good);">Exported.</b> ${r.count} item${r.count === 1 ? '' : 's'} written starting at row ${r.start}; E98 set to today.`;
+        status.innerHTML = `<b style="color:var(--good);">Exported.</b> ${r.count} item${r.count === 1 ? '' : 's'} written starting at row ${r.start}; ${PCARD_APPROVAL_CELL} set to today.`;
         if (items.length && confirm(`Exported. Clear these ${items.length} item(s) from the app now that they're in the file? (Recommended, so they aren't added twice next time.)`)) {
             const rows = pcardController.getRows();
             Object.keys(rows).forEach(id => { if (!rows[id].deleted) rows[id].deleted = true; });
