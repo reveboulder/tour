@@ -4398,8 +4398,8 @@
         </div>
         <div id="adminPanel-pcard" class="admin-subpanel" style="display:none;">
             <div class="mmr-io-bar">
-                <label class="file-label" for="pcardTemplateUpload">Upload Previous PCard File (.xlsx)</label>
-                <input type="file" id="pcardTemplateUpload" accept=".xlsx">
+                <label class="file-label" for="pcardTemplateUpload">Upload Previous PCard File (.xlsx/.xls)</label>
+                <input type="file" id="pcardTemplateUpload" accept=".xlsx,.xls">
                 <div class="empty-note" id="pcardTemplateStatus">No file uploaded &mdash; upload the last PCard Reconciliation to export. It stays in this browser tab only and is never saved.</div>
             </div>
             <div class="mmr-io-bar">
@@ -11292,6 +11292,32 @@ function xmlSetCellValue(sheetXml, cellRef, value) {
     else newCell = `<c r="${cellRef}"${attrs} t="inlineStr"><is><t>${xmlEscapeText(value)}</t></is></c>`;
     return sheetXml.slice(0, m.index) + newCell + sheetXml.slice(m.index + m[0].length);
 }
+// Makes sure cell `ref` exists (an empty <c/>), adding its row if needed,
+// in column/row order — xmlSetCellValue only fills cells that exist (a
+// file converted from .xls, for one, has no blank placeholder cells).
+function xmlColNum(col) { return col.split('').reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0); }
+function xmlEnsureCell(sheetXml, ref) {
+    if (new RegExp(`<c r="${ref}"[\\s/>]`).test(sheetXml)) return sheetXml;
+    const [, col, rowStr] = ref.match(/^([A-Z]+)(\d+)$/);
+    const row = +rowStr, cn = xmlColNum(col), cell = `<c r="${ref}"/>`;
+    const rowRe = new RegExp(`<row r="${row}"([^>]*?)(/>|>([\\s\\S]*?)</row>)`);
+    const m = sheetXml.match(rowRe);
+    if (m) {
+        const inner = m[3] || '';
+        // insert before the first cell with a higher column number
+        const cells = [...inner.matchAll(/<c r="([A-Z]+)\d+"/g)];
+        const after = cells.find(c => xmlColNum(c[1]) > cn);
+        const newInner = after ? inner.slice(0, after.index) + cell + inner.slice(after.index) : inner + cell;
+        return sheetXml.slice(0, m.index) + `<row r="${row}"${m[1]}>${newInner}</row>` + sheetXml.slice(m.index + m[0].length);
+    }
+    // no such row: add it before the first row with a higher number
+    const rows = [...sheetXml.matchAll(/<row r="(\d+)"/g)];
+    const next = rows.find(x => +x[1] > row);
+    const rowXml = `<row r="${row}">${cell}</row>`;
+    if (next) return sheetXml.slice(0, next.index) + rowXml + sheetXml.slice(next.index);
+    if (/<sheetData\/>/.test(sheetXml)) return sheetXml.replace('<sheetData/>', `<sheetData>${rowXml}</sheetData>`);
+    return sheetXml.replace('</sheetData>', rowXml + '</sheetData>');
+}
 function xmlSetCells(sheetXml, cellMap) {
     Object.keys(cellMap).forEach(ref => {
         if (cellMap[ref] !== null && cellMap[ref] !== undefined) sheetXml = xmlSetCellValue(sheetXml, ref, cellMap[ref]);
@@ -12897,9 +12923,16 @@ document.getElementById('pcardTemplateUpload').addEventListener('change', e => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = evt => {
-        const bytes = new Uint8Array(evt.target.result);
-        let prev = [], glCodes = [];
+        let bytes = new Uint8Array(evt.target.result);
+        let prev = [], glCodes = [], converted = false;
         try {
+            // An older .xls (not a zip) is converted to .xlsx here, since the
+            // export edits the .xlsx's XML directly.
+            if (!(bytes[0] === 0x50 && bytes[1] === 0x4b)) {
+                const old = XLSX.read(bytes, { type: 'array', cellStyles: true, cellNF: true, sheetStubs: true }); // keep blank formatted cells (rows 33-95) for the export to fill
+                bytes = new Uint8Array(XLSX.write(old, { type: 'array', bookType: 'xlsx', cellStyles: true }));
+                converted = true;
+            }
             const wb = XLSX.read(bytes, { type: 'array', cellDates: true });
             const ws = wb.Sheets[wb.SheetNames[0]];
             const val = ref => (ws[ref] ? ws[ref].v : '');
@@ -12910,18 +12943,19 @@ document.getElementById('pcardTemplateUpload').addEventListener('change', e => {
             glCodes = prev.map(r => r.gl);
             for (let r = 96; r <= 130; r++) if (/^\d{4}/.test(String(val('L' + r)))) glCodes.push(val('L' + r));
         } catch (err) {
-            alert("Could not read that file. Make sure it's the PCard Reconciliation .xlsx.");
+            alert("Could not read that file. Make sure it's the PCard Reconciliation (.xlsx or .xls).");
             return;
         }
         PCARD_TEMPLATE_BYTES = bytes;
         PCARD_TEMPLATE_NAME = file.name;
         PCARD_PREV = prev;
         pcardFillGlList(glCodes);
-        document.getElementById('pcardTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; ${prev.length} existing item${prev.length === 1 ? '' : 's'} in rows 33–95. Held in this tab only.`;
+        document.getElementById('pcardTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; ${prev.length} existing item${prev.length === 1 ? '' : 's'} in rows 33–95. Held in this tab only.`
+            + (converted ? ' <span class="pcard-warn">Converted from the older .xls format, so some formatting (colors, borders, fonts) may not carry over to the export. For an exact copy, open the file in Excel, choose File \u203a Save As \u203a Excel Workbook (.xlsx), and upload that instead.</span>' : '');
         pcardRenderPrev();
         renderPcardSummary();
     };
-    reader.onerror = () => alert("Could not read that file. Make sure it's the PCard Reconciliation .xlsx.");
+    reader.onerror = () => alert("Could not read that file. Make sure it's the PCard Reconciliation (.xlsx or .xls).");
     reader.readAsArrayBuffer(file);
 });
 
@@ -13027,6 +13061,7 @@ async function exportPcardViaXmlSurgery() {
     }
     items.forEach((it, i) => {
         const r = start + i;
+        ['B', 'C', 'E', 'G', 'H'].forEach(c => { xml = xmlEnsureCell(xml, c + r); });
         const gl = String(it.gl || '').trim();
         const amount = parseMoneyLoose(it.amount);
         xml = xmlSetCells(xml, {
@@ -13043,6 +13078,7 @@ async function exportPcardViaXmlSurgery() {
     });
     if (styles) zip.file('xl/styles.xml', styles.toXml());
     // Manager approval date.
+    xml = xmlEnsureCell(xml, 'E98');
     xml = xmlSetCellValue(xml, 'E98', new Date());
     // Split Charges removed completely: K31:K95 and its merged header.
     xml = xml.replace(/<c r="K(\d+)"(?:[^>]*?\/>|[^>]*?>[\s\S]*?<\/c>)/g, (m, n) => (+n >= 31 && +n <= PCARD_LAST_ROW ? '' : m));
@@ -19854,7 +19890,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-mmr-traffic": {"title": "Record Weekly Traffic for the MMR", "icon": "🚶", "category": "Admin", "steps": ["Go to Admin (enter the password) > MMR > Weekly Traffic Detail.", "For each reason, write one sentence per show, starting with the prospect's first and last name and ending with a period.", "Each sentence that starts with a name counts as one show; follow-up sentences about the same prospect don't add to the count.", "Download New MMR replaces last week's numbers in the uploaded file.", "Click \"Clear for New Week\" to start the next week fresh."]},
     "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Traced units, sheet scales and measurements are shared with the team through the backend: anyone who opens the same PDF file (same name and size) sees them, and changes sync about every 25 seconds.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points. Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Clicks snap to the drawn corners (green square). Hold Ctrl to move freely without snapping, Shift to keep the line perfectly straight across or up/down (snapping then only sets the length), or Ctrl+Shift for both.", "Edit: drag any orange corner of a traced outline or measurement to move it, or click one corner, then a second corner on the same outline, click the new corners and finish on the second one to redraw that stretch. Delete removes a selected corner.", "Load a trace: pick a unit you traced (on any sheet) from \"Load a trace\u2026\" to copy it onto this sheet under a new name, then drag it into place with Move unit (its nearest corner snaps to the drawn lines). Rotate 90\u00b0 and Mirror handle mirrored units.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create blank floorplan\" draws a plain line floorplan from the outer and inner traces (the part of the inner trace outside the outer one is labeled Balcony). Download it, or click \"Use as this unit\u2019s floorplan\" to save it to Documents \u203a Floorplans and place the traced shape exactly on it, then add the measurements with \"Place traced shape on floorplan\".", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary.", "To put the traced shape on a 2D floorplan: under \"Floorplan image with measurements\", choose a site floorplan or upload one, then click \"Place traced shape on floorplan\". Drag the shape onto the walls, resize from its corner square, rotate or mirror as needed, and click \"Download PNG\". Wall lengths always come from the blueprint."]},
     "builtin-commissions": {"title": "Run Commissions for the Pay Period", "icon": "💼", "category": "Admin", "steps": ["Go to Admin > Commissions and check the Current pay period (change its start date if needed).", "Review Suggested Move-Ins (residents moving in this pay period): + adds one officially, × rejects it.", "Add anything missing with \"+ Add Move-In\" or \"+ Add Renewal\", or use \"Import Renewals\" with the Resident Activity Detail export.", "Optional: upload last period's Commissions file to keep its formatting.", "Click \"Export to Excel\" — only officially added Move-Ins and Renewals are included."]},
-    "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx)\". The file stays in your browser tab only and is never saved.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code (suggestions come from the file), To, Amount and For.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Check the summary under the table — it warns if the items won't fit in the sheet.", "Click \"Export to Excel\". Items go into the table, the approval date is set to today, and the rest of the file is unchanged.", "When asked, clear the exported items so they aren't added twice next time."]},
+    "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx/.xls)\". The file stays in your browser tab only and is never saved.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code (suggestions come from the file), To, Amount and For.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Check the summary under the table — it warns if the items won't fit in the sheet.", "Click \"Export to Excel\". Items go into the table, the approval date is set to today, and the rest of the file is unchanged.", "When asked, clear the exported items so they aren't added twice next time."]},
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
     "builtin-refresh-theme": {"title": "Update the App and Change Light/Dark Mode", "icon": "🌓", "category": "Settings", "steps": ["Go to Settings.", "Click Light or Dark to change the look.", "Click \"Refresh Site to Update\" to load the latest version of the app — do this if a new feature or fix isn't showing."]},
     "builtin-unit-info": {"title": "Update Unit Info (Videos, Mailbox, Commission)", "icon": "🏢", "category": "Admin", "steps": ["Go to Admin (enter the Admin password), open INFO, then the \"Unit Info\" sub-tab.", "Search for a unit by number.", "Edit any field — e.g. Video Name and Video Link, Mailbox, View, Amenity or Commission. Changes save automatically and are shared with the team.", "Video links here power the Tour flyers and \"Watch Video\" on the Sitemap tab's map."]},
