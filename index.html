@@ -13334,6 +13334,7 @@ function residentStableJson(v) {
     return '{' + Object.keys(v).sort().filter(k => v[k] !== undefined).map(k => JSON.stringify(k) + ':' + residentStableJson(v[k])).join(',') + '}';
 }
 let residentSyncState = 'idle'; // 'idle' | 'saving' | 'failed'
+let residentSyncReason = '';
 function renderResidentSyncStatus() {
     const el = document.getElementById('residentSyncStatus');
     if (!el) return;
@@ -13345,7 +13346,7 @@ function renderResidentSyncStatus() {
     if (residentSyncState === 'saving') { el.textContent = `Saving ${n} change${n === 1 ? '' : 's'} to the shared backend\u2026`; el.style.color = ''; return; }
     if (!n) { el.textContent = 'All changes saved to the shared backend.'; el.style.color = 'var(--good)'; return; }
     el.textContent = residentSyncState === 'failed'
-        ? `${n} change${n === 1 ? '' : 's'} NOT confirmed by the shared backend \u2014 kept in this browser and retrying.`
+        ? `${n} change${n === 1 ? '' : 's'} NOT confirmed by the shared backend${residentSyncReason ? ' (' + residentSyncReason + ')' : ''} \u2014 kept in this browser and retrying.`
         : `${n} unsaved change${n === 1 ? '' : 's'} \u2014 saving shortly.`;
     el.style.color = residentSyncState === 'failed' ? '#c0392b' : '';
 }
@@ -13429,11 +13430,14 @@ async function residentSyncOnce() {
     if (!BACKEND_URL || APP_MODE === 'test' || !RESIDENT_DIRTY.size) return;
     residentSyncState = 'saving';
     renderResidentSyncStatus();
-    const remote = await backendPull('residents');
+    // undefined = the read failed; null = nothing stored yet (first save).
+    let remote = await backendPullChecked('residents');
+    if (remote === null) remote = {};
     // Never push without a fresh copy of the backend to merge into —
     // pushing this browser's whole table blind could overwrite other
     // agents' newer edits. Retry later instead (edits stay safe here).
     if (!remote || typeof remote !== 'object') {
+        residentSyncReason = 'couldn\u2019t load the shared copy to merge into';
         residentSyncState = 'failed';
         residentPersistLocal();
         return;
@@ -13443,15 +13447,22 @@ async function residentSyncOnce() {
     Object.keys(payload).forEach(id => { if (RESIDENT_ROWS[id]) payload[id] = RESIDENT_ROWS[id]; });
     RESIDENT_DIRTY.forEach(id => { if (RESIDENT_ROWS[id]) payload[id] = RESIDENT_ROWS[id]; });
     residentPersistLocal();
+    // A pending change for a row that no longer exists here has nothing to save.
+    [...RESIDENT_DIRTY].forEach(id => { if (!RESIDENT_ROWS[id]) RESIDENT_DIRTY.delete(id); });
     const ok = await backendPush('residents', payload);
-    const check = ok ? await backendPull('residents') : null;
-    let allConfirmed = !!check;
-    if (check) {
-        [...RESIDENT_DIRTY].forEach(id => {
-            if (residentRowCovered(check[id], RESIDENT_ROWS[id])) RESIDENT_DIRTY.delete(id);
-            else allConfirmed = false;
-        });
+    // Read back (a few tries — the backend can lag a moment behind a save).
+    let allConfirmed = false, check = null;
+    residentSyncReason = ok ? '' : 'the save was not accepted';
+    for (let attempt = 0; ok && attempt < 3; attempt++) {
+        if (attempt) await new Promise(res => setTimeout(res, 1500));
+        check = await backendPullChecked('residents');
+        if (!check) { residentSyncReason = 'couldn\u2019t read the backend back'; continue; }
+        [...RESIDENT_DIRTY].forEach(id => { if (residentRowCovered(check[id], RESIDENT_ROWS[id])) RESIDENT_DIRTY.delete(id); });
+        allConfirmed = !RESIDENT_DIRTY.size;
+        if (allConfirmed) break;
+        residentSyncReason = 'the backend didn\u2019t keep ' + RESIDENT_DIRTY.size + ' edit' + (RESIDENT_DIRTY.size === 1 ? '' : 's');
     }
+    if (allConfirmed) residentSyncReason = '';
     residentSyncState = allConfirmed || !RESIDENT_DIRTY.size ? 'idle' : (residentSyncAgain ? 'saving' : 'failed');
     residentPersistLocal();
     // Don't redraw while a field in the table is focused (it would
@@ -19291,7 +19302,15 @@ async function backendPullRaw(key) {
 }
 // Like backendPullRaw, but tells a failed request ({ ok: false }) apart
 // from a key that simply has nothing stored yet ({ ok: true, value: null }).
+// One retry after a short pause: a busy Apps Script turns away requests
+// when too many arrive at once, which is usually gone a moment later.
 async function backendPullRawChecked(key) {
+    const r = await backendPullRawOnce(key);
+    if (r.ok || !BACKEND_URL) return r;
+    await new Promise(res => setTimeout(res, 700 + Math.random() * 600));
+    return backendPullRawOnce(key);
+}
+async function backendPullRawOnce(key) {
     if (!BACKEND_URL) return { ok: false, value: null };
     try {
         const res = await fetch(`${BACKEND_URL}?key=${encodeURIComponent(key)}`);
@@ -19309,18 +19328,34 @@ async function backendPullChecked(key) {
     if (!r.ok) return undefined;
     const value = r.value;
     if (!value || typeof value !== 'object' || !value.__chunks) return value;
-    const parts = await Promise.all(Array.from({ length: value.__chunks }, (_, i) => backendPullRawChecked(`${key}__part${i}`)));
+    const parts = await backendPullParts(key, value.__chunks);
     if (parts.some(p => !p.ok || typeof p.value !== 'string')) return undefined;
     const json = parts.map(p => p.value).join('');
     if (json.length !== value.length) return undefined;
     try { return JSON.parse(json); } catch (e) { return undefined; }
+}
+// The parts of a chunked value, three requests at a time (the Apps Script
+// limits how many it serves at once, and the rest of the app is syncing
+// too), retrying any part that fails once.
+async function backendPullParts(key, n) {
+    const out = new Array(n);
+    let next = 0;
+    async function worker() {
+        while (next < n) {
+            const i = next++;
+            const r = await backendPullRawChecked(`${key}__part${i}`); // retries once itself
+            out[i] = r;
+        }
+    }
+    await Promise.all(Array.from({ length: Math.min(3, n) }, worker));
+    return out;
 }
 async function backendPull(key) {
     const value = await backendPullRaw(key);
     if (!value || typeof value !== 'object' || !value.__chunks) return value;
     // Chunked value: the key holds a small manifest; the JSON text is
     // spread over key__part0..N. Any missing/short part = failed pull.
-    const parts = await Promise.all(Array.from({ length: value.__chunks }, (_, i) => backendPullRaw(`${key}__part${i}`)));
+    const parts = (await backendPullParts(key, value.__chunks)).map(p => p.ok ? p.value : null);
     if (parts.some(p => typeof p !== 'string')) return null;
     const json = parts.join('');
     if (json.length !== value.length) return null;
