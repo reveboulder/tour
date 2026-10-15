@@ -11128,10 +11128,14 @@ function excelSerialFromDate(date) {
 }
 function xmlResolveSheetPath(wbXml, relsXml, sheetName) {
     const esc = sheetName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const sheetMatch = new RegExp(`<sheet[^>]*name="${esc}"[^>]*r:id="([^"]+)"`).exec(wbXml);
+    const sheetTag = (wbXml.match(/<sheet\b[^>]*>/g) || []).find(t => new RegExp(`\\sname="${esc}"`).test(t));
+    const sheetMatch = sheetTag && /\sr:id="([^"]+)"/.exec(sheetTag);
     if (!sheetMatch) return null;
-    const relMatch = new RegExp(`<Relationship[^>]*Id="${sheetMatch[1]}"[^>]*Target="([^"]+)"`).exec(relsXml);
-    return relMatch ? 'xl/' + relMatch[1] : null;
+    // Attribute order varies by app, and Target may be absolute ("/xl/...").
+    const rel = (relsXml.match(/<Relationship\b[^>]*>/g) || []).find(t => new RegExp(`\\sId="${sheetMatch[1]}"`).test(t));
+    const target = rel && (rel.match(/\sTarget="([^"]+)"/) || [])[1];
+    if (!target) return null;
+    return target.startsWith('/') ? target.slice(1) : 'xl/' + target.replace(/^\.\//, '');
 }
 function xmlParseRowStyles(rowXml) {
     const styles = {};
@@ -13028,6 +13032,21 @@ function pcardStyleEditor(stylesXml) {
             xfs.push(xf);
             return (cache[key] = xfs.length - 1);
         },
+        // Same style, centered horizontally.
+        withCenter(idx) {
+            idx = idx || 0;
+            if (!xfs[idx]) return idx;
+            const key = idx + ':center';
+            if (cache[key] !== undefined) return cache[key];
+            if (/<alignment\b[^>]*horizontal="center"/.test(xfs[idx])) return (cache[key] = idx);
+            let xf = xfs[idx];
+            if (/<alignment\b/.test(xf)) xf = xf.replace(/<alignment\b([^>]*?)(\/?)>/, (m, a, end) => `<alignment${a.replace(/\s*horizontal="[^"]*"/, '')} horizontal="center"${end}>`);
+            else if (/\/>$/.test(xf)) xf = xf.replace(/\s*\/>$/, '><alignment horizontal="center"/></xf>');
+            else xf = xf.replace(/>/, '><alignment horizontal="center"/>');
+            xf = /applyAlignment="/.test(xf) ? xf.replace(/applyAlignment="[^"]*"/, 'applyAlignment="1"') : xf.replace('<xf', '<xf applyAlignment="1"');
+            xfs.push(xf);
+            return (cache[key] = xfs.length - 1);
+        },
         toXml() {
             if (!block) return stylesXml;
             return stylesXml.replace(/<cellXfs\b[^>]*>[\s\S]*?<\/cellXfs>/, `<cellXfs count="${xfs.length}">${xfs.join('')}</cellXfs>`);
@@ -13042,6 +13061,24 @@ function pcardCellStyle(xml, ref) {
 function pcardSetCellStyle(xml, ref, idx) {
     return xml.replace(new RegExp(`<c r="${ref}"([^>]*?)(/?>)`), (m, attrs, end) =>
         `<c r="${ref}"${/\bs="\d+"/.test(attrs) ? attrs.replace(/\bs="\d+"/, `s="${idx}"`) : attrs + ` s="${idx}"`}${end}`);
+}
+// A cell's value: number, text (shared, inline or formula string) or ''.
+function pcardReadCell(xml, ref, sst) {
+    const m = xml.match(new RegExp(`<c r="${ref}"([^>]*?)(?:/>|>([\\s\\S]*?)<\\/c>)`));
+    if (!m || !m[2]) return '';
+    const t = (m[1].match(/\st="([^"]+)"/) || [])[1], inner = m[2];
+    if (t === 's') { const v = inner.match(/<v[^>]*>(\d+)<\/v>/); return v ? (sst[+v[1]] || '') : ''; }
+    if (t === 'inlineStr') { let out = '', x; const re = /<t[^>]*>([^<]*)<\/t>/g; while ((x = re.exec(inner))) out += x[1]; return xmlUnescapeText(out); }
+    const v = (inner.match(/<v[^>]*>([^<]*)<\/v>/) || [])[1];
+    if (v === undefined) return '';
+    if (t === 'str' || t === 'e') return xmlUnescapeText(v);
+    if (t === 'b') return v === '1';
+    const num = Number(v);
+    return isNaN(num) ? xmlUnescapeText(v) : num;
+}
+function xmlUnescapeText(s) {
+    return String(s).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+        .replace(/&#(\d+);/g, (m, d) => String.fromCharCode(+d)).replace(/&#x([0-9a-f]+);/gi, (m, h) => String.fromCharCode(parseInt(h, 16))).replace(/&amp;/g, '&');
 }
 function pcardCellHasValue(xml, ref) {
     const m = xml.match(new RegExp(`<c r="${ref}"[^>]*?(?:/>|>([\\s\\S]*?)<\\/c>)`));
@@ -13074,38 +13111,59 @@ async function exportPcardViaXmlSurgery() {
     }
     const moneyFmt = styles ? styles.numFmtOf(pcardCellStyle(xml, PCARD_TOTAL_CELL)) : '0';
 
-    let start;
-    if (pcardMode() === 'clear') {
+    // Every item is written sorted by date (oldest first): in "add" mode the
+    // file's existing items are read back and sorted together with the new
+    // ones, then the whole item block is rewritten from the first row.
+    const ssFile = zip.file('xl/sharedStrings.xml');
+    const sst = ssFile ? xmlParseSharedStrings(await ssFile.async('string')).map(xmlUnescapeText) : [];
+    const COLS = ['B', 'C', 'E', 'G', 'H'];
+    const toSerial = d => { const v = d instanceof Date ? d : mmrExcelDateFromInput(d); return v instanceof Date && !isNaN(v) ? excelSerialFromDate(v) : null; };
+    const entries = [];
+    if (pcardMode() !== 'clear') {
         for (let r = PCARD_FIRST_ROW; r <= PCARD_LAST_ROW; r++) {
-            PCARD_DATA_COLS.forEach(c => { if (pcardCellHasValue(xml, c + r)) xml = xmlSetCellValue(xml, c + r, ''); });
+            if (!PCARD_DATA_COLS.some(c => pcardCellHasValue(xml, c + r))) continue;
+            const vals = {};
+            COLS.forEach(c => { vals[c] = pcardReadCell(xml, c + r, sst); });
+            const serial = typeof vals.B === 'number' ? vals.B : (vals.B ? toSerial(String(vals.B)) : null);
+            if (serial !== null) vals.B = serial;
+            entries.push({ serial, vals });
         }
-        start = PCARD_FIRST_ROW;
-    } else {
-        let last = PCARD_FIRST_ROW - 1;
-        for (let r = PCARD_FIRST_ROW; r <= PCARD_LAST_ROW; r++) {
-            if (PCARD_DATA_COLS.some(c => pcardCellHasValue(xml, c + r))) last = r;
-        }
-        start = last + 1;
     }
-    const room = PCARD_LAST_ROW - start + 1;
-    if (items.length > room) {
-        throw new Error(`Only ${room} empty row${room === 1 ? '' : 's'} left in B${PCARD_FIRST_ROW}:H${PCARD_LAST_ROW} for ${items.length} items. Choose "Clear the file's items", or export fewer items.`);
-    }
-    items.forEach((it, i) => {
-        const r = start + i;
-        ['B', 'C', 'E', 'G', 'H'].forEach(c => { xml = xmlEnsureCell(xml, c + r); });
+    items.forEach(it => {
         const gl = String(it.gl || '').trim();
         const amount = parseMoneyLoose(it.amount);
-        xml = xmlSetCells(xml, {
-            ['B' + r]: it.date ? mmrExcelDateFromInput(it.date) : '',
-            ['C' + r]: /^\d+(\.\d+)?$/.test(gl) ? Number(gl) : gl,
-            ['E' + r]: String(it.to || '').trim(),
-            ['G' + r]: amount !== null ? amount : String(it.amount || '').trim(),
-            ['H' + r]: String(it.for || '').trim()
-        });
+        const serial = it.date ? toSerial(it.date) : null;
+        entries.push({ serial, vals: {
+            B: serial !== null ? serial : String(it.date || '').trim(),
+            C: /^\d+(\.\d+)?$/.test(gl) ? Number(gl) : gl,
+            E: String(it.to || '').trim(),
+            G: amount !== null ? amount : String(it.amount || '').trim(),
+            H: String(it.for || '').trim()
+        } });
+    });
+    // Stable sort: by date, undated last, ties keep their order.
+    entries.forEach((e, i) => { e.i = i; });
+    entries.sort((a, b) => (a.serial === null) - (b.serial === null) || (a.serial || 0) - (b.serial || 0) || a.i - b.i);
+    const room = PCARD_LAST_ROW - PCARD_FIRST_ROW + 1;
+    if (entries.length > room) {
+        throw new Error(`Only ${room} rows in B${PCARD_FIRST_ROW}:H${PCARD_LAST_ROW} for ${entries.length} items (${entries.length - items.length} already in the file). Choose "Clear the file's items", or export fewer items.`);
+    }
+    // Clear the block, then write every item in date order.
+    for (let r = PCARD_FIRST_ROW; r <= PCARD_LAST_ROW; r++) {
+        PCARD_DATA_COLS.forEach(c => { if (pcardCellHasValue(xml, c + r)) xml = xmlSetCellValue(xml, c + r, ''); });
+    }
+    const start = PCARD_FIRST_ROW;
+    entries.forEach((e, i) => {
+        const r = start + i;
+        COLS.forEach(c => { xml = xmlEnsureCell(xml, c + r); });
+        const cells = {};
+        COLS.forEach(c => { cells[c + r] = e.vals[c] === undefined ? '' : e.vals[c]; });
+        xml = xmlSetCells(xml, cells);
         if (styles) {
-            xml = pcardSetCellStyle(xml, 'B' + r, styles.withNumFmt(pcardCellStyle(xml, 'B' + r), dateFmt));
-            if (moneyFmt !== '0') xml = pcardSetCellStyle(xml, 'G' + r, styles.withNumFmt(pcardCellStyle(xml, 'G' + r), moneyFmt));
+            // GL Code and To are centered.
+            ['C', 'E'].forEach(c => { xml = pcardSetCellStyle(xml, c + r, styles.withCenter(pcardCellStyle(xml, c + r))); });
+            if (typeof e.vals.B === 'number') xml = pcardSetCellStyle(xml, 'B' + r, styles.withNumFmt(pcardCellStyle(xml, 'B' + r), dateFmt));
+            if (moneyFmt !== '0' && typeof e.vals.G === 'number') xml = pcardSetCellStyle(xml, 'G' + r, styles.withNumFmt(pcardCellStyle(xml, 'G' + r), moneyFmt));
         }
     });
     if (styles) zip.file('xl/styles.xml', styles.toXml());
@@ -13134,7 +13192,7 @@ async function exportPcardViaXmlSurgery() {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
-    return { count: items.length, start };
+    return { count: items.length, start, total: entries.length };
 }
 document.getElementById('pcardExportBtn').addEventListener('click', async () => {
     const status = document.getElementById('pcardExportStatus');
@@ -13144,7 +13202,7 @@ document.getElementById('pcardExportBtn').addEventListener('click', async () => 
     if (pcardMode() === 'clear' && PCARD_PREV.length && !confirm(`Clear the ${PCARD_PREV.length} item(s) already in the file (B${PCARD_FIRST_ROW}:H${PCARD_LAST_ROW}) and start fresh with ${items.length} new item(s)?`)) return;
     try {
         const r = await exportPcardViaXmlSurgery();
-        status.innerHTML = `<b style="color:var(--good);">Exported.</b> ${r.count} item${r.count === 1 ? '' : 's'} written starting at row ${r.start}; ${PCARD_APPROVAL_CELL} set to today.`;
+        status.innerHTML = `<b style="color:var(--good);">Exported.</b> ${r.count} item${r.count === 1 ? '' : 's'} added; all ${r.total} item${r.total === 1 ? '' : 's'} sorted by date in rows ${r.start}\u2013${r.start + r.total - 1}; ${PCARD_APPROVAL_CELL} set to today.`;
         if (items.length && confirm(`Exported. Clear these ${items.length} item(s) from the app now that they're in the file? (Recommended, so they aren't added twice next time.)`)) {
             const rows = pcardController.getRows();
             Object.keys(rows).forEach(id => { if (!rows[id].deleted) rows[id].deleted = true; });
