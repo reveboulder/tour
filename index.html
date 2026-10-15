@@ -2725,7 +2725,13 @@
     body.dark-mode .pcard-calc, body.dark-mode .pcard-calc input { background: var(--dm-card-alt); color: inherit; }
     @media (max-width: 900px) { .pcard-calcs { flex: 0 0 auto; width: 100%; max-width: 420px; } }
 
-    /* -- Video Tours Needed (Availability sidebar) -- */
+    /* -- Video Tours Needed (Turns, right of TODAY) -- */
+    .tn-vtpanel { flex: 0 1 320px; min-width: 240px; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; min-height: 0; }
+    .tn-vt-bar { display: flex; align-items: center; gap: 6px; min-height: 24px; margin-bottom: 2px; }
+    .tn-vt-title { flex: 1; font-size: 13px; font-weight: 700; }
+    .tn-vtpanel .vtn-legend { padding: 0 2px 4px; }
+    .tn-vtpanel #vtnList { flex: 1 1 0; min-height: 120px; max-height: 196px; overflow-y: auto; padding: 0 2px 4px; }
+    body.dark-mode .tn-vtpanel { background: var(--dm-card-alt); }
     .vtn { margin-top: 16px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
     .vtn summary { cursor: pointer; padding: 9px 12px; font-family: 'Oswald', var(--sans); font-weight: 600; font-size: 13px; letter-spacing: 0.03em; list-style: none; display: flex; align-items: center; justify-content: space-between; }
     .vtn summary::-webkit-details-marker { display: none; }
@@ -3454,11 +3460,6 @@
 
             <button type="button" class="add-term-btn" id="availClearBtn" style="margin-top:14px;">Clear filters</button>
 
-            <details class="vtn" id="videoToursNeeded">
-                <summary><span>Video Tours Needed</span> <span class="vtn-count" id="vtnCount"></span></summary>
-                <div class="vtn-legend"><span class="vtn-now">Available now</span> &middot; <span>Upcoming</span> &middot; <span class="vtn-other">Not available</span></div>
-                <div id="vtnList"></div>
-            </details>
         </div>
     </div>
 
@@ -3692,6 +3693,11 @@
                 <span class="tn-today-sum" id="tnTodaySum"></span>
             </div>
             <div class="tn-today-list" id="tnTodayList"></div>
+        </div>
+        <div class="tn-vtpanel" id="videoToursNeeded">
+            <div class="tn-vt-bar"><span class="tn-vt-title">Video Tours Needed</span><span class="vtn-count" id="vtnCount"></span></div>
+            <div class="vtn-legend"><span class="vtn-now">Available now</span> &middot; <span>Upcoming</span> &middot; <span class="vtn-other">Not available</span></div>
+            <div id="vtnList"></div>
         </div>
     </div>
     <div class="tn-top2">
@@ -7243,11 +7249,6 @@ document.getElementById('vtnList').addEventListener('click', e => {
     switchTab('tour');
     selectUnit(b.getAttribute('data-vtn-unit'));
 });
-(function () {
-    const d = document.getElementById('videoToursNeeded');
-    try { if (localStorage.getItem('reve-vtn-open') === '1') d.open = true; } catch (e) {}
-    d.addEventListener('toggle', () => { try { localStorage.setItem('reve-vtn-open', d.open ? '1' : '0'); } catch (e) {} });
-})();
 function renderCalendar() {
     renderVideoToursNeeded();
     const grid = document.getElementById('calGrid');
@@ -14480,7 +14481,7 @@ function turnTradeState(row, t, today) {
 // Maintenance done (rows from before this column used Oven Clean for it).
 function turnMaintDone(row) { return 'maintDone' in row ? !!row.maintDone : !!row.oven; }
 function turnAllDone(row) { return turnMaintDone(row) && TURN_TRADES.every(t => row[t.id + 'Done']); }
-// On Availability's "Video Tours Needed" list as available now or upcoming
+// On Turns' "Video Tours Needed" card as available now or upcoming
 // (any unit needing one, if no pricing sheet is loaded).
 function turnNeedsVideo(unit) {
     const u = (typeof UNITS !== 'undefined' ? UNITS : []).find(x => x.unit === String(unit || '').trim());
@@ -14503,7 +14504,7 @@ function turnDateCell(id, field, value, multi, cls) {
 function turnCheck(id, field, value, cls) {
     return `<td class="tn-chk ${cls || ''}"><input type="checkbox" data-id="${id}" data-f="${field}"${value ? ' checked' : ''} aria-label="${field}"></td>`;
 }
-function renderTurns() { renderTurnsBody(); renderTurnSyncStatus(); }
+function renderTurns() { renderTurnsBody(); renderTurnSyncStatus(); renderVideoToursNeeded(); }
 function renderTurnsBody() {
     const body = document.getElementById('turnsBody');
     if (!body) return;
@@ -20049,8 +20050,8 @@ restoreHowToLocal();
    ============================================================ */
 const QA_GLOSSARY = [
     ['Tour tab', 'Tour builds a tour pamphlet (flyer) for any unit: search a unit number or floorplan, check the auto-filled specs, price and availability, then Download PDF (clickable links) or Download Printable PDF.', 'tour', 'flyer pamphlet brochure build'],
-    ['Availability tab', 'Availability shows every unit from today’s pricing sheet on a Month or Week calendar on the date it becomes available. Click a unit to open it in Tour. "Video Tours Needed" lists units whose video isn’t of that exact unit.', 'availability', 'calendar vacant open date'],
-    ['Video Tours Needed', 'On the Availability tab, "Video Tours Needed" lists units whose Video Name doesn’t contain their own unit number. Bold + underlined = available now, plain with a date = available soon, gray = not available. Click one to open it in Tour.', 'availability', 'video film record shoot missing'],
+    ['Availability tab', 'Availability shows every unit from today’s pricing sheet on a Month or Week calendar on the date it becomes available. Click a unit to open it in Tour.', 'availability', 'calendar vacant open date'],
+    ['Video Tours Needed', 'On the Turns tab, the "Video Tours Needed" card (right of TODAY) lists units whose Video Name doesn’t contain their own unit number. Bold + underlined = available now, plain with a date = available soon, gray = not available. Click one to open it in Tour.', 'turns', 'video film record shoot missing'],
     ['Expiring tab', 'Expiring lists upcoming lease ends (from the uploaded lease expiration report) with status Notice, Current or Renewed — future potential availability. Click a unit to make an "available soon" flyer.', 'expiring', 'lease end expiration upcoming notice'],
     ['Renewals tab', 'Renewals tracks pending renewal decisions from the Renewal Offer Analysis report. Check "Renewed?" or "Notice?" per unit, add notes, and use Generate Renewal Offer PDF. A 🚩 flag means the lease ends within 30 days with no decision.', 'renewals', 'renew offer flag decision'],
     ['Residents tab', 'Residents is the shared move-in tracker: one row per resident with Agent, Unit, names, dates, Term, Rate, Promo, Screen status and the move-in checklist. Sub-tabs: Active, Pending, Notice Req. and Move-Outs.', 'residents', 'move-in tracker tenant checklist'],
