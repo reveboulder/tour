@@ -13433,6 +13433,11 @@ async function residentSyncOnce() {
     // undefined = the read failed; null = nothing stored yet (first save).
     let remote = await backendPullChecked('residents');
     if (remote === null) remote = {};
+    // The shared copy is damaged (its pieces don't fit together — e.g. a
+    // save that failed halfway under the old format): nobody can read it,
+    // so rebuild it from this browser's full table. Other browsers then
+    // re-send any of their own edits that are newer.
+    if (remote === undefined && BACKEND_CORRUPT.residents) { remote = {}; Object.keys(RESIDENT_ROWS).forEach(id => RESIDENT_DIRTY.add(id)); }
     // Never push without a fresh copy of the backend to merge into —
     // pushing this browser's whole table blind could overwrite other
     // agents' newer edits. Retry later instead (edits stay safe here).
@@ -19091,7 +19096,7 @@ async function docsRunDelete(u, title, verb, quiet) {
                 const raw = await backendPullRawChecked(k);
                 const parts = raw.ok && raw.value && raw.value.__chunks ? raw.value.__chunks : 0;
                 await backendPush(k, null);
-                for (let i = 0; i < parts; i++) await backendPushRaw(`${k}__part${i}`, null);
+                for (let i = 0; i < parts; i++) await backendPushRaw(backendPartKey(k, raw.value.slot, i), null);
             }
         }
     } catch (err) { why = 'Something went wrong while deleting.'; }
@@ -19259,13 +19264,22 @@ function debounce(fn, wait) {
 // Sheets cell holds at most 50,000 characters, and a full Residents
 // table is well past that — a single oversized write can fail inside
 // the Apps Script while the request itself still comes back "OK".
-const BACKEND_CHUNK_CHARS = 40000;
+// 20,000 leaves room for the escaping the backend adds when it stores a
+// piece (quotes become \"), under a Sheets cell's 50,000-character cap.
+const BACKEND_CHUNK_CHARS = 20000;
+// Name of piece i of a chunked value. Pieces alternate between two sets
+// ("a"/"b") so a save that fails halfway never damages the copy the
+// manifest points at; older manifests (no slot) used "__part<i>".
+function backendPartKey(key, slot, i) { return slot ? `${key}__${slot}${i}` : `${key}__part${i}`; }
+// Keys whose last read found pieces that don't fit together (a damaged
+// copy) rather than a network problem.
+const BACKEND_CORRUPT = {};
 
 // Save notes: every push to the backend reports here, and each
 // .save-note[data-save-keys] element (keys separated by spaces; "x-*"
 // matches a prefix) shows "Saving…", then "Changes saved" or a failure.
 const SAVE_TRACK = {}; // base key -> { n, state, at }
-function saveTrackBase(key) { return String(key).replace(/__part\d+$/, ''); }
+function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, ''); }
 function saveTrack(key, phase, ok) {
     const k = saveTrackBase(key);
     if (k === 'connection-test') return;
@@ -19327,23 +19341,25 @@ async function backendPullChecked(key) {
     const r = await backendPullRawChecked(key);
     if (!r.ok) return undefined;
     const value = r.value;
-    if (!value || typeof value !== 'object' || !value.__chunks) return value;
-    const parts = await backendPullParts(key, value.__chunks);
-    if (parts.some(p => !p.ok || typeof p.value !== 'string')) return undefined;
+    if (!value || typeof value !== 'object' || !value.__chunks) { delete BACKEND_CORRUPT[key]; return value; }
+    const parts = await backendPullParts(key, value.__chunks, value.slot);
+    if (parts.some(p => !p.ok)) return undefined;
+    const bad = () => { BACKEND_CORRUPT[key] = true; return undefined; };
+    if (parts.some(p => typeof p.value !== 'string')) return bad();
     const json = parts.map(p => p.value).join('');
-    if (json.length !== value.length) return undefined;
-    try { return JSON.parse(json); } catch (e) { return undefined; }
+    if (json.length !== value.length) return bad();
+    try { const v = JSON.parse(json); delete BACKEND_CORRUPT[key]; return v; } catch (e) { return bad(); }
 }
 // The parts of a chunked value, three requests at a time (the Apps Script
 // limits how many it serves at once, and the rest of the app is syncing
 // too), retrying any part that fails once.
-async function backendPullParts(key, n) {
+async function backendPullParts(key, n, slot) {
     const out = new Array(n);
     let next = 0;
     async function worker() {
         while (next < n) {
             const i = next++;
-            const r = await backendPullRawChecked(`${key}__part${i}`); // retries once itself
+            const r = await backendPullRawChecked(backendPartKey(key, slot, i)); // retries once itself
             out[i] = r;
         }
     }
@@ -19355,7 +19371,7 @@ async function backendPull(key) {
     if (!value || typeof value !== 'object' || !value.__chunks) return value;
     // Chunked value: the key holds a small manifest; the JSON text is
     // spread over key__part0..N. Any missing/short part = failed pull.
-    const parts = (await backendPullParts(key, value.__chunks)).map(p => p.ok ? p.value : null);
+    const parts = (await backendPullParts(key, value.__chunks, value.slot)).map(p => p.ok ? p.value : null);
     if (parts.some(p => typeof p !== 'string')) return null;
     const json = parts.join('');
     if (json.length !== value.length) return null;
@@ -19375,14 +19391,19 @@ async function backendPushUntracked(key, value, onProgress) {
     if (json.length <= BACKEND_CHUNK_CHARS) { const ok = await backendPushRaw(key, value); if (onProgress) onProgress(1, 1); return ok; }
     const parts = [];
     for (let i = 0; i < json.length; i += BACKEND_CHUNK_CHARS) parts.push(json.slice(i, i + BACKEND_CHUNK_CHARS));
+    // Write into the piece set the current manifest is NOT using, then
+    // switch the manifest: if a save fails halfway, the old copy is
+    // untouched and still readable.
+    const cur = await backendPullRawChecked(key);
+    const slot = cur.ok && cur.value && cur.value.slot === 'a' ? 'b' : 'a';
     // One at a time (not in parallel) so the Apps Script never handles
     // two writes to the same Sheet at once. Parts first, manifest last,
     // so a reader never sees a manifest pointing at unwritten parts.
     for (let i = 0; i < parts.length; i++) {
-        if (!(await backendPushRaw(`${key}__part${i}`, parts[i]))) return false;
+        if (!(await backendPushRaw(backendPartKey(key, slot, i), parts[i]))) return false;
         if (onProgress) onProgress(i + 1, parts.length + 1);
     }
-    return backendPushRaw(key, { __chunks: parts.length, length: json.length });
+    return backendPushRaw(key, { __chunks: parts.length, length: json.length, slot });
 }
 
 // Send a value and READ IT BACK until same(readBack) holds. The Apps
