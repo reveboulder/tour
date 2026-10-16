@@ -3173,6 +3173,7 @@
                 </div>
                 <button type="button" class="pricing-clear" id="pricingClearBtn" style="display:none;">Clear pricing sheet</button>
                 <div class="save-note" data-save-keys="pricing-summary" aria-live="polite"></div>
+                <div class="save-note" id="pricingDriveNote" aria-live="polite"></div>
             </div>
 
             <div class="section-label"><span class="dot"></span>Find a unit</div>
@@ -5519,6 +5520,32 @@ function renderPricingStatus() {
     }
 }
 
+/* Each uploaded pricing sheet is also saved by the backend script to the
+   Daily Pricing folder on Google Drive: <year>/<M.D.YY>.CSV (today's date,
+   Mountain Time). A second upload the same day replaces that day's file. */
+async function pricingArchiveToDrive(csv) {
+    const note = document.getElementById('pricingDriveNote');
+    if (!note || !BACKEND_URL || APP_MODE === 'test') return;
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', year: 'numeric', month: 'numeric', day: 'numeric' })
+        .formatToParts(new Date()).map(p => [p.type, p.value]));
+    const year = parts.year, name = `${parts.month}.${parts.day}.${String(year).slice(-2)}.CSV`;
+    note.className = 'save-note saving';
+    note.textContent = `Saving ${name} to Google Drive\u2026`;
+    let j = null;
+    try {
+        const res = await fetch(BACKEND_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'archivePricing', name, year, csv }) });
+        j = res.ok ? await res.json().catch(() => null) : null;
+    } catch (e) { j = null; }
+    if (j && j.ok) {
+        note.className = 'save-note saved';
+        note.innerHTML = `Saved to Google Drive: Daily Pricing \u203a ${escapeHtml(j.folder)} \u203a <a href="${escapeAttr(j.url)}" target="_blank" rel="noopener">${escapeHtml(j.name)}</a>`;
+    } else {
+        note.className = 'save-note failed';
+        note.textContent = j && j.error === 'missing key'
+            ? 'Not saved to Google Drive \u2014 the backend script needs the v4 update.'
+            : `Couldn\u2019t save ${name} to Google Drive${j && j.error ? ' (' + j.error + ')' : ''}.`;
+    }
+}
 document.getElementById('pricingFileInput').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -5536,6 +5563,7 @@ document.getElementById('pricingFileInput').addEventListener('change', (e) => {
             };
             persistPricing();
             if (BACKEND_URL) backendPush('pricing-summary', { summary: PRICING_SUMMARY, meta: PRICING_META });
+            pricingArchiveToDrive(String(reader.result));
             renderPricingStatus();
             rebuildFloorplanFilter();
             rebuildAvailFilters();
