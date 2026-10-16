@@ -1908,6 +1908,9 @@
     .et-attach { display: flex; flex-direction: column; gap: 6px; }
     .et-attach-list { display: flex; flex-wrap: wrap; gap: 6px; }
     .et-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--line-soft); border: 1px solid var(--line); border-radius: 14px; padding: 3px 4px 3px 10px; font-size: 12px; color: var(--ink); max-width: 320px; }
+    .et-sig-box { min-height: 70px; max-height: 260px; overflow: auto; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: #000; font-family: Aptos, Calibri, Arial, sans-serif; font-size: 11pt; }
+    .et-sig-box:empty::before { content: attr(data-placeholder); color: #888; }
+    .et-sig-box img { max-width: 100%; }
     .et-chip button { border: 0; background: none; color: #c0392b; font-size: 15px; line-height: 1; cursor: pointer; padding: 0 4px; }
     #etAttachPick { align-self: flex-start; max-width: 360px; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: 12.5px; background: var(--panel); color: var(--ink); }
     body.dark-mode .et-list, body.dark-mode .et-editor textarea { background: var(--dm-card-alt); color: inherit; }
@@ -4950,12 +4953,22 @@
             <label class="docs-edit-field">Use for<select id="etSlot"></select></label>
             <label class="docs-edit-field">Subject<input type="text" id="etSubject" autocomplete="off"></label>
             <label class="docs-edit-field">Message<textarea id="etBody" rows="22" spellcheck="true"></textarea></label>
-            <div class="empty-note" style="margin:2px 0 0;">Plain text (email drafts can&rsquo;t carry formatting). <b>{name}</b> and <b>{unit}</b> are filled in with the resident&rsquo;s name and apartment when a draft is created.</div>
+            <div class="empty-note" style="margin:2px 0 0;">Plain text &mdash; web links and email addresses become clickable in drafts with attachments. <b>{name}</b> and <b>{unit}</b> are filled in with the resident&rsquo;s name and apartment when a draft is created.</div>
             <div class="docs-edit-field et-attach">
                 <span>Attachments</span>
                 <div class="et-attach-list" id="etAttachList"></div>
                 <select id="etAttachPick"><option value="">+ Attach a document&hellip;</option></select>
                 <div class="empty-note" style="margin:2px 0 0;">With attachments, &ldquo;Create Email Draft&rdquo; downloads the draft as an email file (.eml) with the documents attached &mdash; open it and it appears in Outlook ready to send.</div>
+            </div>
+            <div class="docs-edit-field et-sig">
+                <span>Your email signature <small style="font-weight:400;">(saved on this device only &mdash; each agent sets their own)</small></span>
+                <div id="etSig" class="et-sig-box" contenteditable="true" spellcheck="false" data-placeholder="In Outlook, open a new email, select your whole signature, copy it, and paste it here."></div>
+                <div class="et-actions" style="margin:0;">
+                    <button type="button" class="btn small" id="etSigSave" style="width:auto;flex:none;padding:6px 14px;">Save signature</button>
+                    <button type="button" class="btn small" id="etSigClear" style="width:auto;flex:none;padding:6px 14px;">Clear</button>
+                    <span class="empty-note" id="etSigStatus" style="margin:0;align-self:center;"></span>
+                </div>
+                <div class="empty-note" style="margin:2px 0 0;">Added to the bottom of email drafts that carry attachments, with its formatting. To avoid a second copy, in Outlook set the signature for <b>New messages</b> to <b>(none)</b> &mdash; or leave this blank and Outlook will add its own.</div>
             </div>
             <div class="et-actions">
                 <button type="button" class="btn primary" id="etSave" style="width:auto;flex:none;padding:8px 16px;">Save</button>
@@ -15720,28 +15733,19 @@ function buildWelcomeLetterHtml(unit, r, resident, unitRec) {
     </div>`;
 }
 
-async function wlDownloadPdf(btn) {
-    const wlKey = wlSelectedUnit;
+// Builds the Welcome Letter PDF for a record -> { pdf (jsPDF), name }.
+// Used by "Download WL PDF" and to attach the letter to the email draft.
+async function wlBuildPdf(wlKey) {
     const unit = wlKeyUnit(wlKey);
-    if (!wlKey) { alert('Select a resident first.'); return; }
     if (!WL_RECORDS[wlKey]) WL_RECORDS[wlKey] = wlDefaultRecord();
     const r = WL_RECORDS[wlKey];
     const resident = wlKeyResident(wlKey);
     const unitRec = byUnit[unit];
-
-    const originalLabel = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Generating\u2026';
-
     const holder = document.createElement('div');
     holder.style.position = 'fixed';
     holder.style.left = '-10000px';
     holder.style.top = '0';
     document.body.appendChild(holder);
-
-    // Everything after the label change lives inside the try, so any
-    // failure (including building the letter HTML) always resets the
-    // button instead of leaving it stuck on "Generating…".
     try {
         holder.innerHTML = `<style>${WL_PDF_STYLE}</style>${buildWelcomeLetterHtml(unit, r, resident, unitRec)}`;
         const node = holder.querySelector('.wlp-page');
@@ -15761,11 +15765,25 @@ async function wlDownloadPdf(btn) {
 
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pageW, pageH], compress: true });
         pdf.addImage(imgData, 'JPEG', x, y, wPt, hPt);
-        pdf.save(`welcome-letter-apt-${unit}.pdf`);
-    } catch (err) {
-        alert('Could not generate the Welcome Letter PDF. Please try again.');
+        return { pdf, name: `welcome-letter-apt-${unit}.pdf` };
     } finally {
         document.body.removeChild(holder);
+    }
+}
+async function wlDownloadPdf(btn) {
+    const wlKey = wlSelectedUnit;
+    if (!wlKey) { alert('Select a resident first.'); return; }
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generating\u2026';
+    // The button always resets, even if building the letter fails.
+    try {
+        const { pdf, name } = await wlBuildPdf(wlKey);
+        pdf.save(name);
+    } catch (err) {
+        console.error(err);
+        alert('Could not generate the Welcome Letter PDF. Please try again.');
+    } finally {
         btn.disabled = false;
         btn.textContent = originalLabel;
     }
@@ -16125,11 +16143,51 @@ function etMimeType(name, blob) {
     const ext = docsExt(name);
     return { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' }[ext] || 'application/octet-stream';
 }
-async function etOpenDraft(to, t, vars) {
+/* ---------- Email signature (per device) ----------
+   Each agent pastes their own Outlook signature (formatting, links and
+   logo kept) once; it's stored in this browser only. Drafts with
+   attachments are built as HTML with the signature at the bottom, so
+   Outlook keeps the formatting instead of dropping a plain-text copy at
+   the top. */
+const ET_SIG_KEY = 'reve-email-signature';
+function etSigGet() { try { return localStorage.getItem(ET_SIG_KEY) || ''; } catch (e) { return ''; } }
+function etSigSet(html) { try { if (html) localStorage.setItem(ET_SIG_KEY, html); else localStorage.removeItem(ET_SIG_KEY); } catch (e) {} }
+// Keeps formatting, links and images; drops scripts, event handlers and
+// local-only image paths (file:, blob:) Outlook can't open.
+function etSigClean(html) {
+    const box = document.createElement('div');
+    box.innerHTML = html;
+    box.querySelectorAll('script,iframe,object,embed,meta,link,title,style,xml').forEach(n => n.remove());
+    let dropped = 0;
+    box.querySelectorAll('*').forEach(n => {
+        [...n.attributes].forEach(at => {
+            const nm = at.name.toLowerCase();
+            if (nm.startsWith('on') || ((nm === 'href' || nm === 'src') && /^\s*javascript:/i.test(at.value))) n.removeAttribute(at.name);
+        });
+        if (n.tagName === 'IMG' && !/^(https?:|data:image\/)/i.test(n.getAttribute('src') || '')) { n.remove(); dropped++; }
+    });
+    // Remove empty trailing lines.
+    while (box.lastChild && ((box.lastChild.nodeType === 3 && !box.lastChild.textContent.trim()) || box.lastChild.nodeName === 'BR')) box.lastChild.remove();
+    return { html: (box.textContent.trim() || box.querySelector('img')) ? box.innerHTML : '', dropped };
+}
+function etTextToHtml(text) {
+    const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(text).split(/\r?\n/).map(line => {
+        let h = esc(line).replace(/^ +/, m => '&nbsp;'.repeat(m.length));
+        h = h.replace(/\b(https?:\/\/[^\s<]*[^\s<.,;:!?)\]'"])/g, '<a href="$1">$1</a>')
+             .replace(/(^|[\s(])([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g, '$1<a href="mailto:$2">$2</a>');
+        return `<div>${h || '<br>'}</div>`;
+    }).join('\r\n');
+}
+// Drafts: mailto when there are no attachments; otherwise an .eml (HTML
+// message + plain-text copy, signature at the bottom, attachments).
+// extraFiles: [{ name, blob }] already built (e.g. the Welcome Letter PDF).
+async function etOpenDraft(to, t, vars, extraFiles) {
     const subject = etFill(t.subject, vars);
     const body = etFill(t.body, vars).replace(/\r?\n/g, '\r\n');
     const atts = t.attachments || [];
-    if (!atts.length) {
+    extraFiles = extraFiles || [];
+    if (!atts.length && !extraFiles.length) {
         try { if (navigator.clipboard) navigator.clipboard.writeText(body).catch(() => {}); } catch (e) {}
         const a = document.createElement('a');
         // Keep '@' literal: some Outlook versions show an encoded %40 as-is.
@@ -16139,17 +16197,45 @@ async function etOpenDraft(to, t, vars) {
         document.body.removeChild(a);
         return;
     }
-    const files = [], missing = [];
+    const files = extraFiles.slice(), missing = [];
     for (const a of atts) {
         try { const f = await etAttachResolve(a); if (f) files.push(f); else missing.push(a.title); }
         catch (err) { console.error(err); missing.push(a.title); }
     }
     if (missing.length && !confirm(`Couldn’t load ${missing.length === 1 ? 'this attachment' : 'these attachments'}:\n• ${missing.join('\n• ')}\n\nCreate the draft without ${missing.length === 1 ? 'it' : 'them'}?`)) return;
-    const boundary = '----=_REVE_' + Date.now().toString(36);
+    const stamp = Date.now().toString(36);
+    const boundary = '----=_REVE_' + stamp, relB = '----=_REVE_rel_' + stamp, altB = '----=_REVE_alt_' + stamp;
+    const b64Text = str => etB64Lines(btoa(unescape(encodeURIComponent(str))));
+    // Signature: pasted images (data: URIs) become inline cid: parts —
+    // Outlook doesn't show data: images.
+    const sigBox = document.createElement('div');
+    sigBox.innerHTML = etSigGet();
+    const inline = [];
+    sigBox.querySelectorAll('img[src^="data:"]').forEach((img, i) => {
+        const m = /^data:([^;,]+);base64,(.*)$/i.exec(img.getAttribute('src'));
+        if (!m) { img.remove(); return; }
+        const cid = `sig${i}.${stamp}@reve`;
+        inline.push({ cid, type: m[1], b64: m[2].replace(/\s+/g, '') });
+        img.setAttribute('src', 'cid:' + cid);
+    });
+    const sigHtml = sigBox.innerHTML.trim();
+    const sigText = sigHtml ? (sigBox.innerText || sigBox.textContent || '').trim() : '';
+    const font = 'font-family:Aptos,Calibri,Arial,Helvetica,sans-serif;font-size:11pt;color:#000000;';
+    const html = `<html><head><meta charset="UTF-8"></head><body><div style="${font}">${etTextToHtml(body.replace(/\s+$/, ''))}</div>`
+        + (sigHtml ? `<div><br></div><div id="Signature">${sigHtml}</div>` : '') + '</body></html>';
+    const text = body.replace(/\s+$/, '') + (sigText ? '\r\n\r\n' + sigText.replace(/\r?\n/g, '\r\n') : '') + '\r\n';
+    let alt = `Content-Type: multipart/alternative; boundary="${altB}"\r\n\r\n`
+        + `--${altB}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n` + b64Text(text)
+        + `--${altB}\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n` + b64Text(html)
+        + `--${altB}--\r\n`;
+    if (inline.length) {
+        alt = `Content-Type: multipart/related; boundary="${relB}"\r\n\r\n--${relB}\r\n` + alt
+            + inline.map(x => `--${relB}\r\nContent-Type: ${x.type}\r\nContent-ID: <${x.cid}>\r\nContent-Disposition: inline\r\nContent-Transfer-Encoding: base64\r\n\r\n` + etB64Lines(x.b64)).join('')
+            + `--${relB}--\r\n`;
+    }
     let eml = (to && to.length ? `To: ${to.join(', ')}\r\n` : '')
         + `Subject: ${etMimeWord(subject)}\r\nX-Unsent: 1\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`
-        + `--${boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n`
-        + etB64Lines(btoa(unescape(encodeURIComponent(body))));
+        + `--${boundary}\r\n` + alt;
     for (const f of files) {
         const fname = etMimeWord(f.name.replace(/"/g, ''));
         eml += `--${boundary}\r\nContent-Type: ${etMimeType(f.name, f.blob)}; name="${fname}"\r\nContent-Disposition: attachment; filename="${fname}"\r\nContent-Transfer-Encoding: base64\r\n\r\n`
@@ -16198,6 +16284,32 @@ async function etOpenDraft(to, t, vars) {
         try { navigator.clipboard.writeText(v.body.replace(/\n/g, '\r\n')); document.getElementById('etStatus').textContent = 'Body copied to the clipboard.'; } catch (e) {}
     });
     document.getElementById('etDraft').addEventListener('click', () => etOpenDraft([], etEditorValues(), { name: '', unit: '' }));
+    const sigEl = document.getElementById('etSig'), sigSt = document.getElementById('etSigStatus');
+    sigEl.innerHTML = etSigGet();
+    // Outlook puts a signature logo on the clipboard as a local file path
+    // plus the image itself; swap the path for the image data.
+    sigEl.addEventListener('paste', async e => {
+        const cd = e.clipboardData; if (!cd) return;
+        const imgs = [...cd.files].filter(f => /^image\//.test(f.type));
+        if (!imgs.length) return;
+        e.preventDefault();
+        const urls = await Promise.all(imgs.map(f => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => res(''); r.readAsDataURL(f); })));
+        const box = document.createElement('div');
+        box.innerHTML = cd.getData('text/html') || '';
+        let i = 0;
+        box.querySelectorAll('img').forEach(img => { if (!/^(https?:|data:image\/)/i.test(img.getAttribute('src') || '') && i < urls.length && urls[i]) img.setAttribute('src', urls[i++]); });
+        let html = box.innerHTML;
+        if (!box.querySelector('img') || !html.trim()) html += urls.filter(Boolean).map(u => `<img src="${u}">`).join('');
+        document.execCommand('insertHTML', false, etSigClean(html).html);
+    });
+    document.getElementById('etSigSave').addEventListener('click', () => {
+        const c = etSigClean(sigEl.innerHTML);
+        etSigSet(c.html);
+        sigEl.innerHTML = c.html;
+        sigSt.textContent = (c.html ? 'Signature saved on this device.' : 'Signature cleared.')
+            + (c.dropped ? ` ${c.dropped} image${c.dropped === 1 ? '' : 's'} couldn\u2019t be copied (stored only on your computer) \u2014 paste the logo as an image, or leave it out.` : '');
+    });
+    document.getElementById('etSigClear').addEventListener('click', () => { sigEl.innerHTML = ''; etSigSet(''); sigSt.textContent = 'Signature cleared.'; });
     document.getElementById('etDelete').addEventListener('click', () => {
         const t = etTemplates().find(x => x.id === etSelected);
         if (!t) return;
@@ -16271,7 +16383,22 @@ async function wlCreateEmailDraft() {
     t.attachments = moveIn.concat((t.attachments || []).filter(a => !moveIn.some(x => x.ref === a.ref)));
     // "Hi {name}," greets every applicant by first name.
     const firsts = everyone.map(n => n.split(/\s+/)[0]);
-    etOpenDraft(emails, t, { name: firsts.length ? wlJoinNames(firsts) : '', unit });
+    // The Welcome Letter itself, generated fresh from the current record.
+    const extra = [];
+    const btns = [...document.querySelectorAll('.wl-email-btn')];
+    btns.forEach(b => { b.disabled = true; b.dataset.label = b.textContent; b.textContent = 'Building draft\u2026'; });
+    try {
+        try {
+            const { pdf, name } = await wlBuildPdf(wlKey);
+            extra.push({ name, blob: pdf.output('blob') });
+        } catch (err) {
+            console.error(err);
+            if (!confirm('Couldn\u2019t generate the Welcome Letter PDF.\n\nCreate the draft without it?')) return;
+        }
+        await etOpenDraft(emails, t, { name: firsts.length ? wlJoinNames(firsts) : '', unit }, extra);
+    } finally {
+        btns.forEach(b => { b.disabled = false; b.textContent = b.dataset.label || 'Create Email Draft'; });
+    }
 }
 [...document.querySelectorAll('.wl-email-btn')].forEach(btn => btn.addEventListener('click', wlCreateEmailDraft));
 
