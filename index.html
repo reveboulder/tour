@@ -2805,6 +2805,12 @@
 
     /* -- Default Charges (Settings) -- */
     .default-charges-table td { padding: 3px 5px; }
+    .oh-table { width: auto; }
+    .oh-table td { padding: 3px 6px; }
+    .oh-table td:first-child { font-weight: 700; }
+    .oh-table input[type=time], .oh-table input[type=date], .oh-table input[type=text] { border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; font: inherit; font-size: 12.5px; background: #fff; color: inherit; }
+    .oh-table tr.oh-closed input[type=time] { opacity: .35; }
+    .oh-table .oh-rm { border: 0; background: none; color: #c0392b; font-size: 16px; cursor: pointer; }
     .default-charges-table tr.dc-section td { background: #f4f2ee; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft); padding: 6px 8px; }
     .default-charges-table input { width: 100%; box-sizing: border-box; border: 1px solid transparent; background: transparent; padding: 4px 5px; font: inherit; font-size: 12.5px; color: inherit; border-radius: 4px; }
     .default-charges-table input:hover { border-color: var(--line); }
@@ -4972,7 +4978,7 @@
             <label class="docs-edit-field">Use for<select id="etSlot"></select></label>
             <label class="docs-edit-field">Subject<input type="text" id="etSubject" autocomplete="off"></label>
             <label class="docs-edit-field">Message<textarea id="etBody" rows="22" spellcheck="true"></textarea></label>
-            <div class="empty-note" style="margin:2px 0 0;">Plain text &mdash; in drafts with attachments, web links and email addresses become clickable and <b style="background:yellow;color:#000;">DO TODAY:</b> / <b style="background:yellow;color:#000;">DUE BEFORE MOVE-IN:</b> / <b style="background:yellow;color:#000;">OTHER SETUP INFORMATION:</b> are bold and highlighted. <b>{name}</b>, <b>{unit}</b> and <b>{date}</b> are filled in with the resident&rsquo;s name, apartment and move-in date when a draft is created.</div>
+            <div class="empty-note" style="margin:2px 0 0;">Plain text &mdash; in drafts with attachments, web links and email addresses become clickable and <b style="background:yellow;color:#000;">DO TODAY:</b> / <b style="background:yellow;color:#000;">DUE BEFORE MOVE-IN:</b> / <b style="background:yellow;color:#000;">OTHER SETUP INFORMATION:</b> are bold and highlighted. <b>{name}</b>, <b>{unit}</b> and <b>{date}</b> are filled in with the resident&rsquo;s name, apartment and move-in date when a draft is created. In the Check In email, <b>{officeHours}</b> becomes the office hours on the move-in day (Settings &rsaquo; Office Hours) and <b>{requirements}</b> the move-in requirements still open.</div>
             <div class="docs-edit-field et-attach">
                 <span>Attachments</span>
                 <div class="et-attach-list" id="etAttachList"></div>
@@ -5158,6 +5164,30 @@
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
                 <button type="button" class="btn" id="defaultChargesAddBtn" style="width:auto;padding:7px 14px;">+ Add Charge</button>
                 <button type="button" class="btn" id="defaultChargesResetBtn" style="width:auto;padding:7px 14px;">Reset to Fee Sheet</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-card" style="margin-top:18px;">
+        <button type="button" class="unit-info-toggle" id="officeHoursToggle">
+            <span><span class="dot"></span>OFFICE HOURS <span class="hint">Click to View</span></span>
+            <span class="fc-chevron">&rsaquo;</span>
+        </button>
+        <div id="officeHoursBody" style="display:none;margin-top:12px;">
+            <p class="empty-note" style="font-size:12.5px;">Shared with all agents. Used by the Residents &rsaquo; Check In email to tell residents when the office is open on their move-in day. Add a special date for holidays or one-off changes &mdash; it overrides the weekly hours for that day.</p>
+            <table class="mmr-table oh-table">
+                <thead><tr><th>Day</th><th>Opens</th><th>Closes</th><th>Closed</th></tr></thead>
+                <tbody id="officeHoursTbody"></tbody>
+            </table>
+            <div class="section-label" style="margin-top:14px;"><span class="dot"></span>Special dates</div>
+            <table class="mmr-table oh-table">
+                <thead><tr><th>Date</th><th>Opens</th><th>Closes</th><th>Closed</th><th>Note</th><th></th></tr></thead>
+                <tbody id="officeHoursSpecialTbody"></tbody>
+            </table>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
+                <button type="button" class="btn" id="officeHoursAddBtn" style="width:auto;flex:none;padding:7px 14px;">+ Add Special Date</button>
+                <button type="button" class="btn" id="officeHoursResetBtn" style="width:auto;flex:none;padding:7px 14px;">Reset to Standard Hours</button>
+                <div class="save-note" data-save-keys="office-hours" aria-live="polite" style="margin:0;"></div>
             </div>
         </div>
     </div>
@@ -14143,6 +14173,97 @@ function renderResidentsBody() {
     list.forEach(({ id }) => wireResidentRow(id));
 }
 
+/* ---------- Office hours (Settings › Office Hours) ----------
+   Weekly hours (index 0 = Sunday) plus special dates that override a day.
+   Shared through the backend as one object; the newer copy wins. */
+const OH_KEY = 'reve-office-hours', OH_BACKEND_KEY = 'office-hours';
+const OH_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+function ohStandard() {
+    const wk = { closed: false, open: '09:00', close: '18:00' };
+    return { ts: 0, days: [{ closed: true, open: '', close: '' }, wk, wk, wk, wk, wk, { closed: false, open: '10:00', close: '17:00' }].map(d => Object.assign({}, d)), special: [] };
+}
+let OFFICE_HOURS = ohStandard();
+try { const v = JSON.parse(localStorage.getItem(OH_KEY) || 'null'); if (v && Array.isArray(v.days) && v.days.length === 7) OFFICE_HOURS = v; } catch (e) {}
+function ohSaveLocal() { try { localStorage.setItem(OH_KEY, JSON.stringify(OFFICE_HOURS)); } catch (e) {} }
+function ohChanged() {
+    OFFICE_HOURS.ts = Date.now();
+    ohSaveLocal();
+    if (BACKEND_URL && APP_MODE !== 'test') backendPush(OH_BACKEND_KEY, OFFICE_HOURS);
+}
+async function ohSync() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    try {
+        const r = await backendPullChecked(OH_BACKEND_KEY);
+        if (r === undefined) return;
+        if (r && Array.isArray(r.days) && (r.ts || 0) > (OFFICE_HOURS.ts || 0)) { OFFICE_HOURS = r; ohSaveLocal(); renderOfficeHours(); }
+        else if ((!r || (r.ts || 0) < (OFFICE_HOURS.ts || 0)) && OFFICE_HOURS.ts) backendPush(OH_BACKEND_KEY, OFFICE_HOURS);
+    } catch (e) { console.error(e); }
+}
+// "18:00" -> "6:00 pm"
+function ohFmt(t) {
+    const m = /^(\d{1,2}):(\d{2})/.exec(t || '');
+    if (!m) return '';
+    const h = +m[1];
+    return `${h % 12 || 12}:${m[2]} ${h < 12 ? 'am' : 'pm'}`;
+}
+// Hours for a date (YYYY-MM-DD): { closed, open, close }.
+function officeHoursFor(iso) {
+    const sp = (OFFICE_HOURS.special || []).find(x => x && x.date === iso);
+    if (sp) return sp;
+    return OFFICE_HOURS.days[new Date(iso + 'T00:00:00').getDay()] || { closed: true };
+}
+function renderOfficeHours() {
+    const tb = document.getElementById('officeHoursTbody');
+    if (!tb) return;
+    const row = (d, lead, tail) => `<tr class="${d.closed ? 'oh-closed' : ''}">${lead}<td><input type="time" data-f="open" value="${escapeAttr(d.open || '')}"></td><td><input type="time" data-f="close" value="${escapeAttr(d.close || '')}"></td><td style="text-align:center;"><input type="checkbox" data-f="closed"${d.closed ? ' checked' : ''}></td>${tail || ''}</tr>`;
+    tb.innerHTML = OFFICE_HOURS.days.map((d, i) => row(d, `<td data-oh-day="${i}">${OH_DAY_NAMES[i]}</td>`)).join('');
+    const sp = (OFFICE_HOURS.special || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    OFFICE_HOURS.special = sp;
+    document.getElementById('officeHoursSpecialTbody').innerHTML = sp.map((d, i) => row(d,
+        `<td data-oh-sp="${i}"><input type="date" data-f="date" value="${escapeAttr(d.date || '')}"></td>`,
+        `<td><input type="text" data-f="note" placeholder="e.g. Thanksgiving" value="${escapeAttr(d.note || '')}"></td><td><button type="button" class="oh-rm" title="Remove" aria-label="Remove">&times;</button></td>`)).join('')
+        || '<tr><td colspan="6" class="empty-note" style="font-weight:400;">None</td></tr>';
+}
+(function ohWire() {
+    const body = document.getElementById('officeHoursBody');
+    document.getElementById('officeHoursToggle').addEventListener('click', () => {
+        const hidden = body.style.display === 'none';
+        body.style.display = hidden ? '' : 'none';
+        document.getElementById('officeHoursToggle').classList.toggle('open', hidden);
+        if (hidden) { renderOfficeHours(); ohSync(); }
+    });
+    const target = el => {
+        const tr = el.closest('tr'); if (!tr) return null;
+        const day = tr.querySelector('[data-oh-day]'), sp = tr.querySelector('[data-oh-sp]');
+        return day ? OFFICE_HOURS.days[+day.dataset.ohDay] : sp ? OFFICE_HOURS.special[+sp.dataset.ohSp] : null;
+    };
+    body.addEventListener('change', e => {
+        const f = e.target.dataset.f, d = target(e.target);
+        if (!f || !d) return;
+        d[f] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        if (f === 'closed' && !d.closed && !d.open) { d.open = '09:00'; d.close = '18:00'; }
+        ohChanged();
+        if (f === 'closed' || f === 'date') renderOfficeHours();
+    });
+    body.addEventListener('click', e => {
+        if (!e.target.closest('.oh-rm')) return;
+        const d = target(e.target);
+        OFFICE_HOURS.special = OFFICE_HOURS.special.filter(x => x !== d);
+        ohChanged(); renderOfficeHours();
+    });
+    document.getElementById('officeHoursAddBtn').addEventListener('click', () => {
+        (OFFICE_HOURS.special = OFFICE_HOURS.special || []).push({ date: resIsoDay(new Date()), closed: true, open: '', close: '', note: '' });
+        ohChanged(); renderOfficeHours();
+    });
+    document.getElementById('officeHoursResetBtn').addEventListener('click', () => {
+        if (!confirm('Reset the weekly hours to M\u2013F 9:00 am \u2013 6:00 pm, Sat 10:00 am \u2013 5:00 pm, Sun closed? Special dates are kept.')) return;
+        const keep = OFFICE_HOURS.special || [];
+        OFFICE_HOURS = Object.assign(ohStandard(), { special: keep });
+        ohChanged(); renderOfficeHours();
+    });
+    setTimeout(ohSync, 0);
+})();
+
 // ---- Check In card: move-ins from today through the next 7 days ----
 function resIsoDay(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 function resCheckInRows() {
@@ -14171,14 +14292,39 @@ function resLongDate(iso) {
     const suf = (n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
     return `${d.toLocaleDateString('en-US', { weekday: 'long' })}, ${d.toLocaleDateString('en-US', { month: 'long' })} ${n}${suf}`;
 }
-// The Sitemaps document for a floor: a title naming that floor number
-// ("1st Floor", "Level 2", "Floor 3 Sitemap"...).
-function resSitemapForFloor(floor) {
+// The Mover's Map for a floor (any Documents section, Sitemaps first):
+// a title with "Mover" and that floor number ("Mover's Map 2nd Floor"...).
+function resMoverMapForFloor(floor) {
     const f = String(floor || '').replace(/^0+/, '');
     if (!f) return null;
     const re = new RegExp(`(^|[^0-9])${f}(st|nd|rd|th)?([^0-9]|$)`, 'i');
-    const docs = docsForSection('sitemaps', false).filter(d => re.test(d.title || d.filename || ''));
-    return docs.find(d => /floor|level/i.test(d.title || d.filename || '')) || docs[0] || null;
+    const secs = ['sitemaps'].concat(DOC_SECTIONS.map(x => x.id).filter(id => id !== 'sitemaps'));
+    for (const sec of secs) {
+        const d = docsForSection(sec, false).find(x => { const t = x.title || x.filename || ''; return /mover/i.test(t) && re.test(t); });
+        if (d) return { sec, d };
+    }
+    return null;
+}
+// Check In email: the office-hours sentence for the move-in day.
+function resCheckInHoursText(iso) {
+    const h = officeHoursFor(iso), day = resLongDate(iso); // "Sunday, October 18th"
+    if (h.closed || !h.open || !h.close)
+        return `Our office will be closed on ${day.split(',')[0]}, but your digital access with the DOOR application can be set up remotely so you can still move in.`;
+    return `Our office will be open from ${ohFmt(h.open)} until ${ohFmt(h.close)} that day to assist as needed. If you are not able to be here before we close, your digital access with the DOOR application can be set up remotely.`;
+}
+// Check In email: the move-in requirements (Residents tab: Lease = ↑
+// uploaded, Ins. checked, M/I Pmt checked).
+function resCheckInRequirementsText(r) {
+    const open = [
+        r.lease !== '\u2191' && 'Fully signed and executed lease documents',
+        !r.insurance && 'Proof of renter\'s insurance on file',
+        !r.miPayment && 'Submitted payment for your move-in balance'
+    ].filter(Boolean);
+    if (!open.length)
+        return 'You have already completed all of your move-in requirements (signed lease, proof of renter\'s insurance, and payment for your move-in balance) \u2014 thank you! Your access will be assigned and set up for your move-in date.';
+    return 'In order for your access to be assigned in a timely manner, the following move-in requirement' + (open.length === 1 ? ' still needs' : 's still need') + ' to be completed:\n\n'
+        + open.map((x, i) => `    ${i + 1})   ${x}`).join('\n')
+        + '\n\nOnce complete, I can have your digital access set to start immediately after.';
 }
 // The DOOR App Access document (any Documents section).
 function resDoorAppDoc() {
@@ -14204,16 +14350,16 @@ async function resCheckInDraft(id, btn) {
     const t = Object.assign({}, ET_BUILTIN.find(b => b.id === 'checkin'), etFor('checkin') || {});
     const atts = [];
     const u = byUnit[unit];
-    const map = resSitemapForFloor(u && u.floor);
-    if (map) atts.push({ ref: `doc:sitemaps|${map.key}`, title: map.title || map.filename });
+    const map = resMoverMapForFloor(u && u.floor);
+    if (map) atts.push({ ref: `doc:${map.sec}|${map.d.key}`, title: map.d.title || map.d.filename });
     const door = resDoorAppDoc();
     if (door) atts.push({ ref: `doc:${door.sec}|${door.d.key}`, title: door.d.title || door.d.filename });
-    const missing = [!map && `the ${u && u.floor ? 'floor ' + u.floor + ' ' : ''}sitemap (Documents \u203a Sitemaps)`, !door && 'the DOOR App Access document'].filter(Boolean);
+    const missing = [!map && `the ${u && u.floor ? 'floor ' + u.floor + ' ' : ''}Mover\u2019s Map (a document titled with \u201cMover\u201d and the floor)`, !door && 'the DOOR App Access document'].filter(Boolean);
     if (missing.length && !confirm(`Couldn\u2019t find ${missing.join(' or ')}.\n\nCreate the draft without ${missing.length === 1 ? 'it' : 'them'}?`)) return;
     t.attachments = atts.concat((t.attachments || []).filter(a => !atts.some(x => x.ref === a.ref)));
     const firsts = everyone.map(n => n.split(/\s+/)[0]);
     if (btn) btn.disabled = true;
-    try { await etOpenDraft(emails, t, { name: firsts.length ? wlJoinNames(firsts) : '', unit, date: resLongDate(r.moveInDate) }); }
+    try { await etOpenDraft(emails, t, { name: firsts.length ? wlJoinNames(firsts) : '', unit, date: resLongDate(r.moveInDate), officeHours: resCheckInHoursText(r.moveInDate), requirements: resCheckInRequirementsText(r) }); }
     finally { if (btn) btn.disabled = false; }
 }
 document.getElementById('resCheckInList').addEventListener('click', e => {
@@ -16074,9 +16220,11 @@ const ET_BUILTIN = [{
         '',
         'With your move-in date scheduled for {date}, I first wanted to check and see if you knew what time you might be stopping by.',
         '',
-        'Our office will be open until 6:00 pm to assist as needed. If you are not able to be here before we close, your digital access with the DOOR application can be set up remotely. You have already signed the lease, so we will just need proof of renter\'s insurance and submitted payment for your move-in balance.',
+        '{officeHours}',
         '',
-        'Once complete, I can have your digital access set to start immediately after. Please see the instructions below on how to set up DOOR on your phone:',
+        '{requirements}',
+        '',
+        'Please see the instructions below on how to set up DOOR on your phone:',
         '',
         '    1)   Download the DOOR app.',
         '',
@@ -16171,6 +16319,8 @@ let etSelected = 'welcome';
 const ET_WL_SUBJECT = 'REVE Boulder Welcome Letter - Apartment {unit}';
 // Bold + yellow highlight wherever these appear in an email draft.
 const ET_HIGHLIGHTS = ['DO TODAY:', 'DUE BEFORE MOVE-IN:', 'OTHER SETUP INFORMATION:'];
+// Italic + underlined wherever these appear in an email draft.
+const ET_ITALIC_UNDERLINE = ['Using DOOR with an iPhone or with NFC settings turned off on Android:'];
 // One-time: saved copies of the welcome template get the new subject
 // (any subject without the {unit} placeholder, or the old default).
 function etMigrateWelcomeSubject() {
@@ -16183,6 +16333,15 @@ function etMigrateWelcomeSubject() {
     return false;
 }
 etMigrateWelcomeSubject();
+// One-time: a saved copy of the Check In template from before the office
+// hours / move-in requirements wording gets the new message.
+(() => {
+    const c = ET_STORE.checkin, b = ET_BUILTIN.find(x => x.id === 'checkin');
+    if (c && !c.deleted && b && typeof c.body === 'string' && !c.body.includes('{officeHours}')) {
+        c.body = b.body; c.ts = Date.now();
+        try { localStorage.setItem(ET_KEY, JSON.stringify(ET_STORE)); } catch (e) {}
+    }
+})();
 // One-time update of the Bilt line in a saved (edited) copy of the built-in template.
 (() => {
     const w = ET_STORE.welcome, oldLine = 'Pay online: Create your Bilt payment account: https://www.biltrewards.com/paywithbilt/account/enter-email';
@@ -16199,7 +16358,7 @@ function etTemplates() {
 }
 function etFor(slot) { return etTemplates().find(t => t.slot === slot) || null; }
 function etFill(text, vars) {
-    return String(text || '').replace(/\{(name|unit|date)\}/g, (m, k) => vars[k] || '').replace(/^(Hi|Hello|Dear) +([,!])/m, '$1$2');
+    return String(text || '').replace(/\{(name|unit|date|officeHours|requirements)\}/g, (m, k) => vars[k] || '').replace(/^(Hi|Hello|Dear) +([,!])/m, '$1$2');
 }
 function etSaveLocal() { try { localStorage.setItem(ET_KEY, JSON.stringify(ET_STORE)); } catch (e) {} }
 async function etSync() {
@@ -16353,6 +16512,7 @@ function etTextToHtml(text) {
         h = h.replace(/\b(https?:\/\/[^\s<]*[^\s<.,;:!?)\]'"])/g, '<a href="$1">$1</a>')
              .replace(/(^|[\s(])([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g, '$1<a href="mailto:$2">$2</a>');
         ET_HIGHLIGHTS.forEach(k => { h = h.split(esc(k)).join(`<b><span style="background:yellow;mso-highlight:yellow;">${esc(k)}</span></b>`); });
+        ET_ITALIC_UNDERLINE.forEach(k => { h = h.split(esc(k)).join(`<i><u>${esc(k)}</u></i>`); });
         return `<div>${h || '<br>'}</div>`;
     }).join('\r\n');
 }
