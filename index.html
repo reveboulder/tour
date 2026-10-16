@@ -2655,6 +2655,17 @@
     .res-cal-pill-demo { display: inline-block; width: 10px; height: 8px; border-radius: 2px; background: #fbeee8; border: 1px solid var(--reve-orange); }
     .res-cal-pill-demo.done { background: var(--line-soft); border-color: var(--line); margin-left: 6px; }
     .res-top { display: flex; flex-direction: column; }
+    .res-checkin-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 0 0 12px; display: flex; flex-direction: column; min-height: 0; }
+    .res-checkin-h { font-family: 'Oswald', var(--sans); font-size: 16px; font-weight: 600; color: var(--reve-orange-dark); text-transform: uppercase; letter-spacing: 0.04em; }
+    .res-checkin-sub { font-size: 11px; color: var(--ink-soft); margin: 2px 0 8px; line-height: 1.3; }
+    .res-checkin-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; max-height: 340px; }
+    .res-checkin-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--line-soft); color: var(--ink); font: inherit; font-size: 12.5px; cursor: pointer; }
+    .res-checkin-item:hover { border-color: var(--reve-orange); background: #fff7f0; }
+    .res-checkin-item:disabled { opacity: .6; cursor: progress; }
+    .res-checkin-unit { font-weight: 800; font-size: 14px; color: var(--reve-orange-dark); }
+    .res-checkin-who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .res-checkin-who small { display: block; color: var(--ink-soft); font-size: 11px; }
+    .res-checkin-item.today .res-checkin-who small { color: var(--reve-orange-dark); font-weight: 700; }
     @media (min-width: 901px) {
         .res-top { flex-direction: row; align-items: flex-start; gap: 18px; margin-bottom: 4px; }
         .res-top-main { order: 1; flex: 1 1 auto; min-width: 0; }
@@ -2662,7 +2673,8 @@
         .res-top .res-search-row { margin-bottom: 0; }
         /* Calendar stretches to the bottom of the search bar; its weeks
            grow to fill the extra height. */
-        .res-top > .res-cal-wrap { order: 2; flex: 0 1 460px; min-width: 340px; margin: 0; display: flex; flex-direction: column; }
+        .res-top > .res-checkin-card { order: 2; flex: 0 0 210px; margin: 0; }
+        .res-top > .res-cal-wrap { order: 3; flex: 0 1 460px; min-width: 340px; margin: 0; display: flex; flex-direction: column; }
         .res-top > .res-cal-wrap .res-cal-grid { flex: 1 1 auto; }
         .res-top .res-trackers { margin-bottom: 12px; }
     }
@@ -3817,6 +3829,12 @@
         <div class="res-cal-legend"><span class="res-cal-pill-demo"></span>Upcoming <span class="res-cal-pill-demo done"></span>Moved in &nbsp;&middot;&nbsp; Click a unit to jump to its row</div>
     </div>
 
+    <div class="res-checkin-card" id="resCheckIn">
+        <div class="res-checkin-h">Check In</div>
+        <div class="res-checkin-sub">Move-ins in the next 7 days &mdash; click one for its DOOR email draft</div>
+        <div class="res-checkin-list" id="resCheckInList"></div>
+    </div>
+
     <div class="res-top-main">
     <div class="res-trackers">
         <div class="res-tracker-card">
@@ -4954,7 +4972,7 @@
             <label class="docs-edit-field">Use for<select id="etSlot"></select></label>
             <label class="docs-edit-field">Subject<input type="text" id="etSubject" autocomplete="off"></label>
             <label class="docs-edit-field">Message<textarea id="etBody" rows="22" spellcheck="true"></textarea></label>
-            <div class="empty-note" style="margin:2px 0 0;">Plain text &mdash; in drafts with attachments, web links and email addresses become clickable and <b style="background:yellow;color:#000;">DO TODAY:</b> / <b style="background:yellow;color:#000;">DUE BEFORE MOVE-IN:</b> / <b style="background:yellow;color:#000;">OTHER SETUP INFORMATION:</b> are bold and highlighted. <b>{name}</b> and <b>{unit}</b> are filled in with the resident&rsquo;s name and apartment when a draft is created.</div>
+            <div class="empty-note" style="margin:2px 0 0;">Plain text &mdash; in drafts with attachments, web links and email addresses become clickable and <b style="background:yellow;color:#000;">DO TODAY:</b> / <b style="background:yellow;color:#000;">DUE BEFORE MOVE-IN:</b> / <b style="background:yellow;color:#000;">OTHER SETUP INFORMATION:</b> are bold and highlighted. <b>{name}</b>, <b>{unit}</b> and <b>{date}</b> are filled in with the resident&rsquo;s name, apartment and move-in date when a draft is created.</div>
             <div class="docs-edit-field et-attach">
                 <span>Attachments</span>
                 <div class="et-attach-list" id="etAttachList"></div>
@@ -13947,6 +13965,7 @@ function refreshResidentRow(id) {
     tr.replaceWith(temp.firstElementChild);
     wireResidentRow(id);
     renderResidentCalendar();
+    renderResCheckIn();
 }
 // Re-sorts after a Move-In Date change, keeping focus on whatever field
 // was just tabbed/clicked into, and briefly highlighting the moved row.
@@ -14064,6 +14083,7 @@ function renderResidentsBody() {
     if (!tbody) return;
     const ids = Object.keys(RESIDENT_ROWS).filter(id => !RESIDENT_ROWS[id].deleted);
     renderResidentCalendar();
+    renderResCheckIn();
 
     let list = ids.map(id => {
         const row = RESIDENT_ROWS[id];
@@ -14122,6 +14142,86 @@ function renderResidentsBody() {
     tbody.innerHTML = list.map(({ id, row, derived }) => renderResidentRow(id, row, derived)).join('');
     list.forEach(({ id }) => wireResidentRow(id));
 }
+
+// ---- Check In card: move-ins from today through the next 7 days ----
+function resIsoDay(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function resCheckInRows() {
+    const t = new Date(), from = resIsoDay(t), to = resIsoDay(new Date(t.getFullYear(), t.getMonth(), t.getDate() + 7));
+    return Object.keys(RESIDENT_ROWS).map(id => ({ id, r: RESIDENT_ROWS[id] }))
+        .filter(({ r }) => !r.deleted && !r.movedIn && r.moveInDate && r.moveInDate >= from && r.moveInDate <= to)
+        .sort((a, b) => a.r.moveInDate.localeCompare(b.r.moveInDate) || String(a.r.unit || '').localeCompare(String(b.r.unit || '')));
+}
+let resCheckInDay = '';
+function renderResCheckIn() {
+    const box = document.getElementById('resCheckInList');
+    if (!box) return;
+    resCheckInDay = resIsoDay(new Date());
+    const rows = resCheckInRows();
+    box.innerHTML = rows.map(({ id, r }) => {
+        const d = new Date(r.moveInDate + 'T00:00:00');
+        const when = r.moveInDate === resCheckInDay ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' });
+        const who = `${r.first || ''} ${r.last || ''}`.trim() || '\u2014';
+        return `<button type="button" class="res-checkin-item${r.moveInDate === resCheckInDay ? ' today' : ''}" data-checkin-id="${escapeAttr(id)}" title="Create the Check In email draft for ${escapeAttr(who)}">
+            <span class="res-checkin-unit">${escapeHtml(r.unit || '?')}</span><span class="res-checkin-who">${escapeHtml(who)}<small>${escapeHtml(when)}</small></span><span aria-hidden="true">\u2709</span></button>`;
+    }).join('') || '<div class="empty-note" style="margin:0;">No move-ins in the next 7 days.</div>';
+}
+// "Tuesday, October 21st"
+function resLongDate(iso) {
+    const d = new Date(iso + 'T00:00:00'), n = d.getDate();
+    const suf = (n % 100 >= 11 && n % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
+    return `${d.toLocaleDateString('en-US', { weekday: 'long' })}, ${d.toLocaleDateString('en-US', { month: 'long' })} ${n}${suf}`;
+}
+// The Sitemaps document for a floor: a title naming that floor number
+// ("1st Floor", "Level 2", "Floor 3 Sitemap"...).
+function resSitemapForFloor(floor) {
+    const f = String(floor || '').replace(/^0+/, '');
+    if (!f) return null;
+    const re = new RegExp(`(^|[^0-9])${f}(st|nd|rd|th)?([^0-9]|$)`, 'i');
+    const docs = docsForSection('sitemaps', false).filter(d => re.test(d.title || d.filename || ''));
+    return docs.find(d => /floor|level/i.test(d.title || d.filename || '')) || docs[0] || null;
+}
+// The DOOR App Access document (any Documents section).
+function resDoorAppDoc() {
+    const all = DOC_SECTIONS.flatMap(sec => docsForSection(sec.id, false).map(d => ({ sec: sec.id, d })));
+    const t = x => x.d.title || x.d.filename || '';
+    return all.find(x => /door/i.test(t(x)) && /app/i.test(t(x))) || all.find(x => /door/i.test(t(x)) && /access/i.test(t(x))) || null;
+}
+async function resCheckInDraft(id, btn) {
+    const r = RESIDENT_ROWS[id];
+    if (!r) return;
+    const unit = String(r.unit || '').trim();
+    const rec = WL_RECORDS[id] || WL_RECORDS[unit] || {};
+    const everyone = wlAllNames(rec, r);
+    const emails = await wlAskEmails(everyone.length ? wlJoinNames(everyone) : 'Apt ' + unit,
+        String(rec.residentEmail || '').split(/[,;\s]+/).filter(Boolean), 'Who should this Check In email go to?');
+    if (!emails) return;
+    // Remember the addresses on the resident's Welcome Letter record too.
+    if (WL_RECORDS[id] || !WL_RECORDS[unit]) {
+        const w = wlRecordForKey(WL_RECORDS, id, wlDefaultRecord);
+        w.residentEmail = emails.join(', ');
+        wlPersistLocal(); wlPushDebounced();
+    }
+    const t = Object.assign({}, ET_BUILTIN.find(b => b.id === 'checkin'), etFor('checkin') || {});
+    const atts = [];
+    const u = byUnit[unit];
+    const map = resSitemapForFloor(u && u.floor);
+    if (map) atts.push({ ref: `doc:sitemaps|${map.key}`, title: map.title || map.filename });
+    const door = resDoorAppDoc();
+    if (door) atts.push({ ref: `doc:${door.sec}|${door.d.key}`, title: door.d.title || door.d.filename });
+    const missing = [!map && `the ${u && u.floor ? 'floor ' + u.floor + ' ' : ''}sitemap (Documents \u203a Sitemaps)`, !door && 'the DOOR App Access document'].filter(Boolean);
+    if (missing.length && !confirm(`Couldn\u2019t find ${missing.join(' or ')}.\n\nCreate the draft without ${missing.length === 1 ? 'it' : 'them'}?`)) return;
+    t.attachments = atts.concat((t.attachments || []).filter(a => !atts.some(x => x.ref === a.ref)));
+    const firsts = everyone.map(n => n.split(/\s+/)[0]);
+    if (btn) btn.disabled = true;
+    try { await etOpenDraft(emails, t, { name: firsts.length ? wlJoinNames(firsts) : '', unit, date: resLongDate(r.moveInDate) }); }
+    finally { if (btn) btn.disabled = false; }
+}
+document.getElementById('resCheckInList').addEventListener('click', e => {
+    const b = e.target.closest('[data-checkin-id]');
+    if (b) resCheckInDraft(b.dataset.checkinId, b);
+});
+// Rolls over to the new day's list without a reload.
+setInterval(() => { if (resIsoDay(new Date()) !== resCheckInDay) renderResCheckIn(); }, 5 * 60 * 1000);
 
 // ---- Move-in calendar (top of the Residents tab) ----
 let resCalMonth = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
@@ -15964,8 +16064,40 @@ async function wlDownloadSticker(btn) {
    button opens a new draft with the template's subject and body, with
    {name} and {unit} filled in. Built-in templates can be edited (and
    reset); custom ones can be added and deleted. */
-const ET_SLOTS = [{ id: 'wl', label: 'WL tab › Create Email Draft' }];
+const ET_SLOTS = [{ id: 'wl', label: 'WL tab › Create Email Draft' }, { id: 'checkin', label: 'Residents › Check In' }];
 const ET_BUILTIN = [{
+    id: 'checkin', builtIn: true, slot: 'checkin',
+    name: 'Check In / How to use DOOR',
+    subject: 'Upcoming Move-in / How-to use DOOR App',
+    body: [
+        'Good Morning,',
+        '',
+        'With your move-in date scheduled for {date}, I first wanted to check and see if you knew what time you might be stopping by.',
+        '',
+        'Our office will be open until 6:00 pm to assist as needed. If you are not able to be here before we close, your digital access with the DOOR application can be set up remotely. You have already signed the lease, so we will just need proof of renter\'s insurance and submitted payment for your move-in balance.',
+        '',
+        'Once complete, I can have your digital access set to start immediately after. Please see the instructions below on how to set up DOOR on your phone:',
+        '',
+        '    1)   Download the DOOR app.',
+        '',
+        '    2)   Open the app and select "forgot password", which will send you an email link to reset your password associated with your email address.',
+        '',
+        '    3)   Log into DOOR with your email and new password.',
+        '',
+        '    4)   Allow Bluetooth - this is necessary for use to unlock doors. You do not need to allow notifications.',
+        '',
+        'You\'re all set! Access will be assigned for all Common Doors and Apartment {unit}.',
+        '',
+        'Using DOOR with an iPhone or with NFC settings turned off on Android:',
+        '',
+        '    1)   With the DOOR app open on the homepage, hold your phone flat against the black Latch devices and it will initiate pairing mode. You do not have to hold your phone to the device, just a tap and it should say "Adding to Device" which takes about 10-15 seconds to pair.',
+        '',
+        '    2)   Once your phone says "Unlocking", it is now paired to the device and will unlock within seconds every time going forward. You can pickup your mail key and move-in folder from the front office.',
+        '',
+        'Let me know if you have any questions about moving in, using the DOOR app, or otherwise.',
+        ''
+    ].join('\n')
+}, {
     id: 'welcome', builtIn: true, slot: 'wl',
     name: 'Welcome / Move-in Checklist',
     subject: 'REVE Boulder Welcome Letter - Apartment {unit}',
@@ -16067,7 +16199,7 @@ function etTemplates() {
 }
 function etFor(slot) { return etTemplates().find(t => t.slot === slot) || null; }
 function etFill(text, vars) {
-    return String(text || '').replace(/\{(name|unit)\}/g, (m, k) => vars[k] || '').replace(/^(Hi|Hello|Dear) +([,!])/m, '$1$2');
+    return String(text || '').replace(/\{(name|unit|date)\}/g, (m, k) => vars[k] || '').replace(/^(Hi|Hello|Dear) +([,!])/m, '$1$2');
 }
 function etSaveLocal() { try { localStorage.setItem(ET_KEY, JSON.stringify(ET_STORE)); } catch (e) {} }
 async function etSync() {
@@ -16294,7 +16426,7 @@ async function etOpenDraft(to, t, vars, extraFiles) {
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
-    alert(`Your email draft was downloaded (${a.download}) with ${files.length} attachment${files.length === 1 ? '' : 's'}.\n\nOpen the downloaded file — it opens in Outlook as a new message, ready to review and send.`);
+    alert(`Your email draft was downloaded (${a.download}) with ${files.length} attachment${files.length === 1 ? '' : 's'}${files.length && files.length <= 4 ? ':\n\u2022 ' + files.map(f => f.name).join('\n\u2022 ') : '.'}\n\nOpen the downloaded file — it opens in Outlook as a new message, ready to review and send.`);
 }
 (function etWire() {
     document.getElementById('etList').addEventListener('click', e => {
@@ -16368,14 +16500,14 @@ async function etOpenDraft(to, t, vars, extraFiles) {
 
 // In-app dialog for the recipients: one box per address, "+ Add another
 // email address", then "Submit Draft". Resolves to the list, or null.
-function wlAskEmails(who, initial) {
+function wlAskEmails(who, initial, question) {
     return new Promise(resolve => {
         const m = document.createElement('div');
         m.className = 'vault-modal wl-email-modal';
         m.style.display = 'flex';
         m.innerHTML = `<div class="vault-modal-card" role="dialog" aria-modal="true" aria-label="Email addresses">
             <div class="vault-modal-h">Email draft for ${escapeHtml(who)}</div>
-            <div class="empty-note" style="margin:0;">Who should this welcome email go to?</div>
+            <div class="empty-note" style="margin:0;">${escapeHtml(question || 'Who should this welcome email go to?')}</div>
             <div class="wl-email-list"></div>
             <button type="button" class="wl-email-add">+ Add another email address</button>
             <div class="empty-note wl-email-err" style="display:none;color:#c0392b;margin:0;"></div>
