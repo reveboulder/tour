@@ -4953,7 +4953,7 @@
             <label class="docs-edit-field">Use for<select id="etSlot"></select></label>
             <label class="docs-edit-field">Subject<input type="text" id="etSubject" autocomplete="off"></label>
             <label class="docs-edit-field">Message<textarea id="etBody" rows="22" spellcheck="true"></textarea></label>
-            <div class="empty-note" style="margin:2px 0 0;">Plain text &mdash; web links and email addresses become clickable in drafts with attachments. <b>{name}</b> and <b>{unit}</b> are filled in with the resident&rsquo;s name and apartment when a draft is created.</div>
+            <div class="empty-note" style="margin:2px 0 0;">Plain text &mdash; in drafts with attachments, web links and email addresses become clickable and <b style="background:yellow;color:#000;">DO TODAY:</b> / <b style="background:yellow;color:#000;">DUE BEFORE MOVE-IN:</b> / <b style="background:yellow;color:#000;">OTHER SETUP INFORMATION:</b> are bold and highlighted. <b>{name}</b> and <b>{unit}</b> are filled in with the resident&rsquo;s name and apartment when a draft is created.</div>
             <div class="docs-edit-field et-attach">
                 <span>Attachments</span>
                 <div class="et-attach-list" id="etAttachList"></div>
@@ -15940,7 +15940,7 @@ const ET_SLOTS = [{ id: 'wl', label: 'WL tab › Create Email Draft' }];
 const ET_BUILTIN = [{
     id: 'welcome', builtIn: true, slot: 'wl',
     name: 'Welcome / Move-in Checklist',
-    subject: 'Welcome to REVE Boulder \u2014 Apt {unit}',
+    subject: 'REVE Boulder Welcome Letter - Apartment {unit}',
     body: [
         'Hi {name},',
         '',
@@ -16008,6 +16008,21 @@ const ET_BACKEND_KEY = 'email-templates';
 let ET_STORE = {};
 try { ET_STORE = JSON.parse(localStorage.getItem(ET_KEY) || '{}') || {}; } catch (e) { ET_STORE = {}; }
 let etSelected = 'welcome';
+const ET_WL_SUBJECT = 'REVE Boulder Welcome Letter - Apartment {unit}';
+// Bold + yellow highlight wherever these appear in an email draft.
+const ET_HIGHLIGHTS = ['DO TODAY:', 'DUE BEFORE MOVE-IN:', 'OTHER SETUP INFORMATION:'];
+// One-time: saved copies of the welcome template get the new subject
+// (any subject without the {unit} placeholder, or the old default).
+function etMigrateWelcomeSubject() {
+    const w = ET_STORE.welcome;
+    if (w && !w.deleted && typeof w.subject === 'string' && (w.subject === 'Welcome to REVE Boulder \u2014 Apt {unit}' || !w.subject.includes('{unit}'))) {
+        w.subject = ET_WL_SUBJECT; w.ts = Date.now();
+        try { localStorage.setItem(ET_KEY, JSON.stringify(ET_STORE)); } catch (e) {}
+        return true;
+    }
+    return false;
+}
+etMigrateWelcomeSubject();
 // One-time update of the Bilt line in a saved (edited) copy of the built-in template.
 (() => {
     const w = ET_STORE.welcome, oldLine = 'Pay online: Create your Bilt payment account: https://www.biltrewards.com/paywithbilt/account/enter-email';
@@ -16040,6 +16055,7 @@ async function etSync() {
             if (r && (!l || r.ts > l.ts)) { ET_STORE[id] = r; changed = true; }
             else if (l && (!r || l.ts > r.ts)) push = true;
         });
+        if (changed && etMigrateWelcomeSubject()) push = true;
         if (changed) { etSaveLocal(); if (docsCurrentSection === 'email-templates') renderEmailTemplates(); }
         if (push) {
             const ok = await backendPush(ET_BACKEND_KEY, { v: 1, items: ET_STORE });
@@ -16176,6 +16192,7 @@ function etTextToHtml(text) {
         let h = esc(line).replace(/^ +/, m => '&nbsp;'.repeat(m.length));
         h = h.replace(/\b(https?:\/\/[^\s<]*[^\s<.,;:!?)\]'"])/g, '<a href="$1">$1</a>')
              .replace(/(^|[\s(])([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/g, '$1<a href="mailto:$2">$2</a>');
+        ET_HIGHLIGHTS.forEach(k => { h = h.split(esc(k)).join(`<b><span style="background:yellow;mso-highlight:yellow;">${esc(k)}</span></b>`); });
         return `<div>${h || '<br>'}</div>`;
     }).join('\r\n');
 }
@@ -16378,7 +16395,9 @@ async function wlCreateEmailDraft() {
     wlCommit('residentEmail', emails.join(', '));
     // The template linked to this button in Documents › Email Templates,
     // plus every document in Documents › Move-in Docs.
-    const t = Object.assign({ subject: 'Welcome to REVE Boulder \u2014 Apt {unit}', body: '', attachments: [] }, etFor('wl') || {});
+    const t = Object.assign({ subject: ET_WL_SUBJECT, body: '', attachments: [] }, etFor('wl') || {});
+    // The subject always ends with the apartment number.
+    if (!/\{unit\}/.test(t.subject || '')) t.subject = ET_WL_SUBJECT;
     const moveIn = docsForSection('move-in', false).map(d => ({ ref: `doc:move-in|${d.key}`, title: d.title || d.filename }));
     t.attachments = moveIn.concat((t.attachments || []).filter(a => !moveIn.some(x => x.ref === a.ref)));
     // "Hi {name}," greets every applicant by first name.
