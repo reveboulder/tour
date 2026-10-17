@@ -2805,6 +2805,22 @@
 
     /* -- Default Charges (Settings) -- */
     .default-charges-table td { padding: 3px 5px; }
+    .prop-pick { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .prop-pick label { font-size: 12px; font-weight: 700; display: flex; gap: 6px; align-items: center; }
+    .prop-pick select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 13px; background: #fff; color: inherit; }
+    .prop-sec { margin-bottom: 14px; }
+    .prop-sec h4 { margin: 0 0 6px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--reve-orange-dark); }
+    .prop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 12px; }
+    .prop-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; font-weight: 700; color: var(--ink-soft); }
+    .prop-grid label.wide { grid-column: 1 / -1; }
+    .prop-grid input, .prop-grid textarea { border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; font: inherit; font-size: 12.5px; font-weight: 400; color: var(--ink); background: #fff; }
+    .prop-grid input[type=color] { padding: 2px; height: 32px; width: 64px; }
+    .prop-colors { display: flex; gap: 14px; flex-wrap: wrap; }
+    .prop-colors label { flex-direction: row; align-items: center; gap: 8px; }
+    .prop-logo { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .prop-logo img { height: 54px; max-width: 200px; object-fit: contain; border: 1px solid var(--line); border-radius: 6px; padding: 4px; background: #fff; }
+    .prop-req td { padding: 5px 8px; font-size: 12px; }
+    .prop-ok { color: var(--good); font-weight: 700; } .prop-miss { color: #c0392b; font-weight: 700; }
     .oh-table { width: auto; }
     .oh-table td { padding: 3px 6px; }
     .oh-table td:first-child { font-weight: 700; }
@@ -3726,7 +3742,7 @@
         <div class="tn-top-main">
         <div class="tn-toolbar">
         <input type="text" id="turnSearch" class="res-search-inline" placeholder="Search unit, floorplan, vendor or comment&hellip;" autocomplete="off">
-        <label class="tn-inline"><input type="checkbox" id="turnHideDone"> Hide completed</label>
+        <label class="tn-inline"><input type="checkbox" id="turnShowDone"> Show completed</label>
         <span class="tn-count" id="turnCount"></span>
         <span class="empty-note" id="turnSyncStatus" style="margin:0;font-weight:600;"></span>
         <button type="button" class="btn primary" id="turnAddBtn" style="width:auto;flex:none;padding:8px 16px;margin-left:auto;">+ Add Unit</button>
@@ -5189,6 +5205,23 @@
                 <button type="button" class="btn" id="officeHoursResetBtn" style="width:auto;flex:none;padding:7px 14px;">Reset to Standard Hours</button>
                 <div class="save-note" data-save-keys="office-hours" aria-live="polite" style="margin:0;"></div>
             </div>
+        </div>
+    </div>
+
+    <div class="settings-card" style="margin-top:18px;">
+        <button type="button" class="unit-info-toggle" id="propToggle">
+            <span><span class="dot"></span>SELECT PROPERTY <span class="hint">Click to View</span></span>
+            <span class="fc-chevron">&rsaquo;</span>
+        </button>
+        <div id="propBody" style="display:none;margin-top:12px;">
+            <p class="empty-note" style="font-size:12.5px;">Everything specific to one property, kept in one place: branding, size, resident services and the documents each property must provide. Shared with all agents. <b>For now this is stored for reference only</b> &mdash; the app still uses REVE Boulder&rsquo;s built-in setup.</p>
+            <div class="prop-pick">
+                <label>Property <select id="propSelect"></select></label>
+                <button type="button" class="btn small" id="propAddBtn" style="width:auto;flex:none;">+ Add Property</button>
+                <button type="button" class="btn small" id="propRemoveBtn" style="width:auto;flex:none;">Remove</button>
+                <div class="save-note" data-save-keys="property-profiles" aria-live="polite" style="margin:0;"></div>
+            </div>
+            <div id="propForm"></div>
         </div>
     </div>
 </div>
@@ -14264,6 +14297,147 @@ function renderOfficeHours() {
     setTimeout(ohSync, 0);
 })();
 
+/* ---------- Select Property (Settings) ----------
+   Every property-specific detail in one profile per property. Stored and
+   shared only — nothing in the app reads it yet (REVE Boulder's setup is
+   still built in). Logo '' = the built-in REVE logo. */
+const PROP_KEY = 'reve-property-profiles', PROP_BACKEND_KEY = 'property-profiles';
+function propReveDefault() {
+    const set = k => [...new Set(UNITS.map(u => u[k]).filter(Boolean))];
+    return {
+        id: 'reve-boulder', name: 'REVE Boulder', company: 'NorthCoast Living',
+        addresses: set('address').join('\n'), city: 'Boulder', state: 'CO', zip: '', phone: '', email: '', website: '',
+        logo: '', colorPrimary: '#de5426', colorAccent: '#b8431c', colorDark: '#2f2d2f',
+        totalUnits: UNITS.length, buildings: set('bldg').length, floors: set('floor').length, floorplans: set('floorplan').length,
+        rentPortal: 'https://www.biltrewards.com/paywithbilt/account/enter-email', accessSystem: 'DOOR (Latch)',
+        internet: 'Quantum Fiber', transit: 'RTD MyRide EcoPass', packages: 'R\u00eave North Garage package room (24/7 resident access)', notes: ''
+    };
+}
+let PROPERTIES = { ts: 0, selected: 'reve-boulder', list: { 'reve-boulder': propReveDefault() } };
+try { const v = JSON.parse(localStorage.getItem(PROP_KEY) || 'null'); if (v && v.list && Object.keys(v.list).length) PROPERTIES = v; } catch (e) {}
+function propSaveLocal() { try { localStorage.setItem(PROP_KEY, JSON.stringify(PROPERTIES)); } catch (e) {} }
+function propChanged() {
+    PROPERTIES.ts = Date.now(); propSaveLocal();
+    if (BACKEND_URL && APP_MODE !== 'test') backendPush(PROP_BACKEND_KEY, PROPERTIES);
+}
+async function propSync() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    try {
+        const r = await backendPullChecked(PROP_BACKEND_KEY);
+        if (r === undefined) return;
+        if (r && r.list && (r.ts || 0) > (PROPERTIES.ts || 0)) { PROPERTIES = r; propSaveLocal(); renderPropertyCard(); }
+        else if ((!r || (r.ts || 0) < (PROPERTIES.ts || 0)) && PROPERTIES.ts) backendPush(PROP_BACKEND_KEY, PROPERTIES);
+    } catch (e) { console.error(e); }
+}
+function propCurrent() { return PROPERTIES.list[PROPERTIES.selected] || Object.values(PROPERTIES.list)[0]; }
+// The documents/setup each property must provide, with what's in the app now
+// (checked for the built-in property only — other properties' files aren't separate yet).
+function propRequirements(p) {
+    const live = p.id === 'reve-boulder';
+    const n = sec => docsForSection(sec, false).length;
+    const floors = Math.max(1, parseInt(p.floors, 10) || 1);
+    const maps = live ? Array.from({ length: floors }, (_, i) => resMoverMapForFloor(String(i + 1))).filter(Boolean).length : 0;
+    const charges = Object.values(DEFAULT_CHARGES).filter(r => r && !r.deleted).length;
+    const tpl = id => etTemplates().some(t => t.id === id);
+    const fp = typeof fpAllFiles === 'function' ? fpAllFiles().length : 0;
+    return [
+        ['Unit list (unit #, sq ft, floorplan, building, floor)', 'Built into the app', live ? [true, `${UNITS.length} units`] : [false, 'Needed']],
+        ['Floorplans (2D / 3D)', 'Documents \u203a Floorplans', live ? [fp > 0, fp ? `${fp} files` : 'Loads from the backend'] : [false, 'Needed']],
+        ['Move-in documents packet', 'Documents \u203a Move-in Docs', live ? [n('move-in') > 0, `${n('move-in')} documents`] : [false, 'Needed']],
+        [`Mover\u2019s Map for each floor (${floors})`, 'Documents \u203a Sitemaps', live ? [maps === floors, `${maps} of ${floors}`] : [false, 'Needed']],
+        ['Property sitemaps', 'Documents \u203a Sitemaps', live ? [n('sitemaps') > 0, `${n('sitemaps')} documents`] : [false, 'Needed']],
+        ['Building access app instructions', 'Any Documents section', live ? [!!resDoorAppDoc(), resDoorAppDoc() ? 'Found' : 'Missing'] : [false, 'Needed']],
+        ['Fee sheet (standard charges)', 'Settings \u203a Default Charges', live ? [charges > 0, `${charges} charges`] : [false, 'Needed']],
+        ['Office hours', 'Settings \u203a Office Hours', live ? [true, 'Set'] : [false, 'Needed']],
+        ['Welcome & Check In email templates', 'Documents \u203a Email Templates', live ? [tpl('welcome') && tpl('checkin'), tpl('welcome') && tpl('checkin') ? 'Set' : 'Missing'] : [false, 'Needed']],
+        ['Lease agreement & addenda', 'Lease tab', live ? [true, 'Built into the Lease tab'] : [false, 'Needed']]
+    ];
+}
+function renderPropertyCard() {
+    const sel = document.getElementById('propSelect');
+    if (!sel) return;
+    if (!PROPERTIES.list[PROPERTIES.selected]) PROPERTIES.selected = Object.keys(PROPERTIES.list)[0];
+    sel.innerHTML = Object.values(PROPERTIES.list).map(p => `<option value="${escapeAttr(p.id)}"${p.id === PROPERTIES.selected ? ' selected' : ''}>${escapeHtml(p.name || 'Untitled property')}</option>`).join('');
+    const p = propCurrent();
+    document.getElementById('propRemoveBtn').style.display = p.id === 'reve-boulder' ? 'none' : '';
+    const f = (k, label, type, extra) => `<label class="${extra || ''}">${label}${type === 'textarea'
+        ? `<textarea data-pf="${k}" rows="3">${escapeHtml(p[k] || '')}</textarea>`
+        : `<input type="${type || 'text'}" data-pf="${k}" value="${escapeAttr(p[k] == null ? '' : String(p[k]))}">`}</label>`;
+    const logo = p.logo || (typeof WATERMARK_IMG_SRC !== 'undefined' ? WATERMARK_IMG_SRC : '');
+    document.getElementById('propForm').innerHTML = `
+        <div class="prop-sec"><h4>Property</h4><div class="prop-grid">
+            ${f('name', 'Property name')}${f('company', 'Management company')}
+            ${f('addresses', 'Street address(es) &mdash; one per line', 'textarea', 'wide')}
+            ${f('city', 'City')}${f('state', 'State')}${f('zip', 'ZIP')}
+            ${f('phone', 'Office phone', 'tel')}${f('email', 'Office email', 'email')}${f('website', 'Website', 'url')}
+        </div></div>
+        <div class="prop-sec"><h4>Branding</h4>
+            <div class="prop-logo">${logo ? `<img src="${escapeAttr(logo)}" alt="Logo">` : '<span class="empty-note">No logo</span>'}
+                <label class="btn small" style="width:auto;flex:none;cursor:pointer;">Upload logo<input type="file" id="propLogoInput" accept="image/*" style="display:none;"></label>
+                ${p.logo ? '<button type="button" class="btn small" id="propLogoReset" style="width:auto;flex:none;">Use built-in logo</button>' : ''}</div>
+            <div class="prop-grid prop-colors" style="margin-top:10px;">
+                ${f('colorPrimary', 'Primary', 'color')}${f('colorAccent', 'Accent (dark)', 'color')}${f('colorDark', 'Neutral (charcoal)', 'color')}
+            </div></div>
+        <div class="prop-sec"><h4>Size</h4><div class="prop-grid">
+            ${f('totalUnits', 'Total units', 'number')}${f('buildings', 'Buildings', 'number')}${f('floors', 'Floors', 'number')}${f('floorplans', 'Floorplans', 'number')}
+        </div></div>
+        <div class="prop-sec"><h4>Resident services</h4><div class="prop-grid">
+            ${f('rentPortal', 'Rent payment portal (link)', 'url')}${f('accessSystem', 'Building access system')}
+            ${f('internet', 'Internet provider')}${f('transit', 'Transit pass')}
+            ${f('packages', 'Package delivery', 'text', 'wide')}
+            ${f('notes', 'Other notes', 'textarea', 'wide')}
+        </div></div>
+        <div class="prop-sec"><h4>Required property documents &amp; setup</h4>
+            <table class="mmr-table prop-req"><thead><tr><th>Item</th><th>Where it lives</th><th>Status</th></tr></thead><tbody>
+            ${propRequirements(p).map(([item, where, [ok, txt]]) => `<tr><td>${escapeHtml(item)}</td><td>${escapeHtml(where)}</td><td class="${ok ? 'prop-ok' : 'prop-miss'}">${ok ? '\u2713' : '\u2717'} ${escapeHtml(txt)}</td></tr>`).join('')}
+            </tbody></table></div>`;
+}
+(function propWire() {
+    const body = document.getElementById('propBody');
+    document.getElementById('propToggle').addEventListener('click', () => {
+        const hidden = body.style.display === 'none';
+        body.style.display = hidden ? '' : 'none';
+        document.getElementById('propToggle').classList.toggle('open', hidden);
+        if (hidden) { renderPropertyCard(); propSync(); }
+    });
+    document.getElementById('propSelect').addEventListener('change', e => { PROPERTIES.selected = e.target.value; propChanged(); renderPropertyCard(); });
+    document.getElementById('propAddBtn').addEventListener('click', () => {
+        const name = prompt('New property name:');
+        if (!name || !name.trim()) return;
+        const id = 'prop-' + Date.now().toString(36);
+        PROPERTIES.list[id] = { id, name: name.trim(), company: propCurrent().company || '', addresses: '', city: '', state: '', zip: '', phone: '', email: '', website: '',
+            logo: '', colorPrimary: '#de5426', colorAccent: '#b8431c', colorDark: '#2f2d2f', totalUnits: '', buildings: '', floors: '', floorplans: '',
+            rentPortal: '', accessSystem: '', internet: '', transit: '', packages: '', notes: '' };
+        PROPERTIES.selected = id; propChanged(); renderPropertyCard();
+    });
+    document.getElementById('propRemoveBtn').addEventListener('click', () => {
+        const p = propCurrent();
+        if (p.id === 'reve-boulder' || !confirm(`Remove \u201c${p.name}\u201d?`)) return;
+        delete PROPERTIES.list[p.id]; PROPERTIES.selected = 'reve-boulder'; propChanged(); renderPropertyCard();
+    });
+    body.addEventListener('change', e => {
+        const k = e.target.dataset && e.target.dataset.pf;
+        if (k) {
+            const p = propCurrent();
+            p[k] = e.target.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value;
+            propChanged();
+            if (k === 'name') renderPropertyCard();
+            return;
+        }
+        if (e.target.id === 'propLogoInput' && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.size > 600 * 1024) { alert('Please use a logo image under 600 KB.'); return; }
+            const rd = new FileReader();
+            rd.onload = () => { propCurrent().logo = rd.result; propChanged(); renderPropertyCard(); };
+            rd.readAsDataURL(file);
+        }
+    });
+    body.addEventListener('click', e => {
+        if (e.target.id === 'propLogoReset') { propCurrent().logo = ''; propChanged(); renderPropertyCard(); }
+    });
+    setTimeout(propSync, 0);
+})();
+
 // ---- Check In card: move-ins from today through the next 7 days ----
 function resIsoDay(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 function resCheckInRows() {
@@ -14658,7 +14832,8 @@ const TURN_TRADES = [
     { id: 'other', label: 'Other', vendorList: 'otherVendor' }
 ];
 let turnSort = { key: 'moveOut', dir: 1 };
-let turnHideDone = false;
+// Completed turns are hidden unless "Show completed" is checked.
+let turnShowDone = false;
 let turnSyncState = 'idle';
 
 function newTurnId() { return 'turn_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7); }
@@ -14927,7 +15102,7 @@ function renderTurnsBody() {
     const q = (document.getElementById('turnSearch').value || '').trim().toLowerCase();
     let ids = Object.keys(TURN_ROWS).filter(id => !TURN_ROWS[id].deleted);
     const total = ids.length;
-    if (turnHideDone) ids = ids.filter(id => !turnAllDone(TURN_ROWS[id]) || id === turnPinned);
+    if (!turnShowDone) ids = ids.filter(id => !turnAllDone(TURN_ROWS[id]) || id === turnPinned);
     if (q) ids = ids.filter(id => {
         const r = TURN_ROWS[id];
         return [r.unit, r.fp, r.lease, r.tech, r.comments, r.paintVendor, r.carpetVendor, r.cleanVendor, r.otherVendor].join(' ').toLowerCase().includes(q) || id === turnPinned;
@@ -15119,7 +15294,7 @@ function turnJumpToRow(id) {
     let tr = document.querySelector(`#turnsBody tr[data-id="${id}"]`);
     if (!tr) {
         document.getElementById('turnSearch').value = '';
-        turnHideDone = false; document.getElementById('turnHideDone').checked = false;
+        turnShowDone = true; document.getElementById('turnShowDone').checked = true;
         renderTurnsBody();
         tr = document.querySelector(`#turnsBody tr[data-id="${id}"]`);
         if (!tr) return;
@@ -15303,7 +15478,7 @@ function turnEditList(key) {
         renderTurnsBody();
     }));
     document.getElementById('turnSearch').addEventListener('input', renderTurnsBody);
-    document.getElementById('turnHideDone').addEventListener('change', e => { turnHideDone = e.target.checked; renderTurnsBody(); });
+    document.getElementById('turnShowDone').addEventListener('change', e => { turnShowDone = e.target.checked; renderTurnsBody(); });
     document.getElementById('turnAddBtn').addEventListener('click', turnAddRow);
     document.getElementById('turnListCancel').addEventListener('click', () => { document.getElementById('turnListOverlay').style.display = 'none'; });
     document.getElementById('turnListReset').addEventListener('click', () => { const ov = document.getElementById('turnListOverlay'); document.getElementById('turnListText').value = TURN_LIST_DEFS[ov._key].def.join('\n'); });
