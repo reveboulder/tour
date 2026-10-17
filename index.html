@@ -2805,6 +2805,14 @@
 
     /* -- Default Charges (Settings) -- */
     .default-charges-table td { padding: 3px 5px; }
+    .settings-trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .settings-trio .settings-card { padding: 14px 16px; display: flex; flex-direction: column; }
+    .settings-trio .empty-note { font-size: 12px; margin: 4px 0 10px; line-height: 1.4; }
+    .settings-trio .mode-toggle, .settings-trio #forceRefreshBtn { margin-top: auto; }
+    .settings-trio #forceRefreshBtn { flex: none; align-self: flex-start; }
+    .settings-trio .mode-toggle { align-self: flex-start; }
+    @media (max-width: 760px) { .settings-trio { grid-template-columns: 1fr; } }
+    .prop-subcard { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-top: 12px; }
     .prop-pick { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
     .prop-pick label { font-size: 12px; font-weight: 700; display: flex; gap: 6px; align-items: center; }
     .prop-pick select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 13px; background: #fff; color: inherit; }
@@ -2817,6 +2825,7 @@
     .prop-grid input[type=color] { padding: 2px; height: 32px; width: 64px; }
     .prop-colors { display: flex; gap: 14px; flex-wrap: wrap; }
     .prop-colors label { flex-direction: row; align-items: center; gap: 8px; }
+    .prop-color { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; font-size: 11px; color: var(--ink-soft); }
     .prop-logo { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
     .prop-logo img { height: 54px; max-width: 200px; object-fit: contain; border: 1px solid var(--line); border-radius: 6px; padding: 4px; background: #fff; }
     .prop-req td { padding: 5px 8px; font-size: 12px; }
@@ -2826,6 +2835,7 @@
     .oh-table td:first-child { font-weight: 700; }
     .oh-table input[type=time], .oh-table input[type=date], .oh-table input[type=text] { border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; font: inherit; font-size: 12.5px; background: #fff; color: inherit; }
     .oh-table tr.oh-closed input[type=time] { opacity: .35; }
+    .oh-table tr.oh-off td { opacity: .45; }
     .oh-table .oh-rm { border: 0; background: none; color: #c0392b; font-size: 16px; cursor: pointer; }
     .default-charges-table tr.dc-section td { background: #f4f2ee; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft); padding: 6px 8px; }
     .default-charges-table input { width: 100%; box-sizing: border-box; border: 1px solid transparent; background: transparent; padding: 4px 5px; font: inherit; font-size: 12.5px; color: inherit; border-radius: 4px; }
@@ -5119,32 +5129,29 @@
         </div>
     </div>
 
+    <div class="settings-trio">
     <div class="settings-card">
         <div class="section-label" style="margin-top:0;"><span class="dot"></span>Appearance</div>
-        <p class="empty-note" style="font-size:12.5px;">Changes how the site looks on this device only. Downloaded PDFs and printed pamphlets always stay light &mdash; this never affects what a prospect or resident sees.</p>
+        <p class="empty-note">How the site looks on this device only. PDFs and printouts always stay light.</p>
         <div class="mode-toggle">
             <button type="button" class="mode-btn active" data-theme="light" id="themeLightBtn">Light</button>
             <button type="button" class="mode-btn" data-theme="dark" id="themeDarkBtn">Dark</button>
         </div>
     </div>
-
-    <div class="settings-card" style="margin-top:18px;">
+    <div class="settings-card">
         <div class="section-label" style="margin-top:0;"><span class="dot"></span>Refresh Site to Update</div>
-        <p class="empty-note" style="font-size:12.5px;">If a feature seems missing or a fix doesn't seem to have taken effect, your browser may be showing a cached copy of the page. This forces a fresh copy from the server &mdash; it does not affect your saved data (Residents, Waitlist, pricing, etc.), which lives in local storage and/or your shared backend, separate from the page itself.</p>
+        <p class="empty-note">Feature missing or a fix not showing? Load a fresh copy of the page. Your saved data isn&rsquo;t affected.</p>
         <button type="button" class="btn" id="forceRefreshBtn" style="width:auto;padding:8px 16px;">Refresh Site to Update</button>
     </div>
-
-    <div class="settings-card" style="margin-top:18px;">
+    <div class="settings-card">
         <div class="section-label" style="margin-top:0;"><span class="dot"></span>App Mode</div>
-        <p class="empty-note" style="font-size:12.5px;">
-            <b>Live</b> uses whatever you've actually uploaded on the Tour, Expiring, and Renewals tabs.
-            <b>Test</b> swaps in sample data on every tab &mdash; real unit numbers with made-up prices and dates &mdash; so you can try out new features without touching your real data. Your live data stays exactly as you left it in local storage and comes right back when you switch back to Live.
-        </p>
+        <p class="empty-note"><b>Live</b> uses your real uploads. <b>Test</b> swaps in sample data to try features safely; Live data comes right back.</p>
         <div class="mode-toggle">
             <button type="button" class="mode-btn active" data-mode="live" id="modeLiveBtn">Live</button>
             <button type="button" class="mode-btn" data-mode="test" id="modeTestBtn">Test</button>
         </div>
-        <div class="empty-note" id="modeStatusNote" style="margin-top:10px;">Currently in <b>Live</b> mode.</div>
+        <div class="empty-note" id="modeStatusNote" style="margin-top:8px;">Currently in <b>Live</b> mode.</div>
+    </div>
     </div>
 
     <div class="settings-card" style="margin-top:18px;">
@@ -5165,56 +5172,12 @@
     </div>
 
     <div class="settings-card" style="margin-top:18px;">
-        <button type="button" class="unit-info-toggle" id="defaultChargesToggle">
-            <span><span class="dot"></span>DEFAULT CHARGES <span class="hint">Click to View</span></span>
-            <span class="fc-chevron">&rsaquo;</span>
-        </button>
-        <div id="defaultChargesBody" style="display:none;margin-top:12px;">
-            <p class="empty-note" style="font-size:12.5px;">The property's standard fees (from the REVE fee sheet). Changes here are shared with all agents and update everywhere these fees are used &mdash; Welcome Letter, Lease, Commissions deposits and Deposit Accounting.</p>
-            <div class="mmr-table-wrap" style="max-height:560px;overflow-y:auto;">
-                <table class="mmr-table default-charges-table">
-                    <thead><tr><th>Charge</th><th>Amount</th><th>Frequency</th><th>Notes</th><th></th></tr></thead>
-                    <tbody id="defaultChargesTbody"></tbody>
-                </table>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-                <button type="button" class="btn" id="defaultChargesAddBtn" style="width:auto;padding:7px 14px;">+ Add Charge</button>
-                <button type="button" class="btn" id="defaultChargesResetBtn" style="width:auto;padding:7px 14px;">Reset to Fee Sheet</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="settings-card" style="margin-top:18px;">
-        <button type="button" class="unit-info-toggle" id="officeHoursToggle">
-            <span><span class="dot"></span>OFFICE HOURS <span class="hint">Click to View</span></span>
-            <span class="fc-chevron">&rsaquo;</span>
-        </button>
-        <div id="officeHoursBody" style="display:none;margin-top:12px;">
-            <p class="empty-note" style="font-size:12.5px;">Shared with all agents. Used by the Residents &rsaquo; Check In email to tell residents when the office is open on their move-in day. Add a special date for holidays or one-off changes &mdash; it overrides the weekly hours for that day.</p>
-            <table class="mmr-table oh-table">
-                <thead><tr><th>Day</th><th>Opens</th><th>Closes</th><th>Closed</th></tr></thead>
-                <tbody id="officeHoursTbody"></tbody>
-            </table>
-            <div class="section-label" style="margin-top:14px;"><span class="dot"></span>Special dates</div>
-            <table class="mmr-table oh-table">
-                <thead><tr><th>Date</th><th>Opens</th><th>Closes</th><th>Closed</th><th>Note</th><th></th></tr></thead>
-                <tbody id="officeHoursSpecialTbody"></tbody>
-            </table>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
-                <button type="button" class="btn" id="officeHoursAddBtn" style="width:auto;flex:none;padding:7px 14px;">+ Add Special Date</button>
-                <button type="button" class="btn" id="officeHoursResetBtn" style="width:auto;flex:none;padding:7px 14px;">Reset to Standard Hours</button>
-                <div class="save-note" data-save-keys="office-hours" aria-live="polite" style="margin:0;"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="settings-card" style="margin-top:18px;">
         <button type="button" class="unit-info-toggle" id="propToggle">
-            <span><span class="dot"></span>SELECT PROPERTY <span class="hint">Click to View</span></span>
+            <span><span class="dot"></span>SELECT PROPERTY <span class="hint">(Click to View)</span></span>
             <span class="fc-chevron">&rsaquo;</span>
         </button>
         <div id="propBody" style="display:none;margin-top:12px;">
-            <p class="empty-note" style="font-size:12.5px;">Everything specific to one property, kept in one place: branding, size, resident services and the documents each property must provide. Shared with all agents. <b>For now this is stored for reference only</b> &mdash; the app still uses REVE Boulder&rsquo;s built-in setup.</p>
+            <p class="empty-note" style="font-size:12.5px;">Everything specific to one property, kept in one place: branding, size, resident services and the documents each property must provide. Shared with all agents. <b>The profile details are stored for reference only for now</b> &mdash; the app still uses REVE Boulder&rsquo;s built-in setup. Default Charges and Office Hours (below) are live and used across the app.</p>
             <div class="prop-pick">
                 <label>Property <select id="propSelect"></select></label>
                 <button type="button" class="btn small" id="propAddBtn" style="width:auto;flex:none;">+ Add Property</button>
@@ -5222,6 +5185,53 @@
                 <div class="save-note" data-save-keys="property-profiles" aria-live="polite" style="margin:0;"></div>
             </div>
             <div id="propForm"></div>
+            <div class="prop-subcard">
+                <button type="button" class="unit-info-toggle" id="defaultChargesToggle">
+                    <span><span class="dot"></span>DEFAULT CHARGES <span class="hint">(Click to View)</span></span>
+                    <span class="fc-chevron">&rsaquo;</span>
+                </button>
+                <div id="defaultChargesBody" style="display:none;margin-top:12px;">
+                    <p class="empty-note" style="font-size:12.5px;">The property's standard fees (from the REVE fee sheet). Changes here are shared with all agents and update everywhere these fees are used &mdash; Welcome Letter, Lease, Commissions deposits and Deposit Accounting.</p>
+                    <div class="mmr-table-wrap" style="max-height:560px;overflow-y:auto;">
+                        <table class="mmr-table default-charges-table">
+                            <thead><tr><th>Charge</th><th>Amount</th><th>Frequency</th><th>Notes</th><th></th></tr></thead>
+                            <tbody id="defaultChargesTbody"></tbody>
+                        </table>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                        <button type="button" class="btn" id="defaultChargesAddBtn" style="width:auto;padding:7px 14px;">+ Add Charge</button>
+                        <button type="button" class="btn" id="defaultChargesResetBtn" style="width:auto;padding:7px 14px;">Reset to Fee Sheet</button>
+                    </div>
+                </div>
+            </div>
+            <div class="prop-subcard">
+                <button type="button" class="unit-info-toggle" id="officeHoursToggle">
+                    <span><span class="dot"></span>OFFICE HOURS <span class="hint">(Click to View)</span></span>
+                    <span class="fc-chevron">&rsaquo;</span>
+                </button>
+                <div id="officeHoursBody" style="display:none;margin-top:12px;">
+                    <p class="empty-note" style="font-size:12.5px;">Shared with all agents. Used by the Residents &rsaquo; Check In email to tell residents when the office is open on their move-in day. Holidays repeat every year automatically; a special date (one-off change) overrides everything for that day.</p>
+                    <table class="mmr-table oh-table">
+                        <thead><tr><th>Day</th><th>Opens</th><th>Closes</th><th>Closed</th></tr></thead>
+                        <tbody id="officeHoursTbody"></tbody>
+                    </table>
+                    <div class="section-label" style="margin-top:14px;"><span class="dot"></span>Holidays <span style="text-transform:none;letter-spacing:0;font-weight:400;">(every year)</span></div>
+                    <table class="mmr-table oh-table">
+                        <thead><tr><th>Holiday</th><th>Next date</th><th>Opens</th><th>Closes</th><th>Closed</th><th>On</th></tr></thead>
+                        <tbody id="officeHoursHolidayTbody"></tbody>
+                    </table>
+                    <div class="section-label" style="margin-top:14px;"><span class="dot"></span>Special dates</div>
+                    <table class="mmr-table oh-table">
+                        <thead><tr><th>Date</th><th>Opens</th><th>Closes</th><th>Closed</th><th>Note</th><th></th></tr></thead>
+                        <tbody id="officeHoursSpecialTbody"></tbody>
+                    </table>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
+                        <button type="button" class="btn" id="officeHoursAddBtn" style="width:auto;flex:none;padding:7px 14px;">+ Add Special Date</button>
+                        <button type="button" class="btn" id="officeHoursResetBtn" style="width:auto;flex:none;padding:7px 14px;">Reset to Standard Hours</button>
+                        <div class="save-note" data-save-keys="office-hours" aria-live="polite" style="margin:0;"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -14211,12 +14221,36 @@ function renderResidentsBody() {
    Shared through the backend as one object; the newer copy wins. */
 const OH_KEY = 'reve-office-hours', OH_BACKEND_KEY = 'office-hours';
 const OH_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+// Yearly holidays: the date is worked out for each year.
+const ohIso = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+function ohNthWeekday(y, m, wd, n) { // n-th weekday (0=Sun) of month m (1-12); n = -1 for the last one
+    if (n > 0) { const first = new Date(y, m - 1, 1).getDay(); return ohIso(y, m, 1 + (wd - first + 7) % 7 + (n - 1) * 7); }
+    const lastD = new Date(y, m, 0), back = (lastD.getDay() - wd + 7) % 7; return ohIso(y, m, lastD.getDate() - back);
+}
+const OH_HOLIDAYS = [
+    { id: 'thanksgiving-eve', name: 'Thanksgiving Eve', date: y => { const t = new Date(ohNthWeekday(y, 11, 4, 4) + 'T00:00:00'); t.setDate(t.getDate() - 1); return ohIso(y, 11, t.getDate()); }, def: { closed: false, open: '09:00', close: '12:00' } },
+    { id: 'thanksgiving', name: 'Thanksgiving', date: y => ohNthWeekday(y, 11, 4, 4), def: { closed: true } },
+    { id: 'christmas-eve', name: 'Christmas Eve', date: y => ohIso(y, 12, 24), def: { closed: false, open: '09:00', close: '12:00' } },
+    { id: 'christmas', name: 'Christmas', date: y => ohIso(y, 12, 25), def: { closed: true } },
+    { id: 'new-years', name: 'New Year\u2019s Day', date: y => ohIso(y, 1, 1), def: { closed: true } },
+    { id: 'memorial', name: 'Memorial Day', date: y => ohNthWeekday(y, 5, 1, -1), def: { closed: true } },
+    { id: 'juneteenth', name: 'Juneteenth', date: y => ohIso(y, 6, 19), def: { closed: true } },
+    { id: 'labor', name: 'Labor Day', date: y => ohNthWeekday(y, 9, 1, 1), def: { closed: true } }
+];
+function ohHolidayDefaults() { return OH_HOLIDAYS.map(h => Object.assign({ id: h.id, on: true, open: '', close: '' }, h.def)); }
 function ohStandard() {
     const wk = { closed: false, open: '09:00', close: '18:00' };
-    return { ts: 0, days: [{ closed: true, open: '', close: '' }, wk, wk, wk, wk, wk, { closed: false, open: '10:00', close: '17:00' }].map(d => Object.assign({}, d)), special: [] };
+    return { ts: 0, days: [{ closed: true, open: '', close: '' }, wk, wk, wk, wk, wk, { closed: false, open: '10:00', close: '17:00' }].map(d => Object.assign({}, d)), special: [], holidays: ohHolidayDefaults() };
+}
+// Older saved copies have no holidays: add the standard ones.
+function ohNormalize(o) {
+    if (!Array.isArray(o.holidays)) o.holidays = [];
+    ohHolidayDefaults().forEach(d => { if (!o.holidays.some(h => h.id === d.id)) o.holidays.push(d); });
+    o.holidays.sort((a, b) => OH_HOLIDAYS.findIndex(h => h.id === a.id) - OH_HOLIDAYS.findIndex(h => h.id === b.id));
+    return o;
 }
 let OFFICE_HOURS = ohStandard();
-try { const v = JSON.parse(localStorage.getItem(OH_KEY) || 'null'); if (v && Array.isArray(v.days) && v.days.length === 7) OFFICE_HOURS = v; } catch (e) {}
+try { const v = JSON.parse(localStorage.getItem(OH_KEY) || 'null'); if (v && Array.isArray(v.days) && v.days.length === 7) OFFICE_HOURS = ohNormalize(v); } catch (e) {}
 function ohSaveLocal() { try { localStorage.setItem(OH_KEY, JSON.stringify(OFFICE_HOURS)); } catch (e) {} }
 function ohChanged() {
     OFFICE_HOURS.ts = Date.now();
@@ -14228,7 +14262,7 @@ async function ohSync() {
     try {
         const r = await backendPullChecked(OH_BACKEND_KEY);
         if (r === undefined) return;
-        if (r && Array.isArray(r.days) && (r.ts || 0) > (OFFICE_HOURS.ts || 0)) { OFFICE_HOURS = r; ohSaveLocal(); renderOfficeHours(); }
+        if (r && Array.isArray(r.days) && (r.ts || 0) > (OFFICE_HOURS.ts || 0)) { OFFICE_HOURS = ohNormalize(r); ohSaveLocal(); renderOfficeHours(); }
         else if ((!r || (r.ts || 0) < (OFFICE_HOURS.ts || 0)) && OFFICE_HOURS.ts) backendPush(OH_BACKEND_KEY, OFFICE_HOURS);
     } catch (e) { console.error(e); }
 }
@@ -14239,17 +14273,29 @@ function ohFmt(t) {
     const h = +m[1];
     return `${h % 12 || 12}:${m[2]} ${h < 12 ? 'am' : 'pm'}`;
 }
-// Hours for a date (YYYY-MM-DD): { closed, open, close }.
+// Hours for a date (YYYY-MM-DD): { closed, open, close, name? }.
+// A special date wins, then a holiday, then the weekly hours.
 function officeHoursFor(iso) {
     const sp = (OFFICE_HOURS.special || []).find(x => x && x.date === iso);
-    if (sp) return sp;
+    if (sp) return Object.assign({ name: sp.note || '' }, sp);
+    const y = +iso.slice(0, 4);
+    const hol = OH_HOLIDAYS.find(h => h.date(y) === iso);
+    const set = hol && (OFFICE_HOURS.holidays || []).find(h => h.id === hol.id);
+    if (set && set.on) return Object.assign({ name: hol.name }, set);
     return OFFICE_HOURS.days[new Date(iso + 'T00:00:00').getDay()] || { closed: true };
 }
+function ohNextDate(h) { const today = resIsoDay(new Date()), y = new Date().getFullYear(); return h.date(y) >= today ? h.date(y) : h.date(y + 1); }
 function renderOfficeHours() {
     const tb = document.getElementById('officeHoursTbody');
     if (!tb) return;
     const row = (d, lead, tail) => `<tr class="${d.closed ? 'oh-closed' : ''}">${lead}<td><input type="time" data-f="open" value="${escapeAttr(d.open || '')}"></td><td><input type="time" data-f="close" value="${escapeAttr(d.close || '')}"></td><td style="text-align:center;"><input type="checkbox" data-f="closed"${d.closed ? ' checked' : ''}></td>${tail || ''}</tr>`;
     tb.innerHTML = OFFICE_HOURS.days.map((d, i) => row(d, `<td data-oh-day="${i}">${OH_DAY_NAMES[i]}</td>`)).join('');
+    document.getElementById('officeHoursHolidayTbody').innerHTML = (OFFICE_HOURS.holidays || []).map((d, i) => {
+        const def = OH_HOLIDAYS.find(h => h.id === d.id); if (!def) return '';
+        const next = new Date(ohNextDate(def) + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        return row(d, `<td data-oh-hol="${i}">${escapeHtml(def.name)}</td><td style="font-weight:400;">${next}</td>`,
+            `<td style="text-align:center;"><input type="checkbox" data-f="on"${d.on ? ' checked' : ''} title="Use this holiday"></td>`).replace('<tr class="', `<tr class="${d.on ? '' : 'oh-off '}`);
+    }).join('');
     const sp = (OFFICE_HOURS.special || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
     OFFICE_HOURS.special = sp;
     document.getElementById('officeHoursSpecialTbody').innerHTML = sp.map((d, i) => row(d,
@@ -14267,8 +14313,8 @@ function renderOfficeHours() {
     });
     const target = el => {
         const tr = el.closest('tr'); if (!tr) return null;
-        const day = tr.querySelector('[data-oh-day]'), sp = tr.querySelector('[data-oh-sp]');
-        return day ? OFFICE_HOURS.days[+day.dataset.ohDay] : sp ? OFFICE_HOURS.special[+sp.dataset.ohSp] : null;
+        const day = tr.querySelector('[data-oh-day]'), sp = tr.querySelector('[data-oh-sp]'), hol = tr.querySelector('[data-oh-hol]');
+        return day ? OFFICE_HOURS.days[+day.dataset.ohDay] : sp ? OFFICE_HOURS.special[+sp.dataset.ohSp] : hol ? OFFICE_HOURS.holidays[+hol.dataset.ohHol] : null;
     };
     body.addEventListener('change', e => {
         const f = e.target.dataset.f, d = target(e.target);
@@ -14276,7 +14322,7 @@ function renderOfficeHours() {
         d[f] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
         if (f === 'closed' && !d.closed && !d.open) { d.open = '09:00'; d.close = '18:00'; }
         ohChanged();
-        if (f === 'closed' || f === 'date') renderOfficeHours();
+        if (f === 'closed' || f === 'date' || f === 'on') renderOfficeHours();
     });
     body.addEventListener('click', e => {
         if (!e.target.closest('.oh-rm')) return;
@@ -14289,7 +14335,7 @@ function renderOfficeHours() {
         ohChanged(); renderOfficeHours();
     });
     document.getElementById('officeHoursResetBtn').addEventListener('click', () => {
-        if (!confirm('Reset the weekly hours to M\u2013F 9:00 am \u2013 6:00 pm, Sat 10:00 am \u2013 5:00 pm, Sun closed? Special dates are kept.')) return;
+        if (!confirm('Reset the weekly hours to M\u2013F 9:00 am \u2013 6:00 pm, Sat 10:00 am \u2013 5:00 pm, Sun closed, and the holidays to their standard hours? Special dates are kept.')) return;
         const keep = OFFICE_HOURS.special || [];
         OFFICE_HOURS = Object.assign(ohStandard(), { special: keep });
         ohChanged(); renderOfficeHours();
@@ -14357,13 +14403,14 @@ function renderPropertyCard() {
     const sel = document.getElementById('propSelect');
     if (!sel) return;
     if (!PROPERTIES.list[PROPERTIES.selected]) PROPERTIES.selected = Object.keys(PROPERTIES.list)[0];
-    sel.innerHTML = Object.values(PROPERTIES.list).map(p => `<option value="${escapeAttr(p.id)}"${p.id === PROPERTIES.selected ? ' selected' : ''}>${escapeHtml(p.name || 'Untitled property')}</option>`).join('');
+    sel.innerHTML = Object.values(PROPERTIES.list).map(p => `<option value="${escapeAttr(p.id)}"${p.id === PROPERTIES.selected ? ' selected' : ''}>${escapeHtml(p.name || 'New property (unnamed)')}</option>`).join('');
     const p = propCurrent();
     document.getElementById('propRemoveBtn').style.display = p.id === 'reve-boulder' ? 'none' : '';
     const f = (k, label, type, extra) => `<label class="${extra || ''}">${label}${type === 'textarea'
         ? `<textarea data-pf="${k}" rows="3">${escapeHtml(p[k] || '')}</textarea>`
+        : type === 'color' ? `<span class="prop-color"><input type="color" data-pf="${k}" value="${escapeAttr(p[k] || '#ffffff')}">${p[k] ? escapeHtml(p[k]) : '<i>not set</i>'}</span>`
         : `<input type="${type || 'text'}" data-pf="${k}" value="${escapeAttr(p[k] == null ? '' : String(p[k]))}">`}</label>`;
-    const logo = p.logo || (typeof WATERMARK_IMG_SRC !== 'undefined' ? WATERMARK_IMG_SRC : '');
+    const logo = p.logo === 'none' ? '' : p.logo || (typeof WATERMARK_IMG_SRC !== 'undefined' ? WATERMARK_IMG_SRC : '');
     document.getElementById('propForm').innerHTML = `
         <div class="prop-sec"><h4>Property</h4><div class="prop-grid">
             ${f('name', 'Property name')}${f('company', 'Management company')}
@@ -14374,7 +14421,7 @@ function renderPropertyCard() {
         <div class="prop-sec"><h4>Branding</h4>
             <div class="prop-logo">${logo ? `<img src="${escapeAttr(logo)}" alt="Logo">` : '<span class="empty-note">No logo</span>'}
                 <label class="btn small" style="width:auto;flex:none;cursor:pointer;">Upload logo<input type="file" id="propLogoInput" accept="image/*" style="display:none;"></label>
-                ${p.logo ? '<button type="button" class="btn small" id="propLogoReset" style="width:auto;flex:none;">Use built-in logo</button>' : ''}</div>
+                ${p.logo && p.logo !== 'none' ? `<button type="button" class="btn small" id="propLogoReset" style="width:auto;flex:none;">${p.id === 'reve-boulder' ? 'Use built-in logo' : 'Remove logo'}</button>` : ''}</div>
             <div class="prop-grid prop-colors" style="margin-top:10px;">
                 ${f('colorPrimary', 'Primary', 'color')}${f('colorAccent', 'Accent (dark)', 'color')}${f('colorDark', 'Neutral (charcoal)', 'color')}
             </div></div>
@@ -14402,13 +14449,13 @@ function renderPropertyCard() {
     });
     document.getElementById('propSelect').addEventListener('change', e => { PROPERTIES.selected = e.target.value; propChanged(); renderPropertyCard(); });
     document.getElementById('propAddBtn').addEventListener('click', () => {
-        const name = prompt('New property name:');
-        if (!name || !name.trim()) return;
+        // Every field starts blank, to fill in by hand.
         const id = 'prop-' + Date.now().toString(36);
-        PROPERTIES.list[id] = { id, name: name.trim(), company: propCurrent().company || '', addresses: '', city: '', state: '', zip: '', phone: '', email: '', website: '',
-            logo: '', colorPrimary: '#de5426', colorAccent: '#b8431c', colorDark: '#2f2d2f', totalUnits: '', buildings: '', floors: '', floorplans: '',
+        PROPERTIES.list[id] = { id, name: '', company: '', addresses: '', city: '', state: '', zip: '', phone: '', email: '', website: '',
+            logo: 'none', colorPrimary: '', colorAccent: '', colorDark: '', totalUnits: '', buildings: '', floors: '', floorplans: '',
             rentPortal: '', accessSystem: '', internet: '', transit: '', packages: '', notes: '' };
         PROPERTIES.selected = id; propChanged(); renderPropertyCard();
+        const nm = document.querySelector('#propForm [data-pf=name]'); if (nm) nm.focus();
     });
     document.getElementById('propRemoveBtn').addEventListener('click', () => {
         const p = propCurrent();
@@ -14433,7 +14480,7 @@ function renderPropertyCard() {
         }
     });
     body.addEventListener('click', e => {
-        if (e.target.id === 'propLogoReset') { propCurrent().logo = ''; propChanged(); renderPropertyCard(); }
+        if (e.target.id === 'propLogoReset') { const p = propCurrent(); p.logo = p.id === 'reve-boulder' ? '' : 'none'; propChanged(); renderPropertyCard(); }
     });
     setTimeout(propSync, 0);
 })();
@@ -14483,8 +14530,8 @@ function resMoverMapForFloor(floor) {
 function resCheckInHoursText(iso) {
     const h = officeHoursFor(iso), day = resLongDate(iso); // "Sunday, October 18th"
     if (h.closed || !h.open || !h.close)
-        return `Our office will be closed on ${day.split(',')[0]}, but your digital access with the DOOR application can be set up remotely so you can still move in.`;
-    return `Our office will be open from ${ohFmt(h.open)} until ${ohFmt(h.close)} that day to assist as needed. If you are not able to be here before we close, your digital access with the DOOR application can be set up remotely.`;
+        return `Our office will be closed on ${h.name ? h.name : day.split(',')[0]}, but your digital access with the DOOR application can be set up remotely so you can still move in.`;
+    return `Our office will be open from ${ohFmt(h.open)} until ${ohFmt(h.close)} that day${h.name ? ` (${h.name} hours)` : ''} to assist as needed. If you are not able to be here before we close, your digital access with the DOOR application can be set up remotely.`;
 }
 // Check In email: the move-in requirements (Residents tab: Lease = ↑
 // uploaded, Ins. checked, M/I Pmt checked).
