@@ -2144,8 +2144,20 @@
     #deColor { width: 28px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: none; }
     .de-size { font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; } .de-size input { width: 80px; }
     .de-page { font-size: 12px; font-weight: 600; min-width: 110px; text-align: center; }
-    .de-stage { flex: 1; min-height: 0; position: relative; overflow: auto; background: #e9e6e0 repeating-conic-gradient(#e2ded7 0 25%, #ece9e3 0 50%) 0 0 / 20px 20px; display: flex; align-items: center; justify-content: center; padding: 12px; }
+    .de-body { flex: 1; min-height: 0; display: flex; }
+    .de-stage { flex: 1; min-width: 0; min-height: 0; position: relative; overflow: auto; background: #e9e6e0 repeating-conic-gradient(#e2ded7 0 25%, #ece9e3 0 50%) 0 0 / 20px 20px; display: flex; padding: 12px; }
+    .de-wrap { position: relative; margin: auto; flex: none; }
+    .de-wrap canvas { display: block; }
+    .de-zoom { font-size: 12px; font-weight: 600; min-width: 42px; text-align: center; }
+    .de-side { width: 280px; flex: none; border-left: 1px solid var(--line); padding: 10px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+    .de-side[hidden] { display: none; }
+    .de-side input[type=search] { width: 100%; box-sizing: border-box; margin: 0; border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 13px; background: var(--panel, #fff); color: inherit; }
+    .de-side select.ds-select { width: auto; flex: 1; min-width: 0; margin: 0; }
+    .de-top input[type=checkbox] { width: auto; margin: 0; }
+    .de-stage[data-tool="select"] canvas { cursor: default; }
+    .de-tool svg { vertical-align: middle; }
     .de-stage canvas { box-shadow: 0 2px 12px rgba(0,0,0,.25); touch-action: none; cursor: crosshair; background: #fff; }
+    .de-stage, .ds-stage { touch-action: pan-x pan-y; }
     .de-stage[data-tool="text"] canvas { cursor: text; } .de-stage[data-tool="erase"] canvas { cursor: not-allowed; }
     .de-textbox { position: absolute; z-index: 2; min-width: 140px; background: rgba(255,255,255,.9); border: 1px dashed var(--reve-orange); padding: 0 2px; font-family: Arial, Helvetica, sans-serif; line-height: 1.2; resize: both; outline: none; }
     @media (max-width: 700px) { .de-overlay { padding: 0; } .de-shell { border-radius: 0; } .de-group { border-right: 0; } }
@@ -19930,22 +19942,28 @@ async function docsReplaceDocFile(doc, file) {
     return shared;
 }
 /* ---------- Edit Document: photo & PDF editor ----------
-   Markup is kept as shapes in page coordinates (0–1 across and down the
-   page as shown), drawn over the page and only flattened on save:
-   - Photos: rotate / flip / crop are baked into the base image straight
-     away (markup moves with them); brightness & contrast apply on save.
-     Saved in the same format (GIF and others save as PNG).
-   - PDFs: pages render with pdf.js; on save pdf-lib keeps the original
-     pages (text stays sharp), applies page rotations and deletions, and
-     lays each page's markup on top as an image.
-   Saving replaces the document's file, like Replace (a built-in document
-   can still be reverted). */
-const DE = { doc: null, kind: '', pages: [], idx: 0, tool: 'pen', color: '#d0021b', size: 4, undo: [], redo: [], bright: 100, contrast: 100, pdfBytes: null, filename: '', mime: '', busy: false, draft: null, crop: null };
+   Markup is kept as items in page coordinates (0–1 across and down the
+   page as shown), drawn over the page and only flattened on save. The
+   Select tool (pointer) picks an item to move or resize; moving snaps to
+   the page's center lines and to other items' edges and centers, and
+   resizing also snaps to other items' widths/heights (guides show the
+   match; Alt = no snapping, Shift = move in a straight line).
+   Zoom: Ctrl/⌘ + scroll, trackpad or touch pinch, or the − / Fit / +
+   buttons — only the page zooms, never the app.
+   Saving never changes the original: it adds "Copy of <name> - edited"
+   to the same section.
+   - Photos: rotate / flip / crop are baked in (markup moves with them);
+     brightness & contrast apply on save.
+   - PDFs: pdf-lib keeps the original pages (text stays sharp), applies
+     page rotations/deletions and lays each page's markup on top. */
+const DE = { doc: null, section: '', kind: '', pages: [], idx: 0, tool: 'select', color: '#d0021b', size: 4, undo: [], redo: [], bright: 100, contrast: 100, pdfBytes: null, filename: '', mime: '', busy: false, draft: null, crop: null, sel: -1, guides: [], zoom: 1, drag: null };
 const DE_COLORS = ['#000000', '#d0021b', '#de5426', '#f5c400', '#2e9d4a', '#1f6f9e', '#ffffff'];
+const DE_POINTER_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 3l14 8-6 1.6L16 20l-2.6 1.2-3-7.3L5 18z" fill="currentColor"/></svg>';
 const DE_TOOLS = [
-    ['pen', '✎', 'Pen'], ['hl', '▅', 'Highlighter'], ['line', '╱', 'Line'], ['arrow', '↗', 'Arrow'],
+    ['select', DE_POINTER_ICON, 'Select — click an item to move or resize it'], ['pen', '✎', 'Pen'], ['hl', '▅', 'Highlighter'], ['line', '╱', 'Line'], ['arrow', '↗', 'Arrow'],
     ['rect', '▭', 'Box'], ['ellipse', '◯', 'Circle'], ['text', 'T', 'Text'], ['white', '⬜', 'White-out (cover)'], ['erase', '⌫', 'Eraser (click a mark)']
 ];
+const DE_BOX_TYPES = ['rect', 'ellipse', 'white', 'icon'];
 function deEl() {
     let m = document.getElementById('deOverlay');
     if (m) return m;
@@ -19955,18 +19973,29 @@ function deEl() {
     m.innerHTML = `<div class="de-shell" role="dialog" aria-modal="true" aria-label="Edit document">
         <div class="de-top"><b class="de-title" id="deTitle"></b>
             <button type="button" class="de-btn" id="deUndo" title="Undo (Ctrl+Z)">↶ Undo</button><button type="button" class="de-btn" id="deRedo" title="Redo (Ctrl+Y)">↷ Redo</button>
+            <span class="de-group"><button type="button" class="de-btn" id="deZoomOut" title="Zoom out (Ctrl + scroll / pinch)">−</button><button type="button" class="de-btn" id="deZoomFit" title="Fit the page">Fit</button><button type="button" class="de-btn" id="deZoomIn" title="Zoom in (Ctrl + scroll / pinch)">+</button><span class="de-zoom" id="deZoomPct">100%</span></span>
+            <label class="ds-check"><input type="checkbox" id="deSnap" checked> Snap</label>
             <span class="de-spacer"></span><span class="de-status" id="deStatus"></span>
             <button type="button" class="de-btn" id="deDownload" title="Download a copy with your edits (doesn’t save)">Download copy</button>
-            <button type="button" class="de-btn primary" id="deSave">Save</button><button type="button" class="de-btn" id="deClose">Close</button></div>
-        <div class="de-bar"><span class="de-group" id="deTools">${DE_TOOLS.map(([id, ic, label]) => `<button type="button" class="de-tool" data-de-tool="${id}" title="${label}" aria-label="${label}">${ic}</button>`).join('')}</span>
+            <button type="button" class="de-btn primary" id="deSave" title="Saves a new document “Copy of … - edited” — the original is never changed">Save as copy</button><button type="button" class="de-btn" id="deClose">Close</button></div>
+        <div class="de-bar"><span class="de-group" id="deTools">${DE_TOOLS.map(([id, ic, label]) => `<button type="button" class="de-tool" data-de-tool="${id}" title="${label}" aria-label="${label}">${ic}</button>`).join('')}<button type="button" class="de-btn" id="deElementsBtn" title="Add icons">★ Elements</button></span>
             <span class="de-group">${DE_COLORS.map(c => `<button type="button" class="de-swatch" data-de-color="${c}" style="background:${c}" title="${c}" aria-label="Color ${c}"></button>`).join('')}<input type="color" id="deColor" title="Custom color"></span>
             <label class="de-group de-size">Size <input type="range" id="deSize" min="1" max="12" step="1"></label>
             <span class="de-group" id="deImgTools"><button type="button" class="de-btn" data-de-op="rotl" title="Rotate left">↺</button><button type="button" class="de-btn" data-de-op="rotr" title="Rotate right">↻</button><button type="button" class="de-btn" data-de-op="flip" title="Flip horizontally">⇄</button><button type="button" class="de-btn" data-de-tool="crop" title="Crop: drag a box, then Apply">✂ Crop</button><button type="button" class="de-btn primary" id="deCropApply" style="display:none;">Apply crop</button>
                 <label class="de-size">Brightness <input type="range" id="deBright" min="40" max="160" title="Brightness"></label><label class="de-size">Contrast <input type="range" id="deContrast" min="40" max="160" title="Contrast"></label></span>
             <span class="de-group" id="dePdfTools"><button type="button" class="de-btn" data-de-op="prev" title="Previous page">‹</button><span id="dePage" class="de-page"></span><button type="button" class="de-btn" data-de-op="next" title="Next page">›</button>
                 <button type="button" class="de-btn" data-de-op="rotl" title="Rotate page left">↺</button><button type="button" class="de-btn" data-de-op="rotr" title="Rotate page right">↻</button><button type="button" class="de-btn" data-de-op="delpage" title="Delete / restore this page">🗑 Page</button></span>
+            <span class="de-group" id="deSelTools" hidden><button type="button" class="de-btn" data-de-op="dup" title="Duplicate (Ctrl+D)">⧉ Duplicate</button><button type="button" class="de-btn" data-de-op="del" title="Delete (Delete key)">🗑 Delete</button></span>
         </div>
-        <div class="de-stage" id="deStage"><canvas id="deCanvas"></canvas></div>
+        <div class="de-body">
+            <div class="de-stage" id="deStage"><div class="de-wrap" id="deWrap"><canvas id="deCanvas"></canvas></div></div>
+            <div class="de-side" id="deSide" hidden>
+                <div class="ds-row"><b>Elements</b><button type="button" class="de-btn" id="deSideClose" title="Close">✕</button></div>
+                <input type="search" id="deIconSearch" placeholder="Search icons (e.g. sink, mouse click)…" autocomplete="off">
+                <div class="ds-row"><select id="deIconCat" class="ds-select"><option value="">Popular</option></select><label class="ds-mini">Color <input type="color" id="deIconColor"></label></div>
+                <div class="ds-icon-grid de-icon-grid" id="deIconGrid"></div><div class="ds-note" id="deIconNote"></div>
+            </div>
+        </div>
     </div>`;
     document.body.appendChild(m);
     deWire(m);
@@ -19976,7 +20005,7 @@ const deStatus = t => { const el = document.getElementById('deStatus'); if (el) 
 async function deOpen(doc) {
     if (!docsCanPreview(doc)) { alert('Only PDFs and photos (JPG, PNG, GIF, WEBP) can be edited.'); return; }
     const m = deEl();
-    Object.assign(DE, { doc, pages: [], idx: 0, undo: [], redo: [], bright: 100, contrast: 100, pdfBytes: null, draft: null, crop: null, busy: false });
+    Object.assign(DE, { doc, section: docsCurrentSection, pages: [], idx: 0, undo: [], redo: [], bright: 100, contrast: 100, pdfBytes: null, draft: null, crop: null, busy: false, sel: -1, guides: [], zoom: 1, drag: null });
     DE.kind = docsIsImage(doc) ? 'image' : 'pdf';
     DE.filename = doc.filename || (doc.title + (DE.kind === 'pdf' ? '.pdf' : '.png'));
     DE.mime = doc.mime || 'application/pdf';
@@ -19985,7 +20014,8 @@ async function deOpen(doc) {
     document.getElementById('dePdfTools').style.display = DE.kind === 'pdf' ? '' : 'none';
     document.getElementById('deBright').value = 100; document.getElementById('deContrast').value = 100;
     document.getElementById('deSize').value = DE.size; document.getElementById('deColor').value = DE.color;
-    deSetTool(DE.tool === 'crop' ? 'pen' : DE.tool);
+    document.getElementById('deIconColor').value = DS.iconColor;
+    deSetTool(DE.tool === 'crop' ? 'select' : DE.tool);
     m.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     deStatus('Loading…');
@@ -20021,7 +20051,7 @@ async function deRenderPdfPage(pg) {
     const page = await DE.pdf.getPage(pg.n);
     const rotation = (page.rotate + pg.rot) % 360;
     const v1 = page.getViewport({ scale: 1, rotation });
-    const scale = Math.min(2.5, 1600 / Math.max(v1.width, v1.height));
+    const scale = Math.min(3, 2200 / Math.max(v1.width, v1.height));
     const vp = page.getViewport({ scale, rotation });
     const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
     const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
@@ -20036,23 +20066,30 @@ function deClose(force) {
     DE.doc = null; DE.pages = []; DE.pdf = null; DE.pdfBytes = null;
 }
 const dePage = () => DE.pages[DE.idx];
-// Undo/redo keep a copy of the page's state (markup, base image, rotation).
 function deSnap(pg) { return { idx: DE.pages.indexOf(pg), anns: JSON.parse(JSON.stringify(pg.anns)), base: pg.base, rot: pg.rot, deleted: pg.deleted }; }
 function dePush(pg) { DE.undo.push(deSnap(pg || dePage())); DE.redo = []; }
 function deRestore(snap, from, to) {
     const pg = DE.pages[snap.idx];
     to.push(deSnap(pg));
     Object.assign(pg, { anns: snap.anns, base: snap.base, rot: snap.rot, deleted: snap.deleted });
-    DE.idx = snap.idx; deDraw();
+    DE.idx = snap.idx; DE.sel = -1; deDraw();
 }
 function deSetTool(t) {
     DE.tool = t; DE.crop = null;
+    if (t !== 'select') DE.sel = -1;
     document.querySelectorAll('#deOverlay [data-de-tool]').forEach(b => b.classList.toggle('on', b.dataset.deTool === t));
     document.getElementById('deCropApply').style.display = 'none';
     const st = document.getElementById('deStage'); if (st) st.dataset.tool = t;
     deDraw();
 }
 // ---- drawing ----
+const deImgCache = {};
+function deImg(src) {
+    let im = deImgCache[src];
+    if (!im) { im = new Image(); im.onload = () => deDraw(); im.src = src; deImgCache[src] = im; }
+    return im.complete && im.naturalWidth ? im : null;
+}
+const deMeasureCtx = document.createElement('canvas').getContext('2d');
 function deDrawAnns(ctx, anns, W, H) {
     const M = Math.min(W, H);
     for (const a of anns) {
@@ -20075,11 +20112,12 @@ function deDrawAnns(ctx, anns, W, H) {
                 ctx.lineTo(x2 - L * Math.cos(ang + 0.45), y2 - L * Math.sin(ang + 0.45));
                 ctx.closePath(); ctx.fill();
             }
-        } else if (a.t === 'rect' || a.t === 'white' || a.t === 'ellipse') {
+        } else if (DE_BOX_TYPES.includes(a.t)) {
             const x = Math.min(a.x1, a.x2) * W, y = Math.min(a.y1, a.y2) * H, w = Math.abs(a.x2 - a.x1) * W, h = Math.abs(a.y2 - a.y1) * H;
             if (a.t === 'white') { ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y, w, h); }
             else if (a.t === 'rect') ctx.strokeRect(x, y, w, h);
-            else { ctx.beginPath(); ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2); ctx.stroke(); }
+            else if (a.t === 'ellipse') { ctx.beginPath(); ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2); ctx.stroke(); }
+            else if (a.t === 'icon') { const im = deImg(a.src); if (im) { const s = Math.min(w, h); ctx.drawImage(im, x + (w - s) / 2, y + (h - s) / 2, s, s); } }
         } else if (a.t === 'text') {
             const fs = Math.max(6, a.fs * M);
             ctx.font = `${fs}px Arial, Helvetica, sans-serif`; ctx.textBaseline = 'top';
@@ -20088,6 +20126,20 @@ function deDrawAnns(ctx, anns, W, H) {
         ctx.restore();
     }
 }
+// An item's box in display pixels.
+function deBox(a, W, H) {
+    if (a.pts) { const xs = a.pts.map(p => p[0] * W), ys = a.pts.map(p => p[1] * H); const x = Math.min(...xs), y = Math.min(...ys); return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y }; }
+    if (a.x1 != null) { const x = Math.min(a.x1, a.x2) * W, y = Math.min(a.y1, a.y2) * H; return { x, y, w: Math.abs(a.x2 - a.x1) * W, h: Math.abs(a.y2 - a.y1) * H }; }
+    const fs = Math.max(6, a.fs * Math.min(W, H)), lines = String(a.text).split('\n');
+    deMeasureCtx.font = `${fs}px Arial, Helvetica, sans-serif`;
+    return { x: a.x * W, y: a.y * H, w: Math.max(...lines.map(l => deMeasureCtx.measureText(l).width)), h: lines.length * fs * 1.2 };
+}
+function deHandles(b, isText) {
+    const { x, y, w, h } = b, cx = x + w / 2, cy = y + h / 2;
+    const all = [[x, y, 'nw'], [cx, y, 'n'], [x + w, y, 'ne'], [x + w, cy, 'e'], [x + w, y + h, 'se'], [cx, y + h, 's'], [x, y + h, 'sw'], [x, cy, 'w']];
+    return isText ? all.filter(hd => hd[2].length === 2) : all;
+}
+function deSize() { const pg = dePage(), cv = document.getElementById('deCanvas'); return { W: parseFloat(cv.style.width) || 1, H: parseFloat(cv.style.height) || 1, pg }; }
 function deDraw() {
     const pg = dePage(), cv = document.getElementById('deCanvas'), stage = document.getElementById('deStage');
     if (!cv || !stage) return;
@@ -20096,9 +20148,12 @@ function deDraw() {
         document.getElementById('dePage').textContent = DE.pages.length ? `Page ${DE.idx + 1} of ${DE.pages.length}${pg && pg.deleted ? ' (deleted)' : ''}${live !== DE.pages.length ? ` · ${live} kept` : ''}` : '';
     }
     document.getElementById('deUndo').disabled = !DE.undo.length; document.getElementById('deRedo').disabled = !DE.redo.length;
+    document.getElementById('deZoomPct').textContent = Math.round(DE.zoom * 100) + '%';
+    document.getElementById('deSelTools').hidden = !(pg && DE.sel >= 0 && pg.anns[DE.sel]);
     if (!pg || !pg.base) { cv.width = cv.height = 0; return; }
     const availW = stage.clientWidth - 24, availH = stage.clientHeight - 24;
-    const k = Math.min(availW / pg.base.width, availH / pg.base.height, 2);
+    const fit = Math.min(availW / pg.base.width, availH / pg.base.height, 2);
+    const k = fit * DE.zoom;
     const W = Math.max(1, Math.round(pg.base.width * k)), H = Math.max(1, Math.round(pg.base.height * k));
     const dpr = window.devicePixelRatio || 1;
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px';
@@ -20111,7 +20166,56 @@ function deDraw() {
         ctx.save(); ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(x, y, w, h); ctx.fill('evenodd');
         ctx.setLineDash([6, 4]); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, w, h); ctx.restore();
     }
+    // Snap guides
+    ctx.save(); ctx.strokeStyle = '#e0247d'; ctx.fillStyle = '#e0247d'; ctx.lineWidth = 1;
+    DE.guides.forEach(g => {
+        ctx.beginPath();
+        if (g.x != null) { ctx.moveTo(g.x, 0); ctx.lineTo(g.x, H); }
+        else if (g.y != null) { ctx.moveTo(0, g.y); ctx.lineTo(W, g.y); }
+        else if (g.dimW) { const b = g.dimW, yy = b.y + b.h + 8; ctx.moveTo(b.x, yy); ctx.lineTo(b.x + b.w, yy); ctx.moveTo(b.x, yy - 4); ctx.lineTo(b.x, yy + 4); ctx.moveTo(b.x + b.w, yy - 4); ctx.lineTo(b.x + b.w, yy + 4); }
+        else if (g.dimH) { const b = g.dimH, xx = b.x + b.w + 8; ctx.moveTo(xx, b.y); ctx.lineTo(xx, b.y + b.h); ctx.moveTo(xx - 4, b.y); ctx.lineTo(xx + 4, b.y); ctx.moveTo(xx - 4, b.y + b.h); ctx.lineTo(xx + 4, b.y + b.h); }
+        ctx.stroke();
+    });
+    ctx.restore();
+    // Selection
+    const a = DE.sel >= 0 && pg.anns[DE.sel];
+    if (a) {
+        const b = deBox(a, W, H);
+        ctx.save(); ctx.strokeStyle = '#1f6f9e'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]); ctx.strokeRect(b.x - 3, b.y - 3, b.w + 6, b.h + 6); ctx.setLineDash([]);
+        deHandles({ x: b.x - 3, y: b.y - 3, w: b.w + 6, h: b.h + 6 }, a.t === 'text').forEach(([hx, hy]) => { ctx.fillStyle = '#fff'; ctx.fillRect(hx - 4, hy - 4, 8, 8); ctx.strokeRect(hx - 4, hy - 4, 8, 8); });
+        ctx.restore();
+    }
     if (pg.deleted) { ctx.save(); ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#c0392b'; ctx.font = 'bold 22px Arial'; ctx.textAlign = 'center'; ctx.fillText('This page will be deleted', W / 2, H / 2); ctx.restore(); }
+    if (deTextBox) dePlaceText();
+}
+// ---- zoom (only the page zooms: Ctrl/⌘ + wheel, pinch, buttons) ----
+function deZoomTo(z, clientX, clientY) {
+    const stage = document.getElementById('deStage'), cv = document.getElementById('deCanvas');
+    z = Math.max(0.25, Math.min(6, z));
+    const r = cv.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+    const cx = clientX == null ? sr.left + sr.width / 2 : clientX, cy = clientY == null ? sr.top + sr.height / 2 : clientY;
+    const fx = r.width ? (cx - r.left) / r.width : 0.5, fy = r.height ? (cy - r.top) / r.height : 0.5;
+    DE.zoom = z; deDraw();
+    const r2 = cv.getBoundingClientRect();
+    stage.scrollLeft += (r2.left + fx * r2.width) - cx; stage.scrollTop += (r2.top + fy * r2.height) - cy;
+}
+// Shared by Edit Document and Create: Ctrl/⌘+wheel and trackpad/touch pinch zoom the stage, not the page.
+function attachStageZoom(stage, getZoom, zoomTo) {
+    stage.addEventListener('wheel', e => {
+        if (!e.ctrlKey && !e.metaKey) return;
+        e.preventDefault();
+        zoomTo(getZoom() * Math.exp(-e.deltaY * 0.0025), e.clientX, e.clientY);
+    }, { passive: false });
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => stage.addEventListener(t, e => e.preventDefault(), { passive: false }));
+    const touches = new Map(); let pinch = null;
+    stage.addEventListener('pointerdown', e => { if (e.pointerType !== 'touch') return; touches.set(e.pointerId, [e.clientX, e.clientY]); if (touches.size === 2) { const [a, b] = [...touches.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), z: getZoom() }; stage.dataset.pinching = '1'; } }, true);
+    stage.addEventListener('pointermove', e => {
+        if (!touches.has(e.pointerId)) return;
+        touches.set(e.pointerId, [e.clientX, e.clientY]);
+        if (pinch && touches.size === 2) { e.preventDefault(); e.stopPropagation(); const [a, b] = [...touches.values()]; zoomTo(pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); }
+    }, true);
+    const up = e => { touches.delete(e.pointerId); if (touches.size < 2) { pinch = null; delete stage.dataset.pinching; } };
+    stage.addEventListener('pointerup', up, true); stage.addEventListener('pointercancel', up, true);
 }
 // ---- page transforms (markup moves with the page) ----
 function deMapAnns(anns, f, sizeK) {
@@ -20130,10 +20234,17 @@ function deRotateCanvas(src, dir) {
 }
 async function deOp(op) {
     const pg = dePage(); if (!pg || DE.busy) return;
+    if (op === 'del' || op === 'dup') {
+        const a = pg.anns[DE.sel]; if (!a) return;
+        dePush(pg);
+        if (op === 'del') { pg.anns.splice(DE.sel, 1); DE.sel = -1; }
+        else { const c = JSON.parse(JSON.stringify(a)); deMove(c, 0.02, 0.02); pg.anns.push(c); DE.sel = pg.anns.length - 1; }
+        deDraw(); return;
+    }
     if (op === 'prev' || op === 'next') {
         const i = DE.idx + (op === 'next' ? 1 : -1);
         if (i < 0 || i >= DE.pages.length) return;
-        deCommitText(); DE.idx = i;
+        deCommitText(); DE.idx = i; DE.sel = -1;
         if (!DE.pages[i].base) { deStatus('Loading page…'); await deRenderPdfPage(DE.pages[i]); deStatus(''); }
         deDraw(); return;
     }
@@ -20166,19 +20277,37 @@ function deApplyCrop() {
     c.getContext('2d').drawImage(B, sx, sy, sw, sh, 0, 0, sw, sh);
     const k = Math.min(B.width, B.height) / Math.min(sw, sh);
     deMapAnns(pg.anns, (px, py) => [(px - x) / w, (py - y) / h], k);
-    pg.base = c; deSetTool('pen');
+    pg.base = c; deSetTool('select');
 }
-// ---- pointer input ----
+// ---- moving & resizing items ----
+function deMove(a, dx, dy) {
+    if (a.pts) a.pts = a.pts.map(([x, y]) => [x + dx, y + dy]);
+    if (a.x1 != null) { a.x1 += dx; a.x2 += dx; a.y1 += dy; a.y2 += dy; }
+    if (a.t === 'text') { a.x += dx; a.y += dy; }
+}
+// Puts item `a` (a copy of its state at drag start = `o`) into box nb (display px).
+function deFit(a, o, ob, nb, W, H) {
+    const sx = ob.w ? nb.w / ob.w : 1, sy = ob.h ? nb.h / ob.h : 1;
+    const mx = x => (nb.x + (x * W - ob.x) * sx) / W, my = y => (nb.y + (y * H - ob.y) * sy) / H;
+    if (o.pts) a.pts = o.pts.map(([x, y]) => [mx(x), my(y)]);
+    if (o.x1 != null) { a.x1 = mx(o.x1); a.x2 = mx(o.x2); a.y1 = my(o.y1); a.y2 = my(o.y2); }
+    if (o.t === 'text') { a.fs = o.fs * sx; a.x = nb.x / W; a.y = nb.y / H; }
+}
 function dePt(e) { const r = document.getElementById('deCanvas').getBoundingClientRect(); return [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))]; }
+function dePx(e) { const r = document.getElementById('deCanvas').getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
 function deSizeFrac() { return DE.size / 500; }
-function deHit(a, x, y, W, H) {
-    const tol = 8 / Math.min(W, H);
-    let xs = [], ys = [];
-    if (a.pts) { xs = a.pts.map(p => p[0]); ys = a.pts.map(p => p[1]); }
-    else if (a.x1 != null) { xs = [a.x1, a.x2]; ys = [a.y1, a.y2]; }
-    else if (a.t === 'text') { const lines = String(a.text).split('\n'); const fsN = a.fs * Math.min(W, H); xs = [a.x, a.x + Math.max(...lines.map(l => l.length)) * fsN * 0.55 / W]; ys = [a.y, a.y + lines.length * fsN * 1.2 / H]; }
-    return x >= Math.min(...xs) - tol && x <= Math.max(...xs) + tol && y >= Math.min(...ys) - tol && y <= Math.max(...ys) + tol;
+function deHitIndex(pg, px, py, W, H) {
+    for (let i = pg.anns.length - 1; i >= 0; i--) { const b = deBox(pg.anns[i], W, H), t = 6 + (pg.anns[i].s || 0) * Math.min(W, H) / 2; if (px >= b.x - t && px <= b.x + b.w + t && py >= b.y - t && py <= b.y + b.h + t) return i; }
+    return -1;
 }
+// Snap targets (display px): page edges & center lines, other items' edges & centers.
+function deTargets(pg, skip, W, H) {
+    const xs = [0, W / 2, W], ys = [0, H / 2, H], boxes = [];
+    pg.anns.forEach((a, i) => { if (i === skip) return; const b = deBox(a, W, H); boxes.push(b); xs.push(b.x, b.x + b.w / 2, b.x + b.w); ys.push(b.y, b.y + b.h / 2, b.y + b.h); });
+    return { xs, ys, boxes };
+}
+function deSnapVal(vals, targets) { let best = null; vals.forEach(v => targets.forEach(t => { const d = t - v; if (Math.abs(d) <= 6 && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, at: t }; })); return best; }
+// ---- text ----
 let deTextBox = null;
 function deCancelText() { if (deTextBox) { deTextBox.remove(); deTextBox = null; } }
 function deCommitText() {
@@ -20189,50 +20318,135 @@ function deCommitText() {
     pg.anns.push({ t: 'text', c: DE.color, x: at[0], y: at[1], fs: 0.012 + DE.size * 0.004, text: v });
     deDraw();
 }
+function dePlaceText() {
+    const ta = deTextBox, cv = document.getElementById('deCanvas'); if (!ta) return;
+    const W = parseFloat(cv.style.width), H = parseFloat(cv.style.height);
+    Object.assign(ta.style, { left: ta._at[0] * W + 'px', top: ta._at[1] * H + 'px', fontSize: (0.012 + DE.size * 0.004) * Math.min(W, H) + 'px', color: DE.color });
+}
 function deStartText(pt) {
     deCommitText();
-    const cv = document.getElementById('deCanvas'), stage = document.getElementById('deStage');
-    const r = cv.getBoundingClientRect(), sr = stage.getBoundingClientRect();
-    const fs = (0.012 + DE.size * 0.004) * Math.min(r.width, r.height);
     const ta = document.createElement('textarea');
     ta.className = 'de-textbox'; ta._at = pt; ta.rows = 1;
-    Object.assign(ta.style, { left: (r.left - sr.left + stage.scrollLeft + pt[0] * r.width) + 'px', top: (r.top - sr.top + stage.scrollTop + pt[1] * r.height) + 'px', fontSize: fs + 'px', color: DE.color });
     ta.placeholder = 'Type, then Enter';
     ta.addEventListener('keydown', ev => {
         if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); deCommitText(); }
         else if (ev.key === 'Escape') { ev.stopPropagation(); deCancelText(); }
     });
     ta.addEventListener('blur', () => setTimeout(deCommitText, 0));
-    stage.appendChild(ta); deTextBox = ta; setTimeout(() => ta.focus(), 0);
+    document.getElementById('deWrap').appendChild(ta); deTextBox = ta; dePlaceText(); setTimeout(() => ta.focus(), 0);
+}
+// ---- Elements (icons) — the same library as Create ----
+async function deIconsShow() {
+    const grid = document.getElementById('deIconGrid'), note = document.getElementById('deIconNote');
+    if (!DS.icons) {
+        note.textContent = 'Loading the icon library…';
+        try {
+            const [j, meta] = await Promise.all([fetch(DS_ICON_URL).then(r => r.json()), fetch(DS_ICON_META_URL).then(r => r.json()).catch(() => null)]);
+            DS.icons = j; DS.iconMeta = meta; DS.iconNames = Object.keys(j.icons).concat(Object.keys(j.aliases || {}));
+        } catch (err) { console.error(err); note.textContent = 'Couldn’t load the icon library — check the internet connection and try again.'; return; }
+    }
+    const sel = document.getElementById('deIconCat');
+    if (sel.options.length < 2 && DS.iconMeta && DS.iconMeta.categories) sel.innerHTML = '<option value="">Popular</option>' + Object.keys(DS.iconMeta.categories).sort().map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
+    const list = dsIconList(document.getElementById('deIconSearch').value, sel.value);
+    const shown = list.slice(0, DE.iconLimit || 160);
+    grid.innerHTML = shown.map(n => { const src = dsIconSrc(n, '#24211d'); return src ? `<button type="button" class="ds-icon" data-de-icon="${escapeAttr(n)}" title="${escapeAttr(n.replace(/-/g, ' '))}"><img src="${src}" alt=""></button>` : ''; }).join('')
+        + (list.length > shown.length ? `<button type="button" class="de-btn ds-more" id="deIconMore">Show more (${list.length - shown.length})</button>` : '');
+    note.textContent = !list.length ? 'No icons match — try another word.' : `${list.length.toLocaleString()} icon${list.length === 1 ? '' : 's'} · click one to add it`;
+}
+function deAddIcon(name) {
+    const pg = dePage(); if (!pg || !pg.base || pg.deleted) return;
+    const { W, H } = deSize(), s = Math.min(W, H) * 0.18;
+    const color = document.getElementById('deIconColor').value || DS.iconColor;
+    dePush(pg);
+    pg.anns.push({ t: 'icon', name, c: color, src: dsIconSrc(name, color), x1: (W / 2 - s / 2) / W, y1: (H / 2 - s / 2) / H, x2: (W / 2 + s / 2) / W, y2: (H / 2 + s / 2) / H });
+    DE.sel = pg.anns.length - 1; deSetTool('select');
 }
 function deWire(m) {
-    const cv = m.querySelector('#deCanvas');
-    let drawing = false;
+    const cv = m.querySelector('#deCanvas'), stage = m.querySelector('#deStage');
+    attachStageZoom(stage, () => DE.zoom, deZoomTo);
     cv.addEventListener('pointerdown', e => {
+        if (stage.dataset.pinching || (e.pointerType === 'touch' && !e.isPrimary)) return;
         const pg = dePage(); if (!pg || !pg.base || pg.deleted) return;
-        const pt = dePt(e);
+        const pt = dePt(e), [px, py] = dePx(e), W = cv.getBoundingClientRect().width, H = cv.getBoundingClientRect().height;
         if (DE.tool === 'text') { e.preventDefault(); deStartText(pt); return; }
-        if (DE.tool === 'erase') {
-            const r = cv.getBoundingClientRect();
-            for (let i = pg.anns.length - 1; i >= 0; i--) if (deHit(pg.anns[i], pt[0], pt[1], r.width, r.height)) { dePush(pg); pg.anns.splice(i, 1); deDraw(); break; }
-            return;
+        if (DE.tool === 'erase') { const i = deHitIndex(pg, px, py, W, H); if (i >= 0) { dePush(pg); pg.anns.splice(i, 1); DE.sel = -1; deDraw(); } return; }
+        if (DE.tool === 'select') {
+            const cur = DE.sel >= 0 && pg.anns[DE.sel];
+            if (cur) {
+                const b = deBox(cur, W, H), hd = deHandles({ x: b.x - 3, y: b.y - 3, w: b.w + 6, h: b.h + 6 }, cur.t === 'text').find(([hx, hy]) => Math.abs(px - hx) <= 7 && Math.abs(py - hy) <= 7);
+                if (hd) { dePush(pg); DE.drag = { mode: 'resize', hd: hd[2], start: [px, py], o: JSON.parse(JSON.stringify(cur)), ob: b }; cv.setPointerCapture(e.pointerId); return; }
+            }
+            DE.sel = deHitIndex(pg, px, py, W, H);
+            if (DE.sel >= 0) { const a = pg.anns[DE.sel]; DE.drag = { mode: 'move', start: [px, py], o: JSON.parse(JSON.stringify(a)), ob: deBox(a, W, H), pushed: false }; cv.setPointerCapture(e.pointerId); }
+            deDraw(); return;
         }
-        drawing = true; cv.setPointerCapture(e.pointerId);
+        DE.drawing = true; cv.setPointerCapture(e.pointerId);
         if (DE.tool === 'crop') { DE.crop = { x1: pt[0], y1: pt[1], x2: pt[0], y2: pt[1] }; document.getElementById('deCropApply').style.display = 'none'; }
         else if (DE.tool === 'pen' || DE.tool === 'hl') DE.draft = { t: DE.tool, c: DE.color, s: deSizeFrac(), pts: [pt] };
         else DE.draft = { t: DE.tool, c: DE.color, s: deSizeFrac(), x1: pt[0], y1: pt[1], x2: pt[0], y2: pt[1] };
         deDraw();
     });
     cv.addEventListener('pointermove', e => {
-        if (!drawing) return;
+        if (stage.dataset.pinching) return;
+        const pg = dePage(), d = DE.drag;
+        if (d && pg) {
+            const [px, py] = dePx(e), r = cv.getBoundingClientRect(), W = r.width, H = r.height, a = pg.anns[DE.sel]; if (!a) return;
+            let dx = px - d.start[0], dy = py - d.start[1];
+            DE.guides = [];
+            const snapOn = document.getElementById('deSnap').checked && !e.altKey, T = deTargets(pg, DE.sel, W, H);
+            if (d.mode === 'move') {
+                if (!d.pushed) { if (Math.abs(dx) + Math.abs(dy) < 3) return; dePush(pg); d.pushed = true; }
+                if (e.shiftKey) { if (Math.abs(dx) >= Math.abs(dy)) dy = 0; else dx = 0; }   // straight line
+                const nx = d.ob.x + dx, ny = d.ob.y + dy;
+                if (snapOn) {
+                    if (!e.shiftKey || dy === 0) { const s = deSnapVal([nx, nx + d.ob.w / 2, nx + d.ob.w], T.xs); if (s) { dx += s.d; DE.guides.push({ x: s.at }); } }
+                    if (!e.shiftKey || dx === 0 && dy !== 0) { const s = deSnapVal([ny, ny + d.ob.h / 2, ny + d.ob.h], T.ys); if (s) { dy += s.d; DE.guides.push({ y: s.at }); } }
+                }
+                deFit(a, d.o, d.ob, { x: d.ob.x + dx, y: d.ob.y + dy, w: d.ob.w, h: d.ob.h }, W, H);
+            } else {
+                const b = d.ob, hd = d.hd; let x1 = b.x, y1 = b.y, x2 = b.x + b.w, y2 = b.y + b.h;
+                if (hd.includes('w')) x1 += dx; if (hd.includes('e')) x2 += dx; if (hd.includes('n')) y1 += dy; if (hd.includes('s')) y2 += dy;
+                if (snapOn) {
+                    // The moving edge snaps to a line, or the size to another item's width/height — whichever is closer.
+                    const pick = (edgeVal, lines, size, sizes, sign) => {
+                        const e1 = deSnapVal([edgeVal], lines);
+                        const s1 = sizes.map(o => ({ o, d: (o.v - size) * sign })).filter(z => Math.abs(z.d) <= 6).sort((a1, b1) => Math.abs(a1.d) - Math.abs(b1.d))[0];
+                        if (s1 && (!e1 || Math.abs(s1.d) < Math.abs(e1.d))) return { d: s1.d, size: s1.o };
+                        return e1 ? { d: e1.d, at: e1.at } : null;
+                    };
+                    if (hd.includes('w') || hd.includes('e')) {
+                        const r = pick(hd.includes('w') ? x1 : x2, T.xs, x2 - x1, T.boxes.map(o => ({ v: o.w, box: o })), hd.includes('w') ? -1 : 1);
+                        if (r) { if (hd.includes('w')) x1 += r.d; else x2 += r.d; DE.guides.push(r.size ? { dimW: r.size.box } : { x: r.at }); }
+                    }
+                    if (hd.includes('n') || hd.includes('s')) {
+                        const r = pick(hd.includes('n') ? y1 : y2, T.ys, y2 - y1, T.boxes.map(o => ({ v: o.h, box: o })), hd.includes('n') ? -1 : 1);
+                        if (r) { if (hd.includes('n')) y1 += r.d; else y2 += r.d; DE.guides.push(r.size ? { dimH: r.size.box } : { y: r.at }); }
+                    }
+                }
+                let w = Math.max(4, x2 - x1), h = Math.max(4, y2 - y1);
+                // Icons & text keep their shape from a corner (Shift = free for icons).
+                if ((a.t === 'icon' && !e.shiftKey || a.t === 'text') && hd.length === 2 && b.w && b.h) { const rr = b.w / b.h; if (w / h > rr) w = h * rr; else h = w / rr; if (hd.includes('w')) x1 = x2 - w; if (hd.includes('n')) y1 = y2 - h; }
+                const nb = { x: hd.includes('w') ? x2 - w : x1, y: hd.includes('n') ? y2 - h : y1, w, h };
+                if (nb.w > 0 && nb.h >= 0) { const ww = nb.w, hh = nb.h; deFit(a, d.o, b, { x: nb.x, y: nb.y, w: ww, h: hh }, W, H); }
+                const nb2 = deBox(a, W, H);
+                DE.guides.forEach(g => { if (g.dimW) g.dimW2 = nb2; if (g.dimH) g.dimH2 = nb2; });
+                DE.guides = DE.guides.concat(DE.guides.filter(g => g.dimW2 || g.dimH2).map(g => g.dimW2 ? { dimW: g.dimW2 } : { dimH: g.dimH2 }));
+            }
+            deDraw(); return;
+        }
+        if (!DE.drawing) return;
         const pt = dePt(e);
         if (DE.tool === 'crop' && DE.crop) { DE.crop.x2 = pt[0]; DE.crop.y2 = pt[1]; }
         else if (DE.draft && DE.draft.pts) DE.draft.pts.push(pt);
-        else if (DE.draft) { DE.draft.x2 = pt[0]; DE.draft.y2 = pt[1]; }
+        else if (DE.draft) {
+            if (e.shiftKey) { const r = cv.getBoundingClientRect(), ddx = (pt[0] - DE.draft.x1) * r.width, ddy = (pt[1] - DE.draft.y1) * r.height; if (Math.abs(ddx) >= Math.abs(ddy)) pt[1] = DE.draft.y1; else pt[0] = DE.draft.x1; }
+            DE.draft.x2 = pt[0]; DE.draft.y2 = pt[1];
+        }
         deDraw();
     });
     const end = () => {
-        if (!drawing) return; drawing = false;
+        if (DE.drag) { DE.drag = null; DE.guides = []; deDraw(); return; }
+        if (!DE.drawing) return; DE.drawing = false;
         if (DE.tool === 'crop') { document.getElementById('deCropApply').style.display = DE.crop && Math.abs(DE.crop.x2 - DE.crop.x1) > 0.02 && Math.abs(DE.crop.y2 - DE.crop.y1) > 0.02 ? '' : 'none'; return; }
         const d = DE.draft; DE.draft = null;
         if (d && (d.pts || Math.abs(d.x2 - d.x1) + Math.abs(d.y2 - d.y1) > 0.004)) { const pg = dePage(); dePush(pg); pg.anns.push(d); }
@@ -20241,14 +20455,25 @@ function deWire(m) {
     cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
     m.addEventListener('click', e => {
         const t = e.target.closest('[data-de-tool]'); if (t) { deCommitText(); deSetTool(t.dataset.deTool); return; }
-        const c = e.target.closest('[data-de-color]'); if (c) { DE.color = c.dataset.deColor; document.getElementById('deColor').value = DE.color; m.querySelectorAll('.de-swatch').forEach(b => b.classList.toggle('on', b === c)); return; }
-        const o = e.target.closest('[data-de-op]'); if (o) { deCommitText(); deOp(o.dataset.deOp); }
+        const c = e.target.closest('[data-de-color]'); if (c) { deColorPick(c.dataset.deColor); m.querySelectorAll('.de-swatch').forEach(b => b.classList.toggle('on', b === c)); return; }
+        const o = e.target.closest('[data-de-op]'); if (o) { deCommitText(); deOp(o.dataset.deOp); return; }
+        const ic = e.target.closest('[data-de-icon]'); if (ic) { deAddIcon(ic.dataset.deIcon); return; }
+        if (e.target.id === 'deIconMore') { DE.iconLimit = (DE.iconLimit || 160) + 320; deIconsShow(); }
     });
-    m.querySelector('#deColor').addEventListener('input', e => { DE.color = e.target.value; m.querySelectorAll('.de-swatch').forEach(b => b.classList.remove('on')); });
+    m.querySelector('#deElementsBtn').addEventListener('click', () => { const side = m.querySelector('#deSide'); side.hidden = !side.hidden; m.querySelector('#deElementsBtn').classList.toggle('on', !side.hidden); if (!side.hidden) deIconsShow(); deDraw(); });
+    m.querySelector('#deSideClose').addEventListener('click', () => m.querySelector('#deElementsBtn').click());
+    m.querySelector('#deIconSearch').addEventListener('input', () => { DE.iconLimit = 160; clearTimeout(DE.searchT); DE.searchT = setTimeout(deIconsShow, 150); });
+    m.querySelector('#deIconCat').addEventListener('change', () => { DE.iconLimit = 160; m.querySelector('#deIconSearch').value = ''; deIconsShow(); });
+    m.querySelector('#deIconColor').addEventListener('input', e => { DS.iconColor = e.target.value; const pg = dePage(), a = pg && pg.anns[DE.sel]; if (a && a.t === 'icon') { if (!DE.colorPushed) { dePush(pg); DE.colorPushed = true; } a.c = e.target.value; a.src = dsIconSrc(a.name, a.c); deDraw(); } });
+    m.querySelector('#deIconColor').addEventListener('change', () => { DE.colorPushed = false; });
+    m.querySelector('#deColor').addEventListener('input', e => { deColorPick(e.target.value); m.querySelectorAll('.de-swatch').forEach(b => b.classList.remove('on')); });
     m.querySelector('#deSize').addEventListener('input', e => { DE.size = +e.target.value; });
     m.querySelector('#deBright').addEventListener('input', e => { DE.bright = +e.target.value; deDraw(); });
     m.querySelector('#deContrast').addEventListener('input', e => { DE.contrast = +e.target.value; deDraw(); });
     m.querySelector('#deCropApply').addEventListener('click', deApplyCrop);
+    m.querySelector('#deZoomIn').addEventListener('click', () => deZoomTo(DE.zoom * 1.25));
+    m.querySelector('#deZoomOut').addEventListener('click', () => deZoomTo(DE.zoom / 1.25));
+    m.querySelector('#deZoomFit').addEventListener('click', () => { DE.zoom = 1; deDraw(); });
     m.querySelector('#deUndo').addEventListener('click', () => { deCommitText(); const s = DE.undo.pop(); if (s) deRestore(s, DE.undo, DE.redo); });
     m.querySelector('#deRedo').addEventListener('click', () => { const s = DE.redo.pop(); if (s) deRestore(s, DE.redo, DE.undo); });
     m.querySelector('#deClose').addEventListener('click', () => deClose(false));
@@ -20256,19 +20481,37 @@ function deWire(m) {
     m.querySelector('#deDownload').addEventListener('click', () => deSave(true));
     document.addEventListener('keydown', e => {
         if (m.style.display !== 'flex' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); m.querySelector(e.shiftKey ? '#deRedo' : '#deUndo').click(); }
-        else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); m.querySelector('#deRedo').click(); }
-        else if (e.key === 'Escape') deClose(false);
+        const mod = e.ctrlKey || e.metaKey, pg = dePage(), a = pg && DE.sel >= 0 && pg.anns[DE.sel];
+        if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); m.querySelector(e.shiftKey ? '#deRedo' : '#deUndo').click(); }
+        else if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); m.querySelector('#deRedo').click(); }
+        else if (mod && (e.key === '=' || e.key === '+')) { e.preventDefault(); deZoomTo(DE.zoom * 1.25); }
+        else if (mod && e.key === '-') { e.preventDefault(); deZoomTo(DE.zoom / 1.25); }
+        else if (mod && e.key === '0') { e.preventDefault(); DE.zoom = 1; deDraw(); }
+        else if (mod && e.key.toLowerCase() === 'd' && a) { e.preventDefault(); deOp('dup'); }
+        else if ((e.key === 'Delete' || e.key === 'Backspace') && a) { e.preventDefault(); deOp('del'); }
+        else if (e.key.startsWith('Arrow') && a) {
+            e.preventDefault(); const { W, H } = deSize(), st = e.shiftKey ? 10 : 1;
+            if (!DE.nudging) { dePush(pg); DE.nudging = true; setTimeout(() => { DE.nudging = false; }, 600); }
+            deMove(a, (e.key === 'ArrowRight' ? st : e.key === 'ArrowLeft' ? -st : 0) / W, (e.key === 'ArrowDown' ? st : e.key === 'ArrowUp' ? -st : 0) / H); deDraw();
+        }
+        else if (e.key === 'Escape') { if (DE.sel >= 0) { DE.sel = -1; deDraw(); } else deClose(false); }
     });
     window.addEventListener('resize', () => { if (m.style.display === 'flex') deDraw(); });
 }
-// ---- save ----
+// A color pick applies to new marks, and recolors the selected item.
+function deColorPick(c) {
+    DE.color = c; document.getElementById('deColor').value = c;
+    const pg = dePage(), a = pg && DE.sel >= 0 && pg.anns[DE.sel];
+    if (a && a.t !== 'white') { dePush(pg); a.c = c; if (a.t === 'icon') a.src = dsIconSrc(a.name, c); deDraw(); }
+}
+// ---- save (always a new document; the original is never changed) ----
 async function deBuildFile() {
     if (DE.kind === 'image') {
         const pg = DE.pages[0], B = pg.base;
         const c = document.createElement('canvas'); c.width = B.width; c.height = B.height;
         const ctx = c.getContext('2d');
         ctx.filter = `brightness(${DE.bright}%) contrast(${DE.contrast}%)`; ctx.drawImage(B, 0, 0); ctx.filter = 'none';
+        await deIconsReady(pg.anns);
         deDrawAnns(ctx, pg.anns, c.width, c.height);
         const keep = /^image\/(png|jpeg|webp)$/.test(DE.mime);
         const type = keep ? DE.mime : 'image/png';
@@ -20286,6 +20529,7 @@ async function deBuildFile() {
         const r0 = page.getRotation().angle || 0, T = (r0 + st.rot) % 360;
         if (st.rot) page.setRotation(PDFLib.degrees(T));
         if (!st.anns.length) continue;
+        await deIconsReady(st.anns);
         const box = page.getCropBox(), x0 = box.x, y0 = box.y, W = box.width, Hh = box.height;
         const dw = T % 180 ? Hh : W, dh = T % 180 ? W : Hh;   // page size as shown
         const k = Math.min(3, 2400 / Math.max(dw, dh));
@@ -20300,20 +20544,31 @@ async function deBuildFile() {
     const bytes = await out.save();
     return new File([bytes], DE.filename.replace(/\.[^.]+$/, '') + '.pdf', { type: 'application/pdf' });
 }
+function deIconsReady(anns) {
+    return Promise.all(anns.filter(a => a.t === 'icon').map(a => new Promise(res => { const im = deImg(a.src) || deImgCache[a.src]; if (!im || im.complete) return res(); im.onload = im.onerror = res; })));
+}
+// "Copy of <title> - edited" (and the file name to match).
+function docsCopyName(title, filename) {
+    const ext = (/\.[^.]+$/.exec(filename || '') || ['.pdf'])[0];
+    const base = String(filename || title || 'document').replace(/\.[^.]+$/, '');
+    return { title: `Copy of ${title || base} - edited`, filename: `Copy of ${base} - edited${ext}` };
+}
 async function deSave(downloadOnly) {
     if (DE.busy || !DE.doc) return;
     deCommitText();
-    DE.busy = true; deStatus(downloadOnly ? 'Preparing…' : 'Saving…');
+    DE.busy = true; deStatus(downloadOnly ? 'Preparing…' : 'Saving a copy…');
     try {
-        const file = await deBuildFile();
+        const built = await deBuildFile();
+        const names = docsCopyName(DE.doc.title, built.name);
+        const file = new File([built], names.filename, { type: built.type });
         if (downloadOnly) {
             const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name;
             document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
             deStatus('Copy downloaded.');
         } else {
-            const doc = DE.doc;
+            const section = DE.section || docsCurrentSection, print = DE.doc.print;
             deClose(true);
-            await docsReplaceDocFile(doc, file);
+            await docsAddNewFile(file, names.title, section, print);
         }
     } catch (err) {
         console.error(err);
@@ -20393,7 +20648,7 @@ function dsEl() {
 const dsStatus = t => { const el = document.getElementById('dsStatus'); if (el) el.textContent = t || ''; };
 function dsOpen(design, doc) {
     const m = dsEl(); dsLoadFonts();
-    Object.assign(DS, { objs: [], sel: null, page: 'letter-p', bg: '#ffffff', undo: [], redo: [], title: 'Untitled design', doc: doc || null, guides: [], tool: 'select', drag: null, editing: null, dirty: false });
+    Object.assign(DS, { objs: [], sel: null, page: 'letter-p', bg: '#ffffff', undo: [], redo: [], title: 'Untitled design', doc: doc || null, section: docsCurrentSection, guides: [], tool: 'select', drag: null, editing: null, dirty: false });
     if (design) Object.assign(DS, { objs: design.objs || [], page: design.page || 'letter-p', bg: design.bg || '#ffffff', title: design.title || (doc && doc.title) || 'Untitled design' });
     document.getElementById('dsTitle').value = DS.title;
     document.getElementById('dsPageSize').value = DS.page;
@@ -20489,7 +20744,15 @@ function dsRender(ctx, k, forExport) {
     DS.objs.forEach(o => { if (forExport || !o._hide) dsDrawObj(ctx, o); });
     if (!forExport) {
         ctx.strokeStyle = '#e0247d'; ctx.lineWidth = 1 / k;
-        DS.guides.forEach(g => { ctx.beginPath(); if (g.x != null) { ctx.moveTo(g.x, 0); ctx.lineTo(g.x, PH); } else { ctx.moveTo(0, g.y); ctx.lineTo(PW, g.y); } ctx.stroke(); });
+        const dimMark = (b, horiz) => { if (horiz) { const yy = b.y + b.h + 8 / k; ctx.moveTo(b.x, yy); ctx.lineTo(b.x + b.w, yy); ctx.moveTo(b.x, yy - 4 / k); ctx.lineTo(b.x, yy + 4 / k); ctx.moveTo(b.x + b.w, yy - 4 / k); ctx.lineTo(b.x + b.w, yy + 4 / k); } else { const xx = b.x + b.w + 8 / k; ctx.moveTo(xx, b.y); ctx.lineTo(xx, b.y + b.h); ctx.moveTo(xx - 4 / k, b.y); ctx.lineTo(xx + 4 / k, b.y); ctx.moveTo(xx - 4 / k, b.y + b.h); ctx.lineTo(xx + 4 / k, b.y + b.h); } };
+        const selO = dsObj(DS.sel);
+        DS.guides.forEach(g => {
+            ctx.beginPath();
+            if (g.dimW) { dimMark(g.dimW, true); if (selO) dimMark(selO, true); }
+            else if (g.dimH) { dimMark(g.dimH, false); if (selO) dimMark(selO, false); }
+            else if (g.x != null) { ctx.moveTo(g.x, 0); ctx.lineTo(g.x, PH); } else { ctx.moveTo(0, g.y); ctx.lineTo(PW, g.y); }
+            ctx.stroke();
+        });
         const o = dsObj(DS.sel);
         if (o) {
             ctx.strokeStyle = '#1f6f9e'; ctx.lineWidth = 1.5 / k; ctx.setLineDash([5 / k, 3 / k]); ctx.strokeRect(o.x, o.y, o.w, o.h); ctx.setLineDash([]);
@@ -20587,7 +20850,16 @@ async function dsLoadIcons() {
 async function dsIconsShow() {
     const grid = document.getElementById('dsIconGrid');
     if (!(await dsLoadIcons())) { grid.innerHTML = ''; return; }
-    const q = document.getElementById('dsIconSearch').value.trim().toLowerCase(), cat = document.getElementById('dsIconCat').value;
+    const q = document.getElementById('dsIconSearch').value.trim(), cat = document.getElementById('dsIconCat').value;
+    const list = dsIconList(q, cat);
+    const shown = list.slice(0, DS.iconLimit || 160);
+    grid.innerHTML = shown.map(n => { const src = dsIconSrc(n, '#24211d'); return src ? `<button type="button" class="ds-icon" data-ds-icon="${escapeAttr(n)}" title="${escapeAttr(n.replace(/-/g, ' '))}"><img src="${src}" alt=""></button>` : ''; }).join('')
+        + (list.length > shown.length ? `<button type="button" class="de-btn ds-more" id="dsIconMore">Show more (${list.length - shown.length})</button>` : '');
+    document.getElementById('dsIconNote').textContent = q && !list.length ? 'No icons match — try another word (e.g. "faucet" for sink, "cursor" for click).' : `${list.length.toLocaleString()} icon${list.length === 1 ? '' : 's'}${q || cat ? '' : ' · search 7,600+ more'}`;
+}
+// Icons for a search (names + friendly synonyms, best match first), a category, or the popular set.
+function dsIconList(qRaw, cat) {
+    const q = String(qRaw || '').trim().toLowerCase();
     let list;
     if (q) {
         const terms = q.split(/[\s,]+/).filter(Boolean);
@@ -20598,10 +20870,7 @@ async function dsIconsShow() {
             .filter(n => { const real = DS.icons.icons[n] ? n : DS.icons.aliases[n].parent; if (seen.has(real)) return false; seen.add(real); return true; });
     } else if (cat && DS.iconMeta) list = DS.iconMeta.categories[cat] || [];
     else list = DS_POPULAR;
-    const shown = list.slice(0, DS.iconLimit || 160);
-    grid.innerHTML = shown.map(n => { const src = dsIconSrc(n, '#24211d'); return src ? `<button type="button" class="ds-icon" data-ds-icon="${escapeAttr(n)}" title="${escapeAttr(n.replace(/-/g, ' '))}"><img src="${src}" alt=""></button>` : ''; }).join('')
-        + (list.length > shown.length ? `<button type="button" class="de-btn ds-more" id="dsIconMore">Show more (${list.length - shown.length})</button>` : '');
-    document.getElementById('dsIconNote').textContent = q && !list.length ? 'No icons match — try another word (e.g. "faucet" for sink, "cursor" for click).' : `${list.length.toLocaleString()} icon${list.length === 1 ? '' : 's'}${q || cat ? '' : ' · search 7,600+ more'}`;
+    return list;
 }
 // ---- Documents list (Uploads tab) ----
 function dsDocList() {
@@ -20747,10 +21016,15 @@ async function dsSave() {
     DS.title = document.getElementById('dsTitle').value.trim() || 'Untitled design';
     dsStatus('Saving…');
     try {
-        const file = new File([await dsBuildPdf()], dsSafeName() + '.pdf', { type: 'application/pdf' });
         if (DS.doc) {
-            const doc = DS.doc; dsClose(true); await docsReplaceDocFile(doc, file);
+            // Editing a saved document: always a new copy, never the original.
+            const names = docsCopyName(DS.doc.title, DS.doc.filename || (DS.doc.title + '.pdf'));
+            DS.title = names.title;
+            const file = new File([await dsBuildPdf()], names.filename, { type: 'application/pdf' });
+            const section = DS.section || docsCurrentSection;
+            dsClose(true); await docsAddNewFile(file, names.title, section);
         } else {
+            const file = new File([await dsBuildPdf()], dsSafeName() + '.pdf', { type: 'application/pdf' });
             const section = DOC_SECTIONS.find(s => s.id === docsCurrentSection) || DOC_SECTIONS.find(s => s.id === 'other');
             dsClose(true); await docsAddNewFile(file, DS.title, section.id);
         }
@@ -20758,9 +21032,21 @@ async function dsSave() {
     } catch (err) { console.error(err); dsStatus(''); alert('Couldn’t save the design. Try again, or download it as a PDF.'); }
 }
 // ---- wiring ----
+function dsZoomTo(z, clientX, clientY) {
+    const stage = document.getElementById('dsStage'), cv = document.getElementById('dsCanvas');
+    z = Math.max(0.2, Math.min(5, z));
+    const r = cv.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+    const cx = clientX == null ? sr.left + sr.width / 2 : clientX, cy = clientY == null ? sr.top + sr.height / 2 : clientY;
+    const fx = (cx - r.left) / r.width, fy = (cy - r.top) / r.height;
+    DS.zoom = z; dsDraw();
+    const r2 = cv.getBoundingClientRect();
+    stage.scrollLeft += (r2.left + fx * r2.width) - cx; stage.scrollTop += (r2.top + fy * r2.height) - cy;
+}
 function dsWire(m) {
     const cv = m.querySelector('#dsCanvas');
+    attachStageZoom(m.querySelector('#dsStage'), () => DS.zoom, dsZoomTo);
     cv.addEventListener('pointerdown', e => {
+        if (document.getElementById('dsStage').dataset.pinching || (e.pointerType === 'touch' && !e.isPrimary)) return;
         if (DS.editing) dsStopEdit();
         const [px, py] = dsPt(e);
         if (DS.tool === 'draw') { DS.drag = { mode: 'draw', pts: [[px, py]] }; cv.setPointerCapture(e.pointerId); return; }
@@ -20772,17 +21058,18 @@ function dsWire(m) {
         dsDraw();
     });
     cv.addEventListener('pointermove', e => {
-        const d = DS.drag; if (!d) return;
+        const d = DS.drag; if (!d || document.getElementById('dsStage').dataset.pinching) return;
         const [px, py] = dsPt(e);
         if (d.mode === 'draw') { d.pts.push([px, py]); dsDraw(); return; }
         const o = d.o, dx = px - d.start[0], dy = py - d.start[1];
         DS.guides = [];
         if (d.mode === 'move') {
             if (!d.pushed) { if (Math.abs(dx) + Math.abs(dy) < 2) return; dsPush(); d.pushed = true; }
-            let nx = d.box.x + dx, ny = d.box.y + dy;
+            const lockY = e.shiftKey && Math.abs(dx) >= Math.abs(dy), lockX = e.shiftKey && !lockY;   // Shift = straight line
+            let nx = d.box.x + (lockX ? 0 : dx), ny = d.box.y + (lockY ? 0 : dy);
             if (DS.snap && !e.altKey) {
                 const L = dsSnapLines(o.id);
-                const sx = dsSnap1([nx, nx + o.w / 2, nx + o.w], L.xs, DS.grid), sy = dsSnap1([ny, ny + o.h / 2, ny + o.h], L.ys, DS.grid);
+                const sx = !lockX && dsSnap1([nx, nx + o.w / 2, nx + o.w], L.xs, DS.grid), sy = !lockY && dsSnap1([ny, ny + o.h / 2, ny + o.h], L.ys, DS.grid);
                 if (sx) { nx += sx.d; if (sx.at != null) DS.guides.push({ x: sx.at }); }
                 if (sy) { ny += sy.d; if (sy.at != null) DS.guides.push({ y: sy.at }); }
             }
@@ -20791,11 +21078,23 @@ function dsWire(m) {
             const b = d.box, hd = d.hd; let x1 = b.x, y1 = b.y, x2 = b.x + b.w, y2 = b.y + b.h;
             if (hd.includes('w')) x1 += dx; if (hd.includes('e')) x2 += dx; if (hd.includes('n')) y1 += dy; if (hd.includes('s')) y2 += dy;
             if (DS.snap && !e.altKey) {
-                const L = dsSnapLines(o.id);
-                if (hd.includes('w')) { const s = dsSnap1([x1], L.xs, DS.grid); if (s) { x1 += s.d; if (s.at != null) DS.guides.push({ x: s.at }); } }
-                if (hd.includes('e')) { const s = dsSnap1([x2], L.xs, DS.grid); if (s) { x2 += s.d; if (s.at != null) DS.guides.push({ x: s.at }); } }
-                if (hd.includes('n')) { const s = dsSnap1([y1], L.ys, DS.grid); if (s) { y1 += s.d; if (s.at != null) DS.guides.push({ y: s.at }); } }
-                if (hd.includes('s')) { const s = dsSnap1([y2], L.ys, DS.grid); if (s) { y2 += s.d; if (s.at != null) DS.guides.push({ y: s.at }); } }
+                // The moving edge snaps to a line, or the size to another item's width/height (dimension
+                // marks show it) — whichever is closer.
+                const L = dsSnapLines(o.id), others = DS.objs.filter(x => x.id !== o.id), th = 6 / DS.zoom;
+                const pick = (edgeVal, lines, size, key, sign) => {
+                    const e1 = dsSnap1([edgeVal], lines, DS.grid);
+                    const s1 = others.map(x => ({ x, d: (x[key] - size) * sign })).filter(z => Math.abs(z.d) <= th).sort((a1, b1) => Math.abs(a1.d) - Math.abs(b1.d))[0];
+                    if (s1 && (!e1 || Math.abs(s1.d) < Math.abs(e1.d))) return { d: s1.d, size: s1.x };
+                    return e1 || null;
+                };
+                if (hd.includes('w') || hd.includes('e')) {
+                    const r = pick(hd.includes('w') ? x1 : x2, L.xs, x2 - x1, 'w', hd.includes('w') ? -1 : 1);
+                    if (r) { if (hd.includes('w')) x1 += r.d; else x2 += r.d; if (r.size) DS.guides.push({ dimW: r.size }); else if (r.at != null) DS.guides.push({ x: r.at }); }
+                }
+                if ((hd.includes('n') || hd.includes('s')) && o.type !== 'text') {
+                    const r = pick(hd.includes('n') ? y1 : y2, L.ys, y2 - y1, 'h', hd.includes('n') ? -1 : 1);
+                    if (r) { if (hd.includes('n')) y1 += r.d; else y2 += r.d; if (r.size) DS.guides.push({ dimH: r.size }); else if (r.at != null) DS.guides.push({ y: r.at }); }
+                }
             }
             const minS = o.type === 'path' ? 1 : 10;
             let w = Math.max(minS, x2 - x1), h = Math.max(o.type === 'path' ? 1 : 10, y2 - y1);
@@ -20867,8 +21166,8 @@ function dsWire(m) {
     m.querySelector('#dsGrid').addEventListener('change', e => { DS.grid = e.target.checked; dsDraw(); });
     m.querySelector('#dsSnap').addEventListener('change', e => { DS.snap = e.target.checked; });
     m.querySelector('#dsZoomFit').addEventListener('click', dsFit);
-    m.querySelector('#dsZoomIn').addEventListener('click', () => { DS.zoom = Math.min(4, DS.zoom * 1.25); dsDraw(); });
-    m.querySelector('#dsZoomOut').addEventListener('click', () => { DS.zoom = Math.max(0.2, DS.zoom / 1.25); dsDraw(); });
+    m.querySelector('#dsZoomIn').addEventListener('click', () => dsZoomTo(DS.zoom * 1.25));
+    m.querySelector('#dsZoomOut').addEventListener('click', () => dsZoomTo(DS.zoom / 1.25));
     m.querySelector('#dsUndo').addEventListener('click', () => { dsStopEdit(); dsRestore(DS.undo, DS.redo); });
     m.querySelector('#dsRedo').addEventListener('click', () => dsRestore(DS.redo, DS.undo));
     m.querySelector('#dsTitle').addEventListener('input', e => { DS.title = e.target.value; DS.dirty = true; });
@@ -20892,9 +21191,9 @@ function dsWire(m) {
     window.addEventListener('resize', () => { if (m.style.display === 'flex') dsFit(); });
 }
 // A brand-new file in a Documents section (used by Create).
-async function docsAddNewFile(file, title, sectionId) {
+async function docsAddNewFile(file, title, sectionId, print) {
     const mime = docsCheckFile(file); if (!mime) return false;
-    const entry = { id: docsNewId(), section: sectionId, title, name: file.name, size: file.size, mime, print: 'full', added: new Date().toISOString() };
+    const entry = { id: docsNewId(), section: sectionId, title, name: file.name, size: file.size, mime, print: print || 'full', added: new Date().toISOString() };
     docsSyncCard(entry.id, 'working', `Saving “${entry.title}” (${docsSectionLabel(sectionId)})`, 'Reading the file…', 0.01);
     const b64 = await docsReadBase64(file);
     await docsCachePut(entry.id, b64);
