@@ -2123,7 +2123,8 @@
     .fp-list { flex: none; max-width: 100%; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
     .fp-row { display: grid; grid-template-columns: 270px 70px 62px 66px 58px 54px 40px 124px; align-items: center; gap: 8px; padding: 3px 8px; font-size: 12.5px; border-top: 1px solid var(--line); min-height: 30px; font-variant-numeric: tabular-nums; cursor: pointer; }
     .fp-head { cursor: default; }
-    .fp-row.ot-row { grid-template-columns: 26px 330px 44px 64px 64px 164px; }
+    .fp-row.ot-row { grid-template-columns: 26px 330px 44px 64px 70px max-content; }
+    .fp-row.ot-row .fp-actions { white-space: nowrap; }
     .fp-row.ot-row .docs-drag-handle { margin: 0; width: 24px; height: 22px; }
     .fp-row.ot-dragging { opacity: 0.55; outline: 2px dashed var(--reve-orange); outline-offset: -2px; }
     .de-overlay { position: fixed; inset: 0; z-index: 3000; background: rgba(20,18,16,.72); display: none; align-items: stretch; justify-content: center; padding: 16px; }
@@ -2224,7 +2225,8 @@
     .docs-edit-btn:hover, .docs-edit-btn:focus-visible { background: rgba(0,0,0,0.06); color: var(--reve-orange); outline: none; }
     .fp-actions .docs-edit-btn { width: 24px; height: 22px; border: 1px solid var(--line); border-radius: 999px; }
     .fp-actions .docs-edit-btn svg { width: 13px; height: 13px; }
-    .docs-card-foot .docs-edit-btn { margin-left: auto; }
+    .docs-foot-group { display: inline-flex; align-items: center; gap: 2px; }
+    .docs-card-foot .docs-card-links:empty { display: none; }
     .docs-x-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 24px; border: none; background: none; color: var(--ink-soft); border-radius: 5px; cursor: pointer; padding: 0; flex: none; }
     .docs-x-btn svg { width: 14px; height: 14px; }
     .docs-x-btn:hover, .docs-x-btn:focus-visible { background: #fdeeec; color: #c0392b; outline: none; }
@@ -14670,18 +14672,20 @@ async function resCheckInDraft(id, btn) {
         wlPersistLocal(); wlPushDebounced();
     }
     const t = Object.assign({}, ET_BUILTIN.find(b => b.id === 'checkin'), etFor('checkin') || {});
-    const atts = [];
-    const u = byUnit[unit];
-    const map = resMoverMapForFloor(u && u.floor);
-    if (map) atts.push({ ref: `doc:${map.sec}|${map.d.key}`, title: map.d.title || map.d.filename });
+    const atts = [], extra = [];
+    // The unit's floor map: a blank map with only this unit in orange,
+    // made on the spot and attached (not saved to Documents).
+    let map = null;
+    try { map = await sitemapUnitMapFile(unit); } catch (err) { console.error(err); }
+    if (map) extra.push({ name: map.name, blob: map });
     const door = resDoorAppDoc();
     if (door) atts.push({ ref: `doc:${door.sec}|${door.d.key}`, title: door.d.title || door.d.filename });
-    const missing = [!map && `the ${u && u.floor ? 'floor ' + u.floor + ' ' : ''}Mover\u2019s Map (a document titled with \u201cMover\u201d and the floor)`, !door && 'the DOOR App Access document'].filter(Boolean);
+    const missing = [!map && `the floor map for unit ${unit}`, !door && 'the DOOR App Access document'].filter(Boolean);
     if (missing.length && !confirm(`Couldn\u2019t find ${missing.join(' or ')}.\n\nCreate the draft without ${missing.length === 1 ? 'it' : 'them'}?`)) return;
     t.attachments = atts.concat((t.attachments || []).filter(a => !atts.some(x => x.ref === a.ref)));
     const firsts = everyone.map(n => n.split(/\s+/)[0]);
     if (btn) btn.disabled = true;
-    try { await etOpenDraft(emails, t, { name: firsts.length ? wlJoinNames(firsts) : '', unit, date: resLongDate(r.moveInDate), officeHours: resCheckInHoursText(r.moveInDate), requirements: resCheckInRequirementsText(r) }); }
+    try { await etOpenDraft(emails, t, { name: firsts.length ? wlJoinNames(firsts) : '', unit, date: resLongDate(r.moveInDate), officeHours: resCheckInHoursText(r.moveInDate), requirements: resCheckInRequirementsText(r) }, extra); }
     finally { if (btn) btn.disabled = false; }
 }
 document.getElementById('resCheckInList').addEventListener('click', e => {
@@ -17057,6 +17061,9 @@ async function wlCreateEmailDraft() {
             console.error(err);
             if (!confirm('Couldn\u2019t generate the Welcome Letter PDF.\n\nCreate the draft without it?')) return;
         }
+        // The unit's floor map (blank map, only this unit in orange) — attached, not saved.
+        try { const map = await sitemapUnitMapFile(unit); if (map) extra.push({ name: map.name, blob: map }); }
+        catch (err) { console.error(err); }
         await etOpenDraft(emails, t, { name: firsts.length ? wlJoinNames(firsts) : '', unit }, extra);
     } finally {
         btns.forEach(b => { b.disabled = false; b.textContent = b.dataset.label || 'Create Email Draft'; });
@@ -19232,8 +19239,9 @@ function renderDocuments() {
                     ${buttons}
                 </div>
                 <div class="docs-card-foot">
+                    <span class="docs-foot-group">${editBtn}</span>
                     <span class="docs-card-links">${remove}</span>
-                    ${editBtn}${xBtn}${handle}
+                    <span class="docs-foot-group">${xBtn}${handle}</span>
                 </div>
             </div>
         </div>`;
@@ -23393,10 +23401,12 @@ function sitemapLabelSVG(cls, text, cx, cy, box, opts) {
 }
 const SITEMAP_ELEVATOR_ICON = (x, y) => `<g class="sitemap-elevator" transform="translate(${x - 10.5} ${y - 10.5})"><rect x="0.5" y="0.5" width="20" height="20" rx="3"></rect><text x="10.5" y="11.4">E</text><title>Elevator</title></g>`;
 
-function sitemapUnitSVG(unit, poly, labelPt) {
+// highlight: undefined = live availability (the Sitemap tab); a unit
+// number = a blank map with only that unit in orange (email attachments).
+function sitemapUnitSVG(unit, poly, labelPt, highlight) {
     const u = byUnit[unit];
     const exists = !!u;
-    const available = exists ? isUnitAvailable(u) : false;
+    const available = highlight !== undefined ? unit === highlight : (exists ? isUnitAvailable(u) : false);
     const boxCls = !exists ? 'unavailable' : (available ? 'available' : 'unavailable clickable');
     const labelCls = available ? 'sitemap-unit-label on-available' : 'sitemap-unit-label';
     const tip = exists ? (unit + (available ? ' \u2014 Available' : '')) : (unit + ' (not in roster)');
@@ -23533,6 +23543,20 @@ function renderSitemap() {
     if (!wrap) return;
     const floor = SITEMAP_FLOORS[sitemapCurrentFloor];
     if (!floor) { wrap.innerHTML = ''; return; }
+    const svg = sitemapFloorSvg(sitemapCurrentFloor);
+    const units = Object.keys(floor.units);
+    wrap.innerHTML = `<svg viewBox="20 150 1120 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Level ${sitemapCurrentFloor} site map">${svg}</svg>`;
+    note.textContent = `Level ${sitemapCurrentFloor} \u2014 ${units.length} units, laid out as on the approved site map. Live availability from the current pricing sheet. Hover a unit for options.`;
+    [...wrap.querySelectorAll('[data-unit]')].forEach(el => {
+        const unit = el.getAttribute('data-unit');
+        el.addEventListener('mouseenter', () => sitemapShowHoverMenu(el, unit));
+        el.addEventListener('mouseleave', sitemapHideHoverMenuSoon);
+    });
+}
+// The drawing for one floor. highlight: see sitemapUnitSVG.
+function sitemapFloorSvg(level, highlight) {
+    const floor = SITEMAP_FLOORS[level];
+    if (!floor) return '';
     let svg = '';
     SITEMAP_CONTEXT.blocks.forEach(b => {
         svg += `<rect class="sitemap-context-block" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="6"></rect>`;
@@ -23575,18 +23599,52 @@ function renderSitemap() {
         svg += `<text class="sitemap-townhome-upper-label" x="${box.cx.toFixed(1)}" y="${box.cy.toFixed(1)}" font-size="${Math.max(6, Math.min(11, box.h * 0.4, box.w / 3.2)).toFixed(1)}">${escapeHtml(t.unit)}<title>Unit ${escapeHtml(t.unit)} (townhome, upper level)</title></text>`;
     });
     const units = Object.keys(floor.units);
-    units.forEach(unit => { svg += sitemapUnitSVG(unit, floor.units[unit], (floor.labelPts || {})[unit]); });
+    units.forEach(unit => { svg += sitemapUnitSVG(unit, floor.units[unit], (floor.labelPts || {})[unit], highlight); });
     (floor.elevators || []).forEach(([x, y]) => { svg += SITEMAP_ELEVATOR_ICON(x, y); });
     SITEMAP_CONTEXT.markers.forEach(m => {
         svg += `<g class="sitemap-marker"><circle cx="${m.x}" cy="${m.y}" r="13"></circle><text x="${m.x}" y="${m.y}">${m.n}</text><title>Building ${m.n}</title></g>`;
     });
-    wrap.innerHTML = `<svg viewBox="20 150 1120 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Level ${sitemapCurrentFloor} site map">${svg}</svg>`;
-    note.textContent = `Level ${sitemapCurrentFloor} \u2014 ${units.length} units, laid out as on the approved site map. Live availability from the current pricing sheet. Hover a unit for options.`;
-    [...wrap.querySelectorAll('[data-unit]')].forEach(el => {
-        const unit = el.getAttribute('data-unit');
-        el.addEventListener('mouseenter', () => sitemapShowHoverMenu(el, unit));
-        el.addEventListener('mouseleave', sitemapHideHoverMenuSoon);
-    });
+    return svg;
+}
+/* Blank floor map for a unit: that floor's site map with every unit gray
+   except this one in orange, as a PNG (built on the spot for the Welcome
+   Letter and Check In emails; never saved to Documents). The page's
+   sitemap styles are copied in, since an image can't see the page's CSS. */
+function sitemapLevelOf(unit) {
+    const lv = Object.keys(SITEMAP_FLOORS).find(k => SITEMAP_FLOORS[k].units && SITEMAP_FLOORS[k].units[unit]);
+    return lv ? +lv : (byUnit[unit] ? parseInt(byUnit[unit].floor, 10) : null);
+}
+function sitemapExportCss() {
+    const root = getComputedStyle(document.documentElement);
+    const resolve = txt => txt.replace(/var\((--[\w-]+)(?:,\s*([^)]+))?\)/g, (m, v, fb) => (root.getPropertyValue(v) || '').trim() || (fb || '').trim() || 'inherit');
+    let css = '';
+    for (const sh of document.styleSheets) {
+        let rules; try { rules = sh.cssRules; } catch (e) { continue; }
+        for (const r of rules) if (r.selectorText && /sitemap/.test(r.selectorText) && !/dark-mode/.test(r.selectorText)) css += resolve(r.cssText) + '\n';
+    }
+    return css;
+}
+async function sitemapUnitMapFile(unit) {
+    const level = sitemapLevelOf(unit);
+    if (!level || !SITEMAP_FLOORS[level]) return null;
+    const ordinal = ['', '1st', '2nd', '3rd', '4th', '5th', '6th'][level] || level + 'th';
+    const title = `Apartment ${unit} \u00b7 ${ordinal} floor`;
+    const svgText = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 100 1120 810" width="2240" height="1620">
+        <style>${sitemapExportCss()} text { font-family: Arial, Helvetica, sans-serif; }</style>
+        <rect x="20" y="100" width="1120" height="810" fill="#ffffff"></rect>
+        <text x="40" y="132" font-size="26" font-weight="700" fill="#24211d">${escapeHtml(title)}</text>
+        <rect x="${1140 - 220}" y="112" width="18" height="18" rx="3" fill="#de5426" stroke="rgba(0,0,0,.3)"></rect>
+        <text x="${1140 - 194}" y="127" font-size="15" fill="#24211d">Your apartment</text>
+        ${sitemapFloorSvg(level, unit)}</svg>`;
+    const url = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
+    try {
+        const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+        const c = document.createElement('canvas'); c.width = 2240; c.height = 1620;
+        const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        const blob = await new Promise(res => c.toBlob(res, 'image/png'));
+        return new File([blob], `Apt-${unit}-${ordinal}-floor-map.png`, { type: 'image/png' });
+    } finally { URL.revokeObjectURL(url); }
 }
 [...document.querySelectorAll('[data-sitemap-floor]')].forEach(btn => {
     btn.addEventListener('click', () => {
