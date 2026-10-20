@@ -21021,19 +21021,52 @@ async function dsCanvasOut(scale) {
     DS.sel = keepSel; DS.guides = keepG;
     return c;
 }
-function dsDesignJson() { return JSON.stringify({ v: 1, title: DS.title, page: DS.page, bg: DS.bg, objs: DS.objs.map(o => { const c = Object.assign({}, o); delete c._hide; if (c.type === 'icon') delete c.src; return c; }) }); }
+// The design kept inside a saved PDF, so the pencil can reopen it. Each
+// image is stored once (a logo used five times is kept once), and the
+// whole thing is gzip-compressed and base64-encoded.
+function dsDesignData() {
+    const assets = {}, keyOf = {};
+    const objs = DS.objs.map(o => {
+        const c = Object.assign({}, o); delete c._hide;
+        if (c.type === 'icon') delete c.src;
+        else if (c.type === 'image' && c.src) {
+            if (!keyOf[c.src]) { keyOf[c.src] = 'a' + Object.keys(assets).length; assets[keyOf[c.src]] = c.src; }
+            c.srcRef = keyOf[c.src]; delete c.src;
+        }
+        return c;
+    });
+    return { v: 2, title: DS.title, page: DS.page, bg: DS.bg, assets, objs };
+}
+function dsBytesToB64(bytes) { let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(bin); }
+async function dsPackDesign() {
+    const raw = new TextEncoder().encode(JSON.stringify(dsDesignData()));
+    if (typeof CompressionStream === 'function') {
+        const gz = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+        return 'gz:' + dsBytesToB64(gz);
+    }
+    return 'b64:' + dsBytesToB64(raw);
+}
+async function dsUnpackDesign(str) {
+    const [kind, b64] = [str.slice(0, str.indexOf(':')), str.slice(str.indexOf(':') + 1)];
+    let bytes = Uint8Array.from(atob(b64), ch => ch.charCodeAt(0));
+    if (kind === 'gz') bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    const d = JSON.parse(new TextDecoder().decode(bytes));
+    if (d.assets) d.objs.forEach(o => { if (o.srcRef) { o.src = d.assets[o.srcRef]; delete o.srcRef; } });
+    return d;
+}
+// The page as an image: PNG or high-quality JPEG, whichever is smaller
+// (flat designs stay PNG-crisp; photo-heavy ones become much lighter).
 async function dsBuildPdf() {
     const PDFLib = await docsLoadPdfLib();
-    const [, PW, PH] = dsPage(), c = await dsCanvasOut(3);
-    let bytes = await new Promise(res => c.toBlob(b => b.arrayBuffer().then(res), 'image/png'));
+    const [, PW, PH] = dsPage(), c = await dsCanvasOut(2.5);   // 240 dpi
+    const blobOf = (type, q) => new Promise(res => c.toBlob(b => res(b), type, q));
+    const [png, jpg] = await Promise.all([blobOf('image/png'), blobOf('image/jpeg', 0.9)]);
     const pdf = await PDFLib.PDFDocument.create();
-    let img;
-    if (bytes.byteLength > 7.5 * 1024 * 1024) img = await pdf.embedJpg(await new Promise(res => c.toBlob(b => b.arrayBuffer().then(res), 'image/jpeg', 0.9)));
-    else img = await pdf.embedPng(bytes);
+    const img = png.size <= jpg.size * 1.15 ? await pdf.embedPng(await png.arrayBuffer()) : await pdf.embedJpg(await jpg.arrayBuffer());
     const page = pdf.addPage([PW * 0.75, PH * 0.75]);
     page.drawImage(img, { x: 0, y: 0, width: PW * 0.75, height: PH * 0.75 });
     pdf.setTitle(DS.title); pdf.setCreator('REVE Boulder app — Create');
-    pdf.getInfoDict().set(PDFLib.PDFName.of('ReveDesign'), PDFLib.PDFHexString.fromText(dsDesignJson()));
+    pdf.getInfoDict().set(PDFLib.PDFName.of('ReveDesignZ'), PDFLib.PDFString.of(await dsPackDesign()));
     // No object streams, so the design marker stays findable in the file.
     return pdf.save({ useObjectStreams: false });
 }
@@ -21044,7 +21077,10 @@ async function dsReadDesign(bytes) {
     try {
         const PDFLib = await docsLoadPdfLib();
         const pdf = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
-        const v = pdf.getInfoDict().lookup(PDFLib.PDFName.of('ReveDesign'));
+        const info = pdf.getInfoDict();
+        const z = info.lookup(PDFLib.PDFName.of('ReveDesignZ'));
+        if (z) return dsUnpackDesign(z.asString ? z.asString() : z.decodeText());
+        const v = info.lookup(PDFLib.PDFName.of('ReveDesign'));   // older saves: plain JSON
         return v ? JSON.parse(v.decodeText()) : null;
     } catch (err) { console.error(err); return null; }
 }
@@ -21343,7 +21379,10 @@ async function docsShareEntry(entry, b64, step) {
     if (!BACKEND_URL || APP_MODE === 'test') return { ok: false, why: 'No shared backend is set up (Settings) \u2014 saved on this device only.' };
     const fileKey = `document-file-${entry.fileId || entry.id}`;
     step('Uploading file\u2026', 0.02);
-    const sent = await backendPush(fileKey, b64, (i, n) => step(`Uploading file \u2014 part ${i} of ${n}\u2026`, 0.05 + 0.6 * i / n));
+    const prog = (i, n) => step(`Uploading file \u2014 part ${i} of ${n}\u2026`, 0.05 + 0.6 * i / n);
+    let sent = await backendPush(fileKey, b64, prog, BACKEND_FILE_CHUNK_CHARS);
+    // An older backend that keeps files in the Sheet can't take big pieces: fall back to small ones.
+    if (!sent) { step('Retrying in smaller pieces\u2026', 0.05); sent = await backendPush(fileKey, b64, prog); }
     if (!sent) return { ok: false, why: 'The upload was interrupted \u2014 check your connection.' };
     step('Checking the file was saved\u2026', 0.7);
     const back = await backendPullRawChecked(fileKey);
@@ -21495,6 +21534,10 @@ function debounce(fn, wait) {
 // 20,000 leaves room for the escaping the backend adds when it stores a
 // piece (quotes become \"), under a Sheets cell's 50,000-character cap.
 const BACKEND_CHUNK_CHARS = 20000;
+// Document files are stored as Google Drive files by the backend script
+// (v3+), which has no per-cell limit, so they go up in far bigger pieces:
+// ~1 MB instead of 20 KB (an 8 MB file: ~12 requests instead of ~570).
+const BACKEND_FILE_CHUNK_CHARS = 900000;
 // Name of piece i of a chunked value. Pieces alternate between two sets
 // ("a"/"b") so a save that fails halfway never damages the copy the
 // manifest points at; older manifests (no slot) used "__part<i>".
@@ -21606,19 +21649,19 @@ async function backendPull(key) {
     try { return JSON.parse(json); } catch (e) { return null; }
 }
 
-async function backendPush(key, value, onProgress) {
+async function backendPush(key, value, onProgress, chunkChars) {
     if (!BACKEND_URL) return false;
     saveTrack(key, 'start');
     let ok = false;
-    try { ok = await backendPushUntracked(key, value, onProgress); }
+    try { ok = await backendPushUntracked(key, value, onProgress, chunkChars); }
     finally { saveTrack(key, 'end', ok); }
     return ok;
 }
-async function backendPushUntracked(key, value, onProgress) {
-    const json = JSON.stringify(value);
-    if (json.length <= BACKEND_CHUNK_CHARS) { const ok = await backendPushRaw(key, value); if (onProgress) onProgress(1, 1); return ok; }
+async function backendPushUntracked(key, value, onProgress, chunkChars) {
+    const json = JSON.stringify(value), size = chunkChars || BACKEND_CHUNK_CHARS;
+    if (json.length <= size) { const ok = await backendPushRaw(key, value); if (onProgress) onProgress(1, 1); return ok; }
     const parts = [];
-    for (let i = 0; i < json.length; i += BACKEND_CHUNK_CHARS) parts.push(json.slice(i, i + BACKEND_CHUNK_CHARS));
+    for (let i = 0; i < json.length; i += size) parts.push(json.slice(i, i + size));
     // Write into the piece set the current manifest is NOT using, then
     // switch the manifest: if a save fails halfway, the old copy is
     // untouched and still readable.
