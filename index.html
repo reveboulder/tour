@@ -19988,7 +19988,7 @@ function deEl() {
             <label class="ds-check"><input type="checkbox" id="deSnap" checked> Snap</label>
             <span class="de-spacer"></span><span class="de-status" id="deStatus"></span>
             <button type="button" class="de-btn" id="deDownload" title="Download a copy with your edits (doesn’t save)">Download copy</button>
-            <button type="button" class="de-btn primary" id="deSave" title="Saves a new document “Copy of … - edited” — the original is never changed">Save as copy</button><button type="button" class="de-btn" id="deClose">Close</button></div>
+            <button type="button" class="de-btn primary" id="deSave" title="Saves your edits as a new document (you choose the name and sub-tab) \u2014 the original is never changed">Save to Documents</button><button type="button" class="de-btn" id="deClose">Close</button></div>
         <div class="de-bar"><span class="de-group" id="deTools">${DE_TOOLS.map(([id, ic, label]) => `<button type="button" class="de-tool" data-de-tool="${id}" title="${label}" aria-label="${label}">${ic}</button>`).join('')}<button type="button" class="de-btn" id="deElementsBtn" title="Add icons">★ Elements</button></span>
             <span class="de-group"><span class="de-lbl" title="Pen, marker and text color; the border of boxes and circles">Color</span>${DE_COLORS.map(c => `<button type="button" class="de-swatch" data-de-color="${c}" style="background:${c}" title="${c}" aria-label="Color ${c}"></button>`).join('')}<input type="color" id="deColor" title="Custom color"></span>
             <span class="de-group" id="deFillGroup" title="Inside of boxes and circles"><span class="de-lbl">Fill</span><input type="color" id="deFill" value="#f5c400" title="Fill color"><label class="ds-check"><input type="checkbox" id="deNoFill" checked> None</label></span>
@@ -20608,6 +20608,41 @@ async function deBuildFile() {
 function deIconsReady(anns) {
     return Promise.all(anns.filter(a => a.t === 'icon').map(a => new Promise(res => { const im = deImg(a.src) || deImgCache[a.src]; if (!im || im.complete) return res(); im.onload = im.onerror = res; })));
 }
+// Save dialog for the editors: a name (used as both the display name and
+// the file name) and the Documents sub-tab to save into. Resolves to
+// { name, section, filename(ext) } or null when cancelled.
+function docsAskSave(defName, defSection, ext) {
+    return new Promise(resolve => {
+        const secs = DOC_SECTIONS.filter(x => x.id !== 'floorplans');
+        const sel = secs.some(x => x.id === defSection) ? defSection : 'other';
+        const m = document.createElement('div');
+        m.className = 'vault-modal docs-save-modal'; m.style.display = 'flex'; m.style.zIndex = 4000;
+        m.innerHTML = `<form class="vault-modal-card" role="dialog" aria-modal="true" aria-label="Save to Documents">
+            <div class="vault-modal-h">Save to Documents</div>
+            <label class="docs-edit-field">Name<input type="text" class="dsv-name" autocomplete="off" spellcheck="false"></label>
+            <label class="docs-edit-field">Save in<select class="dsv-sec">${secs.map(x => `<option value="${escapeAttr(x.id)}"${x.id === sel ? ' selected' : ''}>Documents \u203a ${escapeHtml(x.label)}</option>`).join('')}</select></label>
+            <div class="empty-note dsv-file" style="margin:0;"></div>
+            <div class="vault-modal-foot"><button type="button" class="btn small dsv-cancel">Cancel</button><button type="submit" class="btn small primary">Save</button></div>
+        </form>`;
+        const nameEl = m.querySelector('.dsv-name'), fileEl = m.querySelector('.dsv-file');
+        const clean = v => v.trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ');
+        const show = () => { fileEl.textContent = `File name: ${clean(nameEl.value) || '\u2026'}${ext}`; };
+        nameEl.value = defName; show();
+        nameEl.addEventListener('input', show);
+        const done = v => { m.remove(); document.removeEventListener('keydown', onKey, true); resolve(v); };
+        const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); done(null); } };
+        document.addEventListener('keydown', onKey, true);
+        m.querySelector('.dsv-cancel').onclick = () => done(null);
+        m.querySelector('form').addEventListener('submit', e => {
+            e.preventDefault();
+            const name = clean(nameEl.value);
+            if (!name) { nameEl.focus(); return; }
+            done({ name, section: m.querySelector('.dsv-sec').value, filename: name + ext });
+        });
+        document.body.appendChild(m);
+        nameEl.focus(); nameEl.select();
+    });
+}
 // "Copy of <title> - edited" (and the file name to match).
 function docsCopyName(title, filename) {
     const ext = (/\.[^.]+$/.exec(filename || '') || ['.pdf'])[0];
@@ -20621,14 +20656,24 @@ async function deSave(downloadOnly) {
     try {
         const built = await deBuildFile();
         const names = docsCopyName(DE.doc.title, built.name);
+        if (!downloadOnly) {
+            // Name (display + file) and sub-tab first; the original is never changed.
+            const ext = (/\.[^.]+$/.exec(built.name) || ['.pdf'])[0];
+            deStatus('');
+            const pick = await docsAskSave(names.title, DE.section || docsCurrentSection, ext);
+            if (!pick) return;
+            names.title = pick.name; names.filename = pick.filename; DE.saveSection = pick.section;
+            deStatus('Saving\u2026');
+        }
         const file = new File([built], names.filename, { type: built.type });
         if (downloadOnly) {
             const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name;
             document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
             deStatus('Copy downloaded.');
         } else {
-            const section = DE.section || docsCurrentSection, print = DE.doc.print;
+            const section = DE.saveSection || DE.section || docsCurrentSection, print = DE.doc.print;
             deClose(true);
+            docsCurrentSection = section; renderDocuments();   // show where it went
             await docsAddNewFile(file, names.title, section, print);
         }
     } catch (err) {
@@ -21142,20 +21187,18 @@ const dsSafeName = () => (DS.title || 'design').replace(/[\\/:*?"<>|]+/g, '-').t
 async function dsSave() {
     dsStopEdit();
     DS.title = document.getElementById('dsTitle').value.trim() || 'Untitled design';
-    dsStatus('Saving…');
+    // Name (display + file) and sub-tab first. A re-opened design suggests
+    // "Copy of … - edited" and always saves as a new document.
+    const def = DS.doc ? docsCopyName(DS.doc.title, DS.doc.filename || (DS.doc.title + '.pdf')).title : DS.title;
+    const pick = await docsAskSave(def, DS.section || docsCurrentSection, '.pdf');
+    if (!pick) return;
+    DS.title = pick.name; document.getElementById('dsTitle').value = pick.name;
+    dsStatus('Saving\u2026');
     try {
-        if (DS.doc) {
-            // Editing a saved document: always a new copy, never the original.
-            const names = docsCopyName(DS.doc.title, DS.doc.filename || (DS.doc.title + '.pdf'));
-            DS.title = names.title;
-            const file = new File([await dsBuildPdf()], names.filename, { type: 'application/pdf' });
-            const section = DS.section || docsCurrentSection;
-            dsClose(true); await docsAddNewFile(file, names.title, section);
-        } else {
-            const file = new File([await dsBuildPdf()], dsSafeName() + '.pdf', { type: 'application/pdf' });
-            const section = DOC_SECTIONS.find(s => s.id === docsCurrentSection) || DOC_SECTIONS.find(s => s.id === 'other');
-            dsClose(true); await docsAddNewFile(file, DS.title, section.id);
-        }
+        const file = new File([await dsBuildPdf()], pick.filename, { type: 'application/pdf' });
+        dsClose(true);
+        docsCurrentSection = pick.section; renderDocuments();   // show where it went
+        await docsAddNewFile(file, pick.name, pick.section);
         dsStatus('');
     } catch (err) { console.error(err); dsStatus(''); alert('Couldn’t save the design. Try again, or download it as a PDF.'); }
 }
