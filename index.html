@@ -2149,6 +2149,9 @@
     .de-wrap { position: relative; margin: auto; flex: none; }
     .de-wrap canvas { display: block; }
     .de-zoom { font-size: 12px; font-weight: 600; min-width: 42px; text-align: center; }
+    .de-lbl { font-size: 11px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .04em; margin-right: 2px; }
+    #deFill { width: 28px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: none; }
+    #deSizeVal { min-width: 22px; }
     .de-side { width: 280px; flex: none; border-left: 1px solid var(--line); padding: 10px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
     .de-side[hidden] { display: none; }
     .de-side input[type=search] { width: 100%; box-sizing: border-box; margin: 0; border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 13px; background: var(--panel, #fff); color: inherit; }
@@ -19964,11 +19967,11 @@ async function docsReplaceDocFile(doc, file) {
      brightness & contrast apply on save.
    - PDFs: pdf-lib keeps the original pages (text stays sharp), applies
      page rotations/deletions and lays each page's markup on top. */
-const DE = { doc: null, section: '', kind: '', pages: [], idx: 0, tool: 'select', color: '#d0021b', size: 4, undo: [], redo: [], bright: 100, contrast: 100, pdfBytes: null, filename: '', mime: '', busy: false, draft: null, crop: null, sel: -1, guides: [], zoom: 1, drag: null };
+const DE = { doc: null, section: '', kind: '', pages: [], idx: 0, tool: 'select', color: '#d0021b', size: 4, sizes: { base: 4, marker: 24 }, fill: 'none', undo: [], redo: [], bright: 100, contrast: 100, pdfBytes: null, filename: '', mime: '', busy: false, draft: null, crop: null, sel: -1, guides: [], zoom: 1, drag: null };
 const DE_COLORS = ['#000000', '#d0021b', '#de5426', '#f5c400', '#2e9d4a', '#1f6f9e', '#ffffff'];
 const DE_POINTER_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 3l14 8-6 1.6L16 20l-2.6 1.2-3-7.3L5 18z" fill="currentColor"/></svg>';
 const DE_TOOLS = [
-    ['select', DE_POINTER_ICON, 'Select — click an item to move or resize it'], ['pen', '✎', 'Pen'], ['hl', '▅', 'Highlighter'], ['line', '╱', 'Line'], ['arrow', '↗', 'Arrow'],
+    ['select', DE_POINTER_ICON, 'Select — click an item to move or resize it'], ['pen', '\u270e', 'Pen'], ['marker', '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M4 19c4-7 8-11 16-13" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/></svg>', 'Marker (thick pen)'], ['hl', '\u2585', 'Highlighter'], ['line', '╱', 'Line'], ['arrow', '↗', 'Arrow'],
     ['rect', '▭', 'Box'], ['ellipse', '◯', 'Circle'], ['text', 'T', 'Text'], ['white', '⬜', 'White-out (cover)'], ['erase', '⌫', 'Eraser (click a mark)']
 ];
 const DE_BOX_TYPES = ['rect', 'ellipse', 'white', 'icon'];
@@ -19987,8 +19990,9 @@ function deEl() {
             <button type="button" class="de-btn" id="deDownload" title="Download a copy with your edits (doesn’t save)">Download copy</button>
             <button type="button" class="de-btn primary" id="deSave" title="Saves a new document “Copy of … - edited” — the original is never changed">Save as copy</button><button type="button" class="de-btn" id="deClose">Close</button></div>
         <div class="de-bar"><span class="de-group" id="deTools">${DE_TOOLS.map(([id, ic, label]) => `<button type="button" class="de-tool" data-de-tool="${id}" title="${label}" aria-label="${label}">${ic}</button>`).join('')}<button type="button" class="de-btn" id="deElementsBtn" title="Add icons">★ Elements</button></span>
-            <span class="de-group">${DE_COLORS.map(c => `<button type="button" class="de-swatch" data-de-color="${c}" style="background:${c}" title="${c}" aria-label="Color ${c}"></button>`).join('')}<input type="color" id="deColor" title="Custom color"></span>
-            <label class="de-group de-size">Size <input type="range" id="deSize" min="1" max="12" step="1"></label>
+            <span class="de-group"><span class="de-lbl" title="Pen, marker and text color; the border of boxes and circles">Color</span>${DE_COLORS.map(c => `<button type="button" class="de-swatch" data-de-color="${c}" style="background:${c}" title="${c}" aria-label="Color ${c}"></button>`).join('')}<input type="color" id="deColor" title="Custom color"></span>
+            <span class="de-group" id="deFillGroup" title="Inside of boxes and circles"><span class="de-lbl">Fill</span><input type="color" id="deFill" value="#f5c400" title="Fill color"><label class="ds-check"><input type="checkbox" id="deNoFill" checked> None</label></span>
+            <label class="de-group de-size">Size <input type="range" id="deSize" min="1" max="20" step="1"><span id="deSizeVal" class="de-zoom"></span></label>
             <span class="de-group" id="deImgTools"><button type="button" class="de-btn" data-de-op="rotl" title="Rotate left">↺</button><button type="button" class="de-btn" data-de-op="rotr" title="Rotate right">↻</button><button type="button" class="de-btn" data-de-op="flip" title="Flip horizontally">⇄</button><button type="button" class="de-btn" data-de-tool="crop" title="Crop: drag a box, then Apply">✂ Crop</button><button type="button" class="de-btn primary" id="deCropApply" style="display:none;">Apply crop</button>
                 <label class="de-size">Brightness <input type="range" id="deBright" min="40" max="160" title="Brightness"></label><label class="de-size">Contrast <input type="range" id="deContrast" min="40" max="160" title="Contrast"></label></span>
             <span class="de-group" id="dePdfTools"><button type="button" class="de-btn" data-de-op="prev" title="Previous page">‹</button><span id="dePage" class="de-page"></span><button type="button" class="de-btn" data-de-op="next" title="Next page">›</button>
@@ -20082,8 +20086,18 @@ function deRestore(snap, from, to) {
     Object.assign(pg, { anns: snap.anns, base: snap.base, rot: snap.rot, deleted: snap.deleted });
     DE.idx = snap.idx; DE.sel = -1; deDraw();
 }
+// Marker sizes run much larger than the other tools'; each keeps its own size.
+function deSizeGroup(t) { return t === 'marker' ? 'marker' : 'base'; }
+function deSyncSize() {
+    const el = document.getElementById('deSize'); if (!el) return;
+    const g = deSizeGroup(DE.tool);
+    el.min = g === 'marker' ? 6 : 1; el.max = g === 'marker' ? 80 : 20;
+    DE.size = DE.sizes[g]; el.value = DE.size;
+    document.getElementById('deSizeVal').textContent = DE.size;
+}
 function deSetTool(t) {
     DE.tool = t; DE.crop = null;
+    deSyncSize();
     if (t !== 'select') DE.sel = -1;
     document.querySelectorAll('#deOverlay [data-de-tool]').forEach(b => b.classList.toggle('on', b.dataset.deTool === t));
     document.getElementById('deCropApply').style.display = 'none';
@@ -20104,7 +20118,7 @@ function deDrawAnns(ctx, anns, W, H) {
         ctx.save();
         ctx.strokeStyle = ctx.fillStyle = a.c; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         ctx.lineWidth = Math.max(1, a.s * M);
-        if (a.t === 'pen' || a.t === 'hl') {
+        if (a.t === 'pen' || a.t === 'hl' || a.t === 'marker') {
             if (a.t === 'hl') { ctx.globalAlpha = 0.38; ctx.globalCompositeOperation = 'multiply'; ctx.lineWidth = Math.max(4, a.s * M * 4); ctx.lineCap = 'butt'; }
             ctx.beginPath();
             a.pts.forEach(([x, y], i) => i ? ctx.lineTo(x * W, y * H) : ctx.moveTo(x * W, y * H));
@@ -20123,8 +20137,12 @@ function deDrawAnns(ctx, anns, W, H) {
         } else if (DE_BOX_TYPES.includes(a.t)) {
             const x = Math.min(a.x1, a.x2) * W, y = Math.min(a.y1, a.y2) * H, w = Math.abs(a.x2 - a.x1) * W, h = Math.abs(a.y2 - a.y1) * H;
             if (a.t === 'white') { ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y, w, h); }
-            else if (a.t === 'rect') ctx.strokeRect(x, y, w, h);
-            else if (a.t === 'ellipse') { ctx.beginPath(); ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2); ctx.stroke(); }
+            else if (a.t === 'rect' || a.t === 'ellipse') {
+                ctx.beginPath();
+                if (a.t === 'rect') ctx.rect(x, y, w, h); else ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+                if (a.f && a.f !== 'none') { ctx.fillStyle = a.f; ctx.fill(); }
+                ctx.stroke();
+            }
             else if (a.t === 'icon') { const im = deImg(a.src); if (im) { const s = Math.min(w, h); ctx.drawImage(im, x + (w - s) / 2, y + (h - s) / 2, s, s); } }
         } else if (a.t === 'text') {
             const fs = Math.max(6, a.fs * M);
@@ -20385,13 +20403,14 @@ function deWire(m) {
                 if (hd) { dePush(pg); DE.drag = { mode: 'resize', hd: hd[2], start: [px, py], o: JSON.parse(JSON.stringify(cur)), ob: b }; cv.setPointerCapture(e.pointerId); return; }
             }
             DE.sel = deHitIndex(pg, px, py, W, H);
+            if (DE.sel >= 0) deShowSel(pg.anns[DE.sel]);
             if (DE.sel >= 0) { const a = pg.anns[DE.sel]; DE.drag = { mode: 'move', start: [px, py], o: JSON.parse(JSON.stringify(a)), ob: deBox(a, W, H), pushed: false }; cv.setPointerCapture(e.pointerId); }
             deDraw(); return;
         }
         DE.drawing = true; cv.setPointerCapture(e.pointerId);
         if (DE.tool === 'crop') { DE.crop = { x1: pt[0], y1: pt[1], x2: pt[0], y2: pt[1] }; document.getElementById('deCropApply').style.display = 'none'; }
-        else if (DE.tool === 'pen' || DE.tool === 'hl') DE.draft = { t: DE.tool, c: DE.color, s: deSizeFrac(), pts: [pt] };
-        else DE.draft = { t: DE.tool, c: DE.color, s: deSizeFrac(), x1: pt[0], y1: pt[1], x2: pt[0], y2: pt[1] };
+        else if (DE.tool === 'pen' || DE.tool === 'hl' || DE.tool === 'marker') DE.draft = { t: DE.tool, c: DE.color, s: deSizeFrac(), pts: [pt] };
+        else DE.draft = Object.assign({ t: DE.tool, c: DE.color, s: deSizeFrac(), x1: pt[0], y1: pt[1], x2: pt[0], y2: pt[1] }, DE.tool === 'rect' || DE.tool === 'ellipse' ? { f: DE.fill } : {});
         deDraw();
     });
     cv.addEventListener('pointermove', e => {
@@ -20475,7 +20494,27 @@ function deWire(m) {
     m.querySelector('#deIconColor').addEventListener('input', e => { DS.iconColor = e.target.value; const pg = dePage(), a = pg && pg.anns[DE.sel]; if (a && a.t === 'icon') { if (!DE.colorPushed) { dePush(pg); DE.colorPushed = true; } a.c = e.target.value; a.src = dsIconSrc(a.name, a.c); deDraw(); } });
     m.querySelector('#deIconColor').addEventListener('change', () => { DE.colorPushed = false; });
     m.querySelector('#deColor').addEventListener('input', e => { deColorPick(e.target.value); m.querySelectorAll('.de-swatch').forEach(b => b.classList.remove('on')); });
-    m.querySelector('#deSize').addEventListener('input', e => { DE.size = +e.target.value; });
+    m.querySelector('#deSize').addEventListener('input', e => {
+        const v = +e.target.value; document.getElementById('deSizeVal').textContent = v;
+        // With a pen/marker stroke or shape selected, the slider resizes just that item;
+        // otherwise it sets the size for the current tool.
+        const pg = dePage(), a = pg && DE.sel >= 0 && pg.anns[DE.sel];
+        if (a && a.s != null && a.t !== 'text' && a.t !== 'icon' && a.t !== 'white') { if (!DE.sizePushed) { dePush(pg); DE.sizePushed = true; } a.s = v / 500; deDraw(); }
+        else { DE.size = v; DE.sizes[deSizeGroup(DE.tool)] = v; }
+    });
+    m.querySelector('#deSize').addEventListener('change', () => { DE.sizePushed = false; });
+    const fillNow = () => { DE.fill = m.querySelector('#deNoFill').checked ? 'none' : m.querySelector('#deFill').value; };
+    m.querySelector('#deFill').addEventListener('input', () => {
+        m.querySelector('#deNoFill').checked = false; fillNow();
+        const pg = dePage(), a = pg && DE.sel >= 0 && pg.anns[DE.sel];
+        if (a && (a.t === 'rect' || a.t === 'ellipse')) { if (!DE.fillPushed) { dePush(pg); DE.fillPushed = true; } a.f = DE.fill; deDraw(); }
+    });
+    m.querySelector('#deFill').addEventListener('change', () => { DE.fillPushed = false; });
+    m.querySelector('#deNoFill').addEventListener('change', () => {
+        fillNow();
+        const pg = dePage(), a = pg && DE.sel >= 0 && pg.anns[DE.sel];
+        if (a && (a.t === 'rect' || a.t === 'ellipse')) { dePush(pg); a.f = DE.fill; deDraw(); }
+    });
     m.querySelector('#deBright').addEventListener('input', e => { DE.bright = +e.target.value; deDraw(); });
     m.querySelector('#deContrast').addEventListener('input', e => { DE.contrast = +e.target.value; deDraw(); });
     m.querySelector('#deCropApply').addEventListener('click', deApplyCrop);
@@ -20505,6 +20544,20 @@ function deWire(m) {
         else if (e.key === 'Escape') { if (DE.sel >= 0) { DE.sel = -1; deDraw(); } else deClose(false); }
     });
     window.addEventListener('resize', () => { if (m.style.display === 'flex') deDraw(); });
+}
+// Reflect a selected item's fill and size in the toolbar.
+function deShowSel(a) {
+    if (!a) return;
+    if (a.t === 'rect' || a.t === 'ellipse') {
+        const none = !a.f || a.f === 'none';
+        document.getElementById('deNoFill').checked = none;
+        if (!none) document.getElementById('deFill').value = a.f;
+    }
+    if (a.s != null && a.t !== 'text' && a.t !== 'icon') {
+        const g = a.t === 'marker' ? 'marker' : 'base', el = document.getElementById('deSize');
+        el.min = g === 'marker' ? 6 : 1; el.max = g === 'marker' ? 80 : 20;
+        el.value = Math.round(a.s * 500); document.getElementById('deSizeVal').textContent = el.value;
+    }
 }
 // A color pick applies to new marks, and recolors the selected item.
 function deColorPick(c) {
