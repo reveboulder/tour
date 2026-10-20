@@ -2187,6 +2187,12 @@
     .ds-tab span { font-size: 17px; line-height: 1; }
     .ds-tab:hover { border-color: var(--reve-orange); }
     .ds-tab.on { background: var(--reve-orange); border-color: var(--reve-orange); color: #fff; }
+    .qr-form { display: flex; flex-direction: column; gap: 8px; }
+    .qr-fields { display: flex; flex-direction: column; gap: 6px; }
+    .qr-fields[hidden] { display: none; }
+    .qr-form input:not([type=color]), .qr-form textarea, .qr-form select { width: 100%; box-sizing: border-box; margin: 0; border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 13px; background: var(--panel, #fff); color: inherit; }
+    .qr-preview { width: 96px; height: 96px; border: 1px solid var(--line); border-radius: 6px; background: #fff; display: flex; align-items: center; justify-content: center; }
+    .qr-preview img { width: 90px; height: 90px; image-rendering: pixelated; }
     .ds-logo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .ds-logo { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; font: inherit; font-size: 11px; color: #24211d; min-height: 92px; }
     .ds-logo:hover { border-color: var(--reve-orange); }
@@ -19982,7 +19988,7 @@ const DE_TOOLS = [
     ['select', DE_POINTER_ICON, 'Select — click an item to move or resize it'], ['pen', '\u270e', 'Pen'], ['marker', '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M4 19c4-7 8-11 16-13" stroke="currentColor" stroke-width="5" fill="none" stroke-linecap="round"/></svg>', 'Marker (thick pen)'], ['hl', '\u2585', 'Highlighter'], ['line', '╱', 'Line'], ['arrow', '↗', 'Arrow'],
     ['rect', '▭', 'Box'], ['ellipse', '◯', 'Circle'], ['text', 'T', 'Text'], ['white', '⬜', 'White-out (cover)'], ['erase', '⌫', 'Eraser (click a mark)']
 ];
-const DE_BOX_TYPES = ['rect', 'ellipse', 'white', 'icon'];
+const DE_BOX_TYPES = ['rect', 'ellipse', 'white', 'icon', 'img'];
 function deEl() {
     let m = document.getElementById('deOverlay');
     if (m) return m;
@@ -19997,7 +20003,7 @@ function deEl() {
             <span class="de-spacer"></span><span class="de-status" id="deStatus"></span>
             <button type="button" class="de-btn" id="deDownload" title="Download a copy with your edits (doesn’t save)">Download copy</button>
             <button type="button" class="de-btn primary" id="deSave" title="Saves your edits as a new document (you choose the name and sub-tab) \u2014 the original is never changed">Save to Documents</button><button type="button" class="de-btn" id="deClose">Close</button></div>
-        <div class="de-bar"><span class="de-group" id="deTools">${DE_TOOLS.map(([id, ic, label]) => `<button type="button" class="de-tool" data-de-tool="${id}" title="${label}" aria-label="${label}">${ic}</button>`).join('')}<button type="button" class="de-btn" id="deElementsBtn" title="Add icons">★ Elements</button></span>
+        <div class="de-bar"><span class="de-group" id="deTools">${DE_TOOLS.map(([id, ic, label]) => `<button type="button" class="de-tool" data-de-tool="${id}" title="${label}" aria-label="${label}">${ic}</button>`).join('')}<button type="button" class="de-btn" id="deElementsBtn" title="Add icons">\u2605 Elements</button><button type="button" class="de-btn" id="deQrBtn" title="Add a QR code">\u25a6 QR code</button></span>
             <span class="de-group"><span class="de-lbl" title="Pen, marker and text color; the border of boxes and circles">Color</span>${DE_COLORS.map(c => `<button type="button" class="de-swatch" data-de-color="${c}" style="background:${c}" title="${c}" aria-label="Color ${c}"></button>`).join('')}<input type="color" id="deColor" title="Custom color"></span>
             <span class="de-group" id="deFillGroup" title="Inside of boxes and circles"><span class="de-lbl">Fill</span><input type="color" id="deFill" value="#f5c400" title="Fill color"><label class="ds-check"><input type="checkbox" id="deNoFill" checked> None</label></span>
             <label class="de-group de-size">Size <input type="range" id="deSize" min="1" max="20" step="1"><span id="deSizeVal" class="de-zoom"></span></label>
@@ -20014,6 +20020,10 @@ function deEl() {
                 <input type="search" id="deIconSearch" placeholder="Search icons (e.g. sink, mouse click)…" autocomplete="off">
                 <div class="ds-row"><select id="deIconCat" class="ds-select"><option value="">Popular</option></select><label class="ds-mini">Color <input type="color" id="deIconColor"></label></div>
                 <div class="ds-icon-grid de-icon-grid" id="deIconGrid"></div><div class="ds-note" id="deIconNote"></div>
+            </div>
+            <div class="de-side" id="deQrSide" hidden>
+                <div class="ds-row"><b>QR code</b><button type="button" class="de-btn" id="deQrClose" title="Close">\u2715</button></div>
+                ${qrFormHtml('deQrForm')}
             </div>
         </div>
     </div>`;
@@ -20151,7 +20161,7 @@ function deDrawAnns(ctx, anns, W, H) {
                 if (a.f && a.f !== 'none') { ctx.fillStyle = a.f; ctx.fill(); }
                 ctx.stroke();
             }
-            else if (a.t === 'icon') { const im = deImg(a.src); if (im) { const s = Math.min(w, h); ctx.drawImage(im, x + (w - s) / 2, y + (h - s) / 2, s, s); } }
+            else if (a.t === 'icon' || a.t === 'img') { const im = deImg(a.src); if (im) { const s = Math.min(w, h); ctx.drawImage(im, x + (w - s) / 2, y + (h - s) / 2, s, s); } }
         } else if (a.t === 'text') {
             const fs = Math.max(6, a.fs * M);
             ctx.font = `${fs}px Arial, Helvetica, sans-serif`; ctx.textBaseline = 'top';
@@ -20460,7 +20470,7 @@ function deWire(m) {
                 }
                 let w = Math.max(4, x2 - x1), h = Math.max(4, y2 - y1);
                 // Icons & text keep their shape from a corner (Shift = free for icons).
-                if ((a.t === 'icon' && !e.shiftKey || a.t === 'text') && hd.length === 2 && b.w && b.h) { const rr = b.w / b.h; if (w / h > rr) w = h * rr; else h = w / rr; if (hd.includes('w')) x1 = x2 - w; if (hd.includes('n')) y1 = y2 - h; }
+                if (((a.t === 'icon' || a.t === 'img') && !e.shiftKey || a.t === 'text') && hd.length === 2 && b.w && b.h) { const rr = b.w / b.h; if (w / h > rr) w = h * rr; else h = w / rr; if (hd.includes('w')) x1 = x2 - w; if (hd.includes('n')) y1 = y2 - h; }
                 const nb = { x: hd.includes('w') ? x2 - w : x1, y: hd.includes('n') ? y2 - h : y1, w, h };
                 if (nb.w > 0 && nb.h >= 0) { const ww = nb.w, hh = nb.h; deFit(a, d.o, b, { x: nb.x, y: nb.y, w: ww, h: hh }, W, H); }
                 const nb2 = deBox(a, W, H);
@@ -20497,6 +20507,15 @@ function deWire(m) {
     });
     m.querySelector('#deElementsBtn').addEventListener('click', () => { const side = m.querySelector('#deSide'); side.hidden = !side.hidden; m.querySelector('#deElementsBtn').classList.toggle('on', !side.hidden); if (!side.hidden) deIconsShow(); deDraw(); });
     m.querySelector('#deSideClose').addEventListener('click', () => m.querySelector('#deElementsBtn').click());
+    m.querySelector('#deQrBtn').addEventListener('click', () => { const side = m.querySelector('#deQrSide'); side.hidden = !side.hidden; m.querySelector('#deQrBtn').classList.toggle('on', !side.hidden); deDraw(); });
+    m.querySelector('#deQrClose').addEventListener('click', () => m.querySelector('#deQrBtn').click());
+    qrWireForm(m.querySelector('#deQrForm'), src => {
+        const pg = dePage(); if (!pg || !pg.base || pg.deleted) return;
+        const { W, H } = deSize(), s = Math.min(W, H) * 0.22;
+        dePush(pg);
+        pg.anns.push({ t: 'img', src, x1: (W / 2 - s / 2) / W, y1: (H / 2 - s / 2) / H, x2: (W / 2 + s / 2) / W, y2: (H / 2 + s / 2) / H });
+        DE.sel = pg.anns.length - 1; deSetTool('select');
+    });
     m.querySelector('#deIconSearch').addEventListener('input', () => { DE.iconLimit = 160; clearTimeout(DE.searchT); DE.searchT = setTimeout(deIconsShow, 150); });
     m.querySelector('#deIconCat').addEventListener('change', () => { DE.iconLimit = 160; m.querySelector('#deIconSearch').value = ''; deIconsShow(); });
     m.querySelector('#deIconColor').addEventListener('input', e => { DS.iconColor = e.target.value; const pg = dePage(), a = pg && pg.anns[DE.sel]; if (a && a.t === 'icon') { if (!DE.colorPushed) { dePush(pg); DE.colorPushed = true; } a.c = e.target.value; a.src = dsIconSrc(a.name, a.c); deDraw(); } });
@@ -20571,7 +20590,7 @@ function deShowSel(a) {
 function deColorPick(c) {
     DE.color = c; document.getElementById('deColor').value = c;
     const pg = dePage(), a = pg && DE.sel >= 0 && pg.anns[DE.sel];
-    if (a && a.t !== 'white') { dePush(pg); a.c = c; if (a.t === 'icon') a.src = dsIconSrc(a.name, c); deDraw(); }
+    if (a && a.t !== 'white' && a.t !== 'img') { dePush(pg); a.c = c; if (a.t === 'icon') a.src = dsIconSrc(a.name, c); deDraw(); }
 }
 // ---- save (always a new document; the original is never changed) ----
 async function deBuildFile() {
@@ -20614,7 +20633,7 @@ async function deBuildFile() {
     return new File([bytes], DE.filename.replace(/\.[^.]+$/, '') + '.pdf', { type: 'application/pdf' });
 }
 function deIconsReady(anns) {
-    return Promise.all(anns.filter(a => a.t === 'icon').map(a => new Promise(res => { const im = deImg(a.src) || deImgCache[a.src]; if (!im || im.complete) return res(); im.onload = im.onerror = res; })));
+    return Promise.all(anns.filter(a => a.t === 'icon' || a.t === 'img').map(a => new Promise(res => { const im = deImg(a.src) || deImgCache[a.src]; if (!im || im.complete) return res(); im.onload = im.onerror = res; })));
 }
 // Save dialog for the editors: a name (used as both the display name and
 // the file name) and the Documents sub-tab to save into. Resolves to
@@ -20733,7 +20752,8 @@ function dsEl() {
       <div class="de-bar ds-props" id="dsProps"></div>
       <div class="ds-main">
         <div class="ds-side">
-          <div class="ds-tabs">${[['elements', '\u2605', 'Elements'], ['logos', '\u24c7', 'Logos'], ['uploads', '\u21ea', 'Uploads'], ['text', 'T', 'Text'], ['shapes', '\u25ef', 'Shapes'], ['draw', '\u270e', 'Draw']].map(([k, ic, l], i) => `<button type="button" class="ds-tab${i ? '' : ' on'}" data-ds-tab="${k}"><span aria-hidden="true">${ic}</span>${l}</button>`).join('')}</div>
+          <div class="ds-tabs">${[['elements', '\u2605', 'Elements'], ['logos', '\u24c7', 'Logos'], ['uploads', '\u21ea', 'Uploads'], ['text', 'T', 'Text'], ['shapes', '\u25ef', 'Shapes'], ['draw', '\u270e', 'Draw'], ['qr', '\u25a6', 'QR code']].map(([k, ic, l], i) => `<button type="button" class="ds-tab${i ? '' : ' on'}" data-ds-tab="${k}"><span aria-hidden="true">${ic}</span>${l}</button>`).join('')}</div>
+          <div class="ds-panel" data-ds-panel="qr" hidden>${qrFormHtml('dsQrForm')}</div>
           <div class="ds-panel" data-ds-panel="logos" hidden>
             <button type="button" class="de-btn primary ds-wide" id="dsLogoUploadBtn">Upload a new logo</button><input type="file" id="dsLogoInput" accept="image/*,.pdf" hidden>
             <div class="ds-note">New logos are saved to Documents \u203a Other as \u201cLOGO - name\u201d so they\u2019re here next time. Any document with \u201clogo\u201d in its name shows here too.</div>
@@ -21338,6 +21358,7 @@ function dsWire(m) {
     m.querySelector('#dsIconColor').addEventListener('change', () => { DS.propStart = true; });
     m.querySelector('#dsDocSearch').addEventListener('input', dsDocList);
     m.querySelector('#dsUploadBtn').addEventListener('click', () => m.querySelector('#dsUploadInput').click());
+    qrWireForm(m.querySelector('#dsQrForm'), src => dsAdd({ type: 'image', src, opacity: 1, ...dsCenterBox(200, 200) }));
     m.querySelector('#dsLogoUploadBtn').addEventListener('click', () => m.querySelector('#dsLogoInput').click());
     m.querySelector('#dsLogoInput').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) dsLogoUpload(f); });
     m.querySelector('#dsUploadInput').addEventListener('change', async e => { const fs = [...e.target.files]; e.target.value = ''; for (const f of fs) await dsAddImage(f, f.name); });
@@ -23353,6 +23374,79 @@ const SITEMAP_CONTEXT = {
     blocks: [{ label: 'Google Office Space', x: 710, y: 672, w: 374, h: 156 }]
 };
 
+/* ---------- QR codes ----------
+   qrcode-generator (MIT) from the CDN, loaded on first use. */
+const QR_LIB_URL = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+let qrLibPromise = null;
+function qrLoad() {
+    if (window.qrcode) return Promise.resolve(window.qrcode);
+    if (!qrLibPromise) qrLibPromise = new Promise((resolve, reject) => {
+        const sc = document.createElement('script'); sc.src = QR_LIB_URL;
+        sc.onload = () => { if (window.qrcode.stringToBytesFuncs) window.qrcode.stringToBytes = window.qrcode.stringToBytesFuncs['UTF-8']; resolve(window.qrcode); };
+        sc.onerror = () => { qrLibPromise = null; reject(new Error('QR library failed to load')); };
+        document.head.appendChild(sc);
+    });
+    return qrLibPromise;
+}
+function qrMatrix(text) {
+    const q = window.qrcode(0, 'M'); q.addData(text); q.make();
+    const n = q.getModuleCount(), m = [];
+    for (let r = 0; r < n; r++) { m.push([]); for (let c = 0; c < n; c++) m[r].push(q.isDark(r, c)); }
+    return m;
+}
+// QR as SVG shapes at (x, y), `size` wide, white background with a quiet zone.
+function qrSvgGroup(text, x, y, size, fg, bg) {
+    const m = qrMatrix(text), n = m.length, quiet = 2, cell = size / (n + quiet * 2);
+    let d = '';
+    m.forEach((row, r) => row.forEach((on, c) => { if (on) d += `M${(x + (c + quiet) * cell).toFixed(2)},${(y + (r + quiet) * cell).toFixed(2)}h${cell.toFixed(2)}v${cell.toFixed(2)}h-${cell.toFixed(2)}z`; }));
+    return `<rect x="${x}" y="${y}" width="${size}" height="${size}" fill="${bg || '#ffffff'}"></rect><path d="${d}" fill="${fg || '#000000'}" shape-rendering="crispEdges"></path>`;
+}
+function qrDataUrl(text, fg, bg) {
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="800" height="800">${qrSvgGroup(text, 0, 0, 400, fg, bg)}</svg>`);
+}
+// QR generator form (+ Create and Edit Document): website, contact card, email, Wi-Fi.
+const QR_ESC = s => String(s || '').replace(/([\\;,:"])/g, '\\$1');
+function qrFormHtml(id) {
+    return `<div class="qr-form" id="${id}">
+        <select class="ds-select qr-kind"><option value="url">Website link</option><option value="vcard">Contact card</option><option value="email">Email</option><option value="wifi">Wi-Fi network</option></select>
+        <div class="qr-fields" data-qr="url"><input type="url" data-qf="url" placeholder="https://\u2026"></div>
+        <div class="qr-fields" data-qr="vcard" hidden><input data-qf="first" placeholder="First name"><input data-qf="last" placeholder="Last name"><input data-qf="org" placeholder="Company"><input data-qf="title" placeholder="Job title"><input type="tel" data-qf="phone" placeholder="Phone"><input type="email" data-qf="email" placeholder="Email"><input type="url" data-qf="site" placeholder="Website"><input data-qf="addr" placeholder="Street, City, State ZIP"></div>
+        <div class="qr-fields" data-qr="email" hidden><input type="email" data-qf="to" placeholder="Email address"><input data-qf="subject" placeholder="Subject (optional)"><textarea data-qf="body" rows="2" placeholder="Message (optional)"></textarea></div>
+        <div class="qr-fields" data-qr="wifi" hidden><input data-qf="ssid" placeholder="Network name (SSID)"><input data-qf="pass" placeholder="Password"><select class="ds-select" data-qf="enc"><option value="WPA">WPA/WPA2/WPA3</option><option value="WEP">WEP</option><option value="nopass">No password</option></select></div>
+        <div class="ds-row"><label class="ds-mini">Color <input type="color" data-qf="fg" value="#000000"></label><div class="qr-preview"></div></div>
+        <button type="button" class="de-btn primary ds-wide qr-add">Add QR code</button>
+        <div class="ds-note qr-note">Scan-test it with a phone before printing.</div>
+    </div>`;
+}
+function qrFormText(root) {
+    const v = k => (root.querySelector(`[data-qf="${k}"]`) || {}).value ? root.querySelector(`[data-qf="${k}"]`).value.trim() : '';
+    const kind = root.querySelector('.qr-kind').value;
+    if (kind === 'url') { let u = v('url'); if (u && !/^[a-z][a-z0-9+.-]*:/i.test(u)) u = 'https://' + u; return u; }
+    if (kind === 'email') { const to = v('to'); if (!to) return ''; const q = [v('subject') && 'subject=' + encodeURIComponent(v('subject')), v('body') && 'body=' + encodeURIComponent(v('body'))].filter(Boolean).join('&'); return 'mailto:' + to + (q ? '?' + q : ''); }
+    if (kind === 'wifi') { if (!v('ssid')) return ''; const enc = v('enc') || 'WPA'; return `WIFI:T:${enc};S:${QR_ESC(v('ssid'))};${enc === 'nopass' ? '' : `P:${QR_ESC(v('pass'))};`};`; }
+    if (!(v('first') || v('last') || v('org'))) return '';
+    return ['BEGIN:VCARD', 'VERSION:3.0', `N:${v('last')};${v('first')};;;`, `FN:${[v('first'), v('last')].filter(Boolean).join(' ') || v('org')}`,
+        v('org') && `ORG:${v('org')}`, v('title') && `TITLE:${v('title')}`, v('phone') && `TEL;TYPE=CELL:${v('phone')}`, v('email') && `EMAIL:${v('email')}`,
+        v('site') && `URL:${v('site')}`, v('addr') && `ADR;TYPE=WORK:;;${v('addr')};;;;`, 'END:VCARD'].filter(Boolean).join('\r\n');
+}
+// Wires a QR form; onAdd(dataUrl) places the code.
+function qrWireForm(root, onAdd) {
+    const kindSel = root.querySelector('.qr-kind'), prev = root.querySelector('.qr-preview'), note = root.querySelector('.qr-note');
+    const refresh = async () => {
+        root.querySelectorAll('[data-qr]').forEach(f => { f.hidden = f.dataset.qr !== kindSel.value; });
+        const t = qrFormText(root);
+        if (!t) { prev.innerHTML = ''; return; }
+        try { await qrLoad(); prev.innerHTML = `<img src="${qrDataUrl(t, root.querySelector('[data-qf="fg"]').value)}" alt="QR preview">`; note.textContent = 'Scan-test it with a phone before printing.'; }
+        catch (e) { note.textContent = 'Couldn\u2019t load the QR code tool \u2014 check the internet connection.'; }
+    };
+    root.addEventListener('input', refresh); root.addEventListener('change', refresh);
+    root.querySelector('.qr-add').addEventListener('click', async () => {
+        const t = qrFormText(root);
+        if (!t) { note.textContent = 'Fill in the details first.'; return; }
+        try { await qrLoad(); } catch (e) { note.textContent = 'Couldn\u2019t load the QR code tool \u2014 check the internet connection.'; return; }
+        onAdd(qrDataUrl(t, root.querySelector('[data-qf="fg"]').value));
+    });
+}
 function sitemapPolyPoints(poly) { return poly.map(p => p.join(',')).join(' '); }
 function sitemapPolyBox(poly) {
     const xs = poly.map(p => p[0]), ys = poly.map(p => p[1]);
@@ -23624,22 +23718,66 @@ function sitemapExportCss() {
     }
     return css;
 }
+// Public roads under the street names (asphalt band with a dashed center
+// line), so they read as city streets, not the property's drives/paths.
+function sitemapRoadsSvg() {
+    return SITEMAP_CONTEXT.streets.map(st => {
+        const len = st.text === 'Pearl Parkway' ? 230 : 270, x0 = st.x - 20, y0 = st.y + 12;
+        return `<g transform="rotate(${st.rotate} ${st.x} ${st.y})">
+            <rect x="${x0}" y="${y0}" width="${len}" height="20" rx="3" fill="#6f6f72" stroke="#4d4d50" stroke-width="1"></rect>
+            <line x1="${x0 + 6}" y1="${y0 + 10}" x2="${x0 + len - 6}" y2="${y0 + 10}" stroke="#f5c400" stroke-width="2" stroke-dasharray="10 7"></line></g>`;
+    }).join('');
+}
+// Move-in extras (from the printed 1st-floor sitemap): temporary truck
+// parking zones, both garages with a scannable Google Maps QR code, and
+// the building addresses.
+const SITEMAP_GARAGES = [
+    { label: 'REVE Boulder - Garage', url: 'https://maps.app.goo.gl/Jnf7Aq4MBuyswwESA', pin: [273, 588], qr: [246, 470], box: [148, 434, 252, 32] },
+    { label: 'REVE Boulder - South Garage', url: 'https://maps.app.goo.gl/XgLZdKbbss7rJ41J9', pin: [1124, 606], qr: [1150, 626], box: [1098, 690, 156, 54], twoLine: true }
+];
+const SITEMAP_PARKING = [
+    [[519.5, 192.2], [576.7, 186.4], [621.1, 471.5], [563.9, 480.2]],
+    [[313.9, 536.6], [518.3, 536.6], [518.3, 581.6], [313.9, 581.6]],
+    [[539.9, 585.6], [587.8, 585.6], [587.8, 807.3], [539.9, 807.3]],
+    [[1015.3, 631], [1090.6, 631], [1090.6, 668], [1015.3, 668]]
+];
+const SITEMAP_ADDRESSES = { 1: { text: '3000 Pearl Parkway', x: 535, y: 856, anchor: 'middle' }, 3: { text: '2130 30th Street', x: 697, y: 647, anchor: 'end' }, 4: { text: '2120 Junction Place', x: 1072, y: 368, anchor: 'middle' } };
+function sitemapMoveInExtrasSvg() {
+    let svg = SITEMAP_PARKING.map(poly => `<polygon points="${sitemapPolyPoints(poly)}" fill="#f7ec7a" fill-opacity=".85" stroke="#c9b52a" stroke-width="1.2"></polygon>`).join('');
+    svg += `<text x="416" y="563" text-anchor="middle" font-size="11" font-weight="700" fill="#7a6a00">Temporary truck parking</text>`;
+    SITEMAP_GARAGES.forEach(g => {
+        const [px, py] = g.pin, [qx, qy] = g.qr, [bx, by, bw, bh] = g.box;
+        svg += `<path d="M${px},${py} C${px - 9},${py - 14} ${px - 11},${py - 20} ${px - 11},${py - 26} A11,11 0 1 1 ${px + 11},${py - 26} C${px + 11},${py - 20} ${px + 9},${py - 14} ${px},${py}Z" fill="#d0302b" stroke="#8e1c18" stroke-width="1"></path><circle cx="${px}" cy="${py - 26}" r="4.2" fill="#fff"></circle>`;
+        svg += `<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" rx="8" fill="#1d6b3c"></rect>`;
+        if (g.twoLine) {
+            const [l1, l2] = [g.label.replace(/ - .*/, ' -'), g.label.replace(/.* - /, '')];
+            svg += `<text x="${bx + bw / 2}" y="${by + bh / 2 - 6}" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">${escapeHtml(l1)}</text><text x="${bx + bw / 2}" y="${by + bh / 2 + 14}" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">${escapeHtml(l2)}</text>`;
+        } else svg += `<text x="${bx + bw / 2}" y="${by + bh / 2 + 6}" text-anchor="middle" font-size="16" font-weight="700" fill="#fff">${escapeHtml(g.label)}</text>`;
+        svg += `<rect x="${qx - 4}" y="${qy - 4}" width="62" height="62" rx="5" fill="#1d6b3c"></rect>${qrSvgGroup(g.url, qx, qy, 54)}`;
+    });
+    Object.keys(SITEMAP_ADDRESSES).forEach(n => {
+        const a = SITEMAP_ADDRESSES[n];
+        svg += `<text x="${a.x}" y="${a.y}" text-anchor="${a.anchor}" font-size="13" font-weight="700" fill="#2f2d2f" stroke="#fff" stroke-width="3" paint-order="stroke">${escapeHtml(a.text)}</text>`;
+    });
+    return svg;
+}
 async function sitemapUnitMapFile(unit) {
     const level = sitemapLevelOf(unit);
     if (!level || !SITEMAP_FLOORS[level]) return null;
     const ordinal = ['', '1st', '2nd', '3rd', '4th', '5th', '6th'][level] || level + 'th';
     const title = `Apartment ${unit} \u00b7 ${ordinal} floor`;
-    const svgText = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 100 1120 810" width="2240" height="1620">
+    await qrLoad();
+    const svgText = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 100 1240 830" width="2480" height="1660">
         <style>${sitemapExportCss()} text { font-family: Arial, Helvetica, sans-serif; }</style>
-        <rect x="20" y="100" width="1120" height="810" fill="#ffffff"></rect>
+        <rect x="20" y="100" width="1240" height="830" fill="#ffffff"></rect>
         <text x="40" y="132" font-size="26" font-weight="700" fill="#24211d">${escapeHtml(title)}</text>
-        <rect x="${1140 - 220}" y="112" width="18" height="18" rx="3" fill="#de5426" stroke="rgba(0,0,0,.3)"></rect>
-        <text x="${1140 - 194}" y="127" font-size="15" fill="#24211d">Your apartment</text>
-        ${sitemapFloorSvg(level, unit)}</svg>`;
+        ${sitemapRoadsSvg()}
+        ${sitemapFloorSvg(level, unit)}
+        ${sitemapMoveInExtrasSvg()}</svg>`;
     const url = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }));
     try {
         const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
-        const c = document.createElement('canvas'); c.width = 2240; c.height = 1620;
+        const c = document.createElement('canvas'); c.width = 2480; c.height = 1660;
         const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
         ctx.drawImage(img, 0, 0, c.width, c.height);
         const blob = await new Promise(res => c.toBlob(res, 'image/png'));
