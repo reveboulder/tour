@@ -2149,6 +2149,53 @@
     .de-stage[data-tool="text"] canvas { cursor: text; } .de-stage[data-tool="erase"] canvas { cursor: not-allowed; }
     .de-textbox { position: absolute; z-index: 2; min-width: 140px; background: rgba(255,255,255,.9); border: 1px dashed var(--reve-orange); padding: 0 2px; font-family: Arial, Helvetica, sans-serif; line-height: 1.2; resize: both; outline: none; }
     @media (max-width: 700px) { .de-overlay { padding: 0; } .de-shell { border-radius: 0; } .de-group { border-right: 0; } }
+    .ds-shell { max-width: 1600px; }
+    .ds-shell .de-top { flex-wrap: wrap; }
+    .ds-shell .de-top input.ds-title, .ds-shell select.ds-select, .ds-shell .de-bar input[type=number] { width: auto; flex: none; margin: 0; }
+    .ds-shell .de-top input.ds-title { width: 220px; }
+    .ds-shell .ds-panel input[type=search] { width: 100%; box-sizing: border-box; margin: 0; }
+    .ds-shell input[type=checkbox] { width: auto; margin: 0; }
+    .ds-title { font: inherit; font-size: 14px; font-weight: 700; border: 1px solid transparent; border-radius: 6px; padding: 4px 8px; width: 220px; background: transparent; color: inherit; }
+    .ds-title:hover, .ds-title:focus { border-color: var(--line); outline: none; background: var(--panel, #fff); }
+    .ds-select { border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; font: inherit; font-size: 12.5px; background: var(--panel, #fff); color: inherit; }
+    .ds-check { font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+    .ds-props { min-height: 46px; }
+    .ds-mini { font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+    .ds-mini input[type=color] { width: 30px; height: 24px; padding: 0; border: 1px solid var(--line); border-radius: 4px; background: none; }
+    .ds-mini input[type=range] { width: 80px; }
+    .ds-hint { font-size: 12px; color: var(--ink-soft); }
+    .ds-main { flex: 1; min-height: 0; display: flex; }
+    .ds-side { width: 290px; flex: none; border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+    .ds-tabs { display: flex; border-bottom: 1px solid var(--line); }
+    .ds-tab { flex: 1; border: 0; background: none; padding: 9px 2px; font: inherit; font-size: 12px; font-weight: 700; color: var(--ink-soft); cursor: pointer; border-bottom: 2px solid transparent; }
+    .ds-tab.on { color: var(--reve-orange-dark); border-bottom-color: var(--reve-orange); }
+    .ds-panel { padding: 10px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+    .ds-panel[hidden] { display: none; }
+    .ds-panel input[type=search] { border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 13px; background: var(--panel, #fff); color: inherit; }
+    .ds-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    .ds-row .ds-select { flex: 1; min-width: 0; }
+    .ds-icon-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .ds-icon { aspect-ratio: 1; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; padding: 8px; display: flex; align-items: center; justify-content: center; }
+    .ds-icon:hover { border-color: var(--reve-orange); background: #fff6f0; }
+    .ds-icon img { width: 100%; height: 100%; }
+    .ds-more { grid-column: 1 / -1; }
+    .ds-note { font-size: 11.5px; color: var(--ink-soft); line-height: 1.4; }
+    .ds-wide { width: 100%; }
+    .ds-doc-list { display: flex; flex-direction: column; gap: 4px; }
+    .ds-doc { text-align: left; border: 1px solid var(--line); border-radius: 6px; background: var(--panel, #fff); color: inherit; padding: 6px 8px; cursor: pointer; font: inherit; }
+    .ds-doc b { display: block; font-size: 12.5px; } .ds-doc span { font-size: 11px; color: var(--ink-soft); }
+    .ds-doc:hover { border-color: var(--reve-orange); }
+    .ds-textbtn { text-align: left; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: #24211d; padding: 12px; cursor: pointer; }
+    .ds-textbtn:hover, .ds-shape:hover { border-color: var(--reve-orange); }
+    .ds-shape-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .ds-shape { border: 1px solid var(--line); border-radius: 8px; background: var(--panel, #fff); color: inherit; padding: 10px 4px; cursor: pointer; font: inherit; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .ds-shape span { font-size: 24px; line-height: 1; }
+    .ds-stage { flex: 1; min-width: 0; overflow: auto; background: #e9e6e0; display: flex; padding: 20px; }
+    .ds-canvas-wrap { position: relative; margin: auto; box-shadow: 0 4px 18px rgba(0,0,0,.25); }
+    .ds-canvas-wrap canvas { display: block; touch-action: none; cursor: default; }
+    .ds-stage[data-tool="draw"] canvas { cursor: crosshair; }
+    .ds-editor { position: absolute; z-index: 2; border: 1px dashed #1f6f9e; background: rgba(255,255,255,.35); padding: 0; margin: 0; resize: none; outline: none; overflow: hidden; box-sizing: content-box; white-space: pre-wrap; }
+    @media (max-width: 800px) { .ds-main { flex-direction: column; } .ds-side { width: auto; max-height: 40%; border-right: 0; border-bottom: 1px solid var(--line); } }
     .docs-edit-btn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 24px; border: none; background: none; color: var(--ink-soft); border-radius: 5px; cursor: pointer; padding: 0; flex: none; }
     .docs-edit-btn svg { width: 16px; height: 16px; }
     .docs-edit-btn:hover, .docs-edit-btn:focus-visible { background: rgba(0,0,0,0.06); color: var(--reve-orange); outline: none; }
@@ -4972,6 +5019,7 @@
                 <button type="button" data-docs-view="details">Details</button>
             </div>
             <button type="button" class="btn docs-zip-btn" id="docsZipBtn" title="Download this tab as a ZIP" aria-label="Download this tab as a ZIP"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg></button>
+            <button type="button" class="btn" id="docsCreateBtn" style="width:auto;flex:none;padding:8px 16px;" title="Design a new flyer or document">+ Create</button>
             <button type="button" class="btn" id="docsUploadBtn" style="width:auto;flex:none;padding:8px 16px;">+ Upload</button>
             <input type="file" id="docsUploadInput" multiple accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.tif,.tiff,.doc,.docx,.xls,.xlsx,.xlsm,.csv,.ppt,.pptx,.txt,.rtf,.odt,.ods,.odp,.pages,.numbers,.key,.eml,.msg,.zip" style="display:none;">
             <input type="file" id="docsReplaceInput" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.tif,.tiff,.doc,.docx,.xls,.xlsx,.xlsm,.csv,.ppt,.pptx,.txt,.rtf,.odt,.ods,.odp,.pages,.numbers,.key,.eml,.msg,.zip" style="display:none;">
@@ -19067,7 +19115,7 @@ function renderDocuments() {
     // Email Templates: its own editor; none of the file tools apply.
     const isEt = docsCurrentSection === 'email-templates';
     document.getElementById('etPanel').style.display = isEt ? '' : 'none';
-    ['docsViewToggle', 'docsUploadBtn', 'docsZipBtn'].forEach(id => { document.getElementById(id).style.visibility = isEt ? 'hidden' : ''; });
+    ['docsViewToggle', 'docsUploadBtn', 'docsCreateBtn', 'docsZipBtn'].forEach(id => { document.getElementById(id).style.visibility = isEt ? 'hidden' : ''; });
     if (isEt) {
         ['fpPanel', 'docsGrid', 'otherPanel', 'docsEmptyNote'].forEach(id => { document.getElementById(id).style.display = 'none'; });
         document.getElementById('docsRestoreHidden').style.display = 'none';
@@ -19937,6 +19985,9 @@ async function deOpen(doc) {
             DE.pages = [{ base: c, anns: [] }];
         } else {
             DE.pdfBytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
+            // Made with + Create: reopen the design instead.
+            const design = await dsReadDesign(DE.pdfBytes);
+            if (design) { deClose(true); dsOpen(design, doc); return; }
             const pdfjsLib = await docsLoadPdfJs();
             const pdf = await pdfjsLib.getDocument({ data: DE.pdfBytes.slice() }).promise;
             DE.pdf = pdf;
@@ -20256,6 +20307,587 @@ async function deSave(downloadOnly) {
         deStatus('');
     } finally { DE.busy = false; }
 }
+
+/* ---------- Create: blank document designer (Documents › + Create) ----------
+   A page (letter portrait by default) holding objects — text boxes, images,
+   icons, shapes, lines/arrows and drawings — in page pixels (96 per inch).
+   Objects move and resize with handles and snap to the page edges, margins,
+   center (half-way) lines, the grid and other objects' edges and centers.
+   Elements: the Material Design Icons set (~7,600 icons, free license),
+   loaded from the CDN on first use, searchable by name and category.
+   Saving makes a print-quality PDF in Documents; the design itself is kept
+   inside that PDF ("ReveDesign" entry) so the pencil reopens it here. */
+const DS_PAGES = { 'letter-p': ['Letter · portrait', 816, 1056], 'letter-l': ['Letter · landscape', 1056, 816], 'half-p': ['Half sheet · 5.5×8.5', 528, 816] };
+const DS_FONTS = ['Inter', 'Oswald', 'Montserrat', 'Playfair Display', 'Lato', 'Pacifico', 'Arial', 'Georgia', 'Times New Roman', 'Courier New', 'Verdana'];
+const DS_ICON_URL = 'https://cdn.jsdelivr.net/npm/@iconify-json/mdi@1.2.3/icons.json';
+const DS_ICON_META_URL = 'https://cdn.jsdelivr.net/npm/@iconify-json/mdi@1.2.3/metadata.json';
+const DS_POPULAR = 'home wifi parking paw dog cat trash-can-outline recycle package-variant-closed key-variant door lock phone email-outline calendar clock-outline map-marker cursor-default-click mouse-left-click faucet washing-machine dumbbell pool bike car ev-station bus walk elevator stairs wheelchair-accessibility smoking-off water fire snowflake white-balance-sunny tree flower silverware-fork-knife coffee grill party-popper gift cake-variant music star heart alert information-outline check-circle close-circle arrow-right arrow-down hand-pointing-right bed sofa shower toilet stove fridge microwave dishwasher air-conditioner thermometer lightbulb-outline mailbox truck-delivery hammer-wrench broom account-group basketball tennis fireplace balcony garage'.split(' ');
+const DS_SYNONYMS = { pet: 'paw dog cat', pets: 'paw dog cat', bathroom: 'toilet shower bathtub', kitchen: 'stove fridge silverware', laundry: 'washing-machine tumble-dryer', gym: 'dumbbell weight-lifter', fitness: 'dumbbell run', package: 'package truck-delivery', mail: 'email mailbox', trash: 'trash delete recycle', garbage: 'trash delete', parking: 'parking car garage', party: 'party balloon cake glass', food: 'food silverware pizza', drink: 'glass cup coffee', click: 'click cursor', mouse: 'mouse cursor', sink: 'sink faucet', water: 'water faucet', heat: 'fire thermometer radiator', cold: 'snowflake air-conditioner', ac: 'air-conditioner', maintenance: 'wrench hammer tools', repair: 'wrench hammer tools', clean: 'broom spray vacuum', key: 'key lock', security: 'lock shield cctv', wifi: 'wifi router', internet: 'wifi web router', phone: 'phone cellphone', bike: 'bike bicycle', transit: 'bus train', holiday: 'gift pine-tree party', sun: 'sunny weather', rain: 'weather umbrella', warning: 'alert', info: 'information', yes: 'check', no: 'close cancel', arrow: 'arrow', love: 'heart', music: 'music', money: 'cash currency-usd', rent: 'cash home', move: 'truck box', calendar: 'calendar', time: 'clock timer', location: 'map-marker' };
+const DS = { objs: [], sel: null, page: 'letter-p', bg: '#ffffff', zoom: 1, grid: false, snap: true, tool: 'select', undo: [], redo: [], title: 'Untitled design', doc: null, guides: [], penColor: '#24211d', penWidth: 4, icons: null, iconMeta: null, iconColor: '#de5426', imgCache: {}, drag: null, editing: null, dirty: false };
+const dsId = () => 'o' + Math.random().toString(36).slice(2, 9);
+const dsPage = () => DS_PAGES[DS.page] || DS_PAGES['letter-p'];
+const dsObj = id => DS.objs.find(o => o.id === id);
+function dsLoadFonts() {
+    if (document.getElementById('dsFonts')) return;
+    const l = document.createElement('link'); l.id = 'dsFonts'; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,700;1,400;1,700&family=Oswald:wght@400;600;700&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Pacifico&display=swap';
+    document.head.appendChild(l);
+    l.onload = () => { if (document.fonts) document.fonts.ready.then(dsDraw); };
+}
+function dsEl() {
+    let m = document.getElementById('dsOverlay');
+    if (m) return m;
+    m = document.createElement('div'); m.id = 'dsOverlay'; m.className = 'de-overlay ds-overlay';
+    m.innerHTML = `<div class="de-shell ds-shell" role="dialog" aria-modal="true" aria-label="Create a document">
+      <div class="de-top"><input type="text" id="dsTitle" class="ds-title" aria-label="Design name">
+        <button type="button" class="de-btn" id="dsUndo" title="Undo (Ctrl+Z)">↶ Undo</button><button type="button" class="de-btn" id="dsRedo" title="Redo (Ctrl+Y)">↷ Redo</button>
+        <select id="dsPageSize" class="ds-select" title="Page size">${Object.entries(DS_PAGES).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('')}</select>
+        <label class="ds-check"><input type="checkbox" id="dsGrid"> Grid</label><label class="ds-check"><input type="checkbox" id="dsSnap" checked> Snap</label>
+        <button type="button" class="de-btn" id="dsZoomOut" title="Zoom out">−</button><button type="button" class="de-btn" id="dsZoomFit" title="Fit page">Fit</button><button type="button" class="de-btn" id="dsZoomIn" title="Zoom in">+</button>
+        <span class="de-spacer"></span><span class="de-status" id="dsStatus"></span>
+        <button type="button" class="de-btn" id="dsPng" title="Download as a PNG image">PNG</button><button type="button" class="de-btn" id="dsPdf" title="Download as a PDF">PDF</button>
+        <button type="button" class="de-btn primary" id="dsSave" title="Save to Documents as a PDF (re-open it with the pencil to keep editing)">Save to Documents</button><button type="button" class="de-btn" id="dsClose">Close</button></div>
+      <div class="de-bar ds-props" id="dsProps"></div>
+      <div class="ds-main">
+        <div class="ds-side">
+          <div class="ds-tabs">${[['elements', 'Elements'], ['uploads', 'Uploads'], ['text', 'Text'], ['shapes', 'Shapes'], ['draw', 'Draw']].map(([k, l], i) => `<button type="button" class="ds-tab${i ? '' : ' on'}" data-ds-tab="${k}">${l}</button>`).join('')}</div>
+          <div class="ds-panel" data-ds-panel="elements">
+            <input type="search" id="dsIconSearch" placeholder="Search icons (e.g. sink, mouse click, parking)…" autocomplete="off">
+            <div class="ds-row"><select id="dsIconCat" class="ds-select"><option value="">Popular</option></select><label class="ds-mini">Color <input type="color" id="dsIconColor"></label></div>
+            <div class="ds-icon-grid" id="dsIconGrid"></div><div class="ds-note" id="dsIconNote"></div></div>
+          <div class="ds-panel" data-ds-panel="uploads" hidden>
+            <button type="button" class="de-btn primary ds-wide" id="dsUploadBtn">Upload image or PDF</button><input type="file" id="dsUploadInput" accept="image/*,.pdf" multiple hidden>
+            <div class="ds-note">From Documents:</div><input type="search" id="dsDocSearch" placeholder="Filter documents…" autocomplete="off"><div class="ds-doc-list" id="dsDocList"></div></div>
+          <div class="ds-panel" data-ds-panel="text" hidden>
+            <button type="button" class="ds-textbtn" data-ds-text="h1" style="font:700 26px Oswald, sans-serif;">Add a heading</button>
+            <button type="button" class="ds-textbtn" data-ds-text="h2" style="font:700 19px Inter, sans-serif;">Add a subheading</button>
+            <button type="button" class="ds-textbtn" data-ds-text="body" style="font:400 14px Inter, sans-serif;">Add body text</button>
+            <div class="ds-note">Double-click a text box on the page to type in it.</div></div>
+          <div class="ds-panel" data-ds-panel="shapes" hidden><div class="ds-shape-grid">
+            ${[['rect', '▭', 'Rectangle'], ['round', '▢', 'Rounded box'], ['ellipse', '◯', 'Circle'], ['line', '╱', 'Line'], ['arrow', '↗', 'Arrow'], ['banner', '▬', 'Banner bar']].map(([k, ic, l]) => `<button type="button" class="ds-shape" data-ds-shape="${k}" title="${l}"><span>${ic}</span>${l}</button>`).join('')}</div></div>
+          <div class="ds-panel" data-ds-panel="draw" hidden>
+            <button type="button" class="de-btn ds-wide" id="dsDrawToggle">✎ Start drawing</button>
+            <div class="ds-row"><label class="ds-mini">Color <input type="color" id="dsPenColor"></label><label class="ds-mini">Width <input type="range" id="dsPenWidth" min="1" max="30"></label></div>
+            <div class="ds-note">Draw on the page; each stroke becomes its own item you can move, resize or delete.</div></div>
+        </div>
+        <div class="ds-stage" id="dsStage"><div class="ds-canvas-wrap" id="dsWrap"><canvas id="dsCanvas"></canvas></div></div>
+      </div></div>`;
+    document.body.appendChild(m);
+    dsWire(m);
+    return m;
+}
+const dsStatus = t => { const el = document.getElementById('dsStatus'); if (el) el.textContent = t || ''; };
+function dsOpen(design, doc) {
+    const m = dsEl(); dsLoadFonts();
+    Object.assign(DS, { objs: [], sel: null, page: 'letter-p', bg: '#ffffff', undo: [], redo: [], title: 'Untitled design', doc: doc || null, guides: [], tool: 'select', drag: null, editing: null, dirty: false });
+    if (design) Object.assign(DS, { objs: design.objs || [], page: design.page || 'letter-p', bg: design.bg || '#ffffff', title: design.title || (doc && doc.title) || 'Untitled design' });
+    document.getElementById('dsTitle').value = DS.title;
+    document.getElementById('dsPageSize').value = DS.page;
+    document.getElementById('dsIconColor').value = DS.iconColor; document.getElementById('dsPenColor').value = DS.penColor; document.getElementById('dsPenWidth').value = DS.penWidth;
+    m.style.display = 'flex'; document.body.style.overflow = 'hidden';
+    dsSetTool('select'); dsFit(); dsProps(); dsIconsShow(); dsDocList();
+}
+function dsClose(force) {
+    if (!force && DS.dirty && !confirm('Close without saving this design?')) return;
+    dsStopEdit(); document.getElementById('dsOverlay').style.display = 'none'; document.body.style.overflow = '';
+}
+function dsChanged(skipUndo) { DS.dirty = true; dsDraw(); dsProps(); }
+function dsPush() { DS.undo.push(JSON.stringify({ objs: DS.objs, page: DS.page, bg: DS.bg })); if (DS.undo.length > 200) DS.undo.shift(); DS.redo = []; DS.dirty = true; }
+function dsRestore(from, to) {
+    const s = from.pop(); if (!s) return;
+    to.push(JSON.stringify({ objs: DS.objs, page: DS.page, bg: DS.bg }));
+    const v = JSON.parse(s); DS.objs = v.objs; DS.page = v.page; DS.bg = v.bg; DS.sel = dsObj(DS.sel) ? DS.sel : null;
+    document.getElementById('dsPageSize').value = DS.page; dsFit(); dsProps();
+}
+// ---- images (data URLs only, so a saved design never depends on a link) ----
+function dsImg(src) {
+    let im = DS.imgCache[src];
+    if (!im) { im = new Image(); im.onload = () => dsDraw(); im.src = src; DS.imgCache[src] = im; }
+    return im.complete && im.naturalWidth ? im : null;
+}
+function dsIconSrc(name, color) {
+    const j = DS.icons; if (!j) return '';
+    const real = j.icons[name] ? name : (j.aliases && j.aliases[name] && j.aliases[name].parent) || name;
+    const ic = j.icons[real]; if (!ic) return '';
+    const w = ic.width || j.width || 24, h = ic.height || j.height || 24;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w * 8}" height="${h * 8}" style="color:${color}">${ic.body.replace(/currentColor/g, color)}</svg>`;
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+// ---- drawing ----
+function dsWrapText(ctx, o) {
+    const out = [];
+    String(o.text || '').split('\n').forEach(par => {
+        const words = par.split(' '); let line = '';
+        words.forEach(w => { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > o.w && line) { out.push(line); line = w; } else line = t; });
+        out.push(line);
+    });
+    return out;
+}
+function dsFont(o) { return `${o.italic ? 'italic ' : ''}${o.bold ? '700' : '400'} ${o.size}px "${o.font}", Arial, sans-serif`; }
+function dsDrawObj(ctx, o) {
+    ctx.save(); ctx.globalAlpha = o.opacity == null ? 1 : o.opacity;
+    const { x, y, w, h } = o;
+    if (o.type === 'rect' || o.type === 'ellipse') {
+        ctx.beginPath();
+        if (o.type === 'ellipse') ctx.ellipse(x + w / 2, y + h / 2, Math.abs(w / 2), Math.abs(h / 2), 0, 0, Math.PI * 2);
+        else if (o.radius) { const r = Math.min(o.radius, w / 2, h / 2); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
+        else ctx.rect(x, y, w, h);
+        if (o.fill && o.fill !== 'none') { ctx.fillStyle = o.fill; ctx.fill(); }
+        if (o.stroke && o.stroke !== 'none' && o.strokeW) { ctx.strokeStyle = o.stroke; ctx.lineWidth = o.strokeW; ctx.stroke(); }
+    } else if (o.type === 'path') {
+        ctx.strokeStyle = o.stroke; ctx.fillStyle = o.stroke; ctx.lineWidth = o.strokeW; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        const P = o.pts.map(([px, py]) => [x + px * w, y + py * h]);
+        ctx.beginPath(); P.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); if (P.length === 1) ctx.lineTo(P[0][0] + 0.1, P[0][1]); ctx.stroke();
+        if (o.arrow && P.length > 1) {
+            const [ax, ay] = P[P.length - 2], [bx, by] = P[P.length - 1], ang = Math.atan2(by - ay, bx - ax), L = Math.max(12, o.strokeW * 4);
+            ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx - L * Math.cos(ang - 0.45), by - L * Math.sin(ang - 0.45)); ctx.lineTo(bx - L * Math.cos(ang + 0.45), by - L * Math.sin(ang + 0.45)); ctx.closePath(); ctx.fill();
+        }
+    } else if (o.type === 'image' || o.type === 'icon') {
+        const im = dsImg(o.type === 'icon' ? (o.src = o.src || dsIconSrc(o.icon, o.color)) : o.src);
+        if (im) ctx.drawImage(im, x, y, w, h);
+        else if (o.type === 'image') { ctx.fillStyle = '#eee'; ctx.fillRect(x, y, w, h); }
+    } else if (o.type === 'text') {
+        if (o.fill && o.fill !== 'none') { ctx.fillStyle = o.fill; ctx.fillRect(x, y, w, h); }
+        ctx.font = dsFont(o); ctx.fillStyle = o.color; ctx.textBaseline = 'top';
+        const lines = dsWrapText(ctx, o), lh = o.size * (o.lh || 1.25);
+        const pad = o.fill && o.fill !== 'none' ? Math.round(o.size * 0.3) : 0;
+        lines.forEach((ln, i) => {
+            const tw = ctx.measureText(ln).width;
+            const tx = o.align === 'center' ? x + (w - tw) / 2 : o.align === 'right' ? x + w - tw : x;
+            ctx.fillText(ln, tx, y + pad + i * lh);
+        });
+        const need = lines.length * lh + pad * 2;
+        if (Math.abs(need - h) > 0.5) o.h = need;
+    }
+    ctx.restore();
+}
+function dsRender(ctx, k, forExport) {
+    const [, PW, PH] = dsPage();
+    ctx.save(); ctx.scale(k, k);
+    ctx.fillStyle = DS.bg || '#fff'; ctx.fillRect(0, 0, PW, PH);
+    if (!forExport && DS.grid) {
+        ctx.strokeStyle = 'rgba(31,111,158,.13)'; ctx.lineWidth = 1 / k;
+        for (let gx = 24; gx < PW; gx += 24) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, PH); ctx.stroke(); }
+        for (let gy = 24; gy < PH; gy += 24) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(PW, gy); ctx.stroke(); }
+        ctx.strokeStyle = 'rgba(222,84,38,.35)'; ctx.setLineDash([6 / k, 4 / k]);
+        ctx.beginPath(); ctx.moveTo(PW / 2, 0); ctx.lineTo(PW / 2, PH); ctx.moveTo(0, PH / 2); ctx.lineTo(PW, PH / 2); ctx.stroke(); ctx.setLineDash([]);
+    }
+    DS.objs.forEach(o => { if (forExport || !o._hide) dsDrawObj(ctx, o); });
+    if (!forExport) {
+        ctx.strokeStyle = '#e0247d'; ctx.lineWidth = 1 / k;
+        DS.guides.forEach(g => { ctx.beginPath(); if (g.x != null) { ctx.moveTo(g.x, 0); ctx.lineTo(g.x, PH); } else { ctx.moveTo(0, g.y); ctx.lineTo(PW, g.y); } ctx.stroke(); });
+        const o = dsObj(DS.sel);
+        if (o) {
+            ctx.strokeStyle = '#1f6f9e'; ctx.lineWidth = 1.5 / k; ctx.setLineDash([5 / k, 3 / k]); ctx.strokeRect(o.x, o.y, o.w, o.h); ctx.setLineDash([]);
+            if (!o.locked) dsHandles(o).forEach(([hx, hy]) => { const s = 8 / k; ctx.fillStyle = '#fff'; ctx.strokeStyle = '#1f6f9e'; ctx.fillRect(hx - s / 2, hy - s / 2, s, s); ctx.strokeRect(hx - s / 2, hy - s / 2, s, s); });
+        }
+        if (DS.drag && DS.drag.mode === 'draw') { ctx.save(); ctx.strokeStyle = DS.penColor; ctx.lineWidth = DS.penWidth; ctx.lineCap = ctx.lineJoin = 'round'; ctx.beginPath(); DS.drag.pts.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)); ctx.stroke(); ctx.restore(); }
+    }
+    ctx.restore();
+}
+function dsHandles(o) {
+    const { x, y, w, h } = o, cx = x + w / 2, cy = y + h / 2;
+    const all = [[x, y, 'nw'], [cx, y, 'n'], [x + w, y, 'ne'], [x + w, cy, 'e'], [x + w, y + h, 'se'], [cx, y + h, 's'], [x, y + h, 'sw'], [x, cy, 'w']];
+    return o.type === 'text' ? all.filter(hd => /^(e|w|ne|nw|se|sw)$/.test(hd[2])) : all;
+}
+function dsDraw() {
+    const cv = document.getElementById('dsCanvas'); if (!cv) return;
+    const [, PW, PH] = dsPage(), dpr = window.devicePixelRatio || 1, k = DS.zoom;
+    cv.width = Math.round(PW * k * dpr); cv.height = Math.round(PH * k * dpr); cv.style.width = PW * k + 'px'; cv.style.height = PH * k + 'px';
+    const ctx = cv.getContext('2d'); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    dsRender(ctx, k * dpr, false);
+    document.getElementById('dsUndo').disabled = !DS.undo.length; document.getElementById('dsRedo').disabled = !DS.redo.length;
+    if (DS.editing) dsPlaceEditor();
+}
+function dsFit() {
+    const st = document.getElementById('dsStage'), [, PW, PH] = dsPage();
+    DS.zoom = Math.max(0.2, Math.min((st.clientWidth - 40) / PW, (st.clientHeight - 40) / PH, 2));
+    dsDraw();
+}
+// ---- adding things ----
+function dsCenterBox(w, h) { const [, PW, PH] = dsPage(); return { x: Math.round((PW - w) / 2), y: Math.round((PH - h) / 2), w, h }; }
+function dsAdd(o, keepTool) { dsPush(); o.id = dsId(); DS.objs.push(o); DS.sel = o.id; if (!keepTool) dsSetTool('select'); dsChanged(); return o; }
+function dsAddText(kind) {
+    const p = { h1: { text: 'Your heading', font: 'Oswald', size: 56, bold: true, color: '#24211d' }, h2: { text: 'A subheading', font: 'Inter', size: 30, bold: true, color: '#de5426' }, body: { text: 'Add your text here. Double-click to edit.', font: 'Inter', size: 18, bold: false, color: '#24211d' } }[kind];
+    const [, PW] = dsPage(), w = kind === 'body' ? Math.round(PW * 0.6) : Math.round(PW * 0.75);
+    const o = dsAdd(Object.assign({ type: 'text', align: 'center', italic: false, lh: 1.25, fill: 'none', opacity: 1 }, p, dsCenterBox(w, p.size * 1.3)));
+    if (document.fonts) document.fonts.load(dsFont(o)).then(dsDraw).catch(() => {});
+}
+function dsAddShape(kind) {
+    const base = { opacity: 1, fill: '#de5426', stroke: 'none', strokeW: 0 };
+    if (kind === 'rect') dsAdd(Object.assign({ type: 'rect' }, base, dsCenterBox(240, 160)));
+    else if (kind === 'round') dsAdd(Object.assign({ type: 'rect', radius: 24 }, base, dsCenterBox(240, 160)));
+    else if (kind === 'ellipse') dsAdd(Object.assign({ type: 'ellipse' }, base, dsCenterBox(180, 180)));
+    else if (kind === 'banner') { const [, PW] = dsPage(); dsAdd(Object.assign({ type: 'rect' }, base, { fill: '#24211d' }, dsCenterBox(PW, 120), { x: 0 })); }
+    else dsAdd({ type: 'path', arrow: kind === 'arrow', stroke: '#24211d', strokeW: 5, opacity: 1, pts: [[0, 0.5], [1, 0.5]], ...dsCenterBox(260, 1) });
+}
+function dsAddIcon(name) {
+    const color = DS.iconColor;
+    dsAdd({ type: 'icon', icon: name, color, src: dsIconSrc(name, color), opacity: 1, ...dsCenterBox(140, 140) });
+}
+async function dsFileToDataUrl(blob, name) {
+    if (/pdf$/i.test(blob.type) || /\.pdf$/i.test(name || '')) {
+        const pdfjsLib = await docsLoadPdfJs();
+        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
+        const pg = await pdf.getPage(1), v1 = pg.getViewport({ scale: 1 }), vp = pg.getViewport({ scale: Math.min(3, 1800 / Math.max(v1.width, v1.height)) });
+        const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+        const cx = c.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, c.width, c.height);
+        await pg.render({ canvasContext: cx, viewport: vp }).promise;
+        return c.toDataURL('image/jpeg', 0.9);
+    }
+    const url = URL.createObjectURL(blob);
+    try {
+        const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+        const k = Math.min(1, 1800 / Math.max(im.naturalWidth, im.naturalHeight));
+        const c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        return /png|gif|webp|svg/.test(blob.type) ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.9);
+    } finally { URL.revokeObjectURL(url); }
+}
+async function dsAddImage(blob, name) {
+    dsStatus('Adding image…');
+    try {
+        const src = await dsFileToDataUrl(blob, name);
+        const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+        DS.imgCache[src] = im;
+        const [, PW, PH] = dsPage(), k = Math.min(PW * 0.6 / im.naturalWidth, PH * 0.5 / im.naturalHeight, 1);
+        dsAdd({ type: 'image', src, opacity: 1, ...dsCenterBox(Math.round(im.naturalWidth * k), Math.round(im.naturalHeight * k)) });
+        dsStatus('');
+    } catch (err) { console.error(err); dsStatus(''); alert('Couldn’t add that file — use a photo (JPG, PNG, GIF, WEBP) or a PDF.'); }
+}
+// ---- Elements (icons) ----
+async function dsLoadIcons() {
+    if (DS.icons) return true;
+    if (DS.iconLoading) return DS.iconLoading;
+    document.getElementById('dsIconNote').textContent = 'Loading the icon library…';
+    DS.iconLoading = Promise.all([fetch(DS_ICON_URL).then(r => r.json()), fetch(DS_ICON_META_URL).then(r => r.json()).catch(() => null)]).then(([j, meta]) => {
+        DS.icons = j; DS.iconMeta = meta;
+        DS.iconNames = Object.keys(j.icons).concat(Object.keys(j.aliases || {}));
+        const sel = document.getElementById('dsIconCat');
+        if (meta && meta.categories) sel.innerHTML = '<option value="">Popular</option>' + Object.keys(meta.categories).sort().map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
+        document.getElementById('dsIconNote').textContent = '';
+        return true;
+    }).catch(err => { console.error(err); DS.iconLoading = null; document.getElementById('dsIconNote').textContent = 'Couldn’t load the icon library — check the internet connection and try again.'; return false; });
+    return DS.iconLoading;
+}
+async function dsIconsShow() {
+    const grid = document.getElementById('dsIconGrid');
+    if (!(await dsLoadIcons())) { grid.innerHTML = ''; return; }
+    const q = document.getElementById('dsIconSearch').value.trim().toLowerCase(), cat = document.getElementById('dsIconCat').value;
+    let list;
+    if (q) {
+        const terms = q.split(/[\s,]+/).filter(Boolean);
+        const expand = terms.flatMap(t => [t].concat((DS_SYNONYMS[t] || '').split(' ').filter(Boolean)));
+        const score = n => { const parts = n.split('-'); let s = 0; terms.forEach(t => { if (parts.includes(t)) s += 3; else if (n.includes(t)) s += 2; }); expand.forEach(t => { if (!terms.includes(t) && n.includes(t)) s += 1; }); return s; };
+        const seen = new Set();
+        list = DS.iconNames.map(n => [n, score(n)]).filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1] || a[0].length - b[0].length).map(([n]) => n)
+            .filter(n => { const real = DS.icons.icons[n] ? n : DS.icons.aliases[n].parent; if (seen.has(real)) return false; seen.add(real); return true; });
+    } else if (cat && DS.iconMeta) list = DS.iconMeta.categories[cat] || [];
+    else list = DS_POPULAR;
+    const shown = list.slice(0, DS.iconLimit || 160);
+    grid.innerHTML = shown.map(n => { const src = dsIconSrc(n, '#24211d'); return src ? `<button type="button" class="ds-icon" data-ds-icon="${escapeAttr(n)}" title="${escapeAttr(n.replace(/-/g, ' '))}"><img src="${src}" alt=""></button>` : ''; }).join('')
+        + (list.length > shown.length ? `<button type="button" class="de-btn ds-more" id="dsIconMore">Show more (${list.length - shown.length})</button>` : '');
+    document.getElementById('dsIconNote').textContent = q && !list.length ? 'No icons match — try another word (e.g. "faucet" for sink, "cursor" for click).' : `${list.length.toLocaleString()} icon${list.length === 1 ? '' : 's'}${q || cat ? '' : ' · search 7,600+ more'}`;
+}
+// ---- Documents list (Uploads tab) ----
+function dsDocList() {
+    const box = document.getElementById('dsDocList'); if (!box) return;
+    const q = (document.getElementById('dsDocSearch').value || '').toLowerCase();
+    const items = [];
+    DOC_SECTIONS.forEach(sec => docsForSection(sec.id, false).forEach(d => { if (docsCanPreview(d)) items.push({ label: sec.label, title: d.title || d.filename, get: () => docsUrlFor(d), name: d.filename || '', kind: docsIsImage(d) ? 'Photo' : 'PDF' }); }));
+    if (typeof fpAllFiles === 'function') fpAllFiles().forEach(f => { const n = fpEffectiveName(f); if (/\.(pdf|jpe?g|png|gif|webp)$/i.test(n)) items.push({ label: 'Floorplans', title: n.replace(/\.[^.]+$/, ''), name: n, kind: /\.pdf$/i.test(n) ? 'PDF' : 'Photo', get: () => f.upload ? docsUrlFor({ uploadId: f.upload.id, fileId: f.upload.fileId, mime: f.upload.mime }) : Promise.resolve(fpUrl(f.name)) }); });
+    DS.docItems = items.filter(it => !q || (it.title + ' ' + it.label).toLowerCase().includes(q));
+    box.innerHTML = DS.docItems.slice(0, 200).map((it, i) => `<button type="button" class="ds-doc" data-ds-doc="${i}"><b>${escapeHtml(it.title)}</b><span>${escapeHtml(it.label)} · ${it.kind}</span></button>`).join('') || '<div class="ds-note">No photos or PDFs found.</div>';
+}
+// ---- selection, moving, resizing, snapping ----
+function dsPt(e) { const r = document.getElementById('dsCanvas').getBoundingClientRect(); return [(e.clientX - r.left) / DS.zoom, (e.clientY - r.top) / DS.zoom]; }
+function dsHitObj(px, py) {
+    for (let i = DS.objs.length - 1; i >= 0; i--) {
+        const o = DS.objs[i], t = Math.max(4, (o.strokeW || 0) / 2) + 4 / DS.zoom;
+        if (px >= o.x - t && px <= o.x + o.w + t && py >= o.y - t && py <= o.y + o.h + t) return o;
+    }
+    return null;
+}
+function dsHitHandle(o, px, py) { const s = 7 / DS.zoom; const h = dsHandles(o).find(([hx, hy]) => Math.abs(px - hx) <= s && Math.abs(py - hy) <= s); return h ? h[2] : null; }
+// Snap targets: page edges, ½" margins, half-way lines, grid, other objects.
+function dsSnapLines(skipId) {
+    const [, PW, PH] = dsPage(), xs = [0, 48, PW / 2, PW - 48, PW], ys = [0, 48, PH / 2, PH - 48, PH];
+    DS.objs.forEach(o => { if (o.id === skipId) return; xs.push(o.x, o.x + o.w / 2, o.x + o.w); ys.push(o.y, o.y + o.h / 2, o.y + o.h); });
+    return { xs, ys };
+}
+function dsSnap1(vals, targets, gridOn) {
+    const th = 6 / DS.zoom; let best = null;
+    vals.forEach(v => targets.forEach(t => { const d = t - v; if (Math.abs(d) <= th && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, at: t }; }));
+    if (!best && gridOn) vals.forEach(v => { const t = Math.round(v / 24) * 24, d = t - v; if (Math.abs(d) <= th && (!best || Math.abs(d) < Math.abs(best.d))) best = { d, at: null }; });
+    return best;
+}
+function dsSetTool(t) {
+    DS.tool = t;
+    const st = document.getElementById('dsStage'); if (st) st.dataset.tool = t;
+    const b = document.getElementById('dsDrawToggle'); if (b) { b.textContent = t === 'draw' ? '✓ Drawing — click to stop' : '✎ Start drawing'; b.classList.toggle('on', t === 'draw'); }
+}
+// ---- text editing ----
+function dsPlaceEditor() {
+    const o = dsObj(DS.editing && DS.editing.id), ta = DS.editing && DS.editing.ta; if (!o || !ta) return;
+    const k = DS.zoom;
+    Object.assign(ta.style, { left: o.x * k + 'px', top: o.y * k + 'px', width: Math.max(40, o.w * k) + 'px', minHeight: o.h * k + 'px', font: `${o.italic ? 'italic ' : ''}${o.bold ? '700' : '400'} ${o.size * k}px "${o.font}", Arial, sans-serif`, lineHeight: (o.lh || 1.25), textAlign: o.align, color: o.color });
+}
+function dsStartEdit(o) {
+    dsStopEdit();
+    const ta = document.createElement('textarea'); ta.className = 'ds-editor'; ta.value = o.text;
+    document.getElementById('dsWrap').appendChild(ta);
+    DS.editing = { id: o.id, ta, before: JSON.stringify(DS.objs) };
+    ta.addEventListener('input', () => { o.text = ta.value; dsDraw(); });
+    ta.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); dsStopEdit(); } });
+    ta.addEventListener('blur', () => setTimeout(() => { if (DS.editing && DS.editing.ta === ta) dsStopEdit(); }, 0));
+    dsPlaceEditor(); ta.focus(); ta.select();
+    o._hide = true;
+}
+function dsStopEdit() {
+    const ed = DS.editing; if (!ed) return;
+    DS.editing = null; ed.ta.remove();
+    const o = dsObj(ed.id);
+    if (o) { delete o._hide; if (!o.text.trim()) { DS.objs = DS.objs.filter(x => x !== o); DS.sel = null; } }
+    if (JSON.stringify(DS.objs) !== ed.before) { DS.undo.push(JSON.stringify({ objs: JSON.parse(ed.before), page: DS.page, bg: DS.bg })); DS.redo = []; DS.dirty = true; }
+    dsDraw(); dsProps();
+}
+// ---- properties bar ----
+function dsProps() {
+    const bar = document.getElementById('dsProps'); if (!bar) return;
+    const o = dsObj(DS.sel);
+    const color = (k, v, label) => `<label class="ds-mini">${label} <input type="color" data-ds-p="${k}" value="${v && v !== 'none' ? v : '#ffffff'}"></label>`;
+    if (!o) { bar.innerHTML = `<span class="ds-hint">Page</span>${color('bg', DS.bg, 'Background')}<span class="ds-hint">Select an item to change it · Delete removes · arrows nudge · Ctrl+D duplicates</span>`; return; }
+    let h = '';
+    if (o.type === 'text') {
+        h += `<select class="ds-select" data-ds-p="font">${DS_FONTS.map(f => `<option${f === o.font ? ' selected' : ''} style="font-family:'${f}'">${f}</option>`).join('')}</select>
+            <label class="ds-mini">Size <input type="number" data-ds-p="size" min="6" max="300" value="${o.size}" style="width:58px;"></label>
+            <button type="button" class="de-btn${o.bold ? ' on' : ''}" data-ds-toggle="bold"><b>B</b></button><button type="button" class="de-btn${o.italic ? ' on' : ''}" data-ds-toggle="italic"><i>I</i></button>
+            ${['left', 'center', 'right'].map(a => `<button type="button" class="de-btn${o.align === a ? ' on' : ''}" data-ds-align="${a}" title="Align ${a}">${{ left: '≡←', center: '≡', right: '→≡' }[a]}</button>`).join('')}
+            ${color('color', o.color, 'Text')}${color('fill', o.fill, 'Fill')}<label class="ds-check"><input type="checkbox" data-ds-p="nofill"${!o.fill || o.fill === 'none' ? ' checked' : ''}> No fill</label>`;
+    } else if (o.type === 'icon') h += color('color', o.color, 'Color');
+    else if (o.type === 'path') h += `${color('stroke', o.stroke, 'Color')}<label class="ds-mini">Width <input type="range" data-ds-p="strokeW" min="1" max="40" value="${o.strokeW}"></label>`;
+    else if (o.type === 'rect' || o.type === 'ellipse') {
+        h += `${color('fill', o.fill, 'Fill')}<label class="ds-check"><input type="checkbox" data-ds-p="nofill"${!o.fill || o.fill === 'none' ? ' checked' : ''}> No fill</label>${color('stroke', o.stroke, 'Border')}<label class="ds-mini">Border <input type="range" data-ds-p="strokeW" min="0" max="30" value="${o.strokeW || 0}"></label>`;
+        if (o.type === 'rect') h += `<label class="ds-mini">Corners <input type="range" data-ds-p="radius" min="0" max="120" value="${o.radius || 0}"></label>`;
+    }
+    h += `<label class="ds-mini">Opacity <input type="range" data-ds-p="opacity" min="0.1" max="1" step="0.05" value="${o.opacity == null ? 1 : o.opacity}"></label>
+        <button type="button" class="de-btn" data-ds-act="center-h" title="Center across the page">↔ Center</button><button type="button" class="de-btn" data-ds-act="center-v" title="Center down the page">↕ Middle</button>
+        <button type="button" class="de-btn" data-ds-act="front" title="Bring forward">⬆ Forward</button><button type="button" class="de-btn" data-ds-act="back" title="Send backward">⬇ Back</button>
+        <button type="button" class="de-btn" data-ds-act="dup" title="Duplicate (Ctrl+D)">⧉ Duplicate</button><button type="button" class="de-btn" data-ds-act="del" title="Delete">🗑 Delete</button>`;
+    bar.innerHTML = h;
+}
+function dsAct(a) {
+    const o = dsObj(DS.sel); if (!o) return;
+    const [, PW, PH] = dsPage(), i = DS.objs.indexOf(o);
+    dsPush();
+    if (a === 'del') { DS.objs.splice(i, 1); DS.sel = null; }
+    else if (a === 'dup') { const c = JSON.parse(JSON.stringify(o)); c.id = dsId(); c.x += 20; c.y += 20; DS.objs.push(c); DS.sel = c.id; }
+    else if (a === 'front' && i < DS.objs.length - 1) { DS.objs.splice(i, 1); DS.objs.splice(i + 1, 0, o); }
+    else if (a === 'back' && i > 0) { DS.objs.splice(i, 1); DS.objs.splice(i - 1, 0, o); }
+    else if (a === 'center-h') o.x = Math.round((PW - o.w) / 2);
+    else if (a === 'center-v') o.y = Math.round((PH - o.h) / 2);
+    dsChanged();
+}
+// ---- export / save ----
+async function dsCanvasOut(scale) {
+    if (document.fonts) await document.fonts.ready;
+    const [, PW, PH] = dsPage(), c = document.createElement('canvas'); c.width = Math.round(PW * scale); c.height = Math.round(PH * scale);
+    const pending = DS.objs.filter(o => (o.type === 'image' || o.type === 'icon') && !dsImg(o.src));
+    if (pending.length) await Promise.all(pending.map(o => new Promise(res => { const im = DS.imgCache[o.src]; if (!im) return res(); im.onload = im.onerror = res; })));
+    const keepSel = DS.sel, keepG = DS.guides; DS.sel = null; DS.guides = [];
+    dsRender(c.getContext('2d'), scale, true);
+    DS.sel = keepSel; DS.guides = keepG;
+    return c;
+}
+function dsDesignJson() { return JSON.stringify({ v: 1, title: DS.title, page: DS.page, bg: DS.bg, objs: DS.objs.map(o => { const c = Object.assign({}, o); delete c._hide; if (c.type === 'icon') delete c.src; return c; }) }); }
+async function dsBuildPdf() {
+    const PDFLib = await docsLoadPdfLib();
+    const [, PW, PH] = dsPage(), c = await dsCanvasOut(3);
+    let bytes = await new Promise(res => c.toBlob(b => b.arrayBuffer().then(res), 'image/png'));
+    const pdf = await PDFLib.PDFDocument.create();
+    let img;
+    if (bytes.byteLength > 7.5 * 1024 * 1024) img = await pdf.embedJpg(await new Promise(res => c.toBlob(b => b.arrayBuffer().then(res), 'image/jpeg', 0.9)));
+    else img = await pdf.embedPng(bytes);
+    const page = pdf.addPage([PW * 0.75, PH * 0.75]);
+    page.drawImage(img, { x: 0, y: 0, width: PW * 0.75, height: PH * 0.75 });
+    pdf.setTitle(DS.title); pdf.setCreator('REVE Boulder app — Create');
+    pdf.getInfoDict().set(PDFLib.PDFName.of('ReveDesign'), PDFLib.PDFHexString.fromText(dsDesignJson()));
+    // No object streams, so the design marker stays findable in the file.
+    return pdf.save({ useObjectStreams: false });
+}
+// A PDF made here carries its design: returns it, or null.
+async function dsReadDesign(bytes) {
+    const probe = new TextDecoder('latin1').decode(bytes.subarray(0, Math.min(bytes.length, 4 * 1024 * 1024)));
+    if (!probe.includes('ReveDesign') && !new TextDecoder('latin1').decode(bytes.subarray(Math.max(0, bytes.length - 4 * 1024 * 1024))).includes('ReveDesign')) return null;
+    try {
+        const PDFLib = await docsLoadPdfLib();
+        const pdf = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+        const v = pdf.getInfoDict().lookup(PDFLib.PDFName.of('ReveDesign'));
+        return v ? JSON.parse(v.decodeText()) : null;
+    } catch (err) { console.error(err); return null; }
+}
+function dsDownload(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000); }
+const dsSafeName = () => (DS.title || 'design').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'design';
+async function dsSave() {
+    dsStopEdit();
+    DS.title = document.getElementById('dsTitle').value.trim() || 'Untitled design';
+    dsStatus('Saving…');
+    try {
+        const file = new File([await dsBuildPdf()], dsSafeName() + '.pdf', { type: 'application/pdf' });
+        if (DS.doc) {
+            const doc = DS.doc; dsClose(true); await docsReplaceDocFile(doc, file);
+        } else {
+            const section = DOC_SECTIONS.find(s => s.id === docsCurrentSection) || DOC_SECTIONS.find(s => s.id === 'other');
+            dsClose(true); await docsAddNewFile(file, DS.title, section.id);
+        }
+        dsStatus('');
+    } catch (err) { console.error(err); dsStatus(''); alert('Couldn’t save the design. Try again, or download it as a PDF.'); }
+}
+// ---- wiring ----
+function dsWire(m) {
+    const cv = m.querySelector('#dsCanvas');
+    cv.addEventListener('pointerdown', e => {
+        if (DS.editing) dsStopEdit();
+        const [px, py] = dsPt(e);
+        if (DS.tool === 'draw') { DS.drag = { mode: 'draw', pts: [[px, py]] }; cv.setPointerCapture(e.pointerId); return; }
+        const cur = dsObj(DS.sel), hd = cur && !cur.locked && dsHitHandle(cur, px, py);
+        if (hd) { dsPush(); DS.drag = { mode: 'resize', hd, o: cur, start: [px, py], box: { x: cur.x, y: cur.y, w: cur.w, h: cur.h }, size: cur.size }; cv.setPointerCapture(e.pointerId); return; }
+        const o = dsHitObj(px, py);
+        DS.sel = o ? o.id : null; dsProps();
+        if (o) { DS.drag = { mode: 'move', o, start: [px, py], box: { x: o.x, y: o.y }, pushed: false }; cv.setPointerCapture(e.pointerId); }
+        dsDraw();
+    });
+    cv.addEventListener('pointermove', e => {
+        const d = DS.drag; if (!d) return;
+        const [px, py] = dsPt(e);
+        if (d.mode === 'draw') { d.pts.push([px, py]); dsDraw(); return; }
+        const o = d.o, dx = px - d.start[0], dy = py - d.start[1];
+        DS.guides = [];
+        if (d.mode === 'move') {
+            if (!d.pushed) { if (Math.abs(dx) + Math.abs(dy) < 2) return; dsPush(); d.pushed = true; }
+            let nx = d.box.x + dx, ny = d.box.y + dy;
+            if (DS.snap && !e.altKey) {
+                const L = dsSnapLines(o.id);
+                const sx = dsSnap1([nx, nx + o.w / 2, nx + o.w], L.xs, DS.grid), sy = dsSnap1([ny, ny + o.h / 2, ny + o.h], L.ys, DS.grid);
+                if (sx) { nx += sx.d; if (sx.at != null) DS.guides.push({ x: sx.at }); }
+                if (sy) { ny += sy.d; if (sy.at != null) DS.guides.push({ y: sy.at }); }
+            }
+            o.x = Math.round(nx * 10) / 10; o.y = Math.round(ny * 10) / 10;
+        } else if (d.mode === 'resize') {
+            const b = d.box, hd = d.hd; let x1 = b.x, y1 = b.y, x2 = b.x + b.w, y2 = b.y + b.h;
+            if (hd.includes('w')) x1 += dx; if (hd.includes('e')) x2 += dx; if (hd.includes('n')) y1 += dy; if (hd.includes('s')) y2 += dy;
+            if (DS.snap && !e.altKey) {
+                const L = dsSnapLines(o.id);
+                if (hd.includes('w')) { const s = dsSnap1([x1], L.xs, DS.grid); if (s) { x1 += s.d; if (s.at != null) DS.guides.push({ x: s.at }); } }
+                if (hd.includes('e')) { const s = dsSnap1([x2], L.xs, DS.grid); if (s) { x2 += s.d; if (s.at != null) DS.guides.push({ x: s.at }); } }
+                if (hd.includes('n')) { const s = dsSnap1([y1], L.ys, DS.grid); if (s) { y1 += s.d; if (s.at != null) DS.guides.push({ y: s.at }); } }
+                if (hd.includes('s')) { const s = dsSnap1([y2], L.ys, DS.grid); if (s) { y2 += s.d; if (s.at != null) DS.guides.push({ y: s.at }); } }
+            }
+            const minS = o.type === 'path' ? 1 : 10;
+            let w = Math.max(minS, x2 - x1), h = Math.max(o.type === 'path' ? 1 : 10, y2 - y1);
+            // Photos & icons keep their shape from a corner (Shift = free).
+            if ((o.type === 'image' || o.type === 'icon') && hd.length === 2 && !e.shiftKey) { const r = b.w / b.h; if (w / h > r) w = h * r; else h = w / r; if (hd.includes('w')) x1 = x2 - w; if (hd.includes('n')) y1 = y2 - h; }
+            if (hd.includes('w')) x1 = Math.min(x1, x2 - minS); if (hd.includes('n') && o.type !== 'text') y1 = Math.min(y1, y2 - minS);
+            o.x = x1; o.w = w;
+            if (o.type === 'text') { if (hd.length === 2 && d.size) { o.size = Math.max(6, Math.round(d.size * w / b.w)); } }
+            else { o.y = y1; o.h = h; }
+        }
+        dsDraw();
+    });
+    const end = () => {
+        const d = DS.drag; if (!d) return; DS.drag = null; DS.guides = [];
+        if (d.mode === 'draw') {
+            if (d.pts.length > 1 || true) {
+                const xs = d.pts.map(p => p[0]), ys = d.pts.map(p => p[1]), pad = DS.penWidth / 2;
+                const x = Math.min(...xs) - pad, y = Math.min(...ys) - pad, w = Math.max(...xs) - x + pad, h = Math.max(...ys) - y + pad;
+                dsAdd({ type: 'path', stroke: DS.penColor, strokeW: DS.penWidth, opacity: 1, x, y, w: Math.max(1, w), h: Math.max(1, h), pts: d.pts.map(([px, py]) => [(px - x) / Math.max(1, w), (py - y) / Math.max(1, h)]) }, true);
+                DS.sel = null;
+            }
+        }
+        dsDraw(); dsProps();
+    };
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+    cv.addEventListener('dblclick', e => { const [px, py] = dsPt(e); const o = dsHitObj(px, py); if (o && o.type === 'text') { DS.sel = o.id; dsStartEdit(o); } });
+    m.addEventListener('click', e => {
+        const tab = e.target.closest('[data-ds-tab]');
+        if (tab) { m.querySelectorAll('[data-ds-tab]').forEach(b => b.classList.toggle('on', b === tab)); m.querySelectorAll('[data-ds-panel]').forEach(p => { p.hidden = p.dataset.dsPanel !== tab.dataset.dsTab; }); if (tab.dataset.dsTab === 'uploads') dsDocList(); if (tab.dataset.dsTab !== 'draw' && DS.tool === 'draw') dsSetTool('select'); return; }
+        const ic = e.target.closest('[data-ds-icon]'); if (ic) { dsAddIcon(ic.dataset.dsIcon); return; }
+        if (e.target.id === 'dsIconMore') { DS.iconLimit = (DS.iconLimit || 160) + 320; dsIconsShow(); return; }
+        const tx = e.target.closest('[data-ds-text]'); if (tx) { dsAddText(tx.dataset.dsText); return; }
+        const sh = e.target.closest('[data-ds-shape]'); if (sh) { dsAddShape(sh.dataset.dsShape); return; }
+        const dc = e.target.closest('[data-ds-doc]'); if (dc) { const it = DS.docItems[+dc.dataset.dsDoc]; dsStatus('Loading…'); it.get().then(u => fetch(u)).then(r => r.blob()).then(b => dsAddImage(b, it.name)).catch(() => { dsStatus(''); alert('Couldn’t load that document.'); }); return; }
+        const tg = e.target.closest('[data-ds-toggle]'); if (tg) { const o = dsObj(DS.sel); if (o) { dsPush(); o[tg.dataset.dsToggle] = !o[tg.dataset.dsToggle]; if (document.fonts) document.fonts.load(dsFont(o)).then(dsDraw).catch(() => {}); dsChanged(); } return; }
+        const al = e.target.closest('[data-ds-align]'); if (al) { const o = dsObj(DS.sel); if (o) { dsPush(); o.align = al.dataset.dsAlign; dsChanged(); } return; }
+        const ac = e.target.closest('[data-ds-act]'); if (ac) { dsAct(ac.dataset.dsAct); return; }
+    });
+    const props = m.querySelector('#dsProps');
+    props.addEventListener('focusin', e => { if (e.target.dataset.dsP) DS.propStart = true; });
+    props.addEventListener('input', e => {
+        const k = e.target.dataset.dsP; if (!k) return;
+        if (k === 'bg') { if (DS.propStart) { dsPush(); DS.propStart = false; } DS.bg = e.target.value; dsDraw(); return; }
+        const o = dsObj(DS.sel); if (!o) return;
+        if (DS.propStart !== false) { dsPush(); DS.propStart = false; }
+        const v = e.target.value;
+        if (k === 'nofill') o.fill = e.target.checked ? 'none' : (o.type === 'text' ? '#ffffff' : '#de5426');
+        else if (k === 'size' || k === 'strokeW' || k === 'radius') o[k] = Math.max(0, +v || 0);
+        else if (k === 'opacity') o.opacity = +v;
+        else if (k === 'color' && o.type === 'icon') { o.color = v; o.src = dsIconSrc(o.icon, v); }
+        else o[k] = v;
+        if (k === 'font' && document.fonts) document.fonts.load(dsFont(o)).then(dsDraw).catch(() => {});
+        if ((k === 'fill' || k === 'stroke') && o.type !== 'text' && k === 'stroke' && !o.strokeW) o.strokeW = 3;
+        DS.dirty = true; dsDraw();
+        if (k === 'nofill' || k === 'font') dsProps();
+    });
+    props.addEventListener('change', () => { DS.propStart = true; });
+    m.querySelector('#dsIconSearch').addEventListener('input', () => { DS.iconLimit = 160; clearTimeout(DS.searchT); DS.searchT = setTimeout(dsIconsShow, 150); });
+    m.querySelector('#dsIconCat').addEventListener('change', () => { DS.iconLimit = 160; m.querySelector('#dsIconSearch').value = ''; dsIconsShow(); });
+    m.querySelector('#dsIconColor').addEventListener('input', e => { DS.iconColor = e.target.value; const o = dsObj(DS.sel); if (o && o.type === 'icon') { if (DS.propStart !== false) { dsPush(); DS.propStart = false; } o.color = e.target.value; o.src = dsIconSrc(o.icon, o.color); dsDraw(); } });
+    m.querySelector('#dsIconColor').addEventListener('change', () => { DS.propStart = true; });
+    m.querySelector('#dsDocSearch').addEventListener('input', dsDocList);
+    m.querySelector('#dsUploadBtn').addEventListener('click', () => m.querySelector('#dsUploadInput').click());
+    m.querySelector('#dsUploadInput').addEventListener('change', async e => { const fs = [...e.target.files]; e.target.value = ''; for (const f of fs) await dsAddImage(f, f.name); });
+    m.querySelector('#dsDrawToggle').addEventListener('click', () => dsSetTool(DS.tool === 'draw' ? 'select' : 'draw'));
+    m.querySelector('#dsPenColor').addEventListener('input', e => { DS.penColor = e.target.value; });
+    m.querySelector('#dsPenWidth').addEventListener('input', e => { DS.penWidth = +e.target.value; });
+    m.querySelector('#dsPageSize').addEventListener('change', e => { dsPush(); DS.page = e.target.value; dsFit(); });
+    m.querySelector('#dsGrid').addEventListener('change', e => { DS.grid = e.target.checked; dsDraw(); });
+    m.querySelector('#dsSnap').addEventListener('change', e => { DS.snap = e.target.checked; });
+    m.querySelector('#dsZoomFit').addEventListener('click', dsFit);
+    m.querySelector('#dsZoomIn').addEventListener('click', () => { DS.zoom = Math.min(4, DS.zoom * 1.25); dsDraw(); });
+    m.querySelector('#dsZoomOut').addEventListener('click', () => { DS.zoom = Math.max(0.2, DS.zoom / 1.25); dsDraw(); });
+    m.querySelector('#dsUndo').addEventListener('click', () => { dsStopEdit(); dsRestore(DS.undo, DS.redo); });
+    m.querySelector('#dsRedo').addEventListener('click', () => dsRestore(DS.redo, DS.undo));
+    m.querySelector('#dsTitle').addEventListener('input', e => { DS.title = e.target.value; DS.dirty = true; });
+    m.querySelector('#dsClose').addEventListener('click', () => dsClose(false));
+    m.querySelector('#dsSave').addEventListener('click', dsSave);
+    m.querySelector('#dsPdf').addEventListener('click', async () => { dsStopEdit(); dsStatus('Preparing…'); try { dsDownload(new Blob([await dsBuildPdf()], { type: 'application/pdf' }), dsSafeName() + '.pdf'); } finally { dsStatus(''); } });
+    m.querySelector('#dsPng').addEventListener('click', async () => { dsStopEdit(); dsStatus('Preparing…'); try { const c = await dsCanvasOut(3); c.toBlob(b => dsDownload(b, dsSafeName() + '.png'), 'image/png'); } finally { dsStatus(''); } });
+    document.addEventListener('keydown', e => {
+        if (m.style.display !== 'flex' || DS.editing || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+        const mod = e.ctrlKey || e.metaKey, o = dsObj(DS.sel);
+        if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); m.querySelector(e.shiftKey ? '#dsRedo' : '#dsUndo').click(); }
+        else if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); m.querySelector('#dsRedo').click(); }
+        else if (mod && e.key.toLowerCase() === 'd' && o) { e.preventDefault(); dsAct('dup'); }
+        else if ((e.key === 'Delete' || e.key === 'Backspace') && o) { e.preventDefault(); dsAct('del'); }
+        else if (e.key === 'Enter' && o && o.type === 'text') { e.preventDefault(); dsStartEdit(o); }
+        else if (e.key.startsWith('Arrow') && o) {
+            e.preventDefault(); const st = e.shiftKey ? 10 : 1; if (!DS.nudging) { dsPush(); DS.nudging = true; setTimeout(() => { DS.nudging = false; }, 600); }
+            if (e.key === 'ArrowLeft') o.x -= st; if (e.key === 'ArrowRight') o.x += st; if (e.key === 'ArrowUp') o.y -= st; if (e.key === 'ArrowDown') o.y += st; dsDraw();
+        } else if (e.key === 'Escape') { if (DS.tool === 'draw') dsSetTool('select'); else if (DS.sel) { DS.sel = null; dsDraw(); dsProps(); } else dsClose(false); }
+    });
+    window.addEventListener('resize', () => { if (m.style.display === 'flex') dsFit(); });
+}
+// A brand-new file in a Documents section (used by Create).
+async function docsAddNewFile(file, title, sectionId) {
+    const mime = docsCheckFile(file); if (!mime) return false;
+    const entry = { id: docsNewId(), section: sectionId, title, name: file.name, size: file.size, mime, print: 'full', added: new Date().toISOString() };
+    docsSyncCard(entry.id, 'working', `Saving “${entry.title}” (${docsSectionLabel(sectionId)})`, 'Reading the file…', 0.01);
+    const b64 = await docsReadBase64(file);
+    await docsCachePut(entry.id, b64);
+    docsSetStatus('');
+    return docsRunShare(entry, b64, 'Uploading');
+}
+document.getElementById('docsCreateBtn').addEventListener('click', () => dsOpen(null, null));
 
 /* ---------- Upload status + verified sharing ----------
    Every upload/replace goes through docsShareEntry(): send the file (in
