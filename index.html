@@ -2178,9 +2178,17 @@
     .ds-hint { font-size: 12px; color: var(--ink-soft); }
     .ds-main { flex: 1; min-height: 0; display: flex; }
     .ds-side { width: 290px; flex: none; border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
-    .ds-tabs { display: flex; border-bottom: 1px solid var(--line); }
-    .ds-tab { flex: 1; border: 0; background: none; padding: 9px 2px; font: inherit; font-size: 12px; font-weight: 700; color: var(--ink-soft); cursor: pointer; border-bottom: 2px solid transparent; }
-    .ds-tab.on { color: var(--reve-orange-dark); border-bottom-color: var(--reve-orange); }
+    .ds-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; border-bottom: 1px solid var(--line); }
+    .ds-tab { border: 1px solid var(--line); border-radius: 8px; background: var(--panel, #fff); padding: 9px 4px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--ink); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .ds-tab span { font-size: 17px; line-height: 1; }
+    .ds-tab:hover { border-color: var(--reve-orange); }
+    .ds-tab.on { background: var(--reve-orange); border-color: var(--reve-orange); color: #fff; }
+    .ds-logo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .ds-logo { border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; font: inherit; font-size: 11px; color: #24211d; min-height: 92px; }
+    .ds-logo:hover { border-color: var(--reve-orange); }
+    .ds-logo .ds-logo-img { width: 100%; height: 60px; display: flex; align-items: center; justify-content: center; background: repeating-conic-gradient(#f1eee9 0 25%, #fff 0 50%) 0 0 / 12px 12px; border-radius: 4px; }
+    .ds-logo img { max-width: 100%; max-height: 60px; object-fit: contain; }
+    .ds-logo b { font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ds-panel { padding: 10px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
     .ds-panel[hidden] { display: none; }
     .ds-panel input[type=search] { border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font: inherit; font-size: 13px; background: var(--panel, #fff); color: inherit; }
@@ -20619,7 +20627,11 @@ function dsEl() {
       <div class="de-bar ds-props" id="dsProps"></div>
       <div class="ds-main">
         <div class="ds-side">
-          <div class="ds-tabs">${[['elements', 'Elements'], ['uploads', 'Uploads'], ['text', 'Text'], ['shapes', 'Shapes'], ['draw', 'Draw']].map(([k, l], i) => `<button type="button" class="ds-tab${i ? '' : ' on'}" data-ds-tab="${k}">${l}</button>`).join('')}</div>
+          <div class="ds-tabs">${[['elements', '\u2605', 'Elements'], ['logos', '\u24c7', 'Logos'], ['uploads', '\u21ea', 'Uploads'], ['text', 'T', 'Text'], ['shapes', '\u25ef', 'Shapes'], ['draw', '\u270e', 'Draw']].map(([k, ic, l], i) => `<button type="button" class="ds-tab${i ? '' : ' on'}" data-ds-tab="${k}"><span aria-hidden="true">${ic}</span>${l}</button>`).join('')}</div>
+          <div class="ds-panel" data-ds-panel="logos" hidden>
+            <button type="button" class="de-btn primary ds-wide" id="dsLogoUploadBtn">Upload a new logo</button><input type="file" id="dsLogoInput" accept="image/*,.pdf" hidden>
+            <div class="ds-note">New logos are saved to Documents \u203a Other as \u201cLOGO - name\u201d so they\u2019re here next time. Any document with \u201clogo\u201d in its name shows here too.</div>
+            <div class="ds-logo-grid" id="dsLogoGrid"></div></div>
           <div class="ds-panel" data-ds-panel="elements">
             <input type="search" id="dsIconSearch" placeholder="Search icons (e.g. sink, mouse click, parking)…" autocomplete="off">
             <div class="ds-row"><select id="dsIconCat" class="ds-select"><option value="">Popular</option></select><label class="ds-mini">Color <input type="color" id="dsIconColor"></label></div>
@@ -20872,6 +20884,33 @@ function dsIconList(qRaw, cat) {
     else list = DS_POPULAR;
     return list;
 }
+// ---- Logos: the built-in REVE logo + any document named with "logo" ----
+function dsLogoItems() {
+    const items = [{ title: 'REVE logo (built-in)', get: async () => WATERMARK_IMG_SRC, name: 'reve-logo.png', builtIn: true }];
+    DOC_SECTIONS.forEach(sec => docsForSection(sec.id, false).forEach(d => {
+        if (docsCanPreview(d) && /logo/i.test(`${d.title || ''} ${d.filename || ''}`)) items.push({ title: (d.title || d.filename).replace(/^LOGO\s*-\s*/i, ''), get: () => docsUrlFor(d), name: d.filename || '', pdf: !docsIsImage(d) });
+    }));
+    return items;
+}
+function dsLogoList() {
+    const grid = document.getElementById('dsLogoGrid'); if (!grid) return;
+    DS.logoItems = dsLogoItems();
+    grid.innerHTML = DS.logoItems.map((it, i) => `<button type="button" class="ds-logo" data-ds-logo="${i}" title="Add \u201c${escapeAttr(it.title)}\u201d"><span class="ds-logo-img">${it.pdf ? '<span>PDF</span>' : '<span>\u2026</span>'}</span><b>${escapeHtml(it.title)}</b></button>`).join('');
+    // Previews load one by one (uploaded logos come from the backend).
+    DS.logoItems.forEach((it, i) => { if (it.pdf) return; it.get().then(u => { const el = grid.querySelector(`[data-ds-logo="${i}"] .ds-logo-img`); if (el && u) el.innerHTML = `<img src="${escapeAttr(u)}" alt="">`; }).catch(() => {}); });
+}
+async function dsLogoUpload(file) {
+    const base = file.name.replace(/\.[^.]+$/, '').replace(/^LOGO\s*-\s*/i, '').replace(/[_-]+/g, ' ').trim();
+    const name = prompt('Name for this logo:', base);
+    if (name === null) return;
+    const clean = (name.trim() || base).replace(/[\\/:*?"<>|]+/g, '-');
+    const ext = (/\.[^.]+$/.exec(file.name) || [''])[0];
+    const named = new File([file], `LOGO - ${clean}${ext}`, { type: file.type });
+    await dsAddImage(named, named.name);
+    dsStatus('Saving the logo to Documents\u2026');
+    try { await docsAddNewFile(named, `LOGO - ${clean}`, 'other'); }
+    finally { dsStatus(''); dsLogoList(); }
+}
 // ---- Documents list (Uploads tab) ----
 function dsDocList() {
     const box = document.getElementById('dsDocList'); if (!box) return;
@@ -21123,11 +21162,12 @@ function dsWire(m) {
     cv.addEventListener('dblclick', e => { const [px, py] = dsPt(e); const o = dsHitObj(px, py); if (o && o.type === 'text') { DS.sel = o.id; dsStartEdit(o); } });
     m.addEventListener('click', e => {
         const tab = e.target.closest('[data-ds-tab]');
-        if (tab) { m.querySelectorAll('[data-ds-tab]').forEach(b => b.classList.toggle('on', b === tab)); m.querySelectorAll('[data-ds-panel]').forEach(p => { p.hidden = p.dataset.dsPanel !== tab.dataset.dsTab; }); if (tab.dataset.dsTab === 'uploads') dsDocList(); if (tab.dataset.dsTab !== 'draw' && DS.tool === 'draw') dsSetTool('select'); return; }
+        if (tab) { m.querySelectorAll('[data-ds-tab]').forEach(b => b.classList.toggle('on', b === tab)); m.querySelectorAll('[data-ds-panel]').forEach(p => { p.hidden = p.dataset.dsPanel !== tab.dataset.dsTab; }); if (tab.dataset.dsTab === 'uploads') dsDocList(); if (tab.dataset.dsTab === 'logos') dsLogoList(); if (tab.dataset.dsTab !== 'draw' && DS.tool === 'draw') dsSetTool('select'); return; }
         const ic = e.target.closest('[data-ds-icon]'); if (ic) { dsAddIcon(ic.dataset.dsIcon); return; }
         if (e.target.id === 'dsIconMore') { DS.iconLimit = (DS.iconLimit || 160) + 320; dsIconsShow(); return; }
         const tx = e.target.closest('[data-ds-text]'); if (tx) { dsAddText(tx.dataset.dsText); return; }
         const sh = e.target.closest('[data-ds-shape]'); if (sh) { dsAddShape(sh.dataset.dsShape); return; }
+        const lg = e.target.closest('[data-ds-logo]'); if (lg) { const it = DS.logoItems[+lg.dataset.dsLogo]; dsStatus('Loading\u2026'); it.get().then(u => fetch(u)).then(r => r.blob()).then(b => dsAddImage(b, it.name)).catch(() => { dsStatus(''); alert('Couldn\u2019t load that logo.'); }); return; }
         const dc = e.target.closest('[data-ds-doc]'); if (dc) { const it = DS.docItems[+dc.dataset.dsDoc]; dsStatus('Loading…'); it.get().then(u => fetch(u)).then(r => r.blob()).then(b => dsAddImage(b, it.name)).catch(() => { dsStatus(''); alert('Couldn’t load that document.'); }); return; }
         const tg = e.target.closest('[data-ds-toggle]'); if (tg) { const o = dsObj(DS.sel); if (o) { dsPush(); o[tg.dataset.dsToggle] = !o[tg.dataset.dsToggle]; if (document.fonts) document.fonts.load(dsFont(o)).then(dsDraw).catch(() => {}); dsChanged(); } return; }
         const al = e.target.closest('[data-ds-align]'); if (al) { const o = dsObj(DS.sel); if (o) { dsPush(); o.align = al.dataset.dsAlign; dsChanged(); } return; }
@@ -21158,6 +21198,8 @@ function dsWire(m) {
     m.querySelector('#dsIconColor').addEventListener('change', () => { DS.propStart = true; });
     m.querySelector('#dsDocSearch').addEventListener('input', dsDocList);
     m.querySelector('#dsUploadBtn').addEventListener('click', () => m.querySelector('#dsUploadInput').click());
+    m.querySelector('#dsLogoUploadBtn').addEventListener('click', () => m.querySelector('#dsLogoInput').click());
+    m.querySelector('#dsLogoInput').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) dsLogoUpload(f); });
     m.querySelector('#dsUploadInput').addEventListener('change', async e => { const fs = [...e.target.files]; e.target.value = ''; for (const f of fs) await dsAddImage(f, f.name); });
     m.querySelector('#dsDrawToggle').addEventListener('click', () => dsSetTool(DS.tool === 'draw' ? 'select' : 'draw'));
     m.querySelector('#dsPenColor').addEventListener('input', e => { DS.penColor = e.target.value; });
