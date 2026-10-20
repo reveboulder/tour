@@ -2125,6 +2125,9 @@
     .fp-head { cursor: default; }
     .fp-row.ot-row { grid-template-columns: 26px 460px 44px 64px 70px max-content; }
     .fp-row.ot-row .fp-actions { white-space: nowrap; }
+    .fp-row.ot-row.ot-tags { grid-template-columns: 26px 380px 170px 44px 64px 70px max-content; }
+    .ot-tags .doc-tags { margin: 0; flex-wrap: wrap; }
+    .ot-tags:not(.fp-head) .fp-file { display: none; }   /* same as the name here */
     .fp-row.ot-row .docs-drag-handle { margin: 0; width: 24px; height: 22px; }
     .fp-row.ot-dragging { opacity: 0.55; outline: 2px dashed var(--reve-orange); outline-offset: -2px; }
     .de-overlay { position: fixed; inset: 0; z-index: 3000; background: rgba(20,18,16,.72); display: none; align-items: stretch; justify-content: center; padding: 16px; }
@@ -16386,9 +16389,10 @@ function wlArchiveName(wlKey) {
 }
 function wlArchiveTags(wlKey) {
     const rec = WL_RECORDS[wlKey] || {}, resident = wlKeyResident(wlKey);
-    const tags = [];
-    if ((parseInt(rec.parkingSpaces, 10) || 0) > 0) tags.push('Parking');
-    if (wlPetCount(resident) > 0) tags.push('Pets');
+    const tags = [], spaces = parseInt(rec.parkingSpaces, 10) || 0, pets = wlPetCount(resident);
+    // "Parking x2" = two spaces on the letter (2 × the parking rate); same for pets.
+    if (spaces > 0) tags.push(spaces > 1 ? `Parking x${spaces}` : 'Parking');
+    if (pets > 0) tags.push(pets > 1 ? `Pets x${pets}` : 'Pets');
     return tags.length ? tags : ['N/A'];
 }
 async function wlArchive(wlKey, blob) {
@@ -19857,16 +19861,20 @@ function renderOtherDocs() {
     const list = document.getElementById('otherList');
     const note = document.getElementById('otherNote');
     if (otherSelected && !docs.some(d => d.key === otherSelected)) otherSelected = null;
-    const head = `<div class="fp-row ot-row fp-head"><span></span><span>Document</span><span>Type</span><span>Size</span><span>Added</span><span></span></div>`;
+    // Welcome Letters: an "Other Charges" column (Parking / Pets / N/A tags).
+    const tagCol = docsCurrentSection === 'welcome-letters', rowCls = tagCol ? ' ot-tags' : '';
+    const tagHtml = d => Array.isArray(d.tags) && d.tags.length ? `<span class="doc-tags">${d.tags.map(t => `<span class="doc-tag doc-tag-${t === 'N/A' ? 'na' : t.split(' ')[0].toLowerCase()}">${escapeHtml(t)}</span>`).join('')}</span>` : '';
+    const head = `<div class="fp-row ot-row${rowCls} fp-head"><span></span><span>Document</span>${tagCol ? '<span>Other Charges</span>' : ''}<span>Type</span><span>Size</span><span>Added</span><span></span></div>`;
     const handleIcon = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
     list.innerHTML = docs.length ? head + docs.map(d => {
         const i = d.idx;
         const type = docsTypeLabel(d);
         const when = d.updated || d.added;
         const date = when ? new Date(when).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : '';
-        return `<div class="fp-row ot-row${d.key === otherSelected ? ' fp-selected' : ''}" data-other-key="${escapeAttr(d.key)}">
+        return `<div class="fp-row ot-row${rowCls}${d.key === otherSelected ? ' fp-selected' : ''}" data-other-key="${escapeAttr(d.key)}">
             <span class="docs-drag-handle" role="button" tabindex="0" title="Drag to reorder" aria-label="Drag to reorder ${escapeAttr(d.title)}">${handleIcon}</span>
-            <span class="fp-name"><b>${escapeHtml(d.title)}</b>${Array.isArray(d.tags) && d.tags.length ? `<span class="doc-tags">${d.tags.map(t => `<span class="doc-tag doc-tag-${t === 'N/A' ? 'na' : t.toLowerCase()}">${escapeHtml(t)}</span>`).join('')}</span>` : ''}<span class="fp-file" title="${escapeAttr(d.filename || '')}">${escapeHtml(d.filename || '')}${d.syncing ? ' \u00b7 uploading\u2026' : d.localOnly ? ' \u00b7 this device only (not shared yet)' : ''}</span></span>
+            <span class="fp-name"><b>${escapeHtml(d.title)}</b>${tagCol ? '' : tagHtml(d)}<span class="fp-file" title="${escapeAttr(d.filename || '')}">${escapeHtml(d.filename || '')}${d.syncing ? ' \u00b7 uploading\u2026' : d.localOnly ? ' \u00b7 this device only (not shared yet)' : ''}</span></span>
+            ${tagCol ? `<span class="fp-c">${tagHtml(d)}</span>` : ''}
             <span class="fp-c">${escapeHtml(type)}</span>
             <span class="fp-c">${escapeHtml(d.size ? docsFormatSize(d.size) : d.pages ? d.pages + ' page' + (d.pages === 1 ? '' : 's') : '')}</span>
             <span class="fp-c">${escapeHtml(date)}</span>
