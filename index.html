@@ -2187,6 +2187,8 @@
     .ds-tab span { font-size: 17px; line-height: 1; }
     .ds-tab:hover { border-color: var(--reve-orange); }
     .ds-tab.on { background: var(--reve-orange); border-color: var(--reve-orange); color: #fff; }
+    #docsSubtabs { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .docs-tab-row { display: flex; flex-wrap: wrap; gap: 8px; }
     .doc-tags { display: inline-flex; gap: 4px; margin: 0 6px; vertical-align: 1px; }
     .doc-tag { font-size: 10px; font-weight: 700; letter-spacing: .03em; padding: 1px 7px; border-radius: 10px; border: 1px solid; white-space: nowrap; }
     .doc-tag-parking { color: #1f6f9e; border-color: #9cc6e0; background: #eaf4fb; }
@@ -5728,6 +5730,31 @@ function renderPricingStatus() {
 /* Each uploaded pricing sheet is also saved by the backend script to the
    Daily Pricing folder on Google Drive: <year>/<M.D.YY>.CSV (today's date,
    Mountain Time). A second upload the same day replaces that day's file. */
+// Today's pricing sheet name (Mountain Time): "10.20.26.CSV".
+function pricingDayName() {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', year: 'numeric', month: 'numeric', day: 'numeric' })
+        .formatToParts(new Date()).map(p => [p.type, p.value]));
+    return { year: parts.year, name: `${parts.month}.${parts.day}.${String(parts.year).slice(-2)}.CSV` };
+}
+// Keeps the uploaded sheet in Documents › Pricing; a second upload the same day replaces that day's file.
+async function pricingSaveToDocs(csv) {
+    try {
+        const { name } = pricingDayName(), title = name.replace(/\.CSV$/i, '');
+        const file = new File([csv], name, { type: 'text/csv' });
+        const b64 = await docsReadBase64(file);
+        const now = new Date().toISOString(), fileId = docsNewId();
+        const current = DOC_UPLOADS.find(u => u.section === 'pricing' && !u.replaces && u.title === title);
+        const entry = current
+            ? Object.assign({}, current, { fileId, name, size: file.size, mime: 'text/csv', updated: now })
+            : { id: docsNewId(), section: 'pricing', title, name, size: file.size, mime: 'text/csv', print: 'full', added: now };
+        delete entry.localOnly;
+        const oldFileId = current ? (current.fileId || current.id) : null;
+        await docsCachePut(entry.fileId || entry.id, b64);
+        const shared = await docsRunShare(entry, b64, current ? 'Updating' : 'Saving', true);
+        if (shared && oldFileId) { backendPush(`document-file-${oldFileId}`, null); backendPush(`document-thumb-${oldFileId}`, null); docsForgetFile(oldFileId); }
+        if (docsCurrentSection === 'pricing') renderDocuments();
+    } catch (err) { console.error('Saving the pricing sheet to Documents failed', err); }
+}
 async function pricingArchiveToDrive(csv) {
     const note = document.getElementById('pricingDriveNote');
     if (!note || !BACKEND_URL || APP_MODE === 'test') return;
@@ -5769,6 +5796,7 @@ document.getElementById('pricingFileInput').addEventListener('change', (e) => {
             persistPricing();
             if (BACKEND_URL) backendPush('pricing-summary', { summary: PRICING_SUMMARY, meta: PRICING_META });
             pricingArchiveToDrive(String(reader.result));
+            pricingSaveToDocs(String(reader.result));
             renderPricingStatus();
             rebuildFloorplanFilter();
             rebuildAvailFilters();
@@ -16422,7 +16450,8 @@ async function wlBuildPdf(wlKey) {
 
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pageW, pageH], compress: true });
         pdf.addImage(imgData, 'JPEG', x, y, wPt, hPt);
-        return { pdf, name: `welcome-letter-apt-${unit}.pdf` };
+        // Same name as the copy kept in Documents › Welcome Letters.
+        return { pdf, name: wlArchiveName(wlKey) + '.pdf' };
     } finally {
         document.body.removeChild(holder);
     }
@@ -18710,7 +18739,10 @@ const DOC_SECTIONS = [
     // Upload-only sections (no printing), shown after Floorplans.
     { id: 'sitemaps', label: 'Sitemaps', docs: [], list: true },
     // Every Welcome Letter generated in the WL tab is kept here (tags: Parking / Pets / N/A).
-    { id: 'welcome-letters', label: 'Welcome Letters', docs: [], list: true },
+    // row2: shown on a second row of sub-tabs.
+    { id: 'welcome-letters', label: 'Welcome Letters', docs: [], list: true, row2: true },
+    // Each uploaded daily pricing sheet (Tour tab) is kept here as M.D.YY.CSV.
+    { id: 'pricing', label: 'Pricing', docs: [], list: true, row2: true },
     { id: 'other', label: 'Other', docs: [], list: true }
 ];
 const DOCS_UPLOADS_KEY = 'reve-documents-uploads';
@@ -19068,6 +19100,8 @@ function docsForSection(sectionId, includeHidden) {
     const all = builtIn.concat(uploaded).map(docsApplyMeta).filter(d => includeHidden || !d.hidden);
     const order = DOC_ORDER[sectionId] || [];
     const rank = k => { const i = order.indexOf(k); return i === -1 ? order.length : i; };
+    // Pricing sheets: newest first unless someone has reordered them.
+    if (sectionId === 'pricing' && !order.length) return all.sort((a, b) => String(b.updated || b.added || '').localeCompare(String(a.updated || a.added || '')));
     return all.map((d, i) => [d, i]).sort((a, b) => rank(a[0].key) - rank(b[0].key) || a[1] - b[1]).map(x => x[0]);
 }
 const PDF_LIB_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
@@ -19215,10 +19249,11 @@ function docsFormatAdded(added) {
 function renderDocuments() {
     const tabs = document.getElementById('docsSubtabs');
     const tabBtn = (id, label) => `<button type="button" class="wl-subtab${id === docsCurrentSection ? ' active' : ''}" data-docs-section="${escapeAttr(id)}">${escapeHtml(label)}</button>`;
-    tabs.innerHTML = DOC_SECTIONS.filter(s => !s.list).map(s => tabBtn(s.id, s.label)).join('')
+    tabs.innerHTML = '<div class="docs-tab-row">' + DOC_SECTIONS.filter(s => !s.list).map(s => tabBtn(s.id, s.label)).join('')
         + tabBtn('floorplans', 'Floorplans')
-        + DOC_SECTIONS.filter(s => s.list).map(s => tabBtn(s.id, s.label)).join('')
-        + tabBtn('email-templates', 'Email Templates');
+        + DOC_SECTIONS.filter(s => s.list && !s.row2).map(s => tabBtn(s.id, s.label)).join('')
+        + tabBtn('email-templates', 'Email Templates') + '</div>'
+        + '<div class="docs-tab-row">' + DOC_SECTIONS.filter(s => s.row2).map(s => tabBtn(s.id, s.label)).join('') + '</div>';
     // Email Templates: its own editor; none of the file tools apply.
     const isEt = docsCurrentSection === 'email-templates';
     document.getElementById('etPanel').style.display = isEt ? '' : 'none';
