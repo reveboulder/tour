@@ -2192,6 +2192,14 @@
     .ds-tab.on { background: var(--reve-orange); border-color: var(--reve-orange); color: #fff; }
     #docsSubtabs { flex-direction: column; align-items: flex-start; gap: 8px; }
     .docs-tab-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tab-lock { width: 11px; height: 11px; margin-left: 3px; vertical-align: -1px; color: #9a958c; opacity: .9; }
+    .wl-subtab.active .tab-lock { color: currentColor; opacity: .8; }
+    .admin-pw-btns { display: inline-flex; gap: 6px; }
+    .sec-lock { max-width: 480px; }
+    .sec-lock input { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; font: inherit; font-size: 13px; background: var(--panel); color: var(--ink); }
+    .sec-pw-bar { display: flex; justify-content: flex-end; gap: 6px; margin-bottom: 8px; }
+    .pw-modal label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; }
+    .pw-modal input { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 13px; }
     .doc-tags { display: inline-flex; gap: 4px; margin: 0 6px; vertical-align: 1px; }
     .doc-tag { font-size: 10px; font-weight: 700; letter-spacing: .03em; padding: 1px 7px; border-radius: 10px; border: 1px solid; white-space: nowrap; }
     .doc-tag-parking { color: #1f6f9e; border-color: #9cc6e0; background: #eaf4fb; }
@@ -4313,11 +4321,11 @@
         <div class="wl-subtabs" id="adminTopSubtabs">
             <button type="button" class="wl-subtab active" data-admin-subtab="info">INFO</button>
             <button type="button" class="wl-subtab" data-admin-subtab="mmr">MMR</button>
-            <button type="button" class="wl-subtab" data-admin-subtab="commissions">Commissions</button>
-            <button type="button" class="wl-subtab" data-admin-subtab="pcard">PCard</button>
+            <button type="button" class="wl-subtab" data-admin-subtab="commissions" title="Has its own password">Commissions <svg class="tab-lock" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+            <button type="button" class="wl-subtab" data-admin-subtab="pcard" title="Has its own password">PCard <svg class="tab-lock" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
             <button type="button" class="wl-subtab" data-admin-subtab="deposit">Deposit Accounting</button>
             <button type="button" class="wl-subtab" data-admin-subtab="blueprints">Blueprints</button>
-            <button type="button" class="btn small wl-subtab-right" id="adminChangePassBtn" title="Change the Admin password for everyone">Change Admin Password</button>
+            <span class="wl-subtab-right admin-pw-btns"><button type="button" class="btn small" id="adminSetOwnerBtn" style="display:none;" title="One-time: set the Owner password, required to change any password">Set Owner Password</button><button type="button" class="btn small" id="adminChangePassBtn" title="Change the Admin password for everyone">Change Admin Password</button></span>
         </div>
         <div id="adminPanel-mmr" class="admin-subpanel" style="display:none;">
             <div class="mmr-io-bar">
@@ -4877,8 +4885,8 @@
                 <button type="button" class="wl-subtab active" data-info-subtab="units">Unit Info</button>
                 <button type="button" class="wl-subtab" data-info-subtab="retail">Retail</button>
                 <button type="button" class="wl-subtab" data-info-subtab="services">Services</button>
-                <button type="button" class="wl-subtab" data-info-subtab="door">DOOR Accounts</button>
-                <button type="button" class="wl-subtab" data-info-subtab="passwords">Passwords</button>
+                <button type="button" class="wl-subtab" data-info-subtab="door" title="Has its own passphrase">DOOR Accounts <svg class="tab-lock" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+                <button type="button" class="wl-subtab" data-info-subtab="passwords" title="Has its own passphrase">Passwords <svg class="tab-lock" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
                 <button type="button" class="wl-subtab" data-info-subtab="birthdays">Birthdays</button>
                 <button type="button" class="wl-subtab" data-info-subtab="garden">Garden Beds</button>
                 <button type="button" class="wl-subtab" data-info-subtab="maintenance">Maintenance</button>
@@ -9888,7 +9896,7 @@ function adminLockRender() {
     const setup = st === 'new' || st === 'change';
     document.getElementById('adminLockTitle').textContent = st === 'change' ? 'Change Admin Password' : setup ? 'Set the Admin Password' : 'Admin Access';
     document.getElementById('adminLockNote').textContent =
-        st === 'change' ? 'Enter the current Admin password, then the new one twice. The new password applies to everyone.'
+        st === 'change' ? 'Enter the current Admin password and the Owner password, then the new one twice. The new password applies to everyone.'
         : st === 'new' ? 'No Admin password has been set yet. Choose one now — it will be required for everyone opening Admin and for protected actions (removing documents, clearing Residents, etc.).'
         : st === 'loading' ? 'Checking the Admin password settings…'
         : st === 'offline' ? 'Couldn’t reach the shared backend to check the Admin password. Check your connection, then try again.'
@@ -9907,6 +9915,14 @@ function adminLockRender() {
         newF.querySelector('input').addEventListener('keydown', e => { if (e.key === 'Enter') tryAdminUnlock(); });
     }
     newF.style.display = st === 'change' ? '' : 'none';
+    let ownF = document.getElementById('adminPass4Field');
+    if (!ownF) {
+        ownF = document.createElement('div'); ownF.className = 'field'; ownF.id = 'adminPass4Field';
+        ownF.innerHTML = '<label>Owner password</label><input type="password" id="adminPasswordOwner" placeholder="Owner password" autocomplete="off">';
+        newF.before(ownF);
+        ownF.querySelector('input').addEventListener('keydown', e => { if (e.key === 'Enter') tryAdminUnlock(); });
+    }
+    ownF.style.display = st === 'change' ? '' : 'none';
     const btn = document.getElementById('adminUnlockBtn');
     btn.textContent = st === 'change' ? 'Change Password' : st === 'new' ? 'Set Password & Unlock' : st === 'loading' ? 'Checking…' : st === 'offline' ? 'Try again' : 'Unlock';
     btn.disabled = st === 'loading';
@@ -9925,7 +9941,8 @@ function adminShowContent() {
     document.getElementById('adminLockScreen').style.display = 'none';
     document.getElementById('adminContent').style.display = 'block';
     document.getElementById('adminPasswordError').style.display = 'none';
-    ['adminPasswordInput', 'adminPasswordInput2', 'adminPasswordNew'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['adminPasswordInput', 'adminPasswordInput2', 'adminPasswordNew', 'adminPasswordOwner'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    if (typeof OWNER_AUTH !== 'undefined') OWNER_AUTH.load().then(ownerRefreshButton);
     if (adminSubTab === 'info') infoOnShow(); // INFO opens first
 }
 async function tryAdminUnlock() {
@@ -9935,7 +9952,9 @@ async function tryAdminUnlock() {
     const val2 = document.getElementById('adminPasswordInput2').value;
     const nv = (document.getElementById('adminPasswordNew') || {}).value || '';
     if (adminChanging) {
+        if (OWNER_AUTH.state !== 'ready') return err('Set the Owner password first (Set Owner Password, next to Change Admin Password).');
         if (!adminCheck(val)) return err('The current password is incorrect.');
+        if (!OWNER_AUTH.check((document.getElementById('adminPasswordOwner') || {}).value || '')) return err('The Owner password is incorrect.');
         if (nv.length < 6) return err('Use at least 6 characters for the new password.');
         if (nv !== val2) return err('The new passwords don’t match.');
         btn.disabled = true;
@@ -9976,6 +9995,7 @@ document.getElementById('adminUnlockBtn').addEventListener('click', tryAdminUnlo
     if (e.key === 'Enter') tryAdminUnlock();
 }));
 document.getElementById('adminChangePassBtn').addEventListener('click', () => {
+    if (OWNER_AUTH.state !== 'ready') { alert('Set the Owner password first (Set Owner Password). It\u2019s required to change any password.'); return; }
     adminChanging = true;
     document.getElementById('adminContent').style.display = 'none';
     document.getElementById('adminLockScreen').style.display = '';
@@ -9988,6 +10008,107 @@ document.getElementById('adminCancelChangeBtn').addEventListener('click', () => 
     adminShowContent();
 });
 adminLockRender();
+
+/* ---------- Password stores (Owner, Commissions, PCard) ----------
+   Same scheme as the Admin password: only a salted, many-times-hashed
+   fingerprint is stored (shared backend + this browser), never the
+   password. The OWNER password is set once and is then required, with
+   the current password, to change ANY password (Admin, DOOR Accounts,
+   Passwords, Commissions, PCard). */
+function makeAuthStore(key, localKey) {
+    const S = { key, auth: null, state: 'loading', loading: null };
+    try { const v = JSON.parse(localStorage.getItem(localKey) || 'null'); if (v && v.hash) { S.auth = v; S.state = 'ready'; } } catch (e) {}
+    const keepLocal = a => { try { if (a) localStorage.setItem(localKey, JSON.stringify(a)); else localStorage.removeItem(localKey); } catch (e) {} };
+    S.load = () => {
+        if (S.loading) return S.loading;
+        S.loading = (async () => {
+            if (!adminBackendOn()) { if (!S.auth) S.state = 'new'; return; }
+            const r = await backendPullChecked(key);
+            if (r && r.hash) { S.auth = r; S.state = 'ready'; keepLocal(r); }
+            else if (r === null) { if (S.auth) await backendPush(key, S.auth); else S.state = 'new'; }
+            else if (!S.auth) S.state = 'offline';
+        })().finally(() => { S.loading = null; });
+        return S.loading;
+    };
+    S.check = pw => !!S.auth && typeof pw === 'string' && adminHash(pw, S.auth.salt, S.auth.iter) === S.auth.hash;
+    // { ok } or { ok: false, detail }. firstTime: refuse if someone set one meanwhile.
+    S.save = async (pw, firstTime) => {
+        if (firstTime && adminBackendOn()) {
+            const r = await backendPullChecked(key);
+            if (r === undefined) return { ok: false, detail: 'couldn\u2019t reach the shared backend' };
+            if (r && r.hash) { S.auth = r; S.state = 'ready'; keepLocal(r); return { ok: false, detail: 'a password was already set on another device \u2014 use that one', taken: true }; }
+        }
+        const a = adminMakeAuth(pw), prev = S.auth;
+        keepLocal(a);
+        if (adminBackendOn()) {
+            const r = await backendPushVerified(key, a, b => !!b && b.hash === a.hash);
+            if (!r.ok) { keepLocal(prev); return r; }
+        }
+        S.auth = a; S.state = 'ready';
+        return { ok: true };
+    };
+    return S;
+}
+const OWNER_AUTH = makeAuthStore('owner-auth', 'reve-owner-auth');
+function ownerRefreshButton() { const b = document.getElementById('adminSetOwnerBtn'); if (b) b.style.display = OWNER_AUTH.state === 'new' ? '' : 'none'; }
+setTimeout(() => OWNER_AUTH.load().then(ownerRefreshButton), 0);
+// Small password dialog. fields: [{ k, label, minLen?, confirmOf? }]; submit(values) -> error text or null.
+function pwDialog(title, note, fields, submitLabel, submit) {
+    const m = document.createElement('div');
+    m.className = 'vault-modal pw-modal'; m.style.display = 'flex'; m.style.zIndex = 4000;
+    m.innerHTML = `<form class="vault-modal-card" role="dialog" aria-modal="true" aria-label="${escapeAttr(title)}">
+        <div class="vault-modal-h">${escapeHtml(title)}</div>
+        ${note ? `<div class="empty-note" style="margin:0;">${escapeHtml(note)}</div>` : ''}
+        ${fields.map(f => `<label>${escapeHtml(f.label)}<input type="password" data-pw="${f.k}" autocomplete="${f.k.startsWith('new') ? 'new-password' : 'off'}"></label>`).join('')}
+        <div class="empty-note pw-err" style="display:none;color:#c0392b;margin:0;"></div>
+        <div class="vault-modal-foot"><button type="button" class="btn small pw-cancel">Cancel</button><button type="submit" class="btn small primary pw-ok">${escapeHtml(submitLabel)}</button></div>
+    </form>`;
+    const close = () => { m.remove(); document.removeEventListener('keydown', onKey, true); };
+    const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+    document.addEventListener('keydown', onKey, true);
+    m.querySelector('.pw-cancel').onclick = close;
+    m.querySelector('form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const v = {}; m.querySelectorAll('[data-pw]').forEach(i => { v[i.dataset.pw] = i.value; });
+        const err = m.querySelector('.pw-err'), ok = m.querySelector('.pw-ok');
+        for (const f of fields) {
+            if (f.minLen && v[f.k].length < f.minLen) { err.textContent = `${f.label}: use at least ${f.minLen} characters.`; err.style.display = ''; return; }
+            if (f.confirmOf && v[f.k] !== v[f.confirmOf]) { err.textContent = 'The new passwords don\u2019t match.'; err.style.display = ''; return; }
+        }
+        ok.disabled = true; ok.textContent = 'Working\u2026';
+        const problem = await submit(v);
+        ok.disabled = false; ok.textContent = submitLabel;
+        if (problem) { err.textContent = problem; err.style.display = ''; return; }
+        close();
+    });
+    document.body.appendChild(m);
+    const first = m.querySelector('[data-pw]'); if (first) first.focus();
+}
+// Every "Change password": current password + the Owner password + the new one twice.
+function pwChangeFlow(what, curLabel, minLen, checkCurrent, apply) {
+    if (OWNER_AUTH.state !== 'ready') { alert('Set the Owner password first (Admin \u203a Set Owner Password). It\u2019s required to change any password.'); return; }
+    pwDialog(`Change ${what}`, 'Changing it needs the current one and the Owner password. The new one applies to everyone.',
+        [{ k: 'cur', label: curLabel }, { k: 'owner', label: 'Owner password' }, { k: 'new1', label: 'New ' + (curLabel.toLowerCase().includes('passphrase') ? 'passphrase' : 'password'), minLen }, { k: 'new2', label: 'Type it again', confirmOf: 'new1' }],
+        'Change', async v => {
+            if (!OWNER_AUTH.check(v.owner)) return 'The Owner password is incorrect.';
+            if (!(await checkCurrent(v.cur))) return `The ${curLabel.toLowerCase()} is incorrect.`;
+            return apply(v.new1);
+        });
+}
+document.getElementById('adminSetOwnerBtn').addEventListener('click', async () => {
+    await OWNER_AUTH.load(); ownerRefreshButton();
+    if (OWNER_AUTH.state === 'ready') { alert('An Owner password is already set.'); return; }
+    pwDialog('Set the Owner password', 'One-time setup. The Owner password is required (with the current password) to change any password: Admin, DOOR Accounts, Passwords, Commissions and PCard. Keep it somewhere safe.',
+        [{ k: 'admin', label: 'Admin password' }, { k: 'new1', label: 'New Owner password', minLen: 8 }, { k: 'new2', label: 'Type it again', confirmOf: 'new1' }],
+        'Set Owner Password', async v => {
+            if (!adminCheck(v.admin)) return 'The Admin password is incorrect.';
+            const r = await OWNER_AUTH.save(v.new1, true);
+            ownerRefreshButton();
+            if (!r.ok) return `Couldn\u2019t save it: ${r.detail}.`;
+            alert('Owner password set. From now on, changing any password asks for it.');
+            return null;
+        });
+});
 
 // Hidden Games page: click the RÊVE logo on Settings, enter the Admin password.
 document.querySelector('#tab-settings .brand-strip .mark').addEventListener('click', () => {
@@ -10005,7 +10126,7 @@ let adminSubTab = 'info';
         ['mmr', 'commissions', 'pcard', 'deposit', 'blueprints', 'info'].forEach(name => {
             document.getElementById('adminPanel-' + name).style.display = (name === adminSubTab) ? 'block' : 'none';
         });
-        if (adminSubTab === 'commissions' && typeof renderCommSuggested === 'function') renderCommSuggested();
+        if (SECTION_LOCKS[adminSubTab]) SECTION_LOCKS[adminSubTab].show();   // Commissions / PCard: own password
         if (adminSubTab === 'blueprints') bpOnShow();
         if (adminSubTab === 'info') infoOnShow();
     });
@@ -10064,7 +10185,8 @@ function makeVault(cfg) {
                 ${cfg.search ? '<input type="search" class="wl-field vault-search" placeholder="Search websites, usernames, notes\u2026" style="max-width:240px;padding:6px 10px;">' : ''}
                 <label class="info-show"><input type="checkbox" class="vault-show"> ${escapeHtml(cfg.showLabel)}</label>
                 <span class="empty-note vault-status" style="margin:0;font-weight:600;"></span>
-                <button type="button" class="btn small vault-lockbtn" style="margin-left:auto;">Lock</button>
+                <button type="button" class="btn small vault-changepw" style="margin-left:auto;">Change Password</button>
+                <button type="button" class="btn small vault-lockbtn">Lock</button>
             </div>
             <div class="info-table-wrap${cfg.compact ? ' vault-compact' : ''}"><table class="info-table vault-table"></table></div>
             ${cfg.modal ? `<div class="vault-modal" style="display:none;"><div class="vault-modal-card">
@@ -10323,6 +10445,36 @@ function makeVault(cfg) {
     $('.vault-unlock').addEventListener('click', unlock);
     ['.vault-pass', '.vault-pass2'].forEach(s => $(s).addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); }));
     $('.vault-lockbtn').addEventListener('click', lock);
+    // Change the passphrase: the table is re-encrypted with the new one and
+    // shared (other devices then unlock with the new passphrase).
+    $('.vault-changepw').addEventListener('click', () => pwChangeFlow(`${cfg.title} passphrase`, 'Current passphrase', 8,
+        async cur => {
+            if (!V.key) return false;
+            const ck = await doorDeriveKey(cur, V.salt);
+            if (V.env && doorUnb64(V.env.salt).join() === V.salt.join()) return !!(await doorDecrypt(V.env, ck));
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const test = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, V.key, new Uint8Array([1]));
+            try { await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, ck, test); return true; } catch (e) { return false; }
+        },
+        async nw => {
+            while (V.saving) await new Promise(r => setTimeout(r, 100));
+            clearTimeout(V.saveTimer); V.savePending = false;
+            V.saving = true;
+            try {
+                if (doorBackendOn()) await pullMerge();   // fold in the latest shared rows first
+                const old = { key: V.key, salt: V.salt };
+                V.salt = crypto.getRandomValues(new Uint8Array(16));
+                V.key = await doorDeriveKey(nw, V.salt);
+                const env = await writeLocal();
+                if (doorBackendOn()) {
+                    const r = await backendPushVerified(cfg.backendKey, env, b => !!b && b.ct === env.ct);
+                    if (!r.ok) { V.key = old.key; V.salt = old.salt; await writeLocal(); return `Couldn\u2019t save to the shared backend (${r.detail}) \u2014 the passphrase was not changed.`; }
+                }
+                V.env = env;
+                status(`Passphrase changed \u2014 everyone now unlocks ${cfg.title} with the new one.`);
+                return null;
+            } finally { V.saving = false; }
+        }));
     if (cfg.search) $('.vault-search').addEventListener('input', () => render());
     $('.vault-add').addEventListener('click', () => addRow(false));
     $('.vault-show').addEventListener('change', e => {
@@ -10387,6 +10539,76 @@ makeVault({
     ],
     rowName: c => c.website || c.username
 });
+
+/* Admin › Commissions and PCard: each has its own password (hashed like
+   the Admin password). First visit sets it; after that it's asked once
+   per page load. Change Password needs the current one + the Owner password. */
+const SECTION_LOCKS = {};
+function makeSectionLock(cfg) {
+    const store = makeAuthStore(cfg.key, cfg.localKey);
+    const P = document.getElementById(cfg.panelId);
+    const content = document.createElement('div'); content.className = 'sec-content';
+    while (P.firstChild) content.appendChild(P.firstChild);
+    const bar = document.createElement('div'); bar.className = 'sec-pw-bar';
+    bar.innerHTML = '<button type="button" class="btn small sec-changepw">Change Password</button><button type="button" class="btn small sec-lockbtn">Lock</button>';
+    content.prepend(bar);
+    const lockEl = document.createElement('div');
+    lockEl.className = 'settings-card info-lock sec-lock';
+    lockEl.innerHTML = `<div class="section-label" style="margin-top:0;"><span class="dot"></span><span class="sec-title"></span></div>
+        <p class="empty-note sec-note" style="font-size:12.5px;"></p>
+        <input type="password" class="sec-pass" placeholder="Password" autocomplete="off">
+        <input type="password" class="sec-pass2" placeholder="Type it again" autocomplete="new-password" style="display:none;">
+        <button type="button" class="btn primary sec-unlock" style="width:100%;">Unlock</button>
+        <div class="empty-note sec-err" style="display:none;color:#c0392b;margin-top:8px;"></div>`;
+    P.appendChild(lockEl); P.appendChild(content);
+    const L = { unlocked: false, store };
+    const $ = s => lockEl.querySelector(s);
+    function renderLock() {
+        const st = store.state, isNew = st === 'new';
+        $('.sec-title').textContent = isNew ? `Set a ${cfg.title} password` : `${cfg.title} is locked`;
+        $('.sec-note').textContent = isNew ? `Choose a password for ${cfg.title}. Only a scrambled fingerprint of it is saved (shared with everyone). It is separate from the Admin password.`
+            : st === 'loading' ? 'Checking\u2026' : st === 'offline' ? 'Couldn\u2019t reach the shared backend. Check your connection, then try again.'
+            : `Enter the ${cfg.title} password to continue.`;
+        $('.sec-pass').style.display = st === 'offline' ? 'none' : '';
+        $('.sec-pass2').style.display = isNew ? '' : 'none';
+        $('.sec-unlock').textContent = isNew ? 'Set Password & Unlock' : st === 'loading' ? 'Checking\u2026' : st === 'offline' ? 'Try again' : 'Unlock';
+        $('.sec-unlock').disabled = st === 'loading';
+    }
+    function setView() { lockEl.style.display = L.unlocked ? 'none' : ''; content.style.display = L.unlocked ? '' : 'none'; }
+    L.show = () => {
+        setView();
+        if (L.unlocked) { if (cfg.onUnlock) cfg.onUnlock(); return; }
+        $('.sec-err').style.display = 'none'; renderLock();
+        store.load().then(() => { renderLock(); if (!L.unlocked && store.state !== 'loading') $('.sec-pass').focus(); });
+    };
+    async function unlock() {
+        const err = msg => { $('.sec-err').textContent = msg; $('.sec-err').style.display = ''; };
+        const p1 = $('.sec-pass').value, p2 = $('.sec-pass2').value;
+        if (store.state === 'offline') { store.state = 'loading'; renderLock(); return L.show(); }
+        if (store.state === 'loading') return;
+        if (store.state === 'new') {
+            if (p1.length < 6) return err('Use at least 6 characters.');
+            if (p1 !== p2) return err('The two passwords don\u2019t match.');
+            $('.sec-unlock').disabled = true;
+            const r = await store.save(p1, true);
+            $('.sec-unlock').disabled = false;
+            if (!r.ok) { renderLock(); return err(`Couldn\u2019t save the password (${r.detail}).`); }
+        } else if (!store.check(p1)) return err('Incorrect password \u2014 try again.');
+        $('.sec-pass').value = ''; $('.sec-pass2').value = '';
+        L.unlocked = true; setView(); if (cfg.onUnlock) cfg.onUnlock();
+    }
+    $('.sec-unlock').addEventListener('click', unlock);
+    ['.sec-pass', '.sec-pass2'].forEach(s => $(s).addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); }));
+    bar.querySelector('.sec-lockbtn').addEventListener('click', () => { L.unlocked = false; L.show(); });
+    bar.querySelector('.sec-changepw').addEventListener('click', () => pwChangeFlow(`${cfg.title} password`, 'Current password', 6,
+        async cur => store.check(cur),
+        async nw => { const r = await store.save(nw); if (!r.ok) return `Couldn\u2019t save the new password (${r.detail}) \u2014 nothing was changed.`; alert(`${cfg.title} password changed for everyone.`); return null; }));
+    setView();
+    SECTION_LOCKS[cfg.id] = L;
+    return L;
+}
+makeSectionLock({ id: 'commissions', title: 'Commissions', key: 'comm-auth', localKey: 'reve-comm-auth', panelId: 'adminPanel-commissions', onUnlock: () => { if (typeof renderCommSuggested === 'function') renderCommSuggested(); } });
+makeSectionLock({ id: 'pcard', title: 'PCard', key: 'pcard-auth', localKey: 'reve-pcard-auth', panelId: 'adminPanel-pcard' });
 
 // Admin › INFO sub-tabs. Only the encrypted tables have their own passphrase.
 let infoSubTab = 'units';
