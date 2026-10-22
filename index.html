@@ -1789,6 +1789,20 @@
     body.dark-mode .docs-sync.error { background: #3a2220; }
     body.dark-mode .docs-sync button { background: var(--dm-card-alt); color: var(--ink); }
     .docs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+    .docs-split { display: flex; gap: 16px; align-items: flex-start; }
+    .docs-split-main { flex: 1; min-width: 0; }
+    .price-lookup { flex: none; width: 270px; position: sticky; top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; box-sizing: border-box; }
+    .price-lookup form { display: flex; flex-direction: column; gap: 8px; }
+    .price-lookup .docs-edit-field input, .price-lookup .docs-edit-field select { width: 100%; box-sizing: border-box; }
+    .price-lookup-title { font-weight: 700; font-size: 15px; }
+    .price-lookup-out { margin-top: 12px; font-size: 13px; }
+    .price-lookup-out .pl-rent { font-size: 26px; font-weight: 800; color: var(--reve-orange); line-height: 1.1; }
+    .price-lookup-out .pl-sheet { margin-top: 10px; font-weight: 700; }
+    .price-lookup-out table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    .price-lookup-out td, .price-lookup-out th { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line-soft); }
+    .price-lookup-out td:last-child, .price-lookup-out th:last-child { text-align: right; }
+    .price-lookup-out tr.pl-best td { font-weight: 700; }
+    @media (max-width: 800px) { .docs-split { flex-direction: column-reverse; } .price-lookup { width: 100%; position: static; } }
     .docs-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
     .docs-thumb { display: block; aspect-ratio: 8.5 / 11; background: #f3efe7; border-bottom: 1px solid var(--line); overflow: hidden; position: relative; }
     .docs-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
@@ -2288,6 +2302,7 @@
         .fp-pv-pdf { height: 48vh; }
     }
     body.dark-mode .fp-preview { background: var(--dm-card); }
+    body.dark-mode .price-lookup { background: var(--dm-card); }
     body.dark-mode .fp-pv-img { background: var(--dm-card-alt); }
     body.dark-mode .fp-row.fp-selected, body.dark-mode .fp-row.fp-selected:hover { background: #4a2e22 !important; }
     body.dark-mode .fp-row.fp-dup { background: #4a1f1f !important; }
@@ -5074,6 +5089,8 @@
             <input type="file" id="docsReplaceInput" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.tif,.tiff,.doc,.docx,.xls,.xlsx,.xlsm,.csv,.ppt,.pptx,.txt,.rtf,.odt,.ods,.odp,.pages,.numbers,.key,.eml,.msg,.zip" style="display:none;">
         </div>
     </div>
+    <div class="docs-split">
+    <div class="docs-split-main">
     <div class="docs-grid" id="docsGrid"></div>
     <div id="docsEditOverlay" class="howto-overlay" style="display:none;">
         <div class="howto-detail-card docs-edit-card">
@@ -5158,6 +5175,19 @@
         </div>
     </div>
     <div class="empty-note" id="docsEmptyNote" style="display:none;">No documents in this section yet &mdash; click &ldquo;+ Upload&rdquo; to add one.</div>
+    </div>
+    <aside class="price-lookup" id="priceLookup" style="display:none;" aria-label="Rent lookup">
+        <form id="priceLookupForm" autocomplete="off">
+            <div class="price-lookup-title">Rent lookup</div>
+            <label class="docs-edit-field">Unit #<input type="text" id="plUnit" inputmode="numeric" placeholder="e.g. 1205"></label>
+            <label class="docs-edit-field">Lease term<select id="plTerm"><option value="">Any term</option></select></label>
+            <label class="docs-edit-field">Move-in date<input type="date" id="plDate"></label>
+            <label class="docs-edit-field">Pricing sheet<select id="plSheet"><option value="">Latest sheet</option><option value="all">All sheets</option></select></label>
+            <button type="submit" class="btn primary" style="width:100%;">Search</button>
+        </form>
+        <div class="price-lookup-out" id="plOut" aria-live="polite"></div>
+    </aside>
+    </div>
     <iframe id="docsPrintFrame" title="Print" style="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;"></iframe>
 </div>
 </div>
@@ -19482,6 +19512,8 @@ function renderDocuments() {
         + '<div class="docs-tab-row">' + DOC_SECTIONS.filter(s => s.row2).map(s => tabBtn(s.id, s.label)).join('') + '</div>';
     // Email Templates: its own editor; none of the file tools apply.
     const isEt = docsCurrentSection === 'email-templates';
+    document.getElementById('priceLookup').style.display = docsCurrentSection === 'pricing' ? '' : 'none';
+    if (docsCurrentSection === 'pricing') plFillSheets();
     document.getElementById('etPanel').style.display = isEt ? '' : 'none';
     ['docsViewToggle', 'docsUploadBtn', 'docsCreateBtn', 'docsZipBtn'].forEach(id => { document.getElementById(id).style.visibility = isEt ? 'hidden' : ''; });
     if (isEt) {
@@ -19571,6 +19603,98 @@ function renderDocuments() {
     document.getElementById('docsEmptyNote').style.display = docs.length ? 'none' : 'block';
     if (view === 'preview') docs.forEach(d => { if (d.uploadId && !docsThumbs[d.fileId]) docsEnsureThumb(d); });
 }
+/* ---------- Documents › Pricing: rent lookup. Reads the saved daily
+   pricing sheets (CSV) and returns the rent for a unit / lease term /
+   move-in date. ---------- */
+const plParsed = {};   // fileId -> [{ apt, term, month, day, dateKey, value }]
+(function () {
+    const sel = document.getElementById('plTerm');
+    for (let t = 1; t <= 24; t++) sel.insertAdjacentHTML('beforeend', `<option value="${t}">${t} months</option>`);
+})();
+// "05Nov", "11/5/2026", "2026-11-05" -> { month: 1-12, day }
+function plParseDate(s) {
+    s = String(s || '').trim();
+    let m = s.match(/^(\d{1,2})\s*-?\s*([A-Za-z]{3})/);
+    if (m) { const mi = MONTH_ABBR.findIndex(a => a.toLowerCase() === m[2].toLowerCase()); if (mi >= 0) return { month: mi + 1, day: +m[1] }; }
+    m = s.match(/^(\d{1,2})\/(\d{1,2})(?:\/\d{2,4})?/);
+    if (m) return { month: +m[1], day: +m[2] };
+    m = s.match(/^\d{4}-(\d{1,2})-(\d{1,2})/);
+    if (m) return { month: +m[1], day: +m[2] };
+    return null;
+}
+// The sheet's own date, from its "M.D.YY" name, else when it was saved.
+function plSheetTime(d) {
+    const m = String(d.title || d.filename || '').match(/(\d{1,2})\.(\d{1,2})\.(\d{2,4})/);
+    if (m) return new Date(+m[3] < 100 ? 2000 + +m[3] : +m[3], m[1] - 1, +m[2]).getTime();
+    return Date.parse(d.updated || d.added || '') || 0;
+}
+function plSheets() {
+    return docsForSection('pricing', true)
+        .filter(d => d.uploadId && (/csv/i.test(d.mime || '') || /\.csv$/i.test(d.filename || '')))
+        .sort((a, b) => plSheetTime(b) - plSheetTime(a));
+}
+async function plRows(doc) {
+    if (plParsed[doc.fileId]) return plParsed[doc.fileId];
+    const url = await docsUrlFor(doc);
+    if (!url) return null;
+    const text = await (await fetch(url)).text();
+    const rows = [];
+    csvRowsToObjects(parseCSVText(text)).forEach(r => {
+        const m = String(r['Unit'] || '').match(/(\d{3,4})\s*$/);
+        const term = parseInt(r['Term'], 10), value = parseFloat(String(r['Value'] || '').replace(/[$,]/g, ''));
+        const date = plParseDate(r['Move in Date']);
+        if (!m || isNaN(term) || isNaN(value)) return;
+        rows.push({ apt: m[1], term, value, dateKey: r['Move in Date'] || '', month: date && date.month, day: date && date.day });
+    });
+    plParsed[doc.fileId] = rows;
+    return rows;
+}
+function plMoney(v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }); }
+function plFillSheets() {
+    const sel = document.getElementById('plSheet'), keep = sel.value;
+    sel.innerHTML = '<option value="">Latest sheet</option><option value="all">All sheets</option>'
+        + plSheets().map(d => `<option value="${escapeAttr(d.fileId)}">${escapeHtml(d.title)}</option>`).join('');
+    sel.value = [...sel.options].some(o => o.value === keep) ? keep : '';
+}
+document.getElementById('priceLookup').addEventListener('focusin', e => { if (e.target.id === 'plSheet') plFillSheets(); });
+document.getElementById('priceLookupForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const out = document.getElementById('plOut');
+    const apt = (document.getElementById('plUnit').value.match(/\d{3,4}/) || [''])[0];
+    const term = parseInt(document.getElementById('plTerm').value, 10);
+    const dateVal = document.getElementById('plDate').value;
+    const date = dateVal ? plParseDate(dateVal) : null;
+    if (!apt) { out.innerHTML = '<div class="empty-note">Enter a unit number.</div>'; return; }
+    const all = plSheets();
+    const pick = document.getElementById('plSheet').value;
+    const sheets = pick === 'all' ? all : pick ? all.filter(d => d.fileId === pick) : all.slice(0, 1);
+    if (!sheets.length) { out.innerHTML = '<div class="empty-note">No pricing sheets saved yet &mdash; upload one on the Tour tab.</div>'; return; }
+    out.innerHTML = '<div class="empty-note">Searching&hellip;</div>';
+    const parts = [];
+    let headline = null;
+    for (const doc of sheets) {
+        let rows;
+        try { rows = await plRows(doc); } catch (err) { rows = null; }
+        if (!rows) { parts.push(`<div class="pl-sheet">${escapeHtml(doc.title)}</div><div class="empty-note">Couldn&rsquo;t open this sheet.</div>`); continue; }
+        const hits = rows.filter(r => r.apt === apt && (isNaN(term) || r.term === term)
+            && (!date || (r.month === date.month && r.day === date.day)));
+        if (!hits.length) {
+            const unitRows = rows.filter(r => r.apt === apt);
+            const why = !unitRows.length ? `Apt ${apt} isn&rsquo;t on this sheet.`
+                : 'No match for that term / move-in date. On this sheet: '
+                    + escapeHtml([...new Set(unitRows.map(r => r.dateKey))].join(', ')) + '.';
+            parts.push(`<div class="pl-sheet">${escapeHtml(doc.title)}</div><div class="empty-note">${why}</div>`);
+            continue;
+        }
+        hits.sort((a, b) => a.term - b.term || (a.month - b.month) || (a.day - b.day));
+        const min = Math.min(...hits.map(h => h.value));
+        if (!headline && hits.length === 1) headline = { value: hits[0].value, sheet: doc.title, hit: hits[0] };
+        parts.push(`<div class="pl-sheet">${escapeHtml(doc.title)}</div><table><thead><tr><th>Move-in</th><th>Term</th><th>Rent</th></tr></thead><tbody>`
+            + hits.slice(0, 200).map(h => `<tr${hits.length > 1 && h.value === min ? ' class="pl-best" title="Lowest"' : ''}><td>${escapeHtml(h.dateKey)}</td><td>${h.term} mo</td><td>${plMoney(h.value)}</td></tr>`).join('')
+            + '</tbody></table>' + (hits.length > 200 ? `<div class="empty-note">First 200 of ${hits.length} &mdash; narrow the search.</div>` : ''));
+    }
+    out.innerHTML = (headline ? `<div class="pl-rent">${plMoney(headline.value)}</div><div class="empty-note" style="margin:2px 0 0;">Apt ${apt} &middot; ${headline.hit.term}-month &middot; move-in ${escapeHtml(headline.hit.dateKey)} &middot; ${escapeHtml(headline.sheet)}</div>` : '') + parts.join('');
+});
 document.getElementById('docsViewToggle').addEventListener('click', e => {
     const btn = e.target.closest('[data-docs-view]');
     if (!btn) return;
