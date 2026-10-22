@@ -1475,6 +1475,15 @@
     .vault-modal-foot .btn { flex: none; width: auto; padding: 7px 16px; }
     .wl-email-list { display: flex; flex-direction: column; gap: 6px; }
     .wl-email-row { display: flex; gap: 6px; align-items: center; }
+    .docs-up-modal .vault-modal-card { max-width: 440px; max-height: calc(100vh - 32px); overflow: auto; }
+    .docs-up-list { display: flex; flex-direction: column; gap: 8px; }
+    .docs-up-row { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ink-soft); }
+    .docs-up-row input { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 13px; background: var(--panel); color: var(--ink); }
+    .docs-print-opts { display: flex; flex-direction: column; gap: 6px; }
+    .docs-print-opts label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 400; color: var(--ink); cursor: pointer; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+    .docs-print-opts label:has(input:checked) { border-color: var(--reve-orange); background: rgba(222,84,38,.06); }
+    .docs-print-opts label { flex-direction: row !important; justify-content: flex-start !important; text-align: left; }
+    .docs-print-opts input[type=radio] { margin: 0 !important; padding: 0 !important; width: auto !important; height: auto !important; flex: none !important; accent-color: var(--reve-orange); }
     .wl-email-row input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 13px; background: var(--panel); color: var(--ink); }
     .wl-email-row button { border: 0; background: none; color: #c0392b; font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 6px; }
     .wl-email-add { align-self: flex-start; border: 0; background: none; color: var(--reve-orange-dark); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 2px 0; }
@@ -5099,6 +5108,12 @@
                 <label class="docs-edit-field" id="docsEditTitleRow">Card name<input type="text" id="docsEditTitle" autocomplete="off"></label>
                 <label class="docs-edit-field">File name<input type="text" id="docsEditFile" autocomplete="off" spellcheck="false"></label>
                 <label class="docs-edit-field docs-move-field" id="docsEditMoveRow">Move to another tab<select id="docsEditMove"></select></label>
+                <div class="docs-edit-field" id="docsEditPrintRow">Print layout
+                    <div class="docs-print-opts">
+                        <label><input type="radio" name="docsEditPrint" value="half"> Two half-sheets per page</label>
+                        <label><input type="radio" name="docsEditPrint" value="full"> Full sheet</label>
+                    </div>
+                </div>
                 <div class="docs-edit-field" id="docsEditFileRow">File
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
                         <button type="button" class="btn small" id="docsEditReplace" style="width:auto;flex:none;">Replace file&hellip;</button>
@@ -19115,6 +19130,8 @@ function docsApplyMeta(d) {
     d.origFilename = d.filename;
     if (m && m.title) d.title = m.title;
     if (m && m.filename) d.filename = m.filename;
+    d.origPrint = d.print;
+    if (m && m.print) d.print = m.print;
     d.hidden = !!(m && m.hidden);
     return d;
 }
@@ -19180,6 +19197,8 @@ function openDocsEdit(ctx) {
     moveSel.innerHTML = `<option value="">\u2014 Keep in ${escapeHtml(here ? here.label : 'Floorplans')} \u2014</option>`
         + dests.map(x => `<option value="${escapeAttr(x.id)}">${escapeHtml(x.label)}</option>`).join('');
     document.getElementById('docsEditMoveRow').style.display = ctx.onMove ? '' : 'none';
+    document.getElementById('docsEditPrintRow').style.display = ctx.print ? '' : 'none';
+    document.querySelectorAll('input[name="docsEditPrint"]').forEach(r => { r.checked = r.value === ctx.print; });
     document.getElementById('docsEditFileRow').style.display = ctx.onReplace ? '' : 'none';
     document.getElementById('docsEditRevert').style.display = ctx.onRevert ? '' : 'none';
     document.getElementById('docsEditOverlay').style.display = 'flex';
@@ -19198,10 +19217,14 @@ document.getElementById('docsEditForm').addEventListener('submit', async e => {
     const title = document.getElementById('docsEditTitle').value.trim();
     const filename = docsFixFilename(document.getElementById('docsEditFile').value, ctx.origFilename);
     const moveTo = document.getElementById('docsEditMove').value;
+    const printSel = document.querySelector('input[name="docsEditPrint"]:checked');
+    const print = ctx.print && printSel ? printSel.value : '';
     closeDocsEdit();
     const ok = await docsSaveMeta(ctx.key, {
         title: title && title !== ctx.origTitle ? title : '',
-        filename: filename && filename !== ctx.origFilename ? filename : ''
+        filename: filename && filename !== ctx.origFilename ? filename : '',
+        // Print layout: only stored when it differs from the file's own setting.
+        print: print && print !== ctx.origPrint ? print : ''
     });
     if (moveTo && ctx.onMove) {
         await ctx.onMove(moveTo, title || ctx.title, filename || ctx.filename);
@@ -19321,7 +19344,10 @@ document.getElementById('docsRestoreHidden').addEventListener('click', async () 
     renderDocuments();
 });
 function docsEditDoc(d) {
+    const cur = DOC_SECTIONS.find(s => s.id === docsCurrentSection);
+    const printable = !(cur && cur.list) && docsCanPreview(d);
     openDocsEdit({ key: d.key, title: d.title, filename: d.filename, origTitle: d.origTitle, origFilename: d.origFilename, done: renderDocuments,
+        print: printable ? (d.print === 'full' ? 'full' : 'half') : '', origPrint: d.origPrint === 'full' ? 'full' : 'half',
         section: docsCurrentSection, onMove: (to, title, filename) => docsMoveDoc(d, to, title, filename),
         onReplace: () => { docsReplaceTarget = d; document.getElementById('docsReplaceInput').click(); },
         onRevert: d.replacedBuiltIn ? async () => {
@@ -19609,7 +19635,7 @@ function renderDocuments() {
 const plParsed = {};   // fileId -> [{ apt, term, month, day, dateKey, value }]
 (function () {
     const sel = document.getElementById('plTerm');
-    for (let t = 1; t <= 24; t++) sel.insertAdjacentHTML('beforeend', `<option value="${t}">${t} months</option>`);
+    for (let t = 3; t <= 15; t++) sel.insertAdjacentHTML('beforeend', `<option value="${t}">${t} months</option>`);
 })();
 // "05Nov", "11/5/2026", "2026-11-05" -> { month: 1-12, day }
 function plParseDate(s) {
@@ -22027,18 +22053,10 @@ document.getElementById('docsUploadInput').addEventListener('change', async e =>
     const ok = files.filter(f => docsCheckFile(f));
     if (!ok.length) return;
     const clean = f => f.name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim();
-    let titles, half;
-    if (ok.length === 1) {
-        const t = prompt(section.id === 'floorplans' ? 'Name for this floorplan (e.g. "B5 1211 3D" — the floorplan code and sq ft drive the filters):' : `Title for this document (in ${section.label}):`, clean(ok[0]));
-        if (t === null || !t.trim()) return;
-        titles = [t.trim()];
-        half = section.list || !docsCanPreview({ mime: docsCheckFile(ok[0]) }) ? false : confirm('Print this as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
-    } else {
-        // Several files: each is titled from its file name (rename later with the pencil).
-        if (!confirm(`Upload ${ok.length} files to ${section.label}?\n\n${ok.map(f => '• ' + f.name).join('\n')}\n\nEach is titled from its file name.`)) return;
-        titles = ok.map(clean);
-        half = section.list ? false : confirm('Print these as two half-sheets per page?\n\nOK = two half-sheets per page\nCancel = full sheet');
-    }
+    const askPrint = !section.list && ok.some(f => docsCanPreview({ mime: docsCheckFile(f) }));
+    const answer = await docsAskUpload(ok, section, ok.map(clean), askPrint);
+    if (!answer) return;
+    const titles = answer.titles, half = answer.print === 'half';
     // All at once, each with its own progress card.
     await Promise.all(ok.map(async (file, i) => {
         const mime = docsCheckFile(file);
@@ -22050,6 +22068,43 @@ document.getElementById('docsUploadInput').addEventListener('change', async e =>
         await docsRunShare(entry, b64, 'Uploading');
     }));
 });
+// In-app upload dialog: a name for each file and, for printable tabs, the
+// print layout. Resolves to { titles, print } or null when cancelled.
+function docsAskUpload(files, section, defaults, askPrint) {
+    return new Promise(resolve => {
+        const m = document.createElement('div');
+        m.className = 'vault-modal docs-up-modal';
+        m.style.display = 'flex';
+        const one = files.length === 1;
+        const label = section.id === 'floorplans' ? 'Floorplan name (e.g. \u201cB5 1211 3D\u201d \u2014 the floorplan code and sq ft drive the filters)' : 'Title';
+        m.innerHTML = `<form class="vault-modal-card" role="dialog" aria-modal="true" aria-label="Upload">
+            <div class="vault-modal-h">Upload ${one ? 'a document' : files.length + ' documents'} to ${escapeHtml(section.label)}</div>
+            <div class="docs-up-list">${files.map((f, i) => `<label class="docs-up-row">${one ? label : escapeHtml(f.name)}<input type="text" autocomplete="off" value="${escapeAttr(defaults[i])}" aria-label="Title for ${escapeAttr(f.name)}"></label>`).join('')}</div>
+            ${askPrint ? `<div class="docs-up-row">Print layout
+                <div class="docs-print-opts">
+                    <label><input type="radio" name="docsUpPrint" value="half" checked> Two half-sheets per page</label>
+                    <label><input type="radio" name="docsUpPrint" value="full"> Full sheet</label>
+                </div>
+                <span>You can change this later in File Management.</span></div>` : ''}
+            <div class="empty-note docs-up-err" style="display:none;color:#c0392b;margin:0;"></div>
+            <div class="vault-modal-foot"><button type="button" class="btn small docs-up-cancel">Cancel</button><button type="submit" class="btn small primary">Upload</button></div>
+        </form>`;
+        const done = val => { m.remove(); document.removeEventListener('keydown', onKey, true); resolve(val); };
+        const onKey = e => { if (e.key === 'Escape') done(null); };
+        document.addEventListener('keydown', onKey, true);
+        m.querySelector('form').addEventListener('submit', e => {
+            e.preventDefault();
+            const titles = [...m.querySelectorAll('.docs-up-list input')].map(i => i.value.trim());
+            if (titles.some(t => !t)) { const err = m.querySelector('.docs-up-err'); err.textContent = 'Every document needs a title.'; err.style.display = ''; return; }
+            const pr = m.querySelector('input[name="docsUpPrint"]:checked');
+            done({ titles, print: pr ? pr.value : 'full' });
+        });
+        m.querySelector('.docs-up-cancel').onclick = () => done(null);
+        m.addEventListener('click', e => { if (e.target === m) done(null); });
+        document.body.appendChild(m);
+        const first = m.querySelector('.docs-up-list input'); first.focus(); first.select();
+    });
+}
 async function pullDocumentsFromBackend() {
     const [remote, order, meta] = await Promise.all([backendPull(DOCS_UPLOADS_BACKEND_KEY), backendPull(DOCS_ORDER_BACKEND_KEY), backendPull(DOCS_META_BACKEND_KEY)]);
     let changed = false;
