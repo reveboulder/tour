@@ -5963,6 +5963,21 @@ function loadDraft(unit) {
             Object.keys(parsed).forEach(key => {
                 if (!PRICING_FIELDS.includes(key)) base[key] = parsed[key];
             });
+            // Lease terms picked or edited by hand (bestCustom / termsCustom)
+            // are kept while the unit is on the pricing sheet: the same
+            // terms, with today's price for each term the sheet still has.
+            const p = PRICING_SUMMARY[unit];
+            const fresh = t => {
+                const n = parseInt(t && t.term, 10);
+                const price = p && p.allTerms ? p.allTerms[n] : undefined;
+                return price === undefined ? { price: t.price || '', term: t.term || '' } : { price: `$${Math.round(price)}`, term: t.term };
+            };
+            if (p && parsed.bestCustom) {
+                const b = fresh({ price: parsed.bestPrice, term: parsed.bestTerm });
+                base.bestPrice = b.price; base.bestTerm = b.term;
+            }
+            if (p && parsed.termsCustom && Array.isArray(parsed.otherTerms)) base.otherTerms = parsed.otherTerms.map(fresh);
+            if (!p) { delete base.bestCustom; delete base.termsCustom; }
         } catch (e) { /* ignore corrupt cache, base already has fresh defaults */ }
     }
     return base;
@@ -6292,6 +6307,7 @@ const fieldMap = {
 fields.forEach(id => {
     document.getElementById(id).addEventListener('input', (e) => {
         draft[fieldMap[id]] = e.target.value;
+        if (id === 'fBestPrice' || id === 'fBestTerm') draft.bestCustom = true;
         saveDraft();
         renderPreview();
         if (id === 'fBestTerm' && currentUnit) populateTermPickers(currentUnit);
@@ -6548,6 +6564,7 @@ document.getElementById('fBestTermPicker').addEventListener('change', (e) => {
     if (price === undefined) return;
     draft.bestPrice = `$${Math.round(price)}`;
     draft.bestTerm = `${term}-Month Lease`;
+    draft.bestCustom = true;
     document.getElementById('fBestPrice').value = draft.bestPrice;
     document.getElementById('fBestTerm').value = draft.bestTerm;
     saveDraft();
@@ -6562,6 +6579,7 @@ document.getElementById('fOtherTermPicker').addEventListener('change', (e) => {
     const price = p && p.allTerms ? p.allTerms[term] : undefined;
     if (price === undefined) return;
     draft.otherTerms.push({ price: `$${Math.round(price)}`, term: `${term}-Month Lease` });
+    draft.termsCustom = true;
     renderTermList();
     saveDraft();
     renderPreview();
@@ -6872,14 +6890,15 @@ function renderTermList() {
             <button type="button" class="icon-btn" title="Remove">&times;</button>
         `;
         const [priceInput, termInput, removeBtn] = row.children;
-        priceInput.addEventListener('input', e => { draft.otherTerms[i].price = e.target.value; saveDraft(); renderPreview(); });
-        termInput.addEventListener('input', e => { draft.otherTerms[i].term = e.target.value; saveDraft(); renderPreview(); populateTermPickers(currentUnit); });
-        removeBtn.addEventListener('click', () => { draft.otherTerms.splice(i, 1); renderTermList(); saveDraft(); renderPreview(); populateTermPickers(currentUnit); });
+        priceInput.addEventListener('input', e => { draft.otherTerms[i].price = e.target.value; draft.termsCustom = true; saveDraft(); renderPreview(); });
+        termInput.addEventListener('input', e => { draft.otherTerms[i].term = e.target.value; draft.termsCustom = true; saveDraft(); renderPreview(); populateTermPickers(currentUnit); });
+        removeBtn.addEventListener('click', () => { draft.otherTerms.splice(i, 1); draft.termsCustom = true; renderTermList(); saveDraft(); renderPreview(); populateTermPickers(currentUnit); });
         box.appendChild(row);
     });
 }
 document.getElementById('addTermBtn').addEventListener('click', () => {
     draft.otherTerms.push({ price: '', term: '' });
+    draft.termsCustom = true;
     renderTermList();
     saveDraft();
     renderPreview();
@@ -7299,6 +7318,7 @@ document.getElementById('syncPricingBtn').addEventListener('click', () => {
     draft.bestPrice = p.bestPrice;
     draft.bestTerm = p.bestTerm;
     draft.otherTerms = p.otherTerms.map(t => ({ ...t }));
+    delete draft.bestCustom; delete draft.termsCustom;
     fields.forEach(id => { document.getElementById(id).value = draft[fieldMap[id]] || ''; });
     renderTermList();
     saveDraft();
