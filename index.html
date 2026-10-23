@@ -5889,7 +5889,6 @@ let draft = null; // editable draft object for currentUnit
 let selectedUnits = []; // units shown side by side in the preview
 let addingUnit = false; // true while the "+ Add unit" flow is armed
 
-function storageKey(unit) { return 'reve-pamphlet:' + unit; }
 
 // "Available" for the Tour flyer's display purposes means "in today's
 // pricing sheet" — the actual signal that a unit is currently marketed.
@@ -5940,50 +5939,35 @@ function ordinalFloor(f) {
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-// Fields recomputed fresh from current data on every unit selection —
-// never carried over from a previously saved draft. Pricing fields avoid
-// resurfacing a stale price from an earlier day's sheet; the concession
-// fields avoid a stale concession sticking around after the qualifying
-// rules change (or not auto-applying to a unit that newly qualifies).
-// Video/location/floorplan/apply-link fields are also always-fresh —
-// these all derive straight from Admin › INFO › Unit Info, and a unit's
-// FIRST ever Tour visit silently saves a draft snapshot that would
-// otherwise shadow every later Unit Info edit forever, since drafts
-// are loaded local-storage-first. Title/subtitle-as-typed stay as
-// genuine per-flyer customization points (an agent may deliberately
-// write flyer-specific copy), so they're intentionally left out.
-const PRICING_FIELDS = ['available', 'bestPrice', 'bestTerm', 'otherTerms', 'concessionEnabled', 'concessionWeeks', 'videoLabel', 'videoUrl', 'floorplanImg', 'applyUrl', 'subtitle', 'location'];
 
+/* Edits last only for the current editing session: the units picked
+   from Find a unit plus any added with "+ Add unit". They live in memory
+   (SESSION_DRAFTS), so picking a new unit from the search, removing a
+   unit, Reset, or reloading the page starts again from the defaults. */
+let SESSION_DRAFTS = {};
+// Drafts were once kept in localStorage for good; clear any left behind.
+try { Object.keys(localStorage).filter(k => k.startsWith('reve-pamphlet:')).forEach(k => localStorage.removeItem(k)); } catch (e) {}
 function loadDraft(unit) {
-    const base = defaultDraft(byUnit[unit]); // always today's best-5, fresh
-    const raw = localStorage.getItem(storageKey(unit));
-    if (raw) {
-        try {
-            const parsed = JSON.parse(raw);
-            Object.keys(parsed).forEach(key => {
-                if (!PRICING_FIELDS.includes(key)) base[key] = parsed[key];
-            });
-            // Fields changed by hand (draft.edited) keep the agent's value;
-            // the defaults above only fill fields nobody has touched. Lease
-            // terms picked from the menus keep the term but take today's
-            // price for it, unless the price itself was typed in.
-            const edited = Object.assign({}, parsed.edited);
-            if (parsed.bestCustom) edited.bestTerm = true;      // drafts saved before draft.edited
-            if (parsed.termsCustom) edited.otherTerms = true;
-            const p = PRICING_SUMMARY[unit];
-            const sheetPrice = term => {
-                const v = p && p.allTerms ? p.allTerms[parseInt(term, 10)] : undefined;
-                return v === undefined ? null : `$${Math.round(v)}`;
-            };
-            PRICING_FIELDS.forEach(key => { if (edited[key] && key in parsed) base[key] = parsed[key]; });
-            if (edited.bestTerm && !edited.bestPrice) base.bestPrice = sheetPrice(parsed.bestTerm) || parsed.bestPrice || '';
-            if (edited.otherTerms && Array.isArray(parsed.otherTerms)) {
-                base.otherTerms = parsed.otherTerms.map(t => Object.assign({}, t, t.manualPrice ? {} : { price: sheetPrice(t.term) || t.price || '' }));
-            }
-            base.edited = edited;
-            delete base.bestCustom; delete base.termsCustom;
-        } catch (e) { /* ignore corrupt cache, base already has fresh defaults */ }
+    const base = defaultDraft(byUnit[unit]); // always today's defaults, fresh
+    const saved = SESSION_DRAFTS[unit];
+    if (!saved) return base;
+    // Fields changed by hand this session (saved.edited) keep the agent's
+    // value; the defaults fill everything else, so a new pricing sheet or
+    // rule change still reaches untouched fields. Lease terms picked from
+    // the menus keep the term but take the current price for it, unless
+    // the price itself was typed in.
+    const edited = Object.assign({}, saved.edited);
+    const p = PRICING_SUMMARY[unit];
+    const sheetPrice = term => {
+        const v = p && p.allTerms ? p.allTerms[parseInt(term, 10)] : undefined;
+        return v === undefined ? null : `$${Math.round(v)}`;
+    };
+    Object.keys(edited).forEach(key => { if (key in saved) base[key] = JSON.parse(JSON.stringify(saved[key])); });
+    if (edited.bestTerm && !edited.bestPrice) base.bestPrice = sheetPrice(saved.bestTerm) || saved.bestPrice || '';
+    if (edited.otherTerms && Array.isArray(saved.otherTerms)) {
+        base.otherTerms = saved.otherTerms.map(t => Object.assign({}, t, t.manualPrice ? {} : { price: sheetPrice(t.term) || t.price || '' }));
     }
+    base.edited = edited;
     return base;
 }
 // Marks draft fields as changed by hand so reloads keep them (see loadDraft).
@@ -5994,7 +5978,7 @@ function markEdited(...keys) {
 }
 function saveDraft() {
     if (!currentUnit) return;
-    localStorage.setItem(storageKey(currentUnit), JSON.stringify(draft));
+    SESSION_DRAFTS[currentUnit] = draft;
     flashSaved();
 }
 let saveTimer = null;
@@ -6343,7 +6327,9 @@ function selectUnit(unit) {
         setAddUnitArmed(false);
         if (!selectedUnits.includes(unit)) selectedUnits.push(unit);
     } else {
+        // A new pick from Find a unit starts a fresh session: defaults again.
         selectedUnits = [unit];
+        SESSION_DRAFTS = {};
     }
 
     populateEditorForUnit(unit);
@@ -6441,6 +6427,7 @@ function renderUnitTabs() {
 
 function removeSelectedUnit(unit) {
     selectedUnits = selectedUnits.filter(u => u !== unit);
+    delete SESSION_DRAFTS[unit];
     if (selectedUnits.length === 0) {
         currentUnit = null;
         draft = null;
@@ -7341,7 +7328,7 @@ document.getElementById('syncPricingBtn').addEventListener('click', () => {
 document.getElementById('resetBtn').addEventListener('click', () => {
     if (!currentUnit) return;
     if (!confirm(`Clear all entered pricing, availability, and images for Apt ${currentUnit}? This can't be undone.`)) return;
-    localStorage.removeItem(storageKey(currentUnit));
+    delete SESSION_DRAFTS[currentUnit];
     draft = defaultDraft(byUnit[currentUnit]);
     fields.forEach(id => { document.getElementById(id).value = draft[fieldMap[id]] || ''; });
     document.getElementById('fConcessionEnabled').checked = false;
@@ -9759,9 +9746,9 @@ document.getElementById('storageAddBtn').addEventListener('click', () => {
    for all else"), editable from a hidden page reachable only via the
    Tour tab's Edit button. When a unit is selected on the Tour tab, the
    concession checkbox and weeks auto-apply based on whichever rule (if
-   any) matches that unit — see defaultDraft() and PRICING_FIELDS above,
-   which is what makes this re-evaluate fresh on every selection rather
-   than sticking with whatever a previous session had.
+   any) matches that unit — see defaultDraft() and loadDraft() above:
+   it re-evaluates fresh for every new editing session, and only a
+   change made by hand during the session overrides it.
    ============================================================ */
 const CONCESSION_KEY = 'reve-concession-settings';
 const CONCESSION_BACKEND_KEY = 'concession-settings';
