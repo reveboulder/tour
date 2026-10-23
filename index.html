@@ -5963,24 +5963,34 @@ function loadDraft(unit) {
             Object.keys(parsed).forEach(key => {
                 if (!PRICING_FIELDS.includes(key)) base[key] = parsed[key];
             });
-            // Lease terms picked or edited by hand (bestCustom / termsCustom)
-            // are kept while the unit is on the pricing sheet: the same
-            // terms, with today's price for each term the sheet still has.
+            // Fields changed by hand (draft.edited) keep the agent's value;
+            // the defaults above only fill fields nobody has touched. Lease
+            // terms picked from the menus keep the term but take today's
+            // price for it, unless the price itself was typed in.
+            const edited = Object.assign({}, parsed.edited);
+            if (parsed.bestCustom) edited.bestTerm = true;      // drafts saved before draft.edited
+            if (parsed.termsCustom) edited.otherTerms = true;
             const p = PRICING_SUMMARY[unit];
-            const fresh = t => {
-                const n = parseInt(t && t.term, 10);
-                const price = p && p.allTerms ? p.allTerms[n] : undefined;
-                return price === undefined ? { price: t.price || '', term: t.term || '' } : { price: `$${Math.round(price)}`, term: t.term };
+            const sheetPrice = term => {
+                const v = p && p.allTerms ? p.allTerms[parseInt(term, 10)] : undefined;
+                return v === undefined ? null : `$${Math.round(v)}`;
             };
-            if (p && parsed.bestCustom) {
-                const b = fresh({ price: parsed.bestPrice, term: parsed.bestTerm });
-                base.bestPrice = b.price; base.bestTerm = b.term;
+            PRICING_FIELDS.forEach(key => { if (edited[key] && key in parsed) base[key] = parsed[key]; });
+            if (edited.bestTerm && !edited.bestPrice) base.bestPrice = sheetPrice(parsed.bestTerm) || parsed.bestPrice || '';
+            if (edited.otherTerms && Array.isArray(parsed.otherTerms)) {
+                base.otherTerms = parsed.otherTerms.map(t => Object.assign({}, t, t.manualPrice ? {} : { price: sheetPrice(t.term) || t.price || '' }));
             }
-            if (p && parsed.termsCustom && Array.isArray(parsed.otherTerms)) base.otherTerms = parsed.otherTerms.map(fresh);
-            if (!p) { delete base.bestCustom; delete base.termsCustom; }
+            base.edited = edited;
+            delete base.bestCustom; delete base.termsCustom;
         } catch (e) { /* ignore corrupt cache, base already has fresh defaults */ }
     }
     return base;
+}
+// Marks draft fields as changed by hand so reloads keep them (see loadDraft).
+function markEdited(...keys) {
+    if (!draft) return;
+    draft.edited = Object.assign({}, draft.edited);
+    keys.forEach(k => { draft.edited[k] = true; });
 }
 function saveDraft() {
     if (!currentUnit) return;
@@ -6307,7 +6317,7 @@ const fieldMap = {
 fields.forEach(id => {
     document.getElementById(id).addEventListener('input', (e) => {
         draft[fieldMap[id]] = e.target.value;
-        if (id === 'fBestPrice' || id === 'fBestTerm') draft.bestCustom = true;
+        markEdited(fieldMap[id]);
         saveDraft();
         renderPreview();
         if (id === 'fBestTerm' && currentUnit) populateTermPickers(currentUnit);
@@ -6316,6 +6326,7 @@ fields.forEach(id => {
 
 document.getElementById('fConcessionEnabled').addEventListener('change', (e) => {
     draft.concessionEnabled = e.target.checked;
+    markEdited('concessionEnabled');
     document.getElementById('concessionWeeksField').style.display = e.target.checked ? 'block' : 'none';
     saveDraft();
     renderPreview();
@@ -6564,7 +6575,8 @@ document.getElementById('fBestTermPicker').addEventListener('change', (e) => {
     if (price === undefined) return;
     draft.bestPrice = `$${Math.round(price)}`;
     draft.bestTerm = `${term}-Month Lease`;
-    draft.bestCustom = true;
+    markEdited('bestTerm');
+    if (draft.edited.bestPrice) delete draft.edited.bestPrice;
     document.getElementById('fBestPrice').value = draft.bestPrice;
     document.getElementById('fBestTerm').value = draft.bestTerm;
     saveDraft();
@@ -6579,7 +6591,7 @@ document.getElementById('fOtherTermPicker').addEventListener('change', (e) => {
     const price = p && p.allTerms ? p.allTerms[term] : undefined;
     if (price === undefined) return;
     draft.otherTerms.push({ price: `$${Math.round(price)}`, term: `${term}-Month Lease` });
-    draft.termsCustom = true;
+    markEdited('otherTerms');
     renderTermList();
     saveDraft();
     renderPreview();
@@ -6890,15 +6902,15 @@ function renderTermList() {
             <button type="button" class="icon-btn" title="Remove">&times;</button>
         `;
         const [priceInput, termInput, removeBtn] = row.children;
-        priceInput.addEventListener('input', e => { draft.otherTerms[i].price = e.target.value; draft.termsCustom = true; saveDraft(); renderPreview(); });
-        termInput.addEventListener('input', e => { draft.otherTerms[i].term = e.target.value; draft.termsCustom = true; saveDraft(); renderPreview(); populateTermPickers(currentUnit); });
-        removeBtn.addEventListener('click', () => { draft.otherTerms.splice(i, 1); draft.termsCustom = true; renderTermList(); saveDraft(); renderPreview(); populateTermPickers(currentUnit); });
+        priceInput.addEventListener('input', e => { draft.otherTerms[i].price = e.target.value; draft.otherTerms[i].manualPrice = true; markEdited('otherTerms'); saveDraft(); renderPreview(); });
+        termInput.addEventListener('input', e => { draft.otherTerms[i].term = e.target.value; markEdited('otherTerms'); saveDraft(); renderPreview(); populateTermPickers(currentUnit); });
+        removeBtn.addEventListener('click', () => { draft.otherTerms.splice(i, 1); markEdited('otherTerms'); renderTermList(); saveDraft(); renderPreview(); populateTermPickers(currentUnit); });
         box.appendChild(row);
     });
 }
 document.getElementById('addTermBtn').addEventListener('click', () => {
     draft.otherTerms.push({ price: '', term: '' });
-    draft.termsCustom = true;
+    markEdited('otherTerms');
     renderTermList();
     saveDraft();
     renderPreview();
@@ -7318,7 +7330,7 @@ document.getElementById('syncPricingBtn').addEventListener('click', () => {
     draft.bestPrice = p.bestPrice;
     draft.bestTerm = p.bestTerm;
     draft.otherTerms = p.otherTerms.map(t => ({ ...t }));
-    delete draft.bestCustom; delete draft.termsCustom;
+    if (draft.edited) ['available', 'bestPrice', 'bestTerm', 'otherTerms'].forEach(k => { delete draft.edited[k]; });
     fields.forEach(id => { document.getElementById(id).value = draft[fieldMap[id]] || ''; });
     renderTermList();
     saveDraft();
