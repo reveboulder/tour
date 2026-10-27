@@ -4461,6 +4461,7 @@
                 <label class="file-label" for="mmrTemplateUpload">Upload Previous Week's MMR (.xlsx)</label>
                 <input type="file" id="mmrTemplateUpload" accept=".xlsx">
                 <button type="button" class="btn primary" id="mmrExportBtn" style="width:auto;flex:none;padding:8px 16px;">Download New MMR</button>
+                <button type="button" class="btn" id="mmrClearAllBtn" style="width:auto;flex:none;padding:8px 16px;" title="Start a new week: clears Weekly Stats (except Model/Guest Suite and Down Units), New Leases, Unit Renewals and Weekly Traffic Detail">Clear All</button>
                 <div class="empty-note" id="mmrTemplateStatus">No template uploaded &mdash; export will use a fresh sheet layout built to match the standard MMR format.</div>
             </div>
             <div class="mmr-subtabs">
@@ -4587,7 +4588,10 @@
             </div>
 
             <div id="mmrPanel-newleases" class="mmr-subpanel" style="display:none;">
-                <button type="button" class="btn primary" id="mmrNewLeaseAddBtn" style="width:auto;padding:8px 16px;">+ New Lease</button>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <button type="button" class="btn primary" id="mmrNewLeaseAddBtn" style="width:auto;flex:none;padding:8px 16px;">+ New Lease</button>
+                    <span class="empty-note" id="mmrNewLeaseMatch" style="margin:0;font-weight:600;"></span>
+                </div>
                 <div class="mmr-table-wrap" style="margin-top:12px;">
                     <table class="mmr-table mmr-lease-table">
                         <thead><tr>
@@ -11725,9 +11729,23 @@ function renderMmrTraffic() {
             mmrTrafficPersistLocal();
             mmrTrafficPushDebounced();
             renderMmrTrafficTotal();
+            if (reason === 'Leased') renderMmrNewLeaseMatch();
         });
     });
     renderMmrTrafficTotal();
+    renderMmrNewLeaseMatch();
+}
+// New Leases should match the "Leased" shows in Weekly Traffic Detail.
+function renderMmrNewLeaseMatch() {
+    const el = document.getElementById('mmrNewLeaseMatch');
+    let rows;
+    try { rows = mmrNewLeaseController.getRows(); } catch (e) { return; }   // table not set up yet
+    if (!el) return;
+    const leases = Object.keys(rows).filter(id => !rows[id].deleted).length;
+    const leased = mmrTrafficShows('Leased');
+    const ok = leases === leased;
+    el.textContent = ok ? `Matches ${leased} Leased in Weekly Traffic Detail.` : `Does not match \u2014 Weekly Traffic Detail has ${leased} Leased; ${leases} new lease${leases === 1 ? '' : 's'} here.`;
+    el.style.color = ok ? 'var(--good)' : 'var(--bad, #c0392b)';
 }
 document.getElementById('mmrTrafficClearBtn').addEventListener('click', () => {
     if (!confirm('Clear all Weekly Traffic Detail shows and comments for a new week?')) return;
@@ -11785,6 +11803,53 @@ function xmlWriteTrafficDetail(sheetXml, sharedStrings) {
    List) untouched so nothing from the original file is lost.
    ============================================================ */
 let MMR_TEMPLATE_WORKBOOK = null;
+// Start a new week: Weekly Stats (Model/Guest Suite and Down Units stay —
+// they only change by hand), New Leases, Unit Renewals and Weekly Traffic
+// Detail. With last week's MMR loaded, the Date goes to the next Sunday.
+const MMR_KEEP_ON_CLEAR = ['modelGuest', 'downUnits'];
+document.getElementById('mmrClearAllBtn').addEventListener('click', async () => {
+    const r = await appDialog({ title: 'Clear All for a new week?', text: 'Clears Weekly Stats (except Model/Guest Suite and Down Units), New Leases, Unit Renewals and Weekly Traffic Detail for everyone. This can\u2019t be undone.', ok: 'Clear All' });
+    if (!r) return;
+    MMR_FIELDS.forEach(f => {
+        if (MMR_KEEP_ON_CLEAR.includes(f)) return;
+        MMR_DATA[f] = '';
+        const el = document.getElementById(MMR_FIELD_TO_ID[f]);
+        if (el) el.value = '';
+    });
+    const next = mmrNextSundayFromTemplate();
+    if (next) { MMR_DATA.date = next; document.getElementById('mmrDate').value = next; }
+    persistMMRLocal();
+    recomputeMMR();
+    if (BACKEND_URL && APP_MODE !== 'test') backendPush(MMR_BACKEND_KEY, MMR_DATA);
+    mmrNewLeaseController.clearAll();
+    mmrRenewalController.clearAll();
+    MMR_TRAFFIC = {};
+    mmrTrafficPersistLocal();
+    mmrTrafficPushDebounced();
+    renderMmrTraffic();
+    document.getElementById('mmrSaveStatus').textContent = 'Cleared for a new week.';
+});
+let MMR_TEMPLATE_NAME = '';
+// The uploaded MMR's week: from its file name ("..._2026_10_18.xlsx",
+// "2026-10-18", "10.18.26") or else its Weekly Stats Date cell (B1).
+function mmrTemplateDate() {
+    const n = MMR_TEMPLATE_NAME;
+    let m = n.match(/(20\d{2})[_\-.](\d{1,2})[_\-.](\d{1,2})/);
+    if (m) return new Date(+m[1], m[2] - 1, +m[3]);
+    m = n.match(/(\d{1,2})[_\-.](\d{1,2})[_\-.](\d{2,4})/);
+    if (m) return new Date(m[3].length === 2 ? 2000 + +m[3] : +m[3], m[1] - 1, +m[2]);
+    const ws = MMR_TEMPLATE_WORKBOOK && MMR_TEMPLATE_WORKBOOK.Sheets['Weekly Stats'];
+    const v = ws && ws.B1 && ws.B1.v;
+    if (v instanceof Date && !isNaN(v)) return new Date(v.getFullYear(), v.getMonth(), v.getDate());
+    return null;
+}
+// The Sunday after the uploaded week, as yyyy-mm-dd (or '' if unknown).
+function mmrNextSundayFromTemplate() {
+    const d = mmrTemplateDate();
+    if (!d || isNaN(d)) return '';
+    d.setDate(d.getDate() + (7 - d.getDay()));   // Sunday -> +7, Wed -> +4
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 let MMR_TEMPLATE_BYTES = null; // raw file bytes, needed for the XML-surgery export path below
 
 document.getElementById('mmrTemplateUpload').addEventListener('change', (e) => {
@@ -11796,7 +11861,18 @@ document.getElementById('mmrTemplateUpload').addEventListener('change', (e) => {
             const data = new Uint8Array(evt.target.result);
             MMR_TEMPLATE_BYTES = data;
             MMR_TEMPLATE_WORKBOOK = XLSX.read(data, { type: 'array', cellDates: true });
-            document.getElementById('mmrTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; Weekly Stats and Weekly Traffic Detail will be updated with this week's numbers, and new rows will be appended into Unit Leasing Detail and Unit Renewal Detail, all directly in this file so the original formatting stays intact. Other sheets are carried over unchanged.`;
+            MMR_TEMPLATE_NAME = file.name;
+            // Last week's file: this week's report date is the following Sunday.
+            const next = mmrNextSundayFromTemplate();
+            if (next) {
+                MMR_DATA.date = next;
+                document.getElementById('mmrDate').value = next;
+                persistMMRLocal();
+                recomputeMMR();
+                if (BACKEND_URL && APP_MODE !== 'test') backendPush(MMR_BACKEND_KEY, MMR_DATA);
+            }
+            const shown = next ? fmtMMRDate(new Date(next + 'T00:00:00')) : '';
+            document.getElementById('mmrTemplateStatus').innerHTML = `<b style="color:var(--good);">Loaded:</b> ${escapeHtml(file.name)} &mdash; ${shown ? `Date set to <b>${shown}</b> (the following Sunday). ` : ''}Weekly Stats and Weekly Traffic Detail will be updated with this week's numbers, and new rows will be appended into Unit Leasing Detail and Unit Renewal Detail, all directly in this file so the original formatting stays intact. Other sheets are carried over unchanged.`;
         } catch (err) {
             alert("Could not read that file. Make sure it's a valid MMR .xlsx export.");
         }
@@ -12766,7 +12842,9 @@ function createMMRLeaseTableController(opts) {
             } else if (f.type === 'custom') {
                 cells += f.render(id, row, isNext);
             } else if (f.type === 'select') {
-                cells += `<td><select class="mmr-lease-field${isNext ? ' mmr-next-field' : ''}" data-field="${f.key}">${f.options.map(o => `<option value="${o}"${val === o ? ' selected' : ''}>${o || '\u2014'}</option>`).join('')}</select></td>`;
+                // skipTab: rarely changed (e.g. Renovated, default "No"), so Tab
+                // goes past it; it can still be clicked and changed.
+                cells += `<td><select class="mmr-lease-field${isNext ? ' mmr-next-field' : ''}" data-field="${f.key}"${f.skipTab ? ' tabindex="-1"' : ''}>${f.options.map(o => `<option value="${o}"${val === o ? ' selected' : ''}>${o || '\u2014'}</option>`).join('')}</select></td>`;
             } else {
                 cells += `<td><input type="${f.type}" class="mmr-lease-field${isNext ? ' mmr-next-field' : ''}" data-field="${f.key}" value="${escapeAttr(val)}"${f.list ? ` list="${f.list}"` : ''}${f.placeholder ? ` placeholder="${escapeAttr(f.placeholder)}"` : ''}></td>`;
             }
@@ -12853,12 +12931,20 @@ function createMMRLeaseTableController(opts) {
             const countEl = document.getElementById(opts.countId);
             if (countEl) countEl.textContent = `(${ids.length})`;
         }
+        if (opts.onRender) opts.onRender(ids.length);
         if (!ids.length) {
             tbody.innerHTML = `<tr><td colspan="${colCount()}" class="no-unit" style="border:none;">${opts.emptyLabel}</td></tr>`;
             return;
         }
         tbody.innerHTML = ids.map(id => `<tr data-row="${id}">${renderRowCells(id, ROWS[id])}</tr>`).join('');
         ids.forEach(wireRow);
+    }
+    // Removes every row (no prompt — the caller asks first).
+    function clearAll() {
+        Object.keys(ROWS).filter(id => !ROWS[id].deleted).forEach(id => { ROWS[id].deleted = true; stamp(ROWS[id], 'deleted'); DIRTY.add(id); });
+        persistLocal();
+        pushDirtyDebounced();
+        render();
     }
 
     document.getElementById(opts.addBtnId).addEventListener('click', () => {
@@ -12933,12 +13019,12 @@ function createMMRLeaseTableController(opts) {
         if (ROWS[id]) [].concat(fields || []).forEach(f => stamp(ROWS[id], f));
         DIRTY.add(id); persistLocal(); pushDirtyDebounced();
     }
-    return { init, pullFromBackend, render, getRows: () => ROWS, addRowWithData, markDirty, refreshRow };
+    return { init, pullFromBackend, render, getRows: () => ROWS, addRowWithData, markDirty, refreshRow, clearAll };
 }
 
 const MMR_NEWLEASE_FIELDS = [
     { key: 'unit', type: 'unit-lookup', autofillKeys: ['yardi', 'sqft'] },
-    { key: 'renovated', type: 'select', options: ['', 'Yes', 'Partial', 'No'] },
+    { key: 'renovated', type: 'select', options: ['', 'Yes', 'Partial', 'No'], skipTab: true },
     { key: 'dateLeased', type: 'date' },
     { key: 'moveIn', type: 'date' },
     { key: 'leaseTerm', type: 'number' },
@@ -12948,7 +13034,7 @@ const MMR_NEWLEASE_FIELDS = [
 ];
 const MMR_RENEWAL_FIELDS = [
     { key: 'unit', type: 'unit-lookup', autofillKeys: ['yardi', 'sqft'] },
-    { key: 'renovated', type: 'select', options: ['', 'Yes', 'Partial', 'No'] },
+    { key: 'renovated', type: 'select', options: ['', 'Yes', 'Partial', 'No'], skipTab: true },
     { key: 'dateRenewed', type: 'date' },
     { key: 'leaseTerm', type: 'number' },
     { key: 'prevEffRent', type: 'text' },
@@ -12958,11 +13044,13 @@ const MMR_RENEWAL_FIELDS = [
 const mmrNewLeaseController = createMMRLeaseTableController({
     localKey: 'reve-mmr-newleases', backendKey: 'mmr-newleases',
     fieldsConfig: MMR_NEWLEASE_FIELDS, tbodyId: 'mmrNewLeaseBody', addBtnId: 'mmrNewLeaseAddBtn',
+    defaults: { renovated: 'No' }, onRender: () => renderMmrNewLeaseMatch(),
     emptyLabel: 'No new leases logged yet. Click "+ New Lease" to add one.'
 });
 const mmrRenewalController = createMMRLeaseTableController({
     localKey: 'reve-mmr-renewals-log', backendKey: 'mmr-renewals-log',
     fieldsConfig: MMR_RENEWAL_FIELDS, tbodyId: 'mmrRenewalBody', addBtnId: 'mmrRenewalAddBtn',
+    defaults: { renovated: 'No' },
     emptyLabel: 'No renewals logged yet. Click "+ New Renewal" to add one.'
 });
 
@@ -24688,9 +24776,9 @@ function doorShowTip(id, target) {
     tip.style.top = (r.top + window.scrollY - 8) + 'px';
 }
 function doorHideTip() { document.getElementById('doorTip').style.display = 'none'; }
-// In-app dialog. opts: { title, text, input (default value), select ([{value,label}]), ok, danger }.
+// In-app dialog (used across the app). opts: { title, text, input (default value), select ([{value,label}]), ok }.
 // Resolves to { value, choice } or null when cancelled.
-function doorDialog(opts) {
+function appDialog(opts) {
     return new Promise(resolve => {
         const m = document.createElement('div');
         m.className = 'vault-modal door-dialog';
@@ -24748,7 +24836,7 @@ function doorSvgPoint(svgEl, e) {
         const ren = e.target.closest('[data-door-rename]');
         if (ren && doorAdmin) {
             const d = doorById(ren.getAttribute('data-door-rename'));
-            const r = await doorDialog({ title: 'Rename device', input: d.name, ok: 'Rename' });
+            const r = await appDialog({ title: 'Rename device', input: d.name, ok: 'Rename' });
             if (!r || r.value === d.name) return;
             const added = doorAdmin.added.find(x => x.id === d.id);
             if (added) added.name = r.value; else doorAdmin.renamed[d.id] = r.value;
@@ -24758,7 +24846,7 @@ function doorSvgPoint(svgEl, e) {
         const del = e.target.closest('[data-door-delete]');
         if (del && doorAdmin) {
             const d = doorById(del.getAttribute('data-door-delete'));
-            const r = await doorDialog({ title: 'Delete device', text: `Remove “${d.name}” from the map and the list for everyone? (Takes effect when you Save.)`, ok: 'Delete' });
+            const r = await appDialog({ title: 'Delete device', text: `Remove “${d.name}” from the map and the list for everyone? (Takes effect when you Save.)`, ok: 'Delete' });
             if (!r) return;
             const i = doorAdmin.added.findIndex(x => x.id === d.id);
             if (i >= 0) doorAdmin.added.splice(i, 1); else doorAdmin.deleted.push(d.id);
@@ -24863,7 +24951,7 @@ function doorSvgPoint(svgEl, e) {
         const status = document.getElementById('doorKeyStatus');
         if (!doorKeyEdit.sel.size) { status.textContent = 'Pick at least one door for this key first.'; return; }
         const current = DOOR_DATA.keys.find(k => k.id === doorKeyEdit.id);
-        const r = await doorDialog({ title: current ? 'Save key' : 'Name this key', text: `${doorKeyEdit.sel.size} door${doorKeyEdit.sel.size === 1 ? '' : 's'}.`, input: current ? current.name : '', placeholder: 'e.g. Common Doors, Retail Key', ok: 'Save Key' });
+        const r = await appDialog({ title: current ? 'Save key' : 'Name this key', text: `${doorKeyEdit.sel.size} door${doorKeyEdit.sel.size === 1 ? '' : 's'}.`, input: current ? current.name : '', placeholder: 'e.g. Common Doors, Retail Key', ok: 'Save Key' });
         if (!r) return;
         const same = DOOR_DATA.keys.find(k => k.name.toLowerCase() === r.value.toLowerCase() && k.id !== doorKeyEdit.id);
         if (same) { status.textContent = `There’s already a key named “${same.name}” — pick another name.`; return; }
@@ -24879,7 +24967,7 @@ function doorSvgPoint(svgEl, e) {
     document.getElementById('doorKeyDelete').addEventListener('click', async () => {
         const key = DOOR_DATA.keys.find(k => k.id === doorActiveKey);
         if (!key) return;
-        const r = await doorDialog({ title: 'Delete key', text: `Delete the named key “${key.name}” for everyone?`, ok: 'Delete' });
+        const r = await appDialog({ title: 'Delete key', text: `Delete the named key “${key.name}” for everyone?`, ok: 'Delete' });
         if (!r) return;
         doorActiveKey = '';
         const ok = await doorWrite('keys', list => (Array.isArray(list) ? list : []).filter(k => k.id !== key.id));
@@ -24895,19 +24983,19 @@ function doorSvgPoint(svgEl, e) {
     });
     document.getElementById('doorEditAdd').addEventListener('click', async () => {
         const groups = DOOR_GROUPS.filter(g => g.level === doorLevel);
-        const r = await doorDialog({ title: 'Add new device', text: `On the ${DOOR_LEVEL_NAMES[doorLevel]} map. After naming it, click on the map where it goes.`, input: '', placeholder: 'Device name, e.g. B3 Roof Deck Entry', select: groups.map(g => ({ value: g.id, label: g.label })), ok: 'Next: place it' });
+        const r = await appDialog({ title: 'Add new device', text: `On the ${DOOR_LEVEL_NAMES[doorLevel]} map. After naming it, click on the map where it goes.`, input: '', placeholder: 'Device name, e.g. B3 Roof Deck Entry', select: groups.map(g => ({ value: g.id, label: g.label })), ok: 'Next: place it' });
         if (!r) return;
         doorPlacing = { name: r.value, group: r.choice };
         renderDoors();
     });
     document.getElementById('doorEditCancel').addEventListener('click', async () => {
         const n = doorAdmin ? Object.keys(doorAdmin.pos).length + Object.keys(doorAdmin.renamed).length + doorAdmin.deleted.length + doorAdmin.added.length : 0;
-        if (n && !(await doorDialog({ title: 'Discard changes?', text: `Discard ${n} unsaved change${n === 1 ? '' : 's'}?`, ok: 'Discard' }))) return;
+        if (n && !(await appDialog({ title: 'Discard changes?', text: `Discard ${n} unsaved change${n === 1 ? '' : 's'}?`, ok: 'Discard' }))) return;
         doorAdmin = null; doorPlacing = null;
         renderDoors();
     });
     document.getElementById('doorEditReset').addEventListener('click', async () => {
-        if (!(await doorDialog({ title: 'Reset dot positions', text: 'Put every built-in dot back where it was first placed? (Takes effect when you Save.)', ok: 'Reset' }))) return;
+        if (!(await appDialog({ title: 'Reset dot positions', text: 'Put every built-in dot back where it was first placed? (Takes effect when you Save.)', ok: 'Reset' }))) return;
         DOOR_DEVICES.forEach(d => { doorAdmin.pos[doorPosKey(d)] = [d.x, d.y]; });
         renderDoors();
     });
