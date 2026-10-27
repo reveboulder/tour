@@ -24748,15 +24748,20 @@ async function doorWrite(k, merge) {
     return r.ok;
 }
 // Device photos: files in Documents › Sitemaps › DOOR Devices, linked to
-// a device by name — "DOOR-B1 Pearl - North Hallway Entry.jpg" (the
-// DOOR- prefix, case, underscores and extension don't matter).
+// a device by file name — "DOOR-B1 Pearl - North Hallway Entry.jpg".
+// Only names starting with "DOOR-" link (case, underscores and the
+// extension don't matter), so renaming an old photo without the prefix
+// unlinks it. If several still match, the most recently added wins.
 function doorPhotoKey(str) {
     return String(str || '').replace(/\.[a-z0-9]{2,5}$/i, '').replace(/^door\s*[-_]?\s*/i, '').replace(/[_\s]+/g, ' ').trim().toLowerCase();
 }
+function doorPhotoLinkKey(str) { return /^\s*door\s*[-_]/i.test(String(str || '')) ? doorPhotoKey(str) : null; }
 function doorPhotoFileName(d) { return `DOOR-${d.name}.jpg`; }
 function doorPhoto(d, docs) {
     const k = doorPhotoKey(d.name);
-    return (docs || docsForSection('door-devices')).find(x => doorPhotoKey(x.filename) === k || doorPhotoKey(x.title) === k) || null;
+    const hits = (docs || docsForSection('door-devices')).filter(x => doorPhotoLinkKey(x.filename) === k);
+    hits.sort((a, b) => String(b.updated || b.added || '').localeCompare(String(a.updated || a.added || '')));
+    return hits[0] || null;
 }
 function renderDoorPhotos(devices, docs) {
     const missing = devices.filter(d => !doorPhoto(d, docs));
