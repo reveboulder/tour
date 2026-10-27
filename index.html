@@ -5426,6 +5426,10 @@
         <div class="section-label" style="margin-top:0;"><span class="dot"></span>Concession Terms</div>
         <p class="empty-note" style="font-size:12.5px;">Plain-language description shown as "Current Concession" on the Tour tab, and used on flyers wherever the concession section is on.</p>
         <textarea class="wl-field" id="concessionTermsInput" rows="3" placeholder="e.g. 6 weeks free for LW units, 4 weeks free for 2-Beds, 2 weeks free for all else" style="width:100%;box-sizing:border-box;"></textarea>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+            <button type="button" class="btn primary" id="concessionTermsSaveBtn" style="width:auto;flex:none;padding:7px 18px;">Save</button>
+            <span class="empty-note concession-save-status" style="margin:0;"></span>
+        </div>
 
         <div class="section-label"><span class="dot"></span>Additional Notes</div>
         <textarea class="wl-field" id="concessionNotesInput" rows="3" placeholder="Internal notes for agents — not shown on the flyer" style="width:100%;box-sizing:border-box;"></textarea>
@@ -5434,7 +5438,7 @@
         <div id="concessionRules"></div>
 
         <button type="button" class="btn primary" id="concessionSaveBtn" style="width:100%;margin-top:16px;">Save Concession Settings</button>
-        <div class="empty-note" id="concessionSaveStatus" style="margin-top:8px;"></div>
+        <div class="empty-note concession-save-status" id="concessionSaveStatus" style="margin-top:8px;"></div>
     </div>
 </div>
 </div>
@@ -9812,14 +9816,26 @@ function restoreConcessionLocal() {
         if (raw) CONCESSION_SETTINGS = JSON.parse(raw);
     } catch (e) {}
 }
+// The Concession page edits its own boxes and only writes them into
+// CONCESSION_SETTINGS on Save, so the 25-second sync never overwrites
+// what's being typed (concessionDirty), and never undoes a save still
+// on its way to the backend (concessionSaving / updatedAt).
+let concessionDirty = false;
+let concessionSaving = false;
 async function pullConcessionFromBackend() {
-    if (!BACKEND_URL || APP_MODE === 'test') return;
+    if (!BACKEND_URL || APP_MODE === 'test' || concessionSaving) return;
     const remote = await backendPull(CONCESSION_BACKEND_KEY);
+    if (concessionSaving) return;
     if (remote) {
+        if ((CONCESSION_SETTINGS.updatedAt || 0) > (remote.updatedAt || 0)) {
+            backendPush(CONCESSION_BACKEND_KEY, CONCESSION_SETTINGS); // a newer local save never reached the backend
+            return;
+        }
+        if (JSON.stringify(remote) === JSON.stringify(CONCESSION_SETTINGS)) return;
         CONCESSION_SETTINGS = remote;
         persistConcessionLocal();
         renderConcessionSummary();
-        if (document.getElementById('tab-concession').classList.contains('active')) renderConcessionPage();
+        if (document.getElementById('tab-concession').classList.contains('active') && !concessionDirty) renderConcessionPage();
         refreshCurrentUnit();
     } else if (CONCESSION_SETTINGS.terms || CONCESSION_SETTINGS.rules.some(r => r.qualifier)) {
         backendPush(CONCESSION_BACKEND_KEY, CONCESSION_SETTINGS); // seed the backend from local
@@ -9844,29 +9860,44 @@ function renderConcessionPage() {
             </div>
         </div>
     `).join('');
-    [...box.querySelectorAll('[data-rule-field]')].forEach(inp => {
-        inp.addEventListener('input', (e) => {
-            const i = parseInt(e.target.getAttribute('data-rule-index'), 10);
-            CONCESSION_SETTINGS.rules[i][e.target.getAttribute('data-rule-field')] = e.target.value;
-        });
-    });
+    concessionDirty = false;
 }
+document.getElementById('tab-concession').addEventListener('input', () => { concessionDirty = true; });
 
 document.getElementById('concessionEditBtn').addEventListener('click', () => {
     renderConcessionPage();
     switchTab('concession');
 });
-document.getElementById('concessionBackBtn').addEventListener('click', () => switchTab('tour'));
-document.getElementById('concessionSaveBtn').addEventListener('click', () => {
-    CONCESSION_SETTINGS.terms = document.getElementById('concessionTermsInput').value;
-    CONCESSION_SETTINGS.notes = document.getElementById('concessionNotesInput').value;
+document.getElementById('concessionBackBtn').addEventListener('click', () => {
+    if (concessionDirty && !confirm('Leave without saving your concession changes?')) return;
+    concessionDirty = false;
+    switchTab('tour');
+});
+document.getElementById('concessionTermsSaveBtn').addEventListener('click', () => document.getElementById('concessionSaveBtn').click());
+document.getElementById('concessionSaveBtn').addEventListener('click', async () => {
+    const rules = CONCESSION_SETTINGS.rules.map((r, i) => {
+        const val = f => { const el = document.querySelector(`#concessionRules [data-rule-field="${f}"][data-rule-index="${i}"]`); return el ? el.value : r[f]; };
+        return Object.assign({}, r, { weeks: val('weeks'), qualifier: val('qualifier') });
+    });
+    CONCESSION_SETTINGS = Object.assign({}, CONCESSION_SETTINGS, {
+        terms: document.getElementById('concessionTermsInput').value,
+        notes: document.getElementById('concessionNotesInput').value,
+        rules,
+        updatedAt: Date.now()
+    });
+    concessionDirty = false;
     persistConcessionLocal();
     renderConcessionSummary();
-    if (BACKEND_URL) backendPush(CONCESSION_BACKEND_KEY, CONCESSION_SETTINGS);
-    const status = document.getElementById('concessionSaveStatus');
-    status.textContent = 'Saved.';
-    setTimeout(() => { status.textContent = ''; }, 2500);
     refreshCurrentUnit(); // re-evaluate the currently open unit against the new rules
+    // Shown next to both Save buttons (under the terms and at the bottom).
+    const status = { set textContent(t) { document.querySelectorAll('.concession-save-status').forEach(el => { el.textContent = t; }); } };
+    if (!BACKEND_URL || APP_MODE === 'test') { status.textContent = 'Saved.'; setTimeout(() => { status.textContent = ''; }, 2500); return; }
+    status.textContent = 'Saving\u2026';
+    concessionSaving = true;
+    let r = { ok: false };
+    try { const saved = CONCESSION_SETTINGS; r = await backendPushVerified(CONCESSION_BACKEND_KEY, saved, b => !!b && b.updatedAt === saved.updatedAt); } finally { concessionSaving = false; }
+    status.textContent = r.ok ? 'Saved for the team.' : 'Saved on this device \u2014 the shared backend couldn\u2019t be reached, so it will retry automatically.';
+    if (r.ok) setTimeout(() => { status.textContent = ''; }, 2500);
 });
 
 /* ============================================================
