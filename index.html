@@ -2450,7 +2450,9 @@
     .door-legend-act svg { width: 14px; height: 14px; }
     .door-legend-act:hover { background: var(--line-soft); color: var(--ink); }
     .door-legend-act.danger:hover { color: #c0392b; }
-    .door-garage-outline { fill: #ebe6da; stroke: #a8a08c; stroke-width: 1.5; }
+    .door-garage-outline { fill: #ebe6da; fill-opacity: .92; stroke: #8f8775; stroke-width: 1.5; }
+    .door-garage-above { fill: none; stroke: #b9b19d; stroke-width: 1.2; stroke-dasharray: 5 4; }
+    .door-garage-marker { opacity: .55; }
     .door-garage-core { fill: #d6d0c2; stroke: #8f8775; stroke-width: 1; }
     .door-garage-room { fill: #cfe3ee; stroke: #7fa6bb; stroke-width: 1; }
     .door-garage-ramp { fill: #f3ead0; stroke: #bba76a; stroke-width: 1; stroke-dasharray: 4 3; }
@@ -24485,14 +24487,14 @@ const DOOR_DEVICES = [
     {id: 'b4-garden-entry', name: 'B4 Garden Entry', group: 'b4-1', level: '1', x: 1025.9, y: 416.7},
     {id: 'b4-garden-interior', name: 'B4 Garden Interior', group: 'b4-1', level: '1', x: 1025.9, y: 433.9},
     {id: 'b4-courtyard-entry', name: 'B4 Courtyard Entry', group: 'b4-1', level: '1', x: 1032.3, y: 468.5},
-    {id: 'b4-p1-elevator-lobby', name: 'B4 P1 Elevator Lobby', group: 'sg-p1', level: 'P1', x: 928.0, y: 305.4},
-    {id: 'b4-p2-elevator-lobby', name: 'B4 P2 Elevator Lobby', group: 'sg-p2', level: 'P2', x: 927.2, y: 309.9},
-    {id: 'pet-spa', name: 'Pet Spa', group: 'sg-p1', level: 'P1', x: 872.6, y: 278.7},
-    {id: 'south-garage-bike-cage', name: 'South Garage Bike Cage', group: 'sg-p1', level: 'P1', x: 903.4, y: 273.4},
-    {id: 'b1-p1-elevator-2-lobby', name: 'B1 P1 Elevator 2 Lobby', group: 'ng-p1', level: 'P1', x: 108.4, y: 382.1},
-    {id: 'b1-p2-north-elevator-lobby', name: 'B1 P2 North Elevator Lobby', group: 'ng-p2', level: 'P2', x: 107.3, y: 382.8},
-    {id: 'b1-p1-bike-storage', name: 'B1 P1 Bike Storage', group: 'ng-p1', level: 'P1', x: 490.0, y: 530.4},
-    {id: 'north-garage-ski-cage', name: 'North Garage Ski Cage', group: 'ng-p2', level: 'P2', x: 436.7, y: 541.2}
+    {id: 'b4-p1-elevator-lobby', name: 'B4 P1 Elevator Lobby', group: 'sg-p1', level: 'P1', x: 690.5, y: 413.0},
+    {id: 'b4-p2-elevator-lobby', name: 'B4 P2 Elevator Lobby', group: 'sg-p2', level: 'P2', x: 696.0, y: 414.0},
+    {id: 'pet-spa', name: 'Pet Spa', group: 'sg-p1', level: 'P1', x: 658.0, y: 480.5},
+    {id: 'south-garage-bike-cage', name: 'South Garage Bike Cage', group: 'sg-p1', level: 'P1', x: 651.5, y: 443.0},
+    {id: 'b1-p1-elevator-2-lobby', name: 'B1 P1 Elevator 2 Lobby', group: 'ng-p1', level: 'P1', x: 215.5, y: 656.6},
+    {id: 'b1-p2-north-elevator-lobby', name: 'B1 P2 North Elevator Lobby', group: 'ng-p2', level: 'P2', x: 214.8, y: 657.1},
+    {id: 'b1-p1-bike-storage', name: 'B1 P1 Bike Storage', group: 'ng-p1', level: 'P1', x: 480.5, y: 759.6},
+    {id: 'north-garage-ski-cage', name: 'North Garage Ski Cage', group: 'ng-p2', level: 'P2', x: 443.5, y: 767.1}
 ];
 const DOOR_GROUPS = [
     { id: 'b1-1', label: 'Building 1 · 1st Floor', level: '1' },
@@ -24505,20 +24507,18 @@ const DOOR_GROUPS = [
     { id: 'sg-p2', label: 'South Garage · P2 Level', level: 'P2' }
 ];
 const DOOR_LEVEL_NAMES = { '1': '1st Floor', '2': '2nd Floor', P1: 'P1 Garage', P2: 'P2 Garage' };
-// Simplified garage maps (outline, cores, rooms, ramps) in site-map
-// coordinates; the North Garage is turned to line up with Building 1.
-const DOOR_GARAGE_MAPS = {"P1":[{"title":"North Garage · under Building 1","outline":[[555.5,637.3],[101.2,637.3],[40.0,300.0],[555.5,300.0]],"features":[{"label":"Elevator 1 · Stair 1","kind":"core","rect":[367.6,517.8,77.4,57.6]},{"label":"Elevator 2 · Stair 2","kind":"core","rect":[97.6,368.4,52.2,43.9]},{"label":"Stair 3","kind":"core","rect":[468.4,373.8,22.7,37.1]},{"label":"Bike Room","kind":"room","rect":[484.6,523.2,67.3,34.2]},{"label":"Teal Room","kind":"room","rect":[493.6,562.8,58.3,37.8]},{"label":"Ramp","kind":"ramp","rect":[216.4,494.4,41.4,63.0]},{"label":"Electrical","kind":"room","rect":[504.4,301.8,47.5,25.2]},{"label":"Open Stair","kind":"core","rect":[88.2,498.0,12.3,46.8]}],"label":[297.8,286.0]},{"title":"South Garage · 2100 30th St","outline":[[600.0,346.4],[858.3,346.4],[858.3,288.9],[895.2,252.1],[1108.4,252.1],[1133.0,284.9],[1133.0,315.6],[977.2,315.6],[977.2,346.4],[919.8,346.4],[919.8,647.7],[733.2,647.7],[733.2,619.0],[632.0,619.0],[632.0,576.0],[600.0,576.0]],"features":[{"label":"Elevator · Stair","kind":"core","rect":[632.0,452.9,25.4,41.0]},{"label":"Elevator · Stair","kind":"core","rect":[765.2,387.4,41.8,41.0]},{"label":"Teal Room","kind":"room","rect":[770.1,430.4,51.3,24.6]},{"label":"Elevator · Stair","kind":"core","rect":[766.0,539.0,51.3,26.7]},{"label":"Bldg 4 Elevator","kind":"core","rect":[897.2,299.2,47.2,38.9]},{"label":"Bikes & Lockers","kind":"room","rect":[880.8,258.2,41.0,30.7]},{"label":"Trash","kind":"room","rect":[923.9,272.6,24.6,16.3]},{"label":"Ramp","kind":"ramp","rect":[733.2,621.0,186.6,24.6]},{"label":"Ramp","kind":"ramp","rect":[981.3,288.9,149.6,24.7]}],"label":[866.5,238.1]}],"P2":[{"title":"North Garage · under Building 1","outline":[[555.5,637.3],[103.7,637.3],[46.1,409.8],[94.7,409.8],[94.7,372.0],[152.3,372.0],[152.3,409.8],[464.8,409.8],[464.8,373.8],[493.2,373.8],[493.2,409.8],[555.5,409.8]],"features":[{"label":"Elevator 1 · Stair 1","kind":"core","rect":[383.8,516.7,43.9,44.3]},{"label":"Ski Lockers","kind":"room","rect":[428.4,526.8,18.0,23.4]},{"label":"Ramp ↓ P2.5","kind":"ramp","rect":[447.5,521.4,36.0,28.8]},{"label":"Ramp ↑ P1","kind":"ramp","rect":[211.7,521.4,43.2,34.2]},{"label":"Stair 3","kind":"core","rect":[464.8,373.8,28.4,36.0]},{"label":"Elevator 2 · Stair 2","kind":"core","rect":[94.7,372.0,57.6,39.6]},{"label":"Bikes","kind":"room","rect":[81.4,520.7,18.0,12.2]}],"label":[300.8,358.0]},{"title":"South Garage · 2100 30th St","outline":[[631.2,345.5],[857.5,345.5],[857.5,292.2],[935.4,292.2],[935.4,345.5],[919.0,345.5],[919.0,620.2],[652.5,620.2],[652.5,603.8],[631.2,603.8]],"features":[{"label":"Bldg 4 Elevator · Stair 4","kind":"core","rect":[896.4,300.4,39.0,39.0]},{"label":"Stair","kind":"core","rect":[636.1,376.3,28.7,28.7]},{"label":"Elevator","kind":"core","rect":[631.2,448.0,41.8,26.7]},{"label":"Stair 1","kind":"core","rect":[763.2,400.9,24.6,14.3]},{"label":"Elevator · Stair 2","kind":"core","rect":[763.2,556.7,43.0,24.6]},{"label":"Stair 3","kind":"core","rect":[897.7,544.4,20.5,13.1]},{"label":"Bike Lockers","kind":"room","rect":[632.8,487.0,20.5,73.8]}],"label":[783.3,278.2]}]};
-// Garage levels zoom to their drawings (they're smaller than a floor).
-function doorViewBox(level) {
-    const panels = DOOR_GARAGE_MAPS[level];
-    if (!panels) return '20 150 1120 760';
-    const pts = [].concat(...panels.map(p => p.outline.concat([[p.label[0], p.label[1] - 12]])));
-    const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
-    const x0 = Math.min(...xs) - 20, y0 = Math.min(...ys) - 12, x1 = Math.max(...xs) + 20, y1 = Math.max(...ys) + 20;
-    return `${x0} ${y0} ${x1 - x0} ${y1 - y0}`;
-}
+// Simplified garage maps (outline, cores, rooms, ramps) traced from the
+// garage plans and fitted onto the site map under their buildings, so
+// garage dots sit under the floors above (North Garage under Building 1;
+// South Garage under Buildings 2, 3 and 4).
+const DOOR_GARAGE_MAPS = {"P1":[{"title":"North Garage · under Building 1","outline":[[526.0,833.9],[210.5,833.9],[168.0,599.6],[526.0,599.6]],"features":[{"label":"Elevator 1 · Stair 1","kind":"core","rect":[395.5,750.9,53.7,40.0]},{"label":"Elevator 2 · Stair 2","kind":"core","rect":[208.0,647.1,36.2,30.5]},{"label":"Stair 3","kind":"core","rect":[465.5,650.9,15.7,25.7]},{"label":"Bike Room","kind":"room","rect":[476.8,754.6,46.7,23.8]},{"label":"Teal Room","kind":"room","rect":[483.0,782.1,40.5,26.3]},{"label":"Ramp","kind":"ramp","rect":[290.5,734.6,28.7,43.8]},{"label":"Electrical","kind":"room","rect":[490.5,600.9,33.0,17.5]},{"label":"Open Stair","kind":"core","rect":[201.5,737.1,8.5,32.5]}],"label":[347.0,855.9]},{"title":"South Garage · 2100 30th St","outline":[[740.5,813.0],[740.5,498.0],[670.5,498.0],[625.5,453.0],[625.5,193.0],[665.5,163.0],[703.0,163.0],[703.0,353.0],[740.5,353.0],[740.5,423.0],[1108.0,423.0],[1108.0,650.5],[1073.0,650.5],[1073.0,774.0],[1020.5,774.0],[1020.5,813.0]],"features":[{"label":"Elevator · Stair","kind":"core","rect":[870.5,743.0,50.0,31.0]},{"label":"Elevator · Stair","kind":"core","rect":[790.5,560.5,50.0,51.0]},{"label":"Teal Room","kind":"room","rect":[843.0,543.0,30.0,62.5]},{"label":"Elevator · Stair","kind":"core","rect":[975.5,548.0,32.5,62.5]},{"label":"Bldg 4 Elevator","kind":"core","rect":[683.0,393.0,47.5,57.5]},{"label":"Bikes & Lockers","kind":"room","rect":[633.0,420.5,37.5,50.0]},{"label":"Trash","kind":"room","rect":[650.5,388.0,20.0,30.0]},{"label":"Ramp","kind":"ramp","rect":[1075.5,423.0,30.0,227.5]},{"label":"Ramp","kind":"ramp","rect":[670.5,165.5,30.0,182.5]}],"label":[866.8,835.0]}],"P2":[{"title":"North Garage · under Building 1","outline":[[526.0,833.9],[212.2,833.9],[172.2,675.9],[206.0,675.9],[206.0,649.6],[246.0,649.6],[246.0,675.9],[463.0,675.9],[463.0,650.9],[482.8,650.9],[482.8,675.9],[526.0,675.9]],"features":[{"label":"Elevator 1 · Stair 1","kind":"core","rect":[406.8,750.1,30.4,30.8]},{"label":"Ski Lockers","kind":"room","rect":[437.8,757.1,12.4,16.3]},{"label":"Ramp ↓ P2.5","kind":"ramp","rect":[451.0,753.4,25.0,20.0]},{"label":"Ramp ↑ P1","kind":"ramp","rect":[287.2,753.4,30.0,23.7]},{"label":"Stair 3","kind":"core","rect":[463.0,650.9,19.8,25.0]},{"label":"Elevator 2 · Stair 2","kind":"core","rect":[206.0,649.6,40.0,27.5]},{"label":"Bikes","kind":"room","rect":[196.8,752.9,12.4,8.5]}],"label":[349.1,855.9]},{"title":"South Garage · 2100 30th St","outline":[[739.5,775.0],[739.5,499.0],[674.5,499.0],[674.5,404.0],[739.5,404.0],[739.5,424.0],[1074.5,424.0],[1074.5,749.0],[1054.5,749.0],[1054.5,775.0]],"features":[{"label":"Bldg 4 Elevator · Stair 4","kind":"core","rect":[684.5,404.0,47.5,47.5]},{"label":"Stair","kind":"core","rect":[777.0,734.0,35.0,35.0]},{"label":"Elevator","kind":"core","rect":[864.5,724.0,32.5,51.0]},{"label":"Stair 1","kind":"core","rect":[807.0,584.0,17.5,30.0]},{"label":"Elevator · Stair 2","kind":"core","rect":[997.0,561.5,30.0,52.5]},{"label":"Stair 3","kind":"core","rect":[982.0,425.0,16.0,25.0]},{"label":"Bike Lockers","kind":"room","rect":[912.0,748.0,90.0,25.0]}],"label":[874.5,797.0]}]};
 function doorGarageSvg(level) {
+    // The 1st-floor buildings, faint and dashed, for reference above.
     let svg = '';
+    SITEMAP_CONTEXT.streets.forEach(st => {
+        svg += `<text class="sitemap-street-label" x="${st.x}" y="${st.y}" transform="rotate(${st.rotate} ${st.x} ${st.y})">${escapeHtml(st.text)}</text>`;
+    });
+    SITEMAP_FLOORS[1].outlines.forEach(o => { svg += `<path class="door-garage-above" d="${o.d}"></path>`; });
     (DOOR_GARAGE_MAPS[level] || []).forEach(p => {
         svg += `<polygon class="door-garage-outline" points="${sitemapPolyPoints(p.outline)}"></polygon>`;
         p.features.forEach(f => {
@@ -24528,6 +24528,9 @@ function doorGarageSvg(level) {
             svg += `<text class="door-garage-label" x="${(x + w / 2).toFixed(1)}" y="${(y + h / 2).toFixed(1)}" font-size="${fs.toFixed(1)}"${h > w * 1.6 ? ` transform="rotate(-90 ${(x + w / 2).toFixed(1)} ${(y + h / 2).toFixed(1)})"` : ''}>${escapeHtml(f.label)}</text>`;
         });
         svg += `<text class="door-garage-title" x="${p.label[0]}" y="${p.label[1]}">${escapeHtml(p.title)} — ${level}</text>`;
+    });
+    SITEMAP_CONTEXT.markers.forEach(m => {
+        svg += `<g class="sitemap-marker door-garage-marker"><circle cx="${m.x}" cy="${m.y}" r="13"></circle><text x="${m.x}" y="${m.y}">${m.n}</text><title>Building ${m.n} (above)</title></g>`;
     });
     return svg;
 }
@@ -24560,7 +24563,10 @@ function doorDevices() {
         .map(d => Object.assign({}, d, { name: a.renamed[d.id] || e.renamed[d.id] || d.name }));
 }
 function doorById(id) { return doorDevices().find(d => d.id === id); }
-function doorXY(d) { return (doorAdmin && doorAdmin.pos[d.id]) || DOOR_DATA.pos[d.id] || [d.x, d.y]; }
+// Garage dots are stored under "<id>@g2": positions saved for the first,
+// unfitted garage drawings don't apply to the fitted ones.
+function doorPosKey(d) { return /^P/.test(d.level) ? d.id + '@g2' : d.id; }
+function doorXY(d) { const k = doorPosKey(d); return (doorAdmin && doorAdmin.pos[k]) || DOOR_DATA.pos[k] || [d.x, d.y]; }
 function doorMatches(d) { const q = doorSearch.trim().toLowerCase(); return !!q && d.name.toLowerCase().includes(q); }
 function doorHighlighted() {
     if (doorKeyEdit) return doorKeyEdit.sel;
@@ -24602,12 +24608,12 @@ function renderDoors() {
     const searching = !!doorSearch.trim();
     let svg = DOOR_GARAGE_MAPS[doorLevel] ? doorGarageSvg(doorLevel) : sitemapFloorSvg(doorLevel, '\u0000');   // every unit gray
     devices.filter(d => d.level === doorLevel).forEach(d => {
-        const moved = doorAdmin && (doorAdmin.pos[d.id] || doorAdmin.added.some(x => x.id === d.id));
+        const moved = doorAdmin && (doorAdmin.pos[doorPosKey(d)] || doorAdmin.added.some(x => x.id === d.id));
         const cls = ['door-dot', hi.has(d.id) ? 'sel' : '', doorMatches(d) ? 'match' : '', searching && !doorMatches(d) && !hi.has(d.id) ? 'dim' : '', moved ? 'moved' : ''].filter(Boolean).join(' ');
         const [x, y] = doorXY(d);
         svg += `<g class="${cls}" data-door="${escapeAttr(d.id)}" tabindex="0" role="button" aria-label="${escapeAttr(d.name)}"><circle class="door-dot-halo" cx="${x}" cy="${y}" r="13"></circle><circle class="door-dot-core" cx="${x}" cy="${y}" r="6"></circle></g>`;
     });
-    wrap.innerHTML = `<svg viewBox="${doorViewBox(doorLevel)}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Door devices, ${escapeAttr(DOOR_LEVEL_NAMES[doorLevel])}">${svg}</svg>`;
+    wrap.innerHTML = `<svg viewBox="20 150 1120 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Door devices, ${escapeAttr(DOOR_LEVEL_NAMES[doorLevel])}">${svg}</svg>`;
     const panel = document.getElementById('doorPanel');
     panel.classList.toggle('door-editing', !!doorAdmin);
     panel.classList.toggle('door-placing', !!doorPlacing);
@@ -24756,7 +24762,7 @@ function doorSvgPoint(svgEl, e) {
             if (!r) return;
             const i = doorAdmin.added.findIndex(x => x.id === d.id);
             if (i >= 0) doorAdmin.added.splice(i, 1); else doorAdmin.deleted.push(d.id);
-            delete doorAdmin.pos[d.id];
+            delete doorAdmin.pos[doorPosKey(d)];
             renderDoors();
             return;
         }
@@ -24816,7 +24822,7 @@ function doorSvgPoint(svgEl, e) {
         if (!drag) return;
         if (drag.xy) {
             const added = doorAdmin.added.find(x => x.id === drag.id);
-            if (added) { added.x = drag.xy[0]; added.y = drag.xy[1]; } else doorAdmin.pos[drag.id] = drag.xy;
+            if (added) { added.x = drag.xy[0]; added.y = drag.xy[1]; } else doorAdmin.pos[doorPosKey(doorById(drag.id))] = drag.xy;
         }
         drag = null;
         doorHideTip();
@@ -24902,7 +24908,7 @@ function doorSvgPoint(svgEl, e) {
     });
     document.getElementById('doorEditReset').addEventListener('click', async () => {
         if (!(await doorDialog({ title: 'Reset dot positions', text: 'Put every built-in dot back where it was first placed? (Takes effect when you Save.)', ok: 'Reset' }))) return;
-        DOOR_DEVICES.forEach(d => { doorAdmin.pos[d.id] = [d.x, d.y]; });
+        DOOR_DEVICES.forEach(d => { doorAdmin.pos[doorPosKey(d)] = [d.x, d.y]; });
         renderDoors();
     });
     document.getElementById('doorEditSave').addEventListener('click', async () => {
@@ -24913,10 +24919,10 @@ function doorSvgPoint(svgEl, e) {
         const posOk = await doorWrite('pos', base => {
             const next = Object.assign({}, base && !Array.isArray(base) ? base : {});
             Object.keys(a.pos).forEach(id => {
-                const d = DOOR_DEVICES.find(x => x.id === id);
+                const d = DOOR_DEVICES.find(x => x.id === id.replace(/@g2$/, ''));
                 if (d && d.x === a.pos[id][0] && d.y === a.pos[id][1]) delete next[id]; else next[id] = a.pos[id];
             });
-            a.deleted.forEach(id => { delete next[id]; });
+            a.deleted.forEach(id => { delete next[id]; delete next[id + '@g2']; });
             return next;
         });
         const editsOk = posOk && await doorWrite('edits', base => {
