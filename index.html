@@ -2441,6 +2441,23 @@
     .door-editing .door-dot.dragging { cursor: grabbing; }
     .door-editing .door-dot-core { stroke: var(--reve-orange); }
     .door-dot.moved .door-dot-core { fill: #8a4fd0; }
+    .door-key-pick { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 6px; background: rgba(29,138,74,.08); border: 1px solid rgba(29,138,74,.35); }
+    .door-picking .door-dot { cursor: copy; }
+    .door-placing #doorMapWrap svg { cursor: crosshair; }
+    .door-legend-row { display: flex; align-items: center; gap: 2px; }
+    .door-legend-row .door-legend-item { flex: 1; min-width: 0; }
+    .door-legend-act { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border: 0; background: none; border-radius: 4px; color: var(--ink-soft); cursor: pointer; padding: 0; }
+    .door-legend-act svg { width: 14px; height: 14px; }
+    .door-legend-act:hover { background: var(--line-soft); color: var(--ink); }
+    .door-legend-act.danger:hover { color: #c0392b; }
+    .door-garage-outline { fill: #ebe6da; stroke: #a8a08c; stroke-width: 1.5; }
+    .door-garage-core { fill: #d6d0c2; stroke: #8f8775; stroke-width: 1; }
+    .door-garage-room { fill: #cfe3ee; stroke: #7fa6bb; stroke-width: 1; }
+    .door-garage-ramp { fill: #f3ead0; stroke: #bba76a; stroke-width: 1; stroke-dasharray: 4 3; }
+    .door-garage-label { fill: #4d463c; font-family: var(--sans); font-weight: 600; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+    .door-garage-title { fill: #5a5246; font-family: var(--sans); font-size: 14px; font-weight: 700; text-anchor: middle; }
+    body.dark-mode .door-garage-outline { fill: #34322d; stroke: #5d584c; }
+    body.dark-mode .door-garage-title { fill: #c9c4b3; }
     .door-dot.sel .door-dot-core { fill: #1d8a4a; }
     .door-dot.sel .door-dot-halo { fill: rgba(29,138,74,.22); }
     .door-dot.match .door-dot-core { fill: var(--reve-orange); r: 8; }
@@ -4352,16 +4369,19 @@
                 <div class="wl-subtabs" style="margin:0;">
                     <button type="button" class="wl-subtab active" data-door-level="1">1st Floor</button>
                     <button type="button" class="wl-subtab" data-door-level="2">2nd Floor</button>
+                    <button type="button" class="wl-subtab" data-door-level="P1">P1</button>
+                    <button type="button" class="wl-subtab" data-door-level="P2">P2</button>
                 </div>
                 <input type="search" id="doorSearch" class="door-search" placeholder="Search door devices&hellip;" autocomplete="off" aria-label="Search door devices">
                 <span class="empty-note" id="doorSearchNote" style="margin:0;"></span>
-                <button type="button" class="fp-link" id="doorEditBtn" style="margin-left:auto;" title="Admin: drag dots to correct their placement">Adjust dot positions</button>
+                <button type="button" class="fp-link" id="doorEditBtn" style="margin-left:auto;" title="Admin password: move dots, add, rename or delete devices">Admin Edit</button>
             </div>
             <div class="door-edit-bar" id="doorEditBar" style="display:none;">
-                <b>Adjusting dot positions</b>
+                <b>Admin Edit</b>
                 <span id="doorEditCount"></span>
                 <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
-                    <button type="button" class="btn small" id="doorEditReset">Reset all</button>
+                    <button type="button" class="btn small" id="doorEditAdd">+ Add new device</button>
+                    <button type="button" class="btn small" id="doorEditReset">Reset positions</button>
                     <button type="button" class="btn small" id="doorEditCancel">Cancel</button>
                     <button type="button" class="btn small primary" id="doorEditSave">Save</button>
                 </span>
@@ -4373,11 +4393,18 @@
                         <div class="door-legend-h" style="margin-top:0;">Named Keys</div>
                         <select id="doorKeySelect" class="wl-field" aria-label="Named key"></select>
                         <div class="door-key-btns">
-                            <button type="button" class="btn small primary" id="doorKeySave">Save Named Key</button>
+                            <button type="button" class="btn small primary" id="doorKeyNew">+ Add New Key</button>
+                            <button type="button" class="btn small" id="doorKeyEdit" style="display:none;">Edit Key</button>
                             <button type="button" class="btn small" id="doorKeyDelete" style="display:none;">Delete</button>
-                            <button type="button" class="btn small" id="doorSelClear" style="display:none;">Clear</button>
                         </div>
-                        <div class="empty-note" id="doorSelCount" style="margin:0;"></div>
+                        <div class="door-key-pick" id="doorKeyPick" style="display:none;">
+                            <div class="empty-note" id="doorKeyPickNote" style="margin:0;"></div>
+                            <div class="door-key-btns">
+                                <button type="button" class="btn small primary" id="doorKeySave">Save Key</button>
+                                <button type="button" class="btn small" id="doorKeyClear">Clear</button>
+                                <button type="button" class="btn small" id="doorKeyCancel">Cancel</button>
+                            </div>
+                        </div>
                         <div class="empty-note" id="doorKeyStatus" style="margin:0;"></div>
                     </div>
                     <div id="doorLegend" class="door-legend"></div>
@@ -22598,7 +22625,7 @@ setInterval(() => {
     pullAllFromBackend();
     pullWaitlistFromBackend();
     pullConcessionFromBackend();
-    if (sitemapCurrentFloor === 'doors') { pullDoorKeys(); pullDoorPositions(); }
+    if (sitemapCurrentFloor === 'doors') pullDoorData();
     pullStorageFromBackend();
     pullLockersFromBackend();
     pullDefaultChargesFromBackend();
@@ -24411,11 +24438,12 @@ async function sitemapUnitMapFile(unit) {
     } finally { URL.revokeObjectURL(url); }
 }
 /* ---------- Sitemap › DOOR Devices: every door access device on the
-   site map (from the "Door Devices — Location and Names" sheet), one
-   color; hover a dot for its name. Search highlights matching dots, and
+   site map (from the "Door Devices — Location and Names" sheet) and on
+   simplified P1 / P2 garage maps traced from the garage plans, one
+   color; hover a dot for its name. Search highlights matching dots.
    Named Keys (shared with the team) save a set of doors — e.g. "Common
-   Doors" or "Retail Key" — to highlight together. Garage-level devices
-   have no map position, so they're listed only. ---------- */
+   Doors" or "Retail Key" — to highlight together. Admin Edit (Admin
+   password) moves dots, adds, renames and deletes devices. ---------- */
 const DOOR_DEVICES = [
     {id: 'b1-pearl-north-hallway-entry', name: 'B1 Pearl - North Hallway Entry', group: 'b1-1', level: '1', x: 184.4, y: 660.1},
     {id: 'b1-mailroom', name: 'B1 Mailroom', group: 'b1-1', level: '1', x: 278.9, y: 630.1},
@@ -24457,135 +24485,191 @@ const DOOR_DEVICES = [
     {id: 'b4-garden-entry', name: 'B4 Garden Entry', group: 'b4-1', level: '1', x: 1025.9, y: 416.7},
     {id: 'b4-garden-interior', name: 'B4 Garden Interior', group: 'b4-1', level: '1', x: 1025.9, y: 433.9},
     {id: 'b4-courtyard-entry', name: 'B4 Courtyard Entry', group: 'b4-1', level: '1', x: 1032.3, y: 468.5},
-    {id: 'b4-p1-elevator-lobby', name: 'B4 P1 Elevator Lobby', group: 'sg-p1', level: 'P1'},
-    {id: 'b4-p2-elevator-lobby', name: 'B4 P2 Elevator Lobby', group: 'sg-p1', level: 'P1'},
-    {id: 'pet-spa', name: 'Pet Spa', group: 'sg-p1', level: 'P1'},
-    {id: 'south-garage-bike-cage', name: 'South Garage Bike Cage', group: 'sg-p1', level: 'P1'},
-    {id: 'b1-p1-elevator-2-lobby', name: 'B1 P1 Elevator 2 Lobby', group: 'ng-p1', level: 'P1'},
-    {id: 'b1-p2-north-elevator-lobby', name: 'B1 P2 North Elevator Lobby', group: 'ng-p1', level: 'P1'},
-    {id: 'b1-p1-bike-storage', name: 'B1 P1 Bike Storage', group: 'ng-p1', level: 'P1'},
-    {id: 'north-garage-ski-cage', name: 'North Garage Ski Cage', group: 'ng-p2', level: 'P2'}
+    {id: 'b4-p1-elevator-lobby', name: 'B4 P1 Elevator Lobby', group: 'sg-p1', level: 'P1', x: 928.0, y: 305.4},
+    {id: 'b4-p2-elevator-lobby', name: 'B4 P2 Elevator Lobby', group: 'sg-p2', level: 'P2', x: 927.2, y: 309.9},
+    {id: 'pet-spa', name: 'Pet Spa', group: 'sg-p1', level: 'P1', x: 872.6, y: 278.7},
+    {id: 'south-garage-bike-cage', name: 'South Garage Bike Cage', group: 'sg-p1', level: 'P1', x: 903.4, y: 273.4},
+    {id: 'b1-p1-elevator-2-lobby', name: 'B1 P1 Elevator 2 Lobby', group: 'ng-p1', level: 'P1', x: 108.4, y: 382.1},
+    {id: 'b1-p2-north-elevator-lobby', name: 'B1 P2 North Elevator Lobby', group: 'ng-p2', level: 'P2', x: 107.3, y: 382.8},
+    {id: 'b1-p1-bike-storage', name: 'B1 P1 Bike Storage', group: 'ng-p1', level: 'P1', x: 490.0, y: 530.4},
+    {id: 'north-garage-ski-cage', name: 'North Garage Ski Cage', group: 'ng-p2', level: 'P2', x: 436.7, y: 541.2}
 ];
 const DOOR_GROUPS = [
-    { id: 'b1-1', label: 'Building 1 · 1st Floor' },
-    { id: 'b1-2', label: 'Building 1 · 2nd Floor' },
-    { id: 'b3-1', label: 'Building 3 · 1st Floor' },
-    { id: 'b4-1', label: 'Building 4 · 1st Floor' },
-    { id: 'sg-p1', label: 'South Garage · P1 Level', garage: true },
-    { id: 'ng-p1', label: 'North Garage · P1 Level', garage: true },
-    { id: 'ng-p2', label: 'North Garage · P2 Level', garage: true }
+    { id: 'b1-1', label: 'Building 1 · 1st Floor', level: '1' },
+    { id: 'b1-2', label: 'Building 1 · 2nd Floor', level: '2' },
+    { id: 'b3-1', label: 'Building 3 · 1st Floor', level: '1' },
+    { id: 'b4-1', label: 'Building 4 · 1st Floor', level: '1' },
+    { id: 'ng-p1', label: 'North Garage · P1 Level', level: 'P1' },
+    { id: 'ng-p2', label: 'North Garage · P2 Level', level: 'P2' },
+    { id: 'sg-p1', label: 'South Garage · P1 Level', level: 'P1' },
+    { id: 'sg-p2', label: 'South Garage · P2 Level', level: 'P2' }
 ];
-const DOOR_KEYS_KEY = 'reve-door-keys';
-const DOOR_KEYS_BACKEND_KEY = 'door-keys';
-let DOOR_KEYS = [];   // [{ id, name, devices: [device ids] }]
-try { DOOR_KEYS = JSON.parse(localStorage.getItem(DOOR_KEYS_KEY) || '[]') || []; } catch (e) { DOOR_KEYS = []; }
+const DOOR_LEVEL_NAMES = { '1': '1st Floor', '2': '2nd Floor', P1: 'P1 Garage', P2: 'P2 Garage' };
+// Simplified garage maps (outline, cores, rooms, ramps) in site-map
+// coordinates; the North Garage is turned to line up with Building 1.
+const DOOR_GARAGE_MAPS = {"P1":[{"title":"North Garage · under Building 1","outline":[[555.5,637.3],[101.2,637.3],[40.0,300.0],[555.5,300.0]],"features":[{"label":"Elevator 1 · Stair 1","kind":"core","rect":[367.6,517.8,77.4,57.6]},{"label":"Elevator 2 · Stair 2","kind":"core","rect":[97.6,368.4,52.2,43.9]},{"label":"Stair 3","kind":"core","rect":[468.4,373.8,22.7,37.1]},{"label":"Bike Room","kind":"room","rect":[484.6,523.2,67.3,34.2]},{"label":"Teal Room","kind":"room","rect":[493.6,562.8,58.3,37.8]},{"label":"Ramp","kind":"ramp","rect":[216.4,494.4,41.4,63.0]},{"label":"Electrical","kind":"room","rect":[504.4,301.8,47.5,25.2]},{"label":"Open Stair","kind":"core","rect":[88.2,498.0,12.3,46.8]}],"label":[297.8,286.0]},{"title":"South Garage · 2100 30th St","outline":[[600.0,346.4],[858.3,346.4],[858.3,288.9],[895.2,252.1],[1108.4,252.1],[1133.0,284.9],[1133.0,315.6],[977.2,315.6],[977.2,346.4],[919.8,346.4],[919.8,647.7],[733.2,647.7],[733.2,619.0],[632.0,619.0],[632.0,576.0],[600.0,576.0]],"features":[{"label":"Elevator · Stair","kind":"core","rect":[632.0,452.9,25.4,41.0]},{"label":"Elevator · Stair","kind":"core","rect":[765.2,387.4,41.8,41.0]},{"label":"Teal Room","kind":"room","rect":[770.1,430.4,51.3,24.6]},{"label":"Elevator · Stair","kind":"core","rect":[766.0,539.0,51.3,26.7]},{"label":"Bldg 4 Elevator","kind":"core","rect":[897.2,299.2,47.2,38.9]},{"label":"Bikes & Lockers","kind":"room","rect":[880.8,258.2,41.0,30.7]},{"label":"Trash","kind":"room","rect":[923.9,272.6,24.6,16.3]},{"label":"Ramp","kind":"ramp","rect":[733.2,621.0,186.6,24.6]},{"label":"Ramp","kind":"ramp","rect":[981.3,288.9,149.6,24.7]}],"label":[866.5,238.1]}],"P2":[{"title":"North Garage · under Building 1","outline":[[555.5,637.3],[103.7,637.3],[46.1,409.8],[94.7,409.8],[94.7,372.0],[152.3,372.0],[152.3,409.8],[464.8,409.8],[464.8,373.8],[493.2,373.8],[493.2,409.8],[555.5,409.8]],"features":[{"label":"Elevator 1 · Stair 1","kind":"core","rect":[383.8,516.7,43.9,44.3]},{"label":"Ski Lockers","kind":"room","rect":[428.4,526.8,18.0,23.4]},{"label":"Ramp ↓ P2.5","kind":"ramp","rect":[447.5,521.4,36.0,28.8]},{"label":"Ramp ↑ P1","kind":"ramp","rect":[211.7,521.4,43.2,34.2]},{"label":"Stair 3","kind":"core","rect":[464.8,373.8,28.4,36.0]},{"label":"Elevator 2 · Stair 2","kind":"core","rect":[94.7,372.0,57.6,39.6]},{"label":"Bikes","kind":"room","rect":[81.4,520.7,18.0,12.2]}],"label":[300.8,358.0]},{"title":"South Garage · 2100 30th St","outline":[[631.2,345.5],[857.5,345.5],[857.5,292.2],[935.4,292.2],[935.4,345.5],[919.0,345.5],[919.0,620.2],[652.5,620.2],[652.5,603.8],[631.2,603.8]],"features":[{"label":"Bldg 4 Elevator · Stair 4","kind":"core","rect":[896.4,300.4,39.0,39.0]},{"label":"Stair","kind":"core","rect":[636.1,376.3,28.7,28.7]},{"label":"Elevator","kind":"core","rect":[631.2,448.0,41.8,26.7]},{"label":"Stair 1","kind":"core","rect":[763.2,400.9,24.6,14.3]},{"label":"Elevator · Stair 2","kind":"core","rect":[763.2,556.7,43.0,24.6]},{"label":"Stair 3","kind":"core","rect":[897.7,544.4,20.5,13.1]},{"label":"Bike Lockers","kind":"room","rect":[632.8,487.0,20.5,73.8]}],"label":[783.3,278.2]}]};
+// Garage levels zoom to their drawings (they're smaller than a floor).
+function doorViewBox(level) {
+    const panels = DOOR_GARAGE_MAPS[level];
+    if (!panels) return '20 150 1120 760';
+    const pts = [].concat(...panels.map(p => p.outline.concat([[p.label[0], p.label[1] - 12]])));
+    const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+    const x0 = Math.min(...xs) - 20, y0 = Math.min(...ys) - 12, x1 = Math.max(...xs) + 20, y1 = Math.max(...ys) + 20;
+    return `${x0} ${y0} ${x1 - x0} ${y1 - y0}`;
+}
+function doorGarageSvg(level) {
+    let svg = '';
+    (DOOR_GARAGE_MAPS[level] || []).forEach(p => {
+        svg += `<polygon class="door-garage-outline" points="${sitemapPolyPoints(p.outline)}"></polygon>`;
+        p.features.forEach(f => {
+            const [x, y, w, h] = f.rect;
+            svg += `<rect class="door-garage-${f.kind}" x="${x}" y="${y}" width="${w}" height="${h}" rx="2"><title>${escapeHtml(f.label)}</title></rect>`;
+            const fs = Math.max(5.5, Math.min(10, w / Math.max(4, f.label.length * 0.55), h * 0.5));
+            svg += `<text class="door-garage-label" x="${(x + w / 2).toFixed(1)}" y="${(y + h / 2).toFixed(1)}" font-size="${fs.toFixed(1)}"${h > w * 1.6 ? ` transform="rotate(-90 ${(x + w / 2).toFixed(1)} ${(y + h / 2).toFixed(1)})"` : ''}>${escapeHtml(f.label)}</text>`;
+        });
+        svg += `<text class="door-garage-title" x="${p.label[0]}" y="${p.label[1]}">${escapeHtml(p.title)} — ${level}</text>`;
+    });
+    return svg;
+}
+// Shared state, each cached locally and kept on the backend:
+//   door-keys            [{ id, name, devices: [ids] }]
+//   door-positions       { id: [x, y] }  dots moved by an admin
+//   door-device-edits    { renamed: { id: name }, deleted: [ids], added: [devices] }
+const DOOR_STORES = {
+    keys: { local: 'reve-door-keys', backend: 'door-keys', empty: () => [] },
+    pos: { local: 'reve-door-positions', backend: 'door-positions', empty: () => ({}) },
+    edits: { local: 'reve-door-device-edits', backend: 'door-device-edits', empty: () => ({ renamed: {}, deleted: [], added: [] }) }
+};
+const DOOR_DATA = {};
+Object.keys(DOOR_STORES).forEach(k => {
+    try { DOOR_DATA[k] = JSON.parse(localStorage.getItem(DOOR_STORES[k].local) || 'null') || DOOR_STORES[k].empty(); } catch (e) { DOOR_DATA[k] = DOOR_STORES[k].empty(); }
+});
+function doorEditsOf(e) { return { renamed: Object.assign({}, e && e.renamed), deleted: (e && e.deleted || []).slice(), added: (e && e.added || []).slice() }; }
+function doorStoreLocal(k) { try { localStorage.setItem(DOOR_STORES[k].local, JSON.stringify(DOOR_DATA[k])); } catch (e) {} }
 let doorLevel = '1';
 let doorSearch = '';
-let doorSel = new Set();      // doors picked (by clicking, or from a named key)
-let doorActiveKey = '';       // id of the named key shown, if any
-// Dot positions moved by an admin ({ id: [x, y] }), shared with the team.
-const DOOR_POS_KEY = 'reve-door-positions';
-const DOOR_POS_BACKEND_KEY = 'door-positions';
-let DOOR_POS = {};
-try { DOOR_POS = JSON.parse(localStorage.getItem(DOOR_POS_KEY) || '{}') || {}; } catch (e) { DOOR_POS = {}; }
-let doorEditing = null;       // { id: [x, y] } moves not saved yet, while adjusting
-function doorXY(d) { return (doorEditing && doorEditing[d.id]) || DOOR_POS[d.id] || [d.x, d.y]; }
-async function pullDoorPositions() {
-    if (!BACKEND_URL || APP_MODE === 'test' || doorEditing) return;
-    const remote = await backendPull(DOOR_POS_BACKEND_KEY);
-    if (!remote || typeof remote !== 'object' || Array.isArray(remote) || doorEditing || JSON.stringify(remote) === JSON.stringify(DOOR_POS)) return;
-    DOOR_POS = remote;
-    try { localStorage.setItem(DOOR_POS_KEY, JSON.stringify(DOOR_POS)); } catch (e) {}
-    if (sitemapCurrentFloor === 'doors') renderDoors();
+let doorActiveKey = '';       // named key picked in the menu ('' = All)
+let doorKeyEdit = null;       // { id | null, sel: Set } while picking doors for a new / edited key
+let doorAdmin = null;         // Admin Edit changes not saved yet: { pos, renamed, deleted, added }
+let doorPlacing = null;       // { name, group } waiting for a click on the map
+// Devices as shown: built-in list plus saved and unsaved admin edits.
+function doorDevices() {
+    const e = doorEditsOf(DOOR_DATA.edits), a = doorAdmin || { renamed: {}, deleted: [], added: [] };
+    const gone = new Set(e.deleted.concat(a.deleted));
+    return DOOR_DEVICES.concat(e.added, a.added).filter(d => !gone.has(d.id))
+        .map(d => Object.assign({}, d, { name: a.renamed[d.id] || e.renamed[d.id] || d.name }));
 }
+function doorById(id) { return doorDevices().find(d => d.id === id); }
+function doorXY(d) { return (doorAdmin && doorAdmin.pos[d.id]) || DOOR_DATA.pos[d.id] || [d.x, d.y]; }
 function doorMatches(d) { const q = doorSearch.trim().toLowerCase(); return !!q && d.name.toLowerCase().includes(q); }
-function doorById(id) { return DOOR_DEVICES.find(d => d.id === id); }
-function doorPersistKeys() { try { localStorage.setItem(DOOR_KEYS_KEY, JSON.stringify(DOOR_KEYS)); } catch (e) {} }
-async function pullDoorKeys() {
-    if (!BACKEND_URL || APP_MODE === 'test') return;
-    const remote = await backendPull(DOOR_KEYS_BACKEND_KEY);
-    if (!Array.isArray(remote) || JSON.stringify(remote) === JSON.stringify(DOOR_KEYS)) return;
-    DOOR_KEYS = remote;
-    doorPersistKeys();
-    if (doorActiveKey && !DOOR_KEYS.some(k => k.id === doorActiveKey)) doorActiveKey = '';
-    if (sitemapCurrentFloor === 'doors') renderDoorKeysUi();
+function doorHighlighted() {
+    if (doorKeyEdit) return doorKeyEdit.sel;
+    const key = DOOR_DATA.keys.find(k => k.id === doorActiveKey);
+    return new Set(key ? key.devices : []);
 }
-// Saves one key (or deletes it, key.devices === null) on top of the
-// backend's latest list, so teammates' keys are never overwritten.
-async function doorSaveKey(key) {
-    const apply = list => {
-        const rest = list.filter(k => k.id !== key.id);
-        return key.devices === null ? rest : rest.concat([key]);
-    };
-    DOOR_KEYS = apply(DOOR_KEYS);
-    doorPersistKeys();
+async function pullDoorData() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    let changed = false;
+    for (const k of Object.keys(DOOR_STORES)) {
+        if (doorAdmin && k !== 'keys') continue;   // don't shift dots under an admin mid-edit
+        const remote = await backendPull(DOOR_STORES[k].backend);
+        if (!remote || typeof remote !== 'object' || JSON.stringify(remote) === JSON.stringify(DOOR_DATA[k])) continue;
+        DOOR_DATA[k] = remote;
+        doorStoreLocal(k);
+        changed = true;
+    }
+    if (doorActiveKey && !DOOR_DATA.keys.some(k => k.id === doorActiveKey)) doorActiveKey = '';
+    if (changed && sitemapCurrentFloor === 'doors') renderDoors();
+}
+// Writes one store on top of the backend's latest copy (merge), so
+// teammates' changes are never overwritten. Resolves to true when shared.
+async function doorWrite(k, merge) {
+    DOOR_DATA[k] = merge(DOOR_DATA[k]);
+    doorStoreLocal(k);
     if (!BACKEND_URL || APP_MODE === 'test') return true;
-    const remote = await backendPullChecked(DOOR_KEYS_BACKEND_KEY);
+    const remote = await backendPullChecked(DOOR_STORES[k].backend);
     if (remote === undefined) return false;
-    const next = apply(Array.isArray(remote) ? remote : []);
-    const r = await backendPushVerified(DOOR_KEYS_BACKEND_KEY, next, b => Array.isArray(b) && JSON.stringify(b) === JSON.stringify(next));
-    if (r.ok) { DOOR_KEYS = next; doorPersistKeys(); }
+    const next = merge(remote && typeof remote === 'object' ? remote : DOOR_STORES[k].empty());
+    const r = await backendPushVerified(DOOR_STORES[k].backend, next, b => !!b && JSON.stringify(b) === JSON.stringify(next));
+    if (r.ok) { DOOR_DATA[k] = next; doorStoreLocal(k); }
     return r.ok;
 }
 function renderDoors() {
     const wrap = document.getElementById('doorMapWrap');
     if (!wrap) return;
     document.querySelectorAll('[data-door-level]').forEach(b => b.classList.toggle('active', b.getAttribute('data-door-level') === doorLevel));
+    const devices = doorDevices(), hi = doorHighlighted();
     const searching = !!doorSearch.trim();
-    let svg = sitemapFloorSvg(doorLevel, '\u0000');   // every unit gray
-    DOOR_DEVICES.filter(d => d.level === doorLevel && d.x != null).forEach(d => {
-        const cls = ['door-dot', doorSel.has(d.id) ? 'sel' : '', doorMatches(d) ? 'match' : '', searching && !doorMatches(d) && !doorSel.has(d.id) ? 'dim' : '', doorEditing && doorEditing[d.id] ? 'moved' : ''].filter(Boolean).join(' ');
+    let svg = DOOR_GARAGE_MAPS[doorLevel] ? doorGarageSvg(doorLevel) : sitemapFloorSvg(doorLevel, '\u0000');   // every unit gray
+    devices.filter(d => d.level === doorLevel).forEach(d => {
+        const moved = doorAdmin && (doorAdmin.pos[d.id] || doorAdmin.added.some(x => x.id === d.id));
+        const cls = ['door-dot', hi.has(d.id) ? 'sel' : '', doorMatches(d) ? 'match' : '', searching && !doorMatches(d) && !hi.has(d.id) ? 'dim' : '', moved ? 'moved' : ''].filter(Boolean).join(' ');
         const [x, y] = doorXY(d);
         svg += `<g class="${cls}" data-door="${escapeAttr(d.id)}" tabindex="0" role="button" aria-label="${escapeAttr(d.name)}"><circle class="door-dot-halo" cx="${x}" cy="${y}" r="13"></circle><circle class="door-dot-core" cx="${x}" cy="${y}" r="6"></circle></g>`;
     });
-    document.getElementById('doorPanel').classList.toggle('door-editing', !!doorEditing);
-    document.getElementById('doorEditBar').style.display = doorEditing ? '' : 'none';
-    document.getElementById('doorEditBtn').style.display = doorEditing ? 'none' : '';
-    const moved = doorEditing ? Object.keys(doorEditing).length : 0;
-    document.getElementById('doorEditCount').textContent = doorEditing ? (moved ? `${moved} dot${moved === 1 ? '' : 's'} moved \u2014 not saved yet.` : 'Drag any dot to its correct spot, then Save.') : '';
-    wrap.innerHTML = `<svg viewBox="20 150 1120 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Door devices, level ${doorLevel}">${svg}</svg>`;
-    // Search summary, with a jump to the other floor when matches are there.
+    wrap.innerHTML = `<svg viewBox="${doorViewBox(doorLevel)}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Door devices, ${escapeAttr(DOOR_LEVEL_NAMES[doorLevel])}">${svg}</svg>`;
+    const panel = document.getElementById('doorPanel');
+    panel.classList.toggle('door-editing', !!doorAdmin);
+    panel.classList.toggle('door-placing', !!doorPlacing);
+    panel.classList.toggle('door-picking', !!doorKeyEdit);
+    // Search summary, with a jump to the level holding other matches.
     const note = document.getElementById('doorSearchNote');
     if (!searching) note.innerHTML = '';
     else {
-        const hits = DOOR_DEVICES.filter(doorMatches);
-        const here = hits.filter(d => d.level === doorLevel && d.x != null).length;
-        const other = hits.filter(d => d.x != null && d.level !== doorLevel);
-        const garage = hits.filter(d => d.x == null).length;
+        const hits = devices.filter(doorMatches);
         const parts = [`${hits.length} match${hits.length === 1 ? '' : 'es'}`];
-        if (hits.length) parts.push(`${here} on this floor`);
-        if (other.length) parts.push(`<button type="button" class="fp-link" data-door-level="${other[0].level}">${other.length} on the ${other[0].level === '2' ? '2nd' : '1st'} floor</button>`);
-        if (garage) parts.push(`${garage} in the garages (listed only)`);
+        Object.keys(DOOR_LEVEL_NAMES).forEach(lv => {
+            const n = hits.filter(d => d.level === lv).length;
+            if (!n) return;
+            parts.push(lv === doorLevel ? `${n} on this level` : `<button type="button" class="fp-link" data-door-level="${lv}">${n} on ${DOOR_LEVEL_NAMES[lv]}</button>`);
+        });
         note.innerHTML = parts.join(' · ');
     }
-    renderDoorLegend();
-    renderDoorKeysUi();
+    renderDoorLegend(devices, hi);
+    renderDoorKeysUi(devices);
+    renderDoorAdminBar();
 }
-function renderDoorLegend() {
+function renderDoorLegend(devices, hi) {
     const box = document.getElementById('doorLegend');
+    const pen = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.6 3.6a2 2 0 0 1 2.8 2.8L8 18.8l-4 1 1-4z"/></svg>';
+    const bin = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
     box.innerHTML = DOOR_GROUPS.map(g => {
-        const items = DOOR_DEVICES.filter(d => d.group === g.id);
-        return `<div class="door-legend-group"><div class="door-legend-h">${escapeHtml(g.label)}${g.garage ? ' <span class="door-legend-sub">not on the map</span>' : ''}</div>`
-            + items.map(d => `<button type="button" class="door-legend-item${doorSel.has(d.id) ? ' sel' : ''}${doorMatches(d) ? ' match' : ''}" data-door-item="${escapeAttr(d.id)}" aria-pressed="${doorSel.has(d.id)}"><span class="door-legend-box" aria-hidden="true"></span>${escapeHtml(d.name)}</button>`).join('')
+        const items = devices.filter(d => d.group === g.id);
+        if (!items.length) return '';
+        return `<div class="door-legend-group"><div class="door-legend-h">${escapeHtml(g.label)}</div>`
+            + items.map(d => `<div class="door-legend-row"><button type="button" class="door-legend-item${hi.has(d.id) ? ' sel' : ''}${doorMatches(d) ? ' match' : ''}" data-door-item="${escapeAttr(d.id)}"${doorKeyEdit ? ` aria-pressed="${hi.has(d.id)}"` : ''}><span class="door-legend-box" aria-hidden="true"></span>${escapeHtml(d.name)}</button>`
+                + (doorAdmin ? `<button type="button" class="door-legend-act" data-door-rename="${escapeAttr(d.id)}" title="Rename" aria-label="Rename ${escapeAttr(d.name)}">${pen}</button><button type="button" class="door-legend-act danger" data-door-delete="${escapeAttr(d.id)}" title="Delete" aria-label="Delete ${escapeAttr(d.name)}">${bin}</button>` : '')
+                + '</div>').join('')
             + '</div>';
     }).join('');
 }
-function renderDoorKeysUi() {
+function renderDoorKeysUi(devices) {
+    devices = devices || doorDevices();
+    const live = new Set(devices.map(d => d.id));
     const sel = document.getElementById('doorKeySelect');
-    sel.innerHTML = '<option value="">— Select a named key —</option>'
-        + DOOR_KEYS.slice().sort((a, b) => a.name.localeCompare(b.name)).map(k => `<option value="${escapeAttr(k.id)}">${escapeHtml(k.name)} (${k.devices.length})</option>`).join('');
+    sel.innerHTML = `<option value="">All (${devices.length})</option>`
+        + DOOR_DATA.keys.slice().sort((a, b) => a.name.localeCompare(b.name)).map(k => `<option value="${escapeAttr(k.id)}">${escapeHtml(k.name)} (${k.devices.filter(id => live.has(id)).length})</option>`).join('');
     sel.value = doorActiveKey;
-    const key = DOOR_KEYS.find(k => k.id === doorActiveKey);
-    const changed = key && (key.devices.length !== doorSel.size || key.devices.some(id => !doorSel.has(id)));
-    document.getElementById('doorKeyDelete').style.display = key ? '' : 'none';
-    document.getElementById('doorSelCount').textContent = doorSel.size
-        ? `${doorSel.size} door${doorSel.size === 1 ? '' : 's'} selected${key ? (changed ? ` — changed from “${key.name}”` : ` — “${key.name}”`) : ''}`
-        : 'Click dots or names to pick doors, then Save Named Key.';
-    document.getElementById('doorSelClear').style.display = doorSel.size ? '' : 'none';
+    sel.disabled = !!doorKeyEdit;
+    const key = DOOR_DATA.keys.find(k => k.id === doorActiveKey);
+    const show = (id, on) => { document.getElementById(id).style.display = on ? '' : 'none'; };
+    show('doorKeyNew', !doorKeyEdit);
+    show('doorKeyEdit', !doorKeyEdit && !!key);
+    show('doorKeyDelete', !doorKeyEdit && !!key);
+    show('doorKeyPick', !!doorKeyEdit);
+    if (doorKeyEdit) {
+        const n = doorKeyEdit.sel.size;
+        document.getElementById('doorKeyPickNote').textContent = `${doorKeyEdit.id ? 'Editing “' + (key ? key.name : '') + '”' : 'New key'}: click dots or names to add or remove doors — ${n} selected.`;
+    }
 }
-function doorToggle(id) {
-    if (doorSel.has(id)) doorSel.delete(id); else doorSel.add(id);
-    renderDoors();
+function renderDoorAdminBar() {
+    document.getElementById('doorEditBar').style.display = doorAdmin ? '' : 'none';
+    document.getElementById('doorEditBtn').style.display = doorAdmin ? 'none' : '';
+    if (!doorAdmin) return;
+    const n = Object.keys(doorAdmin.pos).length + Object.keys(doorAdmin.renamed).length + doorAdmin.deleted.length + doorAdmin.added.length;
+    document.getElementById('doorEditCount').textContent = doorPlacing
+        ? `Click on the map where “${doorPlacing.name}” goes.`
+        : n ? `${n} change${n === 1 ? '' : 's'} not saved yet.` : 'Drag dots to move them, or use Add device / the rename and delete buttons in the list.';
 }
 // Floating name label for a dot (hover on desktop, tap on phones).
 function doorShowTip(id, target) {
@@ -24598,45 +24682,99 @@ function doorShowTip(id, target) {
     tip.style.top = (r.top + window.scrollY - 8) + 'px';
 }
 function doorHideTip() { document.getElementById('doorTip').style.display = 'none'; }
-function doorAskName(def) {
+// In-app dialog. opts: { title, text, input (default value), select ([{value,label}]), ok, danger }.
+// Resolves to { value, choice } or null when cancelled.
+function doorDialog(opts) {
     return new Promise(resolve => {
         const m = document.createElement('div');
-        m.className = 'vault-modal door-key-modal';
+        m.className = 'vault-modal door-dialog';
         m.style.display = 'flex';
-        m.innerHTML = `<form class="vault-modal-card" role="dialog" aria-modal="true" aria-label="Save named key">
-            <div class="vault-modal-h">Save Named Key</div>
-            <div class="empty-note" style="margin:0;">${doorSel.size} door${doorSel.size === 1 ? '' : 's'} selected. Saving under an existing name replaces that key&rsquo;s doors.</div>
-            <input type="text" class="wl-field" autocomplete="off" placeholder="e.g. Common Doors, Retail Key" value="${escapeAttr(def || '')}" style="width:100%;box-sizing:border-box;">
-            <div class="vault-modal-foot"><button type="button" class="btn small door-ask-cancel">Cancel</button><button type="submit" class="btn small primary">Save</button></div>
+        m.innerHTML = `<form class="vault-modal-card" role="dialog" aria-modal="true" aria-label="${escapeAttr(opts.title)}">
+            <div class="vault-modal-h">${escapeHtml(opts.title)}</div>
+            ${opts.text ? `<div class="empty-note" style="margin:0;">${escapeHtml(opts.text)}</div>` : ''}
+            ${opts.input !== undefined ? `<input type="text" class="wl-field door-dialog-input" autocomplete="off" placeholder="${escapeAttr(opts.placeholder || '')}" value="${escapeAttr(opts.input)}" style="width:100%;box-sizing:border-box;">` : ''}
+            ${opts.select ? `<select class="wl-field door-dialog-select" style="width:100%;box-sizing:border-box;">${opts.select.map(o => `<option value="${escapeAttr(o.value)}">${escapeHtml(o.label)}</option>`).join('')}</select>` : ''}
+            <div class="vault-modal-foot"><button type="button" class="btn small door-dialog-cancel">Cancel</button><button type="submit" class="btn small primary">${escapeHtml(opts.ok || 'OK')}</button></div>
         </form>`;
         const done = v => { m.remove(); document.removeEventListener('keydown', onKey, true); resolve(v); };
         const onKey = e => { if (e.key === 'Escape') done(null); };
         document.addEventListener('keydown', onKey, true);
-        m.querySelector('form').addEventListener('submit', e => { e.preventDefault(); const v = m.querySelector('input').value.trim(); if (v) done(v); });
-        m.querySelector('.door-ask-cancel').onclick = () => done(null);
+        m.querySelector('form').addEventListener('submit', e => {
+            e.preventDefault();
+            const inp = m.querySelector('.door-dialog-input'), s = m.querySelector('.door-dialog-select');
+            const value = inp ? inp.value.trim() : '';
+            if (inp && !value) { inp.focus(); return; }
+            done({ value, choice: s ? s.value : '' });
+        });
+        m.querySelector('.door-dialog-cancel').onclick = () => done(null);
         m.addEventListener('click', e => { if (e.target === m) done(null); });
         document.body.appendChild(m);
-        const inp = m.querySelector('input'); inp.focus(); inp.select();
+        const first = m.querySelector('.door-dialog-input') || m.querySelector('button[type=submit]');
+        first.focus(); if (first.select) first.select();
     });
+}
+function doorSvgPoint(svgEl, e) {
+    const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(svgEl.getScreenCTM().inverse());
+    return [Math.round(pt.x * 10) / 10, Math.round(pt.y * 10) / 10];
 }
 (function wireDoors() {
     const panel = document.getElementById('doorPanel');
-    panel.addEventListener('click', e => {
+    const flash = id => {
+        const g = panel.querySelector(`[data-door="${CSS.escape(id)}"]`);
+        if (!g) return;
+        g.classList.add('hover');
+        doorShowTip(id, g.querySelector('.door-dot-core'));
+        setTimeout(() => { g.classList.remove('hover'); doorHideTip(); }, 1600);
+    };
+    panel.addEventListener('click', async e => {
         const lv = e.target.closest('[data-door-level]');
         if (lv) { doorLevel = lv.getAttribute('data-door-level'); renderDoors(); return; }
-        const dot = e.target.closest('[data-door]');
-        if (dot && doorEditing) return;
-        if (dot) { const id = dot.getAttribute('data-door'); doorToggle(id); doorShowTip(id, panel.querySelector(`[data-door="${CSS.escape(id)}"] .door-dot-core`)); return; }
-        const item = e.target.closest('[data-door-item]');
-        if (item) {
-            const d = doorById(item.getAttribute('data-door-item'));
-            if (d.x != null && d.level !== doorLevel) doorLevel = d.level;   // show the floor it's on
-            doorToggle(d.id);
+        // Admin: placing a new device — the click on the map sets its spot.
+        if (doorPlacing && e.target.closest('#doorMapWrap svg')) {
+            const [x, y] = doorSvgPoint(panel.querySelector('#doorMapWrap svg'), e);
+            const d = { id: 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: doorPlacing.name, group: doorPlacing.group, level: doorLevel, x, y };
+            doorAdmin.added.push(d);
+            doorPlacing = null;
+            renderDoors();
+            flash(d.id);
+            return;
         }
+        const ren = e.target.closest('[data-door-rename]');
+        if (ren && doorAdmin) {
+            const d = doorById(ren.getAttribute('data-door-rename'));
+            const r = await doorDialog({ title: 'Rename device', input: d.name, ok: 'Rename' });
+            if (!r || r.value === d.name) return;
+            const added = doorAdmin.added.find(x => x.id === d.id);
+            if (added) added.name = r.value; else doorAdmin.renamed[d.id] = r.value;
+            renderDoors();
+            return;
+        }
+        const del = e.target.closest('[data-door-delete]');
+        if (del && doorAdmin) {
+            const d = doorById(del.getAttribute('data-door-delete'));
+            const r = await doorDialog({ title: 'Delete device', text: `Remove “${d.name}” from the map and the list for everyone? (Takes effect when you Save.)`, ok: 'Delete' });
+            if (!r) return;
+            const i = doorAdmin.added.findIndex(x => x.id === d.id);
+            if (i >= 0) doorAdmin.added.splice(i, 1); else doorAdmin.deleted.push(d.id);
+            delete doorAdmin.pos[d.id];
+            renderDoors();
+            return;
+        }
+        const dot = e.target.closest('[data-door]');
+        const item = e.target.closest('[data-door-item]');
+        const id = dot ? dot.getAttribute('data-door') : item ? item.getAttribute('data-door-item') : '';
+        if (!id || (dot && doorAdmin)) return;
+        if (doorKeyEdit) {
+            if (doorKeyEdit.sel.has(id)) doorKeyEdit.sel.delete(id); else doorKeyEdit.sel.add(id);
+        }
+        const d = doorById(id);
+        if (item && d && d.level !== doorLevel) doorLevel = d.level;   // show the level it's on
+        renderDoors();
+        flash(id);
     });
     panel.addEventListener('keydown', e => {
         const dot = e.target.closest && e.target.closest('[data-door]');
-        if (dot && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); doorToggle(dot.getAttribute('data-door')); }
+        if (dot && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); dot.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
     });
     panel.addEventListener('mouseover', e => {
         const dot = e.target.closest('[data-door]');
@@ -24657,114 +24795,143 @@ function doorAskName(def) {
     });
     panel.addEventListener('focusin', e => { const dot = e.target.closest && e.target.closest('[data-door]'); if (dot) doorShowTip(dot.getAttribute('data-door'), dot.querySelector('.door-dot-core')); });
     panel.addEventListener('focusout', doorHideTip);
-    // Admin: drag dots to fix their placement (pointer events, so mouse,
-    // pen and touch all work), then Save for the team or Cancel.
+    // Admin: drag dots (pointer events, so mouse, pen and touch all work).
     let drag = null;
     panel.addEventListener('pointerdown', e => {
-        const g = doorEditing && e.target.closest('[data-door]');
+        const g = doorAdmin && !doorPlacing && e.target.closest('[data-door]');
         if (!g) return;
         e.preventDefault();
-        const svgEl = g.ownerSVGElement;
-        drag = { id: g.getAttribute('data-door'), g, svgEl, m: svgEl.getScreenCTM().inverse() };
+        drag = { id: g.getAttribute('data-door'), g, svgEl: g.ownerSVGElement };
         g.setPointerCapture(e.pointerId);
         g.classList.add('dragging');
     });
     panel.addEventListener('pointermove', e => {
         if (!drag) return;
-        const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(drag.m);
-        const x = Math.round(pt.x * 10) / 10, y = Math.round(pt.y * 10) / 10;
+        const [x, y] = doorSvgPoint(drag.svgEl, e);
         drag.g.querySelectorAll('circle').forEach(c => { c.setAttribute('cx', x); c.setAttribute('cy', y); });
         drag.xy = [x, y];
         doorShowTip(drag.id, drag.g.querySelector('.door-dot-core'));
     });
     const endDrag = () => {
         if (!drag) return;
-        if (drag.xy) doorEditing[drag.id] = drag.xy;
+        if (drag.xy) {
+            const added = doorAdmin.added.find(x => x.id === drag.id);
+            if (added) { added.x = drag.xy[0]; added.y = drag.xy[1]; } else doorAdmin.pos[drag.id] = drag.xy;
+        }
         drag = null;
         doorHideTip();
         renderDoors();
     };
     panel.addEventListener('pointerup', endDrag);
     panel.addEventListener('pointercancel', endDrag);
+    document.getElementById('doorSearch').addEventListener('input', e => { doorSearch = e.target.value; renderDoors(); });
+    // Named keys
+    document.getElementById('doorKeySelect').addEventListener('change', e => {
+        doorActiveKey = e.target.value;
+        const key = DOOR_DATA.keys.find(k => k.id === doorActiveKey);
+        // Show the level holding most of this key's doors.
+        if (key) {
+            const count = {};
+            key.devices.forEach(id => { const d = doorById(id); if (d) count[d.level] = (count[d.level] || 0) + 1; });
+            const best = Object.keys(count).sort((a, b) => count[b] - count[a])[0];
+            if (best && !count[doorLevel]) doorLevel = best;
+        }
+        renderDoors();
+    });
+    document.getElementById('doorKeyNew').addEventListener('click', () => {
+        if (doorAdmin) return;
+        doorActiveKey = '';
+        doorKeyEdit = { id: null, sel: new Set() };
+        renderDoors();
+    });
+    document.getElementById('doorKeyEdit').addEventListener('click', () => {
+        const key = DOOR_DATA.keys.find(k => k.id === doorActiveKey);
+        if (!key || doorAdmin) return;
+        doorKeyEdit = { id: key.id, sel: new Set(key.devices) };
+        renderDoors();
+    });
+    document.getElementById('doorKeyClear').addEventListener('click', () => { if (doorKeyEdit) { doorKeyEdit.sel = new Set(); renderDoors(); } });
+    document.getElementById('doorKeyCancel').addEventListener('click', () => { doorKeyEdit = null; renderDoors(); });
+    document.getElementById('doorKeySave').addEventListener('click', async () => {
+        if (!doorKeyEdit) return;
+        const status = document.getElementById('doorKeyStatus');
+        if (!doorKeyEdit.sel.size) { status.textContent = 'Pick at least one door for this key first.'; return; }
+        const current = DOOR_DATA.keys.find(k => k.id === doorKeyEdit.id);
+        const r = await doorDialog({ title: current ? 'Save key' : 'Name this key', text: `${doorKeyEdit.sel.size} door${doorKeyEdit.sel.size === 1 ? '' : 's'}.`, input: current ? current.name : '', placeholder: 'e.g. Common Doors, Retail Key', ok: 'Save Key' });
+        if (!r) return;
+        const same = DOOR_DATA.keys.find(k => k.name.toLowerCase() === r.value.toLowerCase() && k.id !== doorKeyEdit.id);
+        if (same) { status.textContent = `There’s already a key named “${same.name}” — pick another name.`; return; }
+        const key = { id: doorKeyEdit.id || 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name: r.value, devices: [...doorKeyEdit.sel] };
+        doorKeyEdit = null;
+        doorActiveKey = key.id;
+        status.textContent = 'Saving…';
+        renderDoors();
+        const ok = await doorWrite('keys', list => (Array.isArray(list) ? list : []).filter(k => k.id !== key.id).concat([key]));
+        status.textContent = ok ? `Saved “${key.name}” for the team.` : `Saved “${key.name}” on this device — the shared backend couldn’t be reached.`;
+        renderDoors();
+    });
+    document.getElementById('doorKeyDelete').addEventListener('click', async () => {
+        const key = DOOR_DATA.keys.find(k => k.id === doorActiveKey);
+        if (!key) return;
+        const r = await doorDialog({ title: 'Delete key', text: `Delete the named key “${key.name}” for everyone?`, ok: 'Delete' });
+        if (!r) return;
+        doorActiveKey = '';
+        const ok = await doorWrite('keys', list => (Array.isArray(list) ? list : []).filter(k => k.id !== key.id));
+        document.getElementById('doorKeyStatus').textContent = ok ? `Deleted “${key.name}”.` : 'Deleted on this device — the shared backend couldn’t be reached.';
+        renderDoors();
+    });
+    // Admin Edit
     document.getElementById('doorEditBtn').addEventListener('click', () => {
-        if (!promptAdminPassword('move door device dots')) return;
-        doorEditing = {};
+        if (!promptAdminPassword('edit door devices')) return;
+        doorKeyEdit = null;
+        doorAdmin = { pos: {}, renamed: {}, deleted: [], added: [] };
         renderDoors();
     });
-    document.getElementById('doorEditCancel').addEventListener('click', () => {
-        if (doorEditing && Object.keys(doorEditing).length && !confirm('Discard the dot moves you haven\u2019t saved?')) return;
-        doorEditing = null;
+    document.getElementById('doorEditAdd').addEventListener('click', async () => {
+        const groups = DOOR_GROUPS.filter(g => g.level === doorLevel);
+        const r = await doorDialog({ title: 'Add new device', text: `On the ${DOOR_LEVEL_NAMES[doorLevel]} map. After naming it, click on the map where it goes.`, input: '', placeholder: 'Device name, e.g. B3 Roof Deck Entry', select: groups.map(g => ({ value: g.id, label: g.label })), ok: 'Next: place it' });
+        if (!r) return;
+        doorPlacing = { name: r.value, group: r.choice };
         renderDoors();
     });
-    document.getElementById('doorEditReset').addEventListener('click', () => {
-        if (!confirm('Put every dot back where it was originally placed? (Takes effect when you Save.)')) return;
-        DOOR_DEVICES.filter(d => d.x != null).forEach(d => { doorEditing[d.id] = [d.x, d.y]; });
+    document.getElementById('doorEditCancel').addEventListener('click', async () => {
+        const n = doorAdmin ? Object.keys(doorAdmin.pos).length + Object.keys(doorAdmin.renamed).length + doorAdmin.deleted.length + doorAdmin.added.length : 0;
+        if (n && !(await doorDialog({ title: 'Discard changes?', text: `Discard ${n} unsaved change${n === 1 ? '' : 's'}?`, ok: 'Discard' }))) return;
+        doorAdmin = null; doorPlacing = null;
+        renderDoors();
+    });
+    document.getElementById('doorEditReset').addEventListener('click', async () => {
+        if (!(await doorDialog({ title: 'Reset dot positions', text: 'Put every built-in dot back where it was first placed? (Takes effect when you Save.)', ok: 'Reset' }))) return;
+        DOOR_DEVICES.forEach(d => { doorAdmin.pos[d.id] = [d.x, d.y]; });
         renderDoors();
     });
     document.getElementById('doorEditSave').addEventListener('click', async () => {
-        const moves = doorEditing || {};
+        const a = doorAdmin;
+        if (!a) return;
         const status = document.getElementById('doorEditCount');
-        const merge = base => {
-            const next = Object.assign({}, base);
-            Object.keys(moves).forEach(id => {
-                const d = doorById(id);
-                if (d && d.x === moves[id][0] && d.y === moves[id][1]) delete next[id]; else next[id] = moves[id];
-            });
-            return next;
-        };
-        let next = merge(DOOR_POS), ok = true;
-        if (BACKEND_URL && APP_MODE !== 'test') {
-            status.textContent = 'Saving\u2026';
-            const remote = await backendPullChecked(DOOR_POS_BACKEND_KEY);
-            if (remote === undefined) ok = false;
-            else {
-                next = merge(remote && typeof remote === 'object' && !Array.isArray(remote) ? remote : {});
-                ok = (await backendPushVerified(DOOR_POS_BACKEND_KEY, next, b => !!b && JSON.stringify(b) === JSON.stringify(next))).ok;
-            }
-        }
-        if (!ok) { status.textContent = 'Couldn\u2019t reach the shared backend \u2014 nothing saved yet. Try Save again.'; return; }
-        DOOR_POS = next;
-        try { localStorage.setItem(DOOR_POS_KEY, JSON.stringify(DOOR_POS)); } catch (e) {}
-        doorEditing = null;
-        renderDoors();
-        document.getElementById('doorKeyStatus').textContent = 'Dot positions saved for the team.';
-    });
-    document.getElementById('doorSearch').addEventListener('input', e => { doorSearch = e.target.value; renderDoors(); });
-    document.getElementById('doorKeySelect').addEventListener('change', e => {
-        doorActiveKey = e.target.value;
-        const key = DOOR_KEYS.find(k => k.id === doorActiveKey);
-        doorSel = new Set(key ? key.devices.filter(id => doorById(id)) : []);
-        // Show the floor holding most of this key's doors.
-        if (key) {
-            const on2 = key.devices.filter(id => (doorById(id) || {}).level === '2').length;
-            const on1 = key.devices.filter(id => (doorById(id) || {}).level === '1').length;
-            if (on1 || on2) doorLevel = on2 > on1 ? '2' : '1';
-        }
-        renderDoors();
-    });
-    document.getElementById('doorSelClear').addEventListener('click', () => { doorSel = new Set(); doorActiveKey = ''; renderDoors(); });
-    document.getElementById('doorKeySave').addEventListener('click', async () => {
-        if (!doorSel.size) { alert('Pick the doors this key opens first — click dots on the map or names in the list.'); return; }
-        const active = DOOR_KEYS.find(k => k.id === doorActiveKey);
-        const name = await doorAskName(active ? active.name : '');
-        if (!name) return;
-        const same = DOOR_KEYS.find(k => k.name.toLowerCase() === name.toLowerCase());
-        const key = { id: same ? same.id : 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, devices: [...doorSel] };
-        doorActiveKey = key.id;
-        const status = document.getElementById('doorKeyStatus');
         status.textContent = 'Saving…';
-        const ok = await doorSaveKey(key);
-        status.textContent = ok ? `Saved “${name}” for the team.` : `Saved “${name}” on this device — the shared backend couldn’t be reached.`;
-        renderDoorKeysUi();
-    });
-    document.getElementById('doorKeyDelete').addEventListener('click', async () => {
-        const key = DOOR_KEYS.find(k => k.id === doorActiveKey);
-        if (!key || !confirm(`Delete the named key “${key.name}” for everyone?`)) return;
-        doorActiveKey = '';
-        doorSel = new Set();
-        const ok = await doorSaveKey({ id: key.id, devices: null });
-        document.getElementById('doorKeyStatus').textContent = ok ? `Deleted “${key.name}”.` : `Deleted on this device — the shared backend couldn’t be reached.`;
+        const posOk = await doorWrite('pos', base => {
+            const next = Object.assign({}, base && !Array.isArray(base) ? base : {});
+            Object.keys(a.pos).forEach(id => {
+                const d = DOOR_DEVICES.find(x => x.id === id);
+                if (d && d.x === a.pos[id][0] && d.y === a.pos[id][1]) delete next[id]; else next[id] = a.pos[id];
+            });
+            a.deleted.forEach(id => { delete next[id]; });
+            return next;
+        });
+        const editsOk = posOk && await doorWrite('edits', base => {
+            const e = doorEditsOf(base);
+            Object.assign(e.renamed, a.renamed);
+            a.deleted.forEach(id => { if (!e.deleted.includes(id)) e.deleted.push(id); delete e.renamed[id]; });
+            e.added = e.added.filter(d => !a.deleted.includes(d.id)).map(d => a.renamed[d.id] ? Object.assign({}, d, { name: a.renamed[d.id] }) : d);
+            a.added.forEach(d => { if (!e.added.some(x => x.id === d.id)) e.added.push(Object.assign({}, d)); });
+            e.added.forEach(d => { if (e.renamed[d.id]) { d.name = e.renamed[d.id]; delete e.renamed[d.id]; } });
+            return e;
+        });
+        if (!editsOk) { status.textContent = 'Couldn’t reach the shared backend — nothing saved yet. Try Save again.'; return; }
+        doorAdmin = null; doorPlacing = null;
         renderDoors();
+        document.getElementById('doorKeyStatus').textContent = 'Door device changes saved for the team.';
     });
 })();
 [...document.querySelectorAll('[data-sitemap-floor]')].forEach(btn => {
@@ -24775,7 +24942,7 @@ function doorAskName(def) {
         const doors = v === 'doors';
         ['sitemapSvgWrap', 'sitemapCoverageNote', 'sitemapLegend'].forEach(id => { document.getElementById(id).style.display = doors ? 'none' : ''; });
         document.getElementById('doorPanel').style.display = doors ? '' : 'none';
-        if (doors) { renderDoors(); pullDoorKeys(); pullDoorPositions(); } else renderSitemap();
+        if (doors) { renderDoors(); pullDoorData(); } else renderSitemap();
     });
 });
 renderSitemap();
