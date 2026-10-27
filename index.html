@@ -2411,6 +2411,43 @@
 
     /* -- Media: Live Sitemap (schematic, hardcoded shapes) -- */
     .sitemap-wrap { max-width: 1150px; margin: 0 auto; }
+    .door-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .door-search { flex: 0 1 280px; min-width: 180px; border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; font: inherit; font-size: 13px; background: var(--panel); color: var(--ink); }
+    .door-body { display: flex; gap: 14px; align-items: flex-start; }
+    .door-map { flex: 1; min-width: 0; }
+    .door-side { flex: none; width: 270px; display: flex; flex-direction: column; gap: 12px; }
+    .door-keys { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
+    .door-keys select { width: 100%; box-sizing: border-box; }
+    .door-key-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+    .door-key-btns .btn { width: auto; flex: none; padding: 6px 12px; }
+    .door-legend { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 10px 12px; max-height: 640px; overflow: auto; }
+    .door-legend-group + .door-legend-group { margin-top: 10px; }
+    .door-legend-h { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); margin-bottom: 4px; }
+    .door-legend-sub { font-weight: 400; text-transform: none; letter-spacing: 0; }
+    .door-legend-item { display: flex; align-items: center; gap: 7px; width: 100%; text-align: left; border: 0; background: none; padding: 3px 4px; border-radius: 4px; font: inherit; font-size: 12.5px; color: var(--ink); cursor: pointer; }
+    .door-legend-item:hover { background: var(--line-soft); }
+    .door-legend-box { flex: none; width: 11px; height: 11px; border-radius: 50%; background: #2f6fb0; border: 1.5px solid #fff; box-shadow: 0 0 0 1px #2f6fb0; }
+    .door-legend-item.sel .door-legend-box { background: #1d8a4a; box-shadow: 0 0 0 1px #1d8a4a; }
+    .door-legend-item.match { background: rgba(222,84,38,.12); font-weight: 700; }
+    .door-legend-item.match .door-legend-box { background: var(--reve-orange); box-shadow: 0 0 0 1px var(--reve-orange); }
+    .door-dot { cursor: pointer; outline: none; }
+    .door-dot-halo { fill: transparent; }
+    .door-dot-core { fill: #2f6fb0; stroke: #fff; stroke-width: 2; transition: r .15s; }
+    .door-dot:hover .door-dot-core, .door-dot:focus .door-dot-core, .door-dot.hover .door-dot-core { r: 8; }
+    .door-dot.dim { opacity: .3; }
+    .door-edit-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; padding: 8px 12px; border: 1px solid var(--reve-orange); border-radius: 8px; background: rgba(222,84,38,.07); font-size: 13px; }
+    .door-edit-bar .btn { width: auto; flex: none; padding: 6px 14px; }
+    .door-editing .door-dot { cursor: grab; touch-action: none; }
+    .door-editing .door-dot.dragging { cursor: grabbing; }
+    .door-editing .door-dot-core { stroke: var(--reve-orange); }
+    .door-dot.moved .door-dot-core { fill: #8a4fd0; }
+    .door-dot.sel .door-dot-core { fill: #1d8a4a; }
+    .door-dot.sel .door-dot-halo { fill: rgba(29,138,74,.22); }
+    .door-dot.match .door-dot-core { fill: var(--reve-orange); r: 8; }
+    .door-dot.match .door-dot-halo { fill: rgba(222,84,38,.25); stroke: var(--reve-orange); stroke-width: 1.5; animation: door-pulse 1.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes door-pulse { 0% { transform: scale(.6); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+    .door-tip { display: none; position: absolute; z-index: 1200; transform: translate(-50%, -100%); background: #24211d; color: #fff; font-size: 12px; font-weight: 600; padding: 5px 9px; border-radius: 6px; white-space: nowrap; pointer-events: none; box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+    @media (max-width: 860px) { .door-body { flex-direction: column; } .door-side { width: 100%; } .door-legend { max-height: none; } }
     .sitemap-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
     .sitemap-legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-soft); }
     .sitemap-legend-item { display: flex; align-items: center; gap: 6px; }
@@ -4301,14 +4338,53 @@
                 <button type="button" class="wl-subtab" data-sitemap-floor="2">2nd Floor</button>
                 <button type="button" class="wl-subtab" data-sitemap-floor="3">3rd Floor</button>
                 <button type="button" class="wl-subtab" data-sitemap-floor="4">4th Floor</button>
+                <button type="button" class="wl-subtab" data-sitemap-floor="doors">DOOR Devices</button>
             </div>
-            <div class="sitemap-legend">
+            <div class="sitemap-legend" id="sitemapLegend">
                 <span class="sitemap-legend-item"><span class="sitemap-dot available"></span>Available now</span>
                 <span class="sitemap-legend-item"><span class="sitemap-dot unavailable"></span>Not currently available</span>
             </div>
         </div>
         <div class="empty-note" id="sitemapCoverageNote" style="margin-bottom:10px;"></div>
         <div class="sitemap-svg-wrap" id="sitemapSvgWrap"></div>
+        <div id="doorPanel" style="display:none;">
+            <div class="door-bar">
+                <div class="wl-subtabs" style="margin:0;">
+                    <button type="button" class="wl-subtab active" data-door-level="1">1st Floor</button>
+                    <button type="button" class="wl-subtab" data-door-level="2">2nd Floor</button>
+                </div>
+                <input type="search" id="doorSearch" class="door-search" placeholder="Search door devices&hellip;" autocomplete="off" aria-label="Search door devices">
+                <span class="empty-note" id="doorSearchNote" style="margin:0;"></span>
+                <button type="button" class="fp-link" id="doorEditBtn" style="margin-left:auto;" title="Admin: drag dots to correct their placement">Adjust dot positions</button>
+            </div>
+            <div class="door-edit-bar" id="doorEditBar" style="display:none;">
+                <b>Adjusting dot positions</b>
+                <span id="doorEditCount"></span>
+                <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
+                    <button type="button" class="btn small" id="doorEditReset">Reset all</button>
+                    <button type="button" class="btn small" id="doorEditCancel">Cancel</button>
+                    <button type="button" class="btn small primary" id="doorEditSave">Save</button>
+                </span>
+            </div>
+            <div class="door-body">
+                <div class="sitemap-svg-wrap door-map" id="doorMapWrap"></div>
+                <aside class="door-side">
+                    <div class="door-keys">
+                        <div class="door-legend-h" style="margin-top:0;">Named Keys</div>
+                        <select id="doorKeySelect" class="wl-field" aria-label="Named key"></select>
+                        <div class="door-key-btns">
+                            <button type="button" class="btn small primary" id="doorKeySave">Save Named Key</button>
+                            <button type="button" class="btn small" id="doorKeyDelete" style="display:none;">Delete</button>
+                            <button type="button" class="btn small" id="doorSelClear" style="display:none;">Clear</button>
+                        </div>
+                        <div class="empty-note" id="doorSelCount" style="margin:0;"></div>
+                        <div class="empty-note" id="doorKeyStatus" style="margin:0;"></div>
+                    </div>
+                    <div id="doorLegend" class="door-legend"></div>
+                </aside>
+            </div>
+            <div class="door-tip" id="doorTip" role="tooltip"></div>
+        </div>
     </div>
 </div>
 </div>
@@ -22522,6 +22598,7 @@ setInterval(() => {
     pullAllFromBackend();
     pullWaitlistFromBackend();
     pullConcessionFromBackend();
+    if (sitemapCurrentFloor === 'doors') { pullDoorKeys(); pullDoorPositions(); }
     pullStorageFromBackend();
     pullLockersFromBackend();
     pullDefaultChargesFromBackend();
@@ -24333,11 +24410,372 @@ async function sitemapUnitMapFile(unit) {
         return new File([blob], `Apt-${unit}-${ordinal}-floor-map.png`, { type: 'image/png' });
     } finally { URL.revokeObjectURL(url); }
 }
+/* ---------- Sitemap › DOOR Devices: every door access device on the
+   site map (from the "Door Devices — Location and Names" sheet), one
+   color; hover a dot for its name. Search highlights matching dots, and
+   Named Keys (shared with the team) save a set of doors — e.g. "Common
+   Doors" or "Retail Key" — to highlight together. Garage-level devices
+   have no map position, so they're listed only. ---------- */
+const DOOR_DEVICES = [
+    {id: 'b1-pearl-north-hallway-entry', name: 'B1 Pearl - North Hallway Entry', group: 'b1-1', level: '1', x: 184.4, y: 660.1},
+    {id: 'b1-mailroom', name: 'B1 Mailroom', group: 'b1-1', level: '1', x: 278.9, y: 630.1},
+    {id: 'b1-mailroom-interior', name: 'B1 Mailroom Interior', group: 'b1-1', level: '1', x: 224.6, y: 639.4},
+    {id: 'b1-stair-gate-2', name: 'B1 Stair Gate 2', group: 'b1-1', level: '1', x: 251.0, y: 660.1},
+    {id: 'b1-elevator-2-north', name: 'B1 Elevator 2 (North)', group: 'b1-1', level: '1', x: 233.9, y: 648.2},
+    {id: 'b1-package-room', name: 'B1 Package Room', group: 'b1-1', level: '1', x: 323.0, y: 658.0},
+    {id: 'b1-bike-room', name: 'B1 Bike Room', group: 'b1-1', level: '1', x: 450.9, y: 658.0},
+    {id: 'b1-south-east-stairwell', name: 'B1 South East Stairwell', group: 'b1-1', level: '1', x: 467.6, y: 591.7},
+    {id: 'b1-stair-gate-3', name: 'B1 Stair Gate 3', group: 'b1-1', level: '1', x: 467.6, y: 643.0},
+    {id: 'b1-e1r-garage-elevator-lobby', name: 'B1 E1R - Garage Elevator Lobby', group: 'b1-1', level: '1', x: 410.0, y: 737.0},
+    {id: 'b1-elevator-1-south', name: 'B1 Elevator 1 (South)', group: 'b1-1', level: '1', x: 396.0, y: 744.0},
+    {id: 'b1-stair-gate-1', name: 'B1 Stair Gate 1', group: 'b1-1', level: '1', x: 428.0, y: 741.0},
+    {id: 'b1-30th-lobby-interior', name: 'B1 30th Lobby Interior', group: 'b1-1', level: '1', x: 375.0, y: 746.0},
+    {id: 'b1-30th-lobby-entry', name: 'B1 30th Lobby Entry', group: 'b1-1', level: '1', x: 386.5, y: 829.0},
+    {id: 'resident-lounge', name: 'Resident Lounge', group: 'b1-2', level: '2', x: 236.8, y: 761.6},
+    {id: 'resident-lounge-east', name: 'Resident Lounge East', group: 'b1-2', level: '2', x: 243.5, y: 647.9},
+    {id: 'pool-deck', name: 'Pool Deck', group: 'b1-2', level: '2', x: 283.1, y: 714.6},
+    {id: 'pool-deck-east', name: 'Pool Deck East', group: 'b1-2', level: '2', x: 482.7, y: 677.0},
+    {id: 'b3-fitness-exterior', name: 'B3 Fitness Exterior', group: 'b3-1', level: '1', x: 762.5, y: 543.4},
+    {id: 'b3-fitness-interior', name: 'B3 Fitness Interior', group: 'b3-1', level: '1', x: 766.2, y: 573.3},
+    {id: 'b3-north-stairwell', name: 'B3 North Stairwell', group: 'b3-1', level: '1', x: 819.5, y: 575.9},
+    {id: 'b3-stair-gate-1', name: 'B3 Stair Gate 1', group: 'b3-1', level: '1', x: 829.5, y: 597.9},
+    {id: 'b3-stair-1-west-entry', name: 'B3 Stair 1 West Entry', group: 'b3-1', level: '1', x: 824.8, y: 607.3},
+    {id: 'b3-south-entry', name: 'B3 South Entry', group: 'b3-1', level: '1', x: 1005.3, y: 575.9},
+    {id: 'b3-annex-trash', name: 'B3 Annex Trash', group: 'b3-1', level: '1', x: 1018.0, y: 592.6},
+    {id: 'b3-elevator-lobby', name: 'B3 Elevator Lobby', group: 'b3-1', level: '1', x: 1020.1, y: 582.2},
+    {id: 'b3-elevator', name: 'B3 Elevator', group: 'b3-1', level: '1', x: 1029.6, y: 561.7},
+    {id: 'b3-annex-apartments', name: 'B3 Annex Apartments', group: 'b3-1', level: '1', x: 1046.0, y: 573.3},
+    {id: 'b3-stair-gate-2', name: 'B3 Stair Gate 2', group: 'b3-1', level: '1', x: 1036.0, y: 597.9},
+    {id: 'b4-junction-place-entry', name: 'B4 Junction Place Entry', group: 'b4-1', level: '1', x: 610.9, y: 239.1},
+    {id: 'b4-stair-gate-5', name: 'B4 Stair Gate 5', group: 'b4-1', level: '1', x: 651.6, y: 247.5},
+    {id: 'b4-mailroom', name: 'B4 Mailroom', group: 'b4-1', level: '1', x: 649.5, y: 450.2},
+    {id: 'b4-elevator', name: 'B4 Elevator', group: 'b4-1', level: '1', x: 709.1, y: 416.7},
+    {id: 'b4-stair-gate-4', name: 'B4 Stair Gate 4', group: 'b4-1', level: '1', x: 725.0, y: 416.7},
+    {id: 'b4-dog-run-entry', name: 'B4 Dog Run Entry', group: 'b4-1', level: '1', x: 739.8, y: 414.6},
+    {id: 'b4-dog-run-interior', name: 'B4 Dog Run Interior', group: 'b4-1', level: '1', x: 739.8, y: 434.5},
+    {id: 'b4-stair-gate-3', name: 'B4 Stair Gate 3', group: 'b4-1', level: '1', x: 1014.3, y: 414.6},
+    {id: 'b4-garden-entry', name: 'B4 Garden Entry', group: 'b4-1', level: '1', x: 1025.9, y: 416.7},
+    {id: 'b4-garden-interior', name: 'B4 Garden Interior', group: 'b4-1', level: '1', x: 1025.9, y: 433.9},
+    {id: 'b4-courtyard-entry', name: 'B4 Courtyard Entry', group: 'b4-1', level: '1', x: 1032.3, y: 468.5},
+    {id: 'b4-p1-elevator-lobby', name: 'B4 P1 Elevator Lobby', group: 'sg-p1', level: 'P1'},
+    {id: 'b4-p2-elevator-lobby', name: 'B4 P2 Elevator Lobby', group: 'sg-p1', level: 'P1'},
+    {id: 'pet-spa', name: 'Pet Spa', group: 'sg-p1', level: 'P1'},
+    {id: 'south-garage-bike-cage', name: 'South Garage Bike Cage', group: 'sg-p1', level: 'P1'},
+    {id: 'b1-p1-elevator-2-lobby', name: 'B1 P1 Elevator 2 Lobby', group: 'ng-p1', level: 'P1'},
+    {id: 'b1-p2-north-elevator-lobby', name: 'B1 P2 North Elevator Lobby', group: 'ng-p1', level: 'P1'},
+    {id: 'b1-p1-bike-storage', name: 'B1 P1 Bike Storage', group: 'ng-p1', level: 'P1'},
+    {id: 'north-garage-ski-cage', name: 'North Garage Ski Cage', group: 'ng-p2', level: 'P2'}
+];
+const DOOR_GROUPS = [
+    { id: 'b1-1', label: 'Building 1 · 1st Floor' },
+    { id: 'b1-2', label: 'Building 1 · 2nd Floor' },
+    { id: 'b3-1', label: 'Building 3 · 1st Floor' },
+    { id: 'b4-1', label: 'Building 4 · 1st Floor' },
+    { id: 'sg-p1', label: 'South Garage · P1 Level', garage: true },
+    { id: 'ng-p1', label: 'North Garage · P1 Level', garage: true },
+    { id: 'ng-p2', label: 'North Garage · P2 Level', garage: true }
+];
+const DOOR_KEYS_KEY = 'reve-door-keys';
+const DOOR_KEYS_BACKEND_KEY = 'door-keys';
+let DOOR_KEYS = [];   // [{ id, name, devices: [device ids] }]
+try { DOOR_KEYS = JSON.parse(localStorage.getItem(DOOR_KEYS_KEY) || '[]') || []; } catch (e) { DOOR_KEYS = []; }
+let doorLevel = '1';
+let doorSearch = '';
+let doorSel = new Set();      // doors picked (by clicking, or from a named key)
+let doorActiveKey = '';       // id of the named key shown, if any
+// Dot positions moved by an admin ({ id: [x, y] }), shared with the team.
+const DOOR_POS_KEY = 'reve-door-positions';
+const DOOR_POS_BACKEND_KEY = 'door-positions';
+let DOOR_POS = {};
+try { DOOR_POS = JSON.parse(localStorage.getItem(DOOR_POS_KEY) || '{}') || {}; } catch (e) { DOOR_POS = {}; }
+let doorEditing = null;       // { id: [x, y] } moves not saved yet, while adjusting
+function doorXY(d) { return (doorEditing && doorEditing[d.id]) || DOOR_POS[d.id] || [d.x, d.y]; }
+async function pullDoorPositions() {
+    if (!BACKEND_URL || APP_MODE === 'test' || doorEditing) return;
+    const remote = await backendPull(DOOR_POS_BACKEND_KEY);
+    if (!remote || typeof remote !== 'object' || Array.isArray(remote) || doorEditing || JSON.stringify(remote) === JSON.stringify(DOOR_POS)) return;
+    DOOR_POS = remote;
+    try { localStorage.setItem(DOOR_POS_KEY, JSON.stringify(DOOR_POS)); } catch (e) {}
+    if (sitemapCurrentFloor === 'doors') renderDoors();
+}
+function doorMatches(d) { const q = doorSearch.trim().toLowerCase(); return !!q && d.name.toLowerCase().includes(q); }
+function doorById(id) { return DOOR_DEVICES.find(d => d.id === id); }
+function doorPersistKeys() { try { localStorage.setItem(DOOR_KEYS_KEY, JSON.stringify(DOOR_KEYS)); } catch (e) {} }
+async function pullDoorKeys() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const remote = await backendPull(DOOR_KEYS_BACKEND_KEY);
+    if (!Array.isArray(remote) || JSON.stringify(remote) === JSON.stringify(DOOR_KEYS)) return;
+    DOOR_KEYS = remote;
+    doorPersistKeys();
+    if (doorActiveKey && !DOOR_KEYS.some(k => k.id === doorActiveKey)) doorActiveKey = '';
+    if (sitemapCurrentFloor === 'doors') renderDoorKeysUi();
+}
+// Saves one key (or deletes it, key.devices === null) on top of the
+// backend's latest list, so teammates' keys are never overwritten.
+async function doorSaveKey(key) {
+    const apply = list => {
+        const rest = list.filter(k => k.id !== key.id);
+        return key.devices === null ? rest : rest.concat([key]);
+    };
+    DOOR_KEYS = apply(DOOR_KEYS);
+    doorPersistKeys();
+    if (!BACKEND_URL || APP_MODE === 'test') return true;
+    const remote = await backendPullChecked(DOOR_KEYS_BACKEND_KEY);
+    if (remote === undefined) return false;
+    const next = apply(Array.isArray(remote) ? remote : []);
+    const r = await backendPushVerified(DOOR_KEYS_BACKEND_KEY, next, b => Array.isArray(b) && JSON.stringify(b) === JSON.stringify(next));
+    if (r.ok) { DOOR_KEYS = next; doorPersistKeys(); }
+    return r.ok;
+}
+function renderDoors() {
+    const wrap = document.getElementById('doorMapWrap');
+    if (!wrap) return;
+    document.querySelectorAll('[data-door-level]').forEach(b => b.classList.toggle('active', b.getAttribute('data-door-level') === doorLevel));
+    const searching = !!doorSearch.trim();
+    let svg = sitemapFloorSvg(doorLevel, '\u0000');   // every unit gray
+    DOOR_DEVICES.filter(d => d.level === doorLevel && d.x != null).forEach(d => {
+        const cls = ['door-dot', doorSel.has(d.id) ? 'sel' : '', doorMatches(d) ? 'match' : '', searching && !doorMatches(d) && !doorSel.has(d.id) ? 'dim' : '', doorEditing && doorEditing[d.id] ? 'moved' : ''].filter(Boolean).join(' ');
+        const [x, y] = doorXY(d);
+        svg += `<g class="${cls}" data-door="${escapeAttr(d.id)}" tabindex="0" role="button" aria-label="${escapeAttr(d.name)}"><circle class="door-dot-halo" cx="${x}" cy="${y}" r="13"></circle><circle class="door-dot-core" cx="${x}" cy="${y}" r="6"></circle></g>`;
+    });
+    document.getElementById('doorPanel').classList.toggle('door-editing', !!doorEditing);
+    document.getElementById('doorEditBar').style.display = doorEditing ? '' : 'none';
+    document.getElementById('doorEditBtn').style.display = doorEditing ? 'none' : '';
+    const moved = doorEditing ? Object.keys(doorEditing).length : 0;
+    document.getElementById('doorEditCount').textContent = doorEditing ? (moved ? `${moved} dot${moved === 1 ? '' : 's'} moved \u2014 not saved yet.` : 'Drag any dot to its correct spot, then Save.') : '';
+    wrap.innerHTML = `<svg viewBox="20 150 1120 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Door devices, level ${doorLevel}">${svg}</svg>`;
+    // Search summary, with a jump to the other floor when matches are there.
+    const note = document.getElementById('doorSearchNote');
+    if (!searching) note.innerHTML = '';
+    else {
+        const hits = DOOR_DEVICES.filter(doorMatches);
+        const here = hits.filter(d => d.level === doorLevel && d.x != null).length;
+        const other = hits.filter(d => d.x != null && d.level !== doorLevel);
+        const garage = hits.filter(d => d.x == null).length;
+        const parts = [`${hits.length} match${hits.length === 1 ? '' : 'es'}`];
+        if (hits.length) parts.push(`${here} on this floor`);
+        if (other.length) parts.push(`<button type="button" class="fp-link" data-door-level="${other[0].level}">${other.length} on the ${other[0].level === '2' ? '2nd' : '1st'} floor</button>`);
+        if (garage) parts.push(`${garage} in the garages (listed only)`);
+        note.innerHTML = parts.join(' · ');
+    }
+    renderDoorLegend();
+    renderDoorKeysUi();
+}
+function renderDoorLegend() {
+    const box = document.getElementById('doorLegend');
+    box.innerHTML = DOOR_GROUPS.map(g => {
+        const items = DOOR_DEVICES.filter(d => d.group === g.id);
+        return `<div class="door-legend-group"><div class="door-legend-h">${escapeHtml(g.label)}${g.garage ? ' <span class="door-legend-sub">not on the map</span>' : ''}</div>`
+            + items.map(d => `<button type="button" class="door-legend-item${doorSel.has(d.id) ? ' sel' : ''}${doorMatches(d) ? ' match' : ''}" data-door-item="${escapeAttr(d.id)}" aria-pressed="${doorSel.has(d.id)}"><span class="door-legend-box" aria-hidden="true"></span>${escapeHtml(d.name)}</button>`).join('')
+            + '</div>';
+    }).join('');
+}
+function renderDoorKeysUi() {
+    const sel = document.getElementById('doorKeySelect');
+    sel.innerHTML = '<option value="">— Select a named key —</option>'
+        + DOOR_KEYS.slice().sort((a, b) => a.name.localeCompare(b.name)).map(k => `<option value="${escapeAttr(k.id)}">${escapeHtml(k.name)} (${k.devices.length})</option>`).join('');
+    sel.value = doorActiveKey;
+    const key = DOOR_KEYS.find(k => k.id === doorActiveKey);
+    const changed = key && (key.devices.length !== doorSel.size || key.devices.some(id => !doorSel.has(id)));
+    document.getElementById('doorKeyDelete').style.display = key ? '' : 'none';
+    document.getElementById('doorSelCount').textContent = doorSel.size
+        ? `${doorSel.size} door${doorSel.size === 1 ? '' : 's'} selected${key ? (changed ? ` — changed from “${key.name}”` : ` — “${key.name}”`) : ''}`
+        : 'Click dots or names to pick doors, then Save Named Key.';
+    document.getElementById('doorSelClear').style.display = doorSel.size ? '' : 'none';
+}
+function doorToggle(id) {
+    if (doorSel.has(id)) doorSel.delete(id); else doorSel.add(id);
+    renderDoors();
+}
+// Floating name label for a dot (hover on desktop, tap on phones).
+function doorShowTip(id, target) {
+    const d = doorById(id), tip = document.getElementById('doorTip');
+    if (!d || !target) return;
+    const r = target.getBoundingClientRect();
+    tip.textContent = d.name;
+    tip.style.display = 'block';
+    tip.style.left = (r.left + r.width / 2 + window.scrollX) + 'px';
+    tip.style.top = (r.top + window.scrollY - 8) + 'px';
+}
+function doorHideTip() { document.getElementById('doorTip').style.display = 'none'; }
+function doorAskName(def) {
+    return new Promise(resolve => {
+        const m = document.createElement('div');
+        m.className = 'vault-modal door-key-modal';
+        m.style.display = 'flex';
+        m.innerHTML = `<form class="vault-modal-card" role="dialog" aria-modal="true" aria-label="Save named key">
+            <div class="vault-modal-h">Save Named Key</div>
+            <div class="empty-note" style="margin:0;">${doorSel.size} door${doorSel.size === 1 ? '' : 's'} selected. Saving under an existing name replaces that key&rsquo;s doors.</div>
+            <input type="text" class="wl-field" autocomplete="off" placeholder="e.g. Common Doors, Retail Key" value="${escapeAttr(def || '')}" style="width:100%;box-sizing:border-box;">
+            <div class="vault-modal-foot"><button type="button" class="btn small door-ask-cancel">Cancel</button><button type="submit" class="btn small primary">Save</button></div>
+        </form>`;
+        const done = v => { m.remove(); document.removeEventListener('keydown', onKey, true); resolve(v); };
+        const onKey = e => { if (e.key === 'Escape') done(null); };
+        document.addEventListener('keydown', onKey, true);
+        m.querySelector('form').addEventListener('submit', e => { e.preventDefault(); const v = m.querySelector('input').value.trim(); if (v) done(v); });
+        m.querySelector('.door-ask-cancel').onclick = () => done(null);
+        m.addEventListener('click', e => { if (e.target === m) done(null); });
+        document.body.appendChild(m);
+        const inp = m.querySelector('input'); inp.focus(); inp.select();
+    });
+}
+(function wireDoors() {
+    const panel = document.getElementById('doorPanel');
+    panel.addEventListener('click', e => {
+        const lv = e.target.closest('[data-door-level]');
+        if (lv) { doorLevel = lv.getAttribute('data-door-level'); renderDoors(); return; }
+        const dot = e.target.closest('[data-door]');
+        if (dot && doorEditing) return;
+        if (dot) { const id = dot.getAttribute('data-door'); doorToggle(id); doorShowTip(id, panel.querySelector(`[data-door="${CSS.escape(id)}"] .door-dot-core`)); return; }
+        const item = e.target.closest('[data-door-item]');
+        if (item) {
+            const d = doorById(item.getAttribute('data-door-item'));
+            if (d.x != null && d.level !== doorLevel) doorLevel = d.level;   // show the floor it's on
+            doorToggle(d.id);
+        }
+    });
+    panel.addEventListener('keydown', e => {
+        const dot = e.target.closest && e.target.closest('[data-door]');
+        if (dot && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); doorToggle(dot.getAttribute('data-door')); }
+    });
+    panel.addEventListener('mouseover', e => {
+        const dot = e.target.closest('[data-door]');
+        if (dot) { doorShowTip(dot.getAttribute('data-door'), dot.querySelector('.door-dot-core')); return; }
+        const item = e.target.closest('[data-door-item]');
+        panel.querySelectorAll('.door-dot.hover').forEach(g => g.classList.remove('hover'));
+        if (item) {
+            const g = panel.querySelector(`[data-door="${CSS.escape(item.getAttribute('data-door-item'))}"]`);
+            if (g) { g.classList.add('hover'); doorShowTip(g.getAttribute('data-door'), g.querySelector('.door-dot-core')); }
+            else doorHideTip();
+        }
+    });
+    panel.addEventListener('mouseout', e => {
+        if (e.target.closest('[data-door]') || e.target.closest('[data-door-item]')) {
+            panel.querySelectorAll('.door-dot.hover').forEach(g => g.classList.remove('hover'));
+            doorHideTip();
+        }
+    });
+    panel.addEventListener('focusin', e => { const dot = e.target.closest && e.target.closest('[data-door]'); if (dot) doorShowTip(dot.getAttribute('data-door'), dot.querySelector('.door-dot-core')); });
+    panel.addEventListener('focusout', doorHideTip);
+    // Admin: drag dots to fix their placement (pointer events, so mouse,
+    // pen and touch all work), then Save for the team or Cancel.
+    let drag = null;
+    panel.addEventListener('pointerdown', e => {
+        const g = doorEditing && e.target.closest('[data-door]');
+        if (!g) return;
+        e.preventDefault();
+        const svgEl = g.ownerSVGElement;
+        drag = { id: g.getAttribute('data-door'), g, svgEl, m: svgEl.getScreenCTM().inverse() };
+        g.setPointerCapture(e.pointerId);
+        g.classList.add('dragging');
+    });
+    panel.addEventListener('pointermove', e => {
+        if (!drag) return;
+        const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(drag.m);
+        const x = Math.round(pt.x * 10) / 10, y = Math.round(pt.y * 10) / 10;
+        drag.g.querySelectorAll('circle').forEach(c => { c.setAttribute('cx', x); c.setAttribute('cy', y); });
+        drag.xy = [x, y];
+        doorShowTip(drag.id, drag.g.querySelector('.door-dot-core'));
+    });
+    const endDrag = () => {
+        if (!drag) return;
+        if (drag.xy) doorEditing[drag.id] = drag.xy;
+        drag = null;
+        doorHideTip();
+        renderDoors();
+    };
+    panel.addEventListener('pointerup', endDrag);
+    panel.addEventListener('pointercancel', endDrag);
+    document.getElementById('doorEditBtn').addEventListener('click', () => {
+        if (!promptAdminPassword('move door device dots')) return;
+        doorEditing = {};
+        renderDoors();
+    });
+    document.getElementById('doorEditCancel').addEventListener('click', () => {
+        if (doorEditing && Object.keys(doorEditing).length && !confirm('Discard the dot moves you haven\u2019t saved?')) return;
+        doorEditing = null;
+        renderDoors();
+    });
+    document.getElementById('doorEditReset').addEventListener('click', () => {
+        if (!confirm('Put every dot back where it was originally placed? (Takes effect when you Save.)')) return;
+        DOOR_DEVICES.filter(d => d.x != null).forEach(d => { doorEditing[d.id] = [d.x, d.y]; });
+        renderDoors();
+    });
+    document.getElementById('doorEditSave').addEventListener('click', async () => {
+        const moves = doorEditing || {};
+        const status = document.getElementById('doorEditCount');
+        const merge = base => {
+            const next = Object.assign({}, base);
+            Object.keys(moves).forEach(id => {
+                const d = doorById(id);
+                if (d && d.x === moves[id][0] && d.y === moves[id][1]) delete next[id]; else next[id] = moves[id];
+            });
+            return next;
+        };
+        let next = merge(DOOR_POS), ok = true;
+        if (BACKEND_URL && APP_MODE !== 'test') {
+            status.textContent = 'Saving\u2026';
+            const remote = await backendPullChecked(DOOR_POS_BACKEND_KEY);
+            if (remote === undefined) ok = false;
+            else {
+                next = merge(remote && typeof remote === 'object' && !Array.isArray(remote) ? remote : {});
+                ok = (await backendPushVerified(DOOR_POS_BACKEND_KEY, next, b => !!b && JSON.stringify(b) === JSON.stringify(next))).ok;
+            }
+        }
+        if (!ok) { status.textContent = 'Couldn\u2019t reach the shared backend \u2014 nothing saved yet. Try Save again.'; return; }
+        DOOR_POS = next;
+        try { localStorage.setItem(DOOR_POS_KEY, JSON.stringify(DOOR_POS)); } catch (e) {}
+        doorEditing = null;
+        renderDoors();
+        document.getElementById('doorKeyStatus').textContent = 'Dot positions saved for the team.';
+    });
+    document.getElementById('doorSearch').addEventListener('input', e => { doorSearch = e.target.value; renderDoors(); });
+    document.getElementById('doorKeySelect').addEventListener('change', e => {
+        doorActiveKey = e.target.value;
+        const key = DOOR_KEYS.find(k => k.id === doorActiveKey);
+        doorSel = new Set(key ? key.devices.filter(id => doorById(id)) : []);
+        // Show the floor holding most of this key's doors.
+        if (key) {
+            const on2 = key.devices.filter(id => (doorById(id) || {}).level === '2').length;
+            const on1 = key.devices.filter(id => (doorById(id) || {}).level === '1').length;
+            if (on1 || on2) doorLevel = on2 > on1 ? '2' : '1';
+        }
+        renderDoors();
+    });
+    document.getElementById('doorSelClear').addEventListener('click', () => { doorSel = new Set(); doorActiveKey = ''; renderDoors(); });
+    document.getElementById('doorKeySave').addEventListener('click', async () => {
+        if (!doorSel.size) { alert('Pick the doors this key opens first — click dots on the map or names in the list.'); return; }
+        const active = DOOR_KEYS.find(k => k.id === doorActiveKey);
+        const name = await doorAskName(active ? active.name : '');
+        if (!name) return;
+        const same = DOOR_KEYS.find(k => k.name.toLowerCase() === name.toLowerCase());
+        const key = { id: same ? same.id : 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, devices: [...doorSel] };
+        doorActiveKey = key.id;
+        const status = document.getElementById('doorKeyStatus');
+        status.textContent = 'Saving…';
+        const ok = await doorSaveKey(key);
+        status.textContent = ok ? `Saved “${name}” for the team.` : `Saved “${name}” on this device — the shared backend couldn’t be reached.`;
+        renderDoorKeysUi();
+    });
+    document.getElementById('doorKeyDelete').addEventListener('click', async () => {
+        const key = DOOR_KEYS.find(k => k.id === doorActiveKey);
+        if (!key || !confirm(`Delete the named key “${key.name}” for everyone?`)) return;
+        doorActiveKey = '';
+        doorSel = new Set();
+        const ok = await doorSaveKey({ id: key.id, devices: null });
+        document.getElementById('doorKeyStatus').textContent = ok ? `Deleted “${key.name}”.` : `Deleted on this device — the shared backend couldn’t be reached.`;
+        renderDoors();
+    });
+})();
 [...document.querySelectorAll('[data-sitemap-floor]')].forEach(btn => {
     btn.addEventListener('click', () => {
-        sitemapCurrentFloor = parseInt(btn.getAttribute('data-sitemap-floor'), 10);
+        const v = btn.getAttribute('data-sitemap-floor');
+        sitemapCurrentFloor = v === 'doors' ? 'doors' : parseInt(v, 10);
         [...document.querySelectorAll('[data-sitemap-floor]')].forEach(b => b.classList.toggle('active', b === btn));
-        renderSitemap();
+        const doors = v === 'doors';
+        ['sitemapSvgWrap', 'sitemapCoverageNote', 'sitemapLegend'].forEach(id => { document.getElementById(id).style.display = doors ? 'none' : ''; });
+        document.getElementById('doorPanel').style.display = doors ? '' : 'none';
+        if (doors) { renderDoors(); pullDoorKeys(); pullDoorPositions(); } else renderSitemap();
     });
 });
 renderSitemap();
