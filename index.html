@@ -2448,7 +2448,20 @@
     .door-photo-status { font-size: 12px; display: flex; flex-direction: column; gap: 2px; }
     .door-photo-status .ok { color: var(--good); }
     .door-photo-status .bad { color: #c0392b; }
-    #doorNeeded summary { cursor: pointer; font-size: 12.5px; font-weight: 700; }
+    .door-needed summary { cursor: pointer; font-size: 12.5px; font-weight: 700; }
+    .door-view-chips:empty { display: none; }
+    .door-view-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 16px; background: rgba(255,255,255,.04); }
+    .door-view-chip { border: 1px solid rgba(255,255,255,.25); background: transparent; color: #fff; border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 12px; cursor: pointer; }
+    .door-view-chip.active { background: #fff; color: #111; border-color: #fff; }
+    .door-view-chip.door-view-admin { margin-left: auto; opacity: .75; }
+    .door-zoom-stage { position: relative; overflow: hidden; background: #000; }
+    .door-zoom-img { position: absolute; max-width: none !important; max-height: none !important; animation: none !important; will-change: transform, opacity; user-select: none; -webkit-user-drag: none; }
+    .door-box-bar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 8px 12px; width: 100%; box-sizing: border-box; background: #1b1b1b; }
+    .door-box-hint { font-size: 12px; opacity: .8; }
+    .door-view-body:has(.door-box-bar) { flex-direction: column; justify-content: flex-start; }
+    .door-box { position: absolute; border: 2px solid #ffd23f; box-shadow: 0 0 0 9999px rgba(0,0,0,.45); cursor: move; touch-action: none; box-sizing: border-box; }
+    .door-box img { width: 100%; height: 100%; opacity: .45; display: block; pointer-events: none; max-height: none !important; animation: none !important; }
+    .door-box-handle { position: absolute; right: 0; bottom: 0; width: 18px; height: 18px; background: #ffd23f; border-radius: 3px; cursor: nwse-resize; }
     .door-needed-list { max-height: 260px; overflow: auto; margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
     .door-needed-row { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-family: var(--mono); color: var(--ink-soft); }
     .door-needed-row span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
@@ -4444,9 +4457,9 @@
                         <div class="empty-note" id="doorPhotoCount" style="margin:0;"></div>
                         <button type="button" class="btn small primary" id="doorPhotoUploadBtn" style="width:auto;flex:none;padding:6px 12px;align-self:flex-start;">Upload Images</button>
                         <input type="file" id="doorPhotoInput" multiple accept=".jpg,.jpeg,.png,.webp" style="display:none;">
-                        <div class="empty-note" style="margin:0;">Name each photo after its device, e.g. <b>DOOR-B1 Pearl - North Hallway Entry.jpg</b>. Saved to Documents &rsaquo; Sitemaps &rsaquo; DOOR Devices and linked to the dot automatically. A new photo for the same device replaces the old one.</div>
+                        <div class="empty-note" style="margin:0;">Name each photo after its device: <b>DOOR-B1 Pearl - North Hallway Entry.jpg</b> (standard view), add <b>-wide</b> for the building-wide view and <b>-device</b> for the device up close. Saved to Documents &rsaquo; Sitemaps &rsaquo; DOOR Devices and linked to the dot automatically; a new photo of the same view replaces the old one.</div>
                         <div id="doorPhotoStatus" class="door-photo-status" aria-live="polite"></div>
-                        <details id="doorNeeded"><summary id="doorNeededSum">Images Still Needed</summary><div id="doorNeededList" class="door-needed-list"></div></details>
+                        <div id="doorNeededBox"></div>
                     </div>
                     <div id="doorLegend" class="door-legend"></div>
                 </aside>
@@ -4458,6 +4471,7 @@
                         <div><div class="door-view-name" id="doorViewName"></div><div class="door-view-where" id="doorViewWhere"></div></div>
                         <button type="button" class="door-view-close" id="doorViewClose" aria-label="Close">&times;</button>
                     </div>
+                    <div class="door-view-chips" id="doorViewChips"></div>
                     <div class="door-view-body" id="doorViewBody"></div>
                 </div>
             </div>
@@ -24299,6 +24313,9 @@ const SITEMAP_ELEVATOR_ICON = (x, y) => `<g class="sitemap-elevator" transform="
 
 // highlight: undefined = live availability (the Sitemap tab); a unit
 // number = a blank map with only that unit in orange (email attachments).
+// Every unit number is the same size: the largest that fits the smallest
+// unit box (1245), so numbers never differ from one unit to the next.
+const SITEMAP_UNIT_FS = 9;
 function sitemapUnitSVG(unit, poly, labelPt, highlight) {
     const u = byUnit[unit];
     const exists = !!u;
@@ -24309,11 +24326,9 @@ function sitemapUnitSVG(unit, poly, labelPt, highlight) {
     const box = sitemapPolyBox(poly);
     // Irregular (L-shaped / trimmed) units carry a precomputed interior
     // label point and the radius of room around it; rectangles use the
-    // box centre. Always horizontal; shrink the number to fit.
+    // box centre. Always horizontal, at the one shared size.
     const [lx, ly] = labelPt ? labelPt : sitemapLabelPoint(poly, box);
-    const fs = labelPt
-        ? Math.max(6, Math.min(12, labelPt[2] * 0.85))
-        : Math.max(6, Math.min(12, (box.w - 3) / 2.5, box.h * 0.55));
+    const fs = SITEMAP_UNIT_FS;
     return `<g class="sitemap-unit-group${exists ? ' clickable' : ''}"${exists ? ` data-unit="${escapeAttr(unit)}"` : ''}>
         <polygon class="sitemap-unit-box ${boxCls}" points="${sitemapPolyPoints(poly)}"></polygon>
         <text class="${labelCls}" x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" style="font-size:${fs.toFixed(1)}px">${escapeHtml(unit)}</text>
@@ -24492,7 +24507,7 @@ function sitemapFloorSvg(level, highlight) {
     (floor.townhomeUpper || []).forEach(t => {
         const box = sitemapPolyBox(t.poly);
         svg += `<polygon class="sitemap-townhome-upper" points="${sitemapPolyPoints(t.poly)}"></polygon>`;
-        svg += `<text class="sitemap-townhome-upper-label" x="${box.cx.toFixed(1)}" y="${box.cy.toFixed(1)}" font-size="${Math.max(6, Math.min(11, box.h * 0.4, box.w / 3.2)).toFixed(1)}">${escapeHtml(t.unit)}<title>Unit ${escapeHtml(t.unit)} (townhome, upper level)</title></text>`;
+        svg += `<text class="sitemap-townhome-upper-label" x="${box.cx.toFixed(1)}" y="${box.cy.toFixed(1)}" font-size="${SITEMAP_UNIT_FS}">${escapeHtml(t.unit)}<title>Unit ${escapeHtml(t.unit)} (townhome, upper level)</title></text>`;
     });
     const units = Object.keys(floor.units);
     units.forEach(unit => { svg += sitemapUnitSVG(unit, floor.units[unit], (floor.labelPts || {})[unit], highlight); });
@@ -24686,10 +24701,12 @@ function doorGarageSvg(level) {
 //   door-keys            [{ id, name, devices: [ids] }]
 //   door-positions       { id: [x, y] }  dots moved by an admin
 //   door-device-edits    { renamed: { id: name }, deleted: [ids], added: [devices] }
+//   door-zoom-boxes      { id: { "wide>std": [x, y, w, h], ... } }  photo zoom boxes (fractions)
 const DOOR_STORES = {
     keys: { local: 'reve-door-keys', backend: 'door-keys', empty: () => [] },
     pos: { local: 'reve-door-positions', backend: 'door-positions', empty: () => ({}) },
-    edits: { local: 'reve-door-device-edits', backend: 'door-device-edits', empty: () => ({ renamed: {}, deleted: [], added: [] }) }
+    edits: { local: 'reve-door-device-edits', backend: 'door-device-edits', empty: () => ({ renamed: {}, deleted: [], added: [] }) },
+    zoom: { local: 'reve-door-zoom-boxes', backend: 'door-zoom-boxes', empty: () => ({}) }
 };
 const DOOR_DATA = {};
 Object.keys(DOOR_STORES).forEach(k => {
@@ -24749,28 +24766,43 @@ async function doorWrite(k, merge) {
     return r.ok;
 }
 // Device photos: files in Documents › Sitemaps › DOOR Devices, linked to
-// a device by file name — "DOOR-B1 Pearl - North Hallway Entry.jpg".
+// a device by file name. Three views per device, zoomed through in order:
+//   DOOR-<name>-wide.jpg    the building-wide view
+//   DOOR-<name>.jpg         the standard view
+//   DOOR-<name>-device.jpg  the device up close
 // Only names starting with "DOOR-" link (case, underscores and the
 // extension don't matter), so renaming an old photo without the prefix
 // unlinks it. If several still match, the most recently added wins.
+const DOOR_VIEWS = [{ kind: 'wide', label: 'Wide' }, { kind: '', label: 'Standard' }, { kind: 'device', label: 'Device' }];
 function doorPhotoKey(str) {
     return String(str || '').replace(/\.[a-z0-9]{2,5}$/i, '').replace(/^door\s*[-_]?\s*/i, '').replace(/[_\s]+/g, ' ').trim().toLowerCase();
 }
-function doorPhotoLinkKey(str) { return /^\s*door\s*[-_]/i.test(String(str || '')) ? doorPhotoKey(str) : null; }
-function doorPhotoFileName(d) { return `DOOR-${d.name}.jpg`; }
-function doorPhoto(d, docs) {
+// "DOOR-B1 Mailroom-wide.jpg" -> { key: 'b1 mailroom', kind: 'wide' }; null without the DOOR- prefix.
+function doorPhotoParse(str) {
+    if (!/^\s*door\s*[-_]/i.test(String(str || ''))) return null;
+    let key = doorPhotoKey(str), kind = '';
+    const m = key.match(/\s*[-\s]\s*(wide|device)$/);
+    if (m) { kind = m[1]; key = key.slice(0, m.index).trim(); }
+    return { key, kind };
+}
+function doorPhotoFileName(d, kind) { return `DOOR-${d.name}${kind ? '-' + kind : ''}.jpg`; }
+function doorPhoto(d, docs, kind) {
     const k = doorPhotoKey(d.name);
-    const hits = (docs || docsForSection('door-devices')).filter(x => doorPhotoLinkKey(x.filename) === k);
+    const hits = (docs || docsForSection('door-devices')).filter(x => { const p = doorPhotoParse(x.filename); return p && p.key === k && p.kind === (kind || ''); });
     hits.sort((a, b) => String(b.updated || b.added || '').localeCompare(String(a.updated || a.added || '')));
     return hits[0] || null;
 }
+function doorHasAnyPhoto(d, docs) { return DOOR_VIEWS.some(v => doorPhoto(d, docs, v.kind)); }
 function renderDoorPhotos(devices, docs) {
-    const missing = devices.filter(d => !doorPhoto(d, docs));
-    document.getElementById('doorPhotoCount').textContent = `${devices.length - missing.length} of ${devices.length} devices have a photo.`;
-    document.getElementById('doorNeededSum').textContent = `Images Still Needed (${missing.length})`;
-    document.getElementById('doorNeededList').innerHTML = missing.length
-        ? missing.map(d => `<div class="door-needed-row"><span>${escapeHtml(doorPhotoFileName(d))}</span><button type="button" data-door-copy="${escapeAttr(doorPhotoFileName(d))}" title="Copy file name">Copy</button></div>`).join('')
-        : '<div class="empty-note" style="margin:0;">Every device has a photo.</div>';
+    const have = devices.filter(d => doorPhoto(d, docs, '')).length;
+    document.getElementById('doorPhotoCount').textContent = `${have} of ${devices.length} devices have a standard photo.`;
+    document.getElementById('doorNeededBox').innerHTML = DOOR_VIEWS.slice().sort((a, b) => (a.kind === '' ? -1 : b.kind === '' ? 1 : 0)).map(v => {
+        const missing = devices.filter(d => !doorPhoto(d, docs, v.kind));
+        return `<details class="door-needed"><summary>${v.label} images still needed (${missing.length})</summary><div class="door-needed-list">`
+            + (missing.length ? missing.map(d => `<div class="door-needed-row"><span>${escapeHtml(doorPhotoFileName(d, v.kind))}</span><button type="button" data-door-copy="${escapeAttr(doorPhotoFileName(d, v.kind))}" title="Copy file name">Copy</button></div>`).join('')
+                : '<div class="empty-note" style="margin:0;">All done.</div>')
+            + '</div></details>';
+    }).join('');
 }
 function renderDoors() {
     const wrap = document.getElementById('doorMapWrap');
@@ -24782,7 +24814,7 @@ function renderDoors() {
     let svg = DOOR_GARAGE_MAPS[doorLevel] ? doorGarageSvg(doorLevel) : sitemapFloorSvg(doorLevel, '\u0000');   // every unit gray
     devices.filter(d => d.level === doorLevel).forEach(d => {
         const moved = doorAdmin && (doorAdmin.pos[doorPosKey(d)] || doorAdmin.added.some(x => x.id === d.id));
-        const cls = ['door-dot', hi.has(d.id) ? 'sel' : '', doorMatches(d) ? 'match' : '', searching && !doorMatches(d) && !hi.has(d.id) ? 'dim' : '', moved ? 'moved' : '', doorPhoto(d, photoDocs) ? 'has-photo' : ''].filter(Boolean).join(' ');
+        const cls = ['door-dot', hi.has(d.id) ? 'sel' : '', doorMatches(d) ? 'match' : '', searching && !doorMatches(d) && !hi.has(d.id) ? 'dim' : '', moved ? 'moved' : '', doorHasAnyPhoto(d, photoDocs) ? 'has-photo' : ''].filter(Boolean).join(' ');
         const [x, y] = doorXY(d);
         svg += `<g class="${cls}" data-door="${escapeAttr(d.id)}" tabindex="0" role="button" aria-label="${escapeAttr(d.name)}"><circle class="door-dot-halo" cx="${x}" cy="${y}" r="13"></circle><circle class="door-dot-core" cx="${x}" cy="${y}" r="6"></circle></g>`;
     });
@@ -24818,7 +24850,7 @@ function renderDoorLegend(devices, hi, photoDocs) {
         const items = devices.filter(d => d.group === g.id);
         if (!items.length) return '';
         return `<div class="door-legend-group"><div class="door-legend-h">${escapeHtml(g.label)}</div>`
-            + items.map(d => `<div class="door-legend-row"><button type="button" class="door-legend-item${hi.has(d.id) ? ' sel' : ''}${doorMatches(d) ? ' match' : ''}" data-door-item="${escapeAttr(d.id)}"${doorKeyEdit ? ` aria-pressed="${hi.has(d.id)}"` : ''}><span class="door-legend-box" aria-hidden="true"></span>${escapeHtml(d.name)}${doorPhoto(d, photoDocs) ? cam : ''}</button>`
+            + items.map(d => `<div class="door-legend-row"><button type="button" class="door-legend-item${hi.has(d.id) ? ' sel' : ''}${doorMatches(d) ? ' match' : ''}" data-door-item="${escapeAttr(d.id)}"${doorKeyEdit ? ` aria-pressed="${hi.has(d.id)}"` : ''}><span class="door-legend-box" aria-hidden="true"></span>${escapeHtml(d.name)}${doorHasAnyPhoto(d, photoDocs) ? cam : ''}</button>`
                 + (doorAdmin ? `<button type="button" class="door-legend-act" data-door-rename="${escapeAttr(d.id)}" title="Rename" aria-label="Rename ${escapeAttr(d.name)}">${pen}</button><button type="button" class="door-legend-act danger" data-door-delete="${escapeAttr(d.id)}" title="Delete" aria-label="Delete ${escapeAttr(d.name)}">${bin}</button>` : '')
                 + '</div>').join('')
             + '</div>';
@@ -24910,8 +24942,96 @@ async function doorShrinkPhoto(file, name) {
     } catch (e) { return file; }
 }
 // "Street view" for a device: the card zooms out of the dot that was
-// clicked and shows the device's photo, or N/A when there isn't one yet.
+// clicked, then the photos play Wide -> Standard -> Device, each zooming
+// into the box where the next view sits (set in Zoom Boxes, Admin), and
+// settles on the closest view. Only the views that exist are used; with
+// none it shows N/A.
 let doorViewToken = 0;
+let doorView = null;   // { d, stages: [{ kind, label, url, w, h, el }], cur, busy, editing }
+function doorLoadImg(url) {
+    return new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = url; });
+}
+// Box (fractions of image `from`) framing image `to`; stored per device as
+// "wide>std", "std>device" or "wide>device". Unset: centred, at 45% width.
+function doorZoomBoxKey(a, b) { return `${a || 'std'}>${b || 'std'}`; }
+function doorZoomBox(d, A, B) {
+    const saved = (DOOR_DATA.zoom[d.id] || {})[doorZoomBoxKey(A.kind, B.kind)];
+    if (saved) return { x: saved[0], y: saved[1], w: saved[2], h: saved[3], saved: true };
+    const aspect = (B.w / B.h) / (A.w / A.h);   // box w/h in fractions
+    let w = 0.45, h = w / aspect;
+    if (h > 0.9) { h = 0.9; w = h * aspect; }
+    return { x: (1 - w) / 2, y: (1 - h) / 2, w, h, saved: false };
+}
+function doorFit(w, h, W, H) { const s = Math.min(W / w, H / h); return { x: (W - w * s) / 2, y: (H - h * s) / 2, w: w * s, h: h * s }; }
+function doorStageSize() {
+    const body = document.getElementById('doorViewBody');
+    const ref = doorView.stages.find(s => s.kind === '') || doorView.stages[doorView.stages.length - 1];
+    const W = body.clientWidth, H = Math.min(W * ref.h / ref.w, window.innerHeight - 190);
+    return { W, H: Math.max(220, H) };
+}
+function doorLayoutStage() {
+    const stage = document.getElementById('doorZoomStage');
+    if (!stage || !doorView) return;
+    const { W, H } = doorStageSize();
+    stage.style.width = W + 'px'; stage.style.height = H + 'px';
+    doorView.stages.forEach((s, i) => {
+        const r = doorFit(s.w, s.h, W, H);
+        s.rect = r;
+        Object.assign(s.el.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px', transform: 'none', opacity: i === doorView.cur ? 1 : 0 });
+        s.el.getAnimations().forEach(a => a.cancel());
+    });
+    doorRenderChips();
+}
+// Transform that carries A's box onto where B sits in the stage.
+function doorZoomTransform(A, B, box) {
+    const s = B.rect.w / (box.w * A.rect.w);
+    const tx = B.rect.x - A.rect.x - s * box.x * A.rect.w, ty = B.rect.y - A.rect.y - s * box.y * A.rect.h;
+    return `translate(${tx}px, ${ty}px) scale(${s})`;
+}
+const DOOR_ZOOM_MS = 1400, DOOR_FADE_MS = 520;
+function doorReducedMotion() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+async function doorZoomStep(from, to) {
+    const A = doorView.stages[from], B = doorView.stages[to];
+    const forward = to > from;
+    const [outer, inner] = forward ? [A, B] : [B, A];
+    const t = doorZoomTransform(outer, inner, doorZoomBox(doorView.d, outer, inner));
+    const quick = doorReducedMotion();
+    const zoomMs = quick ? 1 : DOOR_ZOOM_MS, fadeMs = quick ? 1 : DOOR_FADE_MS;
+    outer.el.style.transformOrigin = '0 0';
+    outer.el.style.opacity = 1;
+    let zoom, fade;
+    if (forward) {
+        zoom = outer.el.animate([{ transform: 'none' }, { transform: t }], { duration: zoomMs, easing: 'cubic-bezier(.45,0,.2,1)', fill: 'forwards' });
+        fade = inner.el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: fadeMs, delay: Math.max(0, zoomMs - fadeMs * 0.8), easing: 'ease-out', fill: 'forwards' });
+    } else {
+        fade = outer.el.animate([{ opacity: 1 }, { opacity: 1 }], { duration: 1, fill: 'forwards' });
+        inner.el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: fadeMs, easing: 'ease-in', fill: 'forwards' });
+        zoom = outer.el.animate([{ transform: t }, { transform: 'none' }], { duration: zoomMs, easing: 'cubic-bezier(.45,0,.2,1)', fill: 'forwards' });
+    }
+    await Promise.all([zoom.finished, fade.finished]).catch(() => {});
+    doorView.cur = to;
+    doorView.stages.forEach((s, i) => { s.el.getAnimations().forEach(a => a.cancel()); s.el.style.transform = 'none'; s.el.style.opacity = i === to ? 1 : 0; });
+    doorRenderChips();
+}
+async function doorGoTo(target, token) {
+    if (!doorView || doorView.busy || doorView.editing) return;
+    doorView.busy = true;
+    try {
+        while (doorView && doorView.cur !== target && token === doorViewToken) {
+            const next = doorView.cur + (target > doorView.cur ? 1 : -1);
+            await doorZoomStep(doorView.cur, next);
+            if (doorView && doorView.cur !== target) await new Promise(r => setTimeout(r, 350));
+        }
+    } finally { if (doorView) doorView.busy = false; }
+}
+function doorRenderChips() {
+    const box = document.getElementById('doorViewChips');
+    if (!box || !doorView) return;
+    const multi = doorView.stages.length > 1;
+    box.innerHTML = (multi ? doorView.stages.map((s, i) => `<button type="button" class="door-view-chip${i === doorView.cur ? ' active' : ''}" data-door-stage="${i}">${escapeHtml(s.label)}</button>`).join('')
+        + `<button type="button" class="door-view-chip" data-door-replay="1" title="Play the zoom again">\u21bb Replay</button>` : '')
+        + (multi ? `<button type="button" class="door-view-chip door-view-admin" data-door-boxes="1" title="Admin: set where each closer view sits">Zoom boxes</button>` : '');
+}
 async function doorOpenView(id, fromEl) {
     const d = doorById(id);
     if (!d) return;
@@ -24920,10 +25040,13 @@ async function doorOpenView(id, fromEl) {
     const g = DOOR_GROUPS.find(x => x.id === d.group);
     document.getElementById('doorViewName').textContent = d.name;
     document.getElementById('doorViewWhere').textContent = g ? g.label : DOOR_LEVEL_NAMES[d.level];
-    const doc = doorPhoto(d);
+    document.getElementById('doorViewChips').innerHTML = '';
+    const docs = docsForSection('door-devices');
+    const found = DOOR_VIEWS.map(v => ({ v, doc: doorPhoto(d, docs, v.kind) })).filter(x => x.doc);
     const token = ++doorViewToken;
-    body.innerHTML = doc ? '<div class="door-view-na"><span>Loading photo\u2026</span></div>'
-        : `<div class="door-view-na"><b>N/A</b><span>No photo for this device yet.</span><span>Upload <code>${escapeHtml(doorPhotoFileName(d))}</code> with Upload Images.</span></div>`;
+    doorView = null;
+    body.innerHTML = found.length ? '<div class="door-view-na"><span>Loading photos\u2026</span></div>'
+        : `<div class="door-view-na"><b>N/A</b><span>No photo for this device yet.</span><span>Upload <code>${escapeHtml(doorPhotoFileName(d, ''))}</code> with Upload Images.</span></div>`;
     view.classList.remove('open');
     view.style.display = 'flex';
     if (fromEl) {
@@ -24933,18 +25056,115 @@ async function doorOpenView(id, fromEl) {
     } else card.style.transformOrigin = 'center';
     requestAnimationFrame(() => requestAnimationFrame(() => view.classList.add('open')));
     document.getElementById('doorViewClose').focus();
-    if (!doc) return;
-    let url = null;
-    try { url = await docsUrlFor(doc); } catch (e) { url = null; }
+    if (!found.length) return;
+    const stages = [];
+    for (const { v, doc } of found) {
+        let url = null;
+        try { url = await docsUrlFor(doc); } catch (e) { url = null; }
+        const im = url ? await doorLoadImg(url) : null;
+        if (im) stages.push({ kind: v.kind, label: v.label, url, w: im.naturalWidth, h: im.naturalHeight });
+    }
     if (token !== doorViewToken) return;
-    body.innerHTML = url ? `<img src="${escapeAttr(url)}" alt="${escapeAttr(d.name)}">`
-        : '<div class="door-view-na"><b>N/A</b><span>The photo couldn\u2019t be loaded right now \u2014 try again in a moment.</span></div>';
+    if (!stages.length) { body.innerHTML = '<div class="door-view-na"><b>N/A</b><span>The photos couldn\u2019t be loaded right now \u2014 try again in a moment.</span></div>'; return; }
+    body.innerHTML = '<div class="door-zoom-stage" id="doorZoomStage"></div>';
+    const stage = document.getElementById('doorZoomStage');
+    stages.forEach(s => { s.el = document.createElement('img'); s.el.src = s.url; s.el.alt = `${d.name} \u2014 ${s.label}`; s.el.className = 'door-zoom-img'; stage.appendChild(s.el); });
+    doorView = { d, stages, cur: 0, busy: false, editing: false };
+    doorLayoutStage();
+    // Let the card finish opening, then zoom all the way in.
+    setTimeout(() => doorGoTo(stages.length - 1, token), 700);
 }
 function doorCloseView() {
     const view = document.getElementById('doorView');
     view.classList.remove('open');
     doorViewToken++;
+    doorView = null;
     setTimeout(() => { if (!view.classList.contains('open')) view.style.display = 'none'; }, 330);
+}
+// Admin: Zoom Boxes — for each step (e.g. Wide -> Standard) drag/resize a
+// box on the outer photo over where the closer photo sits; the closer
+// photo shows faintly inside the box to line it up. The box keeps the
+// closer photo's shape, so the zoom lands exactly on it.
+function doorOpenBoxEditor() {
+    if (!doorView || doorView.busy) return;
+    if (!promptAdminPassword('set the zoom boxes')) return;
+    const st = doorView.stages, d = doorView.d;
+    const pairs = [];
+    for (let i = 0; i < st.length - 1; i++) pairs.push([st[i], st[i + 1]]);
+    const edits = {};
+    let pi = 0;
+    doorView.editing = true;
+    document.getElementById('doorViewChips').style.display = 'none';
+    const body = document.getElementById('doorViewBody');
+    const draw = () => {
+        const [A, B] = pairs[pi];
+        const key = doorZoomBoxKey(A.kind, B.kind);
+        const box = edits[key] ? { x: edits[key][0], y: edits[key][1], w: edits[key][2], h: edits[key][3] } : doorZoomBox(d, A, B);
+        body.innerHTML = `<div class="door-box-bar">${pairs.map((p, i) => `<button type="button" class="door-view-chip${i === pi ? ' active' : ''}" data-box-pair="${i}">${escapeHtml(p[0].label)} \u2192 ${escapeHtml(p[1].label)}</button>`).join('')}
+            <span class="door-box-hint">Drag the box over where the ${escapeHtml(B.label.toLowerCase())} photo sits; drag its corner to resize.</span>
+            <span style="margin-left:auto;display:flex;gap:6px;"><button type="button" class="door-view-chip" data-box-cancel="1">Cancel</button><button type="button" class="door-view-chip active" data-box-save="1">Save boxes</button></span></div>
+            <div class="door-zoom-stage door-box-stage" id="doorBoxStage"><img class="door-zoom-img" src="${escapeAttr(A.url)}" alt=""><div class="door-box" id="doorBox"><img src="${escapeAttr(B.url)}" alt=""><span class="door-box-handle" id="doorBoxHandle"></span></div></div>`;
+        const stage = document.getElementById('doorBoxStage');
+        const W = body.clientWidth, H = Math.max(220, Math.min(W * A.h / A.w, window.innerHeight - 230));
+        stage.style.width = W + 'px'; stage.style.height = H + 'px';
+        const r = doorFit(A.w, A.h, W, H);
+        Object.assign(stage.querySelector('.door-zoom-img').style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px', opacity: 1 });
+        const el = document.getElementById('doorBox');
+        const aspect = (B.w / B.h) / (A.w / A.h);
+        const place = () => Object.assign(el.style, { left: (r.x + box.x * r.w) + 'px', top: (r.y + box.y * r.h) + 'px', width: (box.w * r.w) + 'px', height: (box.h * r.h) + 'px' });
+        place();
+        let drag = null;
+        el.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            el.setPointerCapture(e.pointerId);
+            drag = { mode: e.target.id === 'doorBoxHandle' ? 'size' : 'move', x: e.clientX, y: e.clientY, box: Object.assign({}, box) };
+        });
+        el.addEventListener('pointermove', e => {
+            if (!drag) return;
+            const dx = (e.clientX - drag.x) / r.w, dy = (e.clientY - drag.y) / r.h;
+            if (drag.mode === 'move') {
+                box.x = Math.min(1 - box.w, Math.max(0, drag.box.x + dx));
+                box.y = Math.min(1 - box.h, Math.max(0, drag.box.y + dy));
+            } else {
+                let w = Math.max(0.03, drag.box.w + Math.max(dx, dy * aspect));
+                w = Math.min(w, 1 - box.x, (1 - box.y) * aspect);
+                box.w = w; box.h = w / aspect;
+            }
+            place();
+        });
+        const end = () => { if (drag) { drag = null; edits[key] = [box.x, box.y, box.w, box.h].map(v => Math.round(v * 10000) / 10000); } };
+        el.addEventListener('pointerup', end);
+        el.addEventListener('pointercancel', end);
+    };
+    body.onclick = async e => {
+        const p = e.target.closest('[data-box-pair]');
+        if (p) { pi = +p.getAttribute('data-box-pair'); draw(); return; }
+        if (e.target.closest('[data-box-cancel]')) { finish(); return; }
+        if (e.target.closest('[data-box-save]')) {
+            const bar = body.querySelector('.door-box-hint');
+            bar.textContent = 'Saving\u2026';
+            const ok = await doorWrite('zoom', base => {
+                const next = Object.assign({}, base && !Array.isArray(base) ? base : {});
+                next[d.id] = Object.assign({}, next[d.id], edits);
+                return next;
+            });
+            if (!ok) { bar.textContent = 'Couldn\u2019t reach the shared backend \u2014 try Save again.'; return; }
+            finish();
+        }
+    };
+    const finish = () => {
+        body.onclick = null;
+        document.getElementById('doorViewChips').style.display = '';
+        if (!doorView) return;
+        doorView.editing = false;
+        body.innerHTML = '<div class="door-zoom-stage" id="doorZoomStage"></div>';
+        const stage = document.getElementById('doorZoomStage');
+        doorView.stages.forEach(s => stage.appendChild(s.el));
+        doorView.cur = 0;
+        doorLayoutStage();
+        setTimeout(() => doorGoTo(doorView.stages.length - 1, doorViewToken), 300);
+    };
+    draw();
 }
 function doorSvgPoint(svgEl, e) {
     const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(svgEl.getScreenCTM().inverse());
@@ -25060,7 +25280,7 @@ function doorSvgPoint(svgEl, e) {
     panel.addEventListener('pointercancel', endDrag);
     document.getElementById('doorSearch').addEventListener('input', e => { doorSearch = e.target.value; renderDoors(); });
     // Device photos (temporary uploader)
-    document.getElementById('doorNeededList').addEventListener('click', async e => {
+    document.getElementById('doorNeededBox').addEventListener('click', async e => {
         const b = e.target.closest('[data-door-copy]');
         if (!b) return;
         try { await navigator.clipboard.writeText(b.getAttribute('data-door-copy')); b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy'; }, 1200); } catch (err) {}
@@ -25076,24 +25296,40 @@ function doorSvgPoint(svgEl, e) {
         const devices = doorDevices();
         for (let i = 0; i < files.length; i++) {
             const f = files[i];
-            const d = devices.find(x => doorPhotoKey(x.name) === doorPhotoKey(f.name));
+            const parsed = doorPhotoParse(/^\s*door\s*[-_]/i.test(f.name) ? f.name : 'DOOR-' + f.name);
+            const d = parsed && devices.find(x => doorPhotoKey(x.name) === parsed.key);
             if (!d) { lines.push(`<div class="bad">\u2717 ${escapeHtml(f.name)} \u2014 no device by that name (check the spelling).</div>`); show(); continue; }
+            const kind = parsed.kind, label = (DOOR_VIEWS.find(v => v.kind === kind) || {}).label;
             lines.push(`<div>Uploading ${i + 1} of ${files.length}: ${escapeHtml(f.name)}\u2026</div>`); show();
-            const file = await doorShrinkPhoto(f, doorPhotoFileName(d));
-            const existing = doorPhoto(d);
+            const file = await doorShrinkPhoto(f, doorPhotoFileName(d, kind));
+            const existing = doorPhoto(d, null, kind);
             let ok = false;
             try {
-                ok = existing && existing.uploadId ? await docsReplaceDocFile(existing, file) : await docsAddNewFile(file, `DOOR-${d.name}`, 'door-devices', 'full');
+                ok = existing && existing.uploadId ? await docsReplaceDocFile(existing, file) : await docsAddNewFile(file, doorPhotoFileName(d, kind).replace(/\.jpg$/, ''), 'door-devices', 'full');
             } catch (err) { ok = false; }
             lines[lines.length - 1] = ok
-                ? `<div class="ok">\u2713 ${escapeHtml(d.name)}${existing ? ' (replaced)' : ''}</div>`
+                ? `<div class="ok">\u2713 ${escapeHtml(d.name)} \u00b7 ${escapeHtml(label)}${existing ? ' (replaced)' : ''}</div>`
                 : `<div class="bad">\u2717 ${escapeHtml(d.name)} \u2014 saved on this device only; it will finish sharing when the backend is reachable.</div>`;
             show();
             renderDoors();
         }
     });
     document.getElementById('doorViewClose').addEventListener('click', doorCloseView);
-    document.getElementById('doorView').addEventListener('click', e => { if (e.target.id === 'doorView') doorCloseView(); });
+    document.getElementById('doorViewChips').addEventListener('click', e => {
+        const st = e.target.closest('[data-door-stage]');
+        if (st) { doorGoTo(+st.getAttribute('data-door-stage'), doorViewToken); return; }
+        if (e.target.closest('[data-door-replay]') && doorView && !doorView.busy) {
+            doorView.cur = 0; doorLayoutStage();
+            setTimeout(() => doorGoTo(doorView.stages.length - 1, doorViewToken), 350);
+            return;
+        }
+        if (e.target.closest('[data-door-boxes]')) doorOpenBoxEditor();
+    });
+    window.addEventListener('resize', () => { if (doorView && !doorView.busy && !doorView.editing) doorLayoutStage(); });
+    // Backdrop closes only when the click starts there too (not at the end of a drag).
+    let doorViewDownOnBackdrop = false;
+    document.getElementById('doorView').addEventListener('pointerdown', e => { doorViewDownOnBackdrop = e.target.id === 'doorView'; });
+    document.getElementById('doorView').addEventListener('click', e => { if (e.target.id === 'doorView' && doorViewDownOnBackdrop) doorCloseView(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('doorView').style.display !== 'none') doorCloseView(); });
     // Named keys
     document.getElementById('doorKeySelect').addEventListener('change', e => {
