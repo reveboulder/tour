@@ -3923,6 +3923,7 @@
                 </div>
             </div>
             <button type="button" class="btn primary" id="renewalGenerateBtn" disabled style="width:100%;">Generate Renewal Offer PDF</button>
+            <div class="save-note" id="renewalDriveNote" aria-live="polite"></div>
         </div>
     </div>
 
@@ -9010,7 +9011,9 @@ document.getElementById('renewalGenerateBtn').addEventListener('click', async ()
 
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pageW, pageH], compress: true });
         pdf.addImage(imgData, 'JPEG', x, y, wPt, hPt);
-        pdf.save(`renewal-offer-apt-${unitRec.unit}.pdf`);
+        const title = roArchiveName(unitRec.unit, residentName);
+        pdf.save(title + '.pdf');
+        roArchive(title, pdf.output('blob'));
     } catch (err) {
         alert('Could not generate the renewal offer PDF. Please try again.');
     } finally {
@@ -16994,6 +16997,52 @@ async function wlArchive(wlKey, blob) {
         }
     } catch (err) { console.error('Welcome Letter archive failed', err); }
 }
+/* Every generated Renewal Offer is kept in Documents › Renewal Offers as
+   "Renewal Offer - Apartment <unit>_<Lastname>" (the downloaded file has
+   the same name; a newer one with the same name replaces the older) and
+   filed as a PDF in the Google Drive folder "Renewal Offers" by the
+   backend script (v6). Runs in the background. */
+function roArchiveName(unit, residentName) {
+    const last = String(residentName || '').split(/[,&]| and /i)[0].trim().split(/\s+/).slice(-1)[0] || 'Resident';
+    return `Renewal Offer - Apartment ${unit}_${last}`.replace(/[\\/:*?"<>|]+/g, '-');
+}
+async function roArchive(title, blob) {
+    try {
+        const file = new File([blob], title + '.pdf', { type: 'application/pdf' });
+        const b64 = await docsReadBase64(file);
+        const now = new Date().toISOString(), fileId = docsNewId();
+        const current = DOC_UPLOADS.find(u => u.section === 'renewal-offers' && !u.replaces && u.title === title);
+        const entry = current
+            ? Object.assign({}, current, { fileId, name: file.name, size: file.size, mime: 'application/pdf', updated: now })
+            : { id: docsNewId(), section: 'renewal-offers', title, name: file.name, size: file.size, mime: 'application/pdf', print: 'full', added: now };
+        delete entry.localOnly;
+        const oldFileId = current ? (current.fileId || current.id) : null;
+        await docsCachePut(entry.fileId || entry.id, b64);
+        const shared = await docsRunShare(entry, b64, current ? 'Updating' : 'Saving');
+        if (shared && oldFileId) { backendPush(`document-file-${oldFileId}`, null); backendPush(`document-thumb-${oldFileId}`, null); docsForgetFile(oldFileId); }
+        if (docsCurrentSection === 'renewal-offers') renderDocuments();
+        // The PDF itself into Google Drive › Renewal Offers.
+        const note = document.getElementById('renewalDriveNote');
+        if (BACKEND_URL && APP_MODE !== 'test') {
+            const key = 'ro-drive-' + entry.id;
+            docsSyncCard(key, 'working', `Filing \u201c${title}\u201d in Google Drive`, 'Renewal Offers folder\u2026', 0.3);
+            if (note) { note.className = 'save-note saving'; note.textContent = `Saving \u201c${title}\u201d to Documents and Google Drive\u2026`; }
+            let j = null;
+            try { const res = await fetch(BACKEND_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'archiveRenewalOffer', name: file.name, pdf: b64 }) }); j = res.ok ? await res.json().catch(() => null) : null; } catch (e) { j = null; }
+            const needsUpdate = j && !j.ok && (j.error === 'missing key' || /unknown action/i.test(j.error || ''));
+            if (j && j.ok) docsSyncCard(key, 'ok', `Filed \u201c${title}\u201d`, `Google Drive \u203a Renewal Offers${j.replaced ? ' (replaced the older copy)' : ''}`);
+            else docsSyncCard(key, 'error', `Not filed in Google Drive: \u201c${title}\u201d`, needsUpdate ? 'The backend script needs the v6 update (Renewal Offers folder). It\u2019s still saved in Documents.' : 'Couldn\u2019t reach the backend. It\u2019s still saved in Documents.');
+            if (note) {
+                note.className = 'save-note ' + (j && j.ok ? 'saved' : 'failed');
+                if (j && j.ok) note.innerHTML = `Saved to Documents \u203a Renewal Offers and Google Drive \u203a Renewal Offers \u203a ${j.url ? `<a href="${escapeAttr(j.url)}" target="_blank" rel="noopener">${escapeHtml(j.name || title)}</a>` : escapeHtml(title)}`;
+                else note.textContent = `Saved to Documents \u203a Renewal Offers${shared ? '' : ' (this device only for now)'}; ${needsUpdate ? 'not filed in Google Drive \u2014 the backend script needs the v6 update.' : 'couldn\u2019t reach Google Drive.'}`;
+            }
+        } else if (note) {
+            note.className = 'save-note saved';
+            note.textContent = `Saved to Documents \u203a Renewal Offers.`;
+        }
+    } catch (err) { console.error('Renewal Offer archive failed', err); }
+}
 // Builds the Welcome Letter PDF for a record -> { pdf (jsPDF), name }.
 // Used by "Download WL PDF" and to attach the letter to the email draft.
 async function wlBuildPdf(wlKey) {
@@ -19322,6 +19371,8 @@ const DOC_SECTIONS = [
     { id: 'welcome-letters', label: 'Welcome Letters', docs: [], list: true, row2: true },
     // Each uploaded daily pricing sheet (Tour tab) is kept here as M.D.YY.CSV.
     { id: 'pricing', label: 'Pricing', docs: [], list: true, row2: true },
+    // Every Renewal Offer generated on the Renewals tab is kept here.
+    { id: 'renewal-offers', label: 'Renewal Offers', docs: [], list: true, row2: true },
     { id: 'other', label: 'Other', docs: [], list: true }
 ];
 const DOCS_UPLOADS_KEY = 'reve-documents-uploads';
