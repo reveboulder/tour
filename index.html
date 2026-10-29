@@ -7652,6 +7652,22 @@ function renderTourBar() {
     document.getElementById('exportPdfBtn').textContent = t && selectedUnits.length > 1 ? 'Download PDFs (one per unit)' : 'Download PDF';
     renderUnitTabs();
 }
+// A completed tour is one show in MMR › Weekly Traffic Detail, under
+// "Pending": "Jane Doe - 1-Bed." (the kinds of units toured), with
+// details to add by hand. Each tour is added once.
+const TOUR_MMR_REASON = 'Pending';
+function tourMmrSentence(t) {
+    const name = String(t.name || '').trim().split(/\s+/).filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Prospect';
+    const kinds = [];
+    (t.units || []).forEach(u => { const k = byUnit[u] && unitTypeCategory(byUnit[u]); if (k && !kinds.includes(k)) kinds.push(k); });
+    return `${name} - ${kinds.length ? kinds.join(' / ') : 'Toured'}.`;
+}
+async function tourAddToMmr(t) {
+    if (!t || !t.completed || t.mmrAdded) return;
+    let ok = false;
+    try { ok = await mmrTrafficAppend(TOUR_MMR_REASON, tourMmrSentence(t)); } catch (e) { ok = false; }
+    if (ok) { t.mmrAdded = true; toursSave(); }
+}
 // "the 1-Bedroom and Studio apartments", "the 2-Bedroom apartment", ...
 function tourApartmentsPhrase(units) {
     const names = { 'Studio': 'Studio', '1-Bed': '1-Bedroom', '2-Bed': '2-Bedroom', '3-Bed': '3-Bedroom', 'Townhome': 'Townhome', 'Live/Work': 'Live/Work', 'Penthouse': 'Penthouse' };
@@ -7706,6 +7722,7 @@ async function tourComplete() {
         t.completed = true;
         toursSave();
         renderTourBar();
+        tourAddToMmr(t);
     } catch (err) {
         console.error(err);
         alert('Could not build the tour email. Please try again.');
@@ -7739,6 +7756,8 @@ async function tourComplete() {
         }
     });
     document.getElementById('ttExit').addEventListener('click', tourExit);
+    // Completed tours not yet in the MMR (e.g. the backend was unreachable): add them.
+    setTimeout(() => TOURS.list.filter(t => t.completed && !t.mmrAdded).forEach(tourAddToMmr), 6000);
     // Filter changes in a tour are that person's preferences: keep them.
     const saveSoon = () => setTimeout(tourSaveActive, 0);
     document.querySelector('#tab-tour .filter-icon-bar').addEventListener('click', saveSoon);
@@ -12159,14 +12178,19 @@ const MMR_KEEP_ON_CLEAR = ['modelGuest', 'downUnits'];
 document.getElementById('mmrClearAllBtn').addEventListener('click', async () => {
     const r = await appDialog({ title: 'Clear All for a new week?', text: 'Clears Weekly Stats (except Model/Guest Suite and Down Units), New Leases, Unit Renewals and Weekly Traffic Detail for everyone. This can\u2019t be undone.', ok: 'Clear All' });
     if (!r) return;
+    mmrClearAllNow(mmrNextSundayFromTemplate());
+    document.getElementById('mmrSaveStatus').textContent = 'Cleared for a new week.';
+});
+// Clears the MMR for a new week (Clear All, and the Monday 9:00 clear).
+// nextDate (yyyy-mm-dd), if given, becomes the new report Date.
+function mmrClearAllNow(nextDate) {
     MMR_FIELDS.forEach(f => {
         if (MMR_KEEP_ON_CLEAR.includes(f)) return;
         MMR_DATA[f] = '';
         const el = document.getElementById(MMR_FIELD_TO_ID[f]);
         if (el) el.value = '';
     });
-    const next = mmrNextSundayFromTemplate();
-    if (next) { MMR_DATA.date = next; document.getElementById('mmrDate').value = next; }
+    if (nextDate) { MMR_DATA.date = nextDate; document.getElementById('mmrDate').value = nextDate; }
     persistMMRLocal();
     recomputeMMR();
     if (BACKEND_URL && APP_MODE !== 'test') backendPush(MMR_BACKEND_KEY, MMR_DATA);
@@ -12174,10 +12198,75 @@ document.getElementById('mmrClearAllBtn').addEventListener('click', async () => 
     mmrRenewalController.clearAll();
     MMR_TRAFFIC = {};
     mmrTrafficPersistLocal();
-    mmrTrafficPushDebounced();
+    if (BACKEND_URL && APP_MODE !== 'test') backendPush(MMR_TRAFFIC_BACKEND_KEY, MMR_TRAFFIC);
     renderMmrTraffic();
-    document.getElementById('mmrSaveStatus').textContent = 'Cleared for a new week.';
-});
+}
+/* Every Monday at 9:00 am (Mountain Time) the MMR clears itself for the
+   new week, once for the whole team: the first browser open after that
+   time claims the week in the shared key 'mmr-auto-clear', saves last
+   week's MMR to 'mmr-last-week-backup', clears, and sets Date to the
+   coming Sunday. The very first run only starts the count (clears
+   nothing). */
+const MMR_AUTO_KEY = 'mmr-auto-clear', MMR_AUTO_LOCAL = 'reve-mmr-auto-clear', MMR_BACKUP_KEY = 'mmr-last-week-backup';
+function mmrDenverParts(d) {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', hourCycle: 'h23', weekday: 'short' })
+        .formatToParts(d || new Date()).map(x => [x.type, x.value]));
+    return { y: +p.year, m: +p.month, d: +p.day, hour: +p.hour, dow: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.weekday) };
+}
+function mmrIsoUtc(y, m, d) { return new Date(Date.UTC(y, m - 1, d)).toISOString().slice(0, 10); }
+// The Monday (yyyy-mm-dd) whose 9:00 am started the current MMR week.
+function mmrCurrentWeekMonday(now) {
+    const t = mmrDenverParts(now);
+    let back = (t.dow + 6) % 7;            // days since Monday
+    if (t.dow === 1 && t.hour < 9) back = 7;  // Monday before 9: still last week
+    return mmrIsoUtc(t.y, t.m, t.d - back);
+}
+let mmrAutoBusy = false;
+async function mmrAutoClearCheck() {
+    if (mmrAutoBusy || APP_MODE === 'test') return;
+    mmrAutoBusy = true;
+    try {
+        const week = mmrCurrentWeekMonday();
+        const shared = !!BACKEND_URL;
+        let mark = null;
+        if (shared) { mark = await backendPullChecked(MMR_AUTO_KEY); if (mark === undefined) return; }
+        else { try { mark = JSON.parse(localStorage.getItem(MMR_AUTO_LOCAL) || 'null'); } catch (e) { mark = null; } }
+        const save = async v => {
+            if (!shared) { try { localStorage.setItem(MMR_AUTO_LOCAL, JSON.stringify(v)); } catch (e) {} return true; }
+            return (await backendPushVerified(MMR_AUTO_KEY, v, b => !!b && b.week === v.week)).ok;
+        };
+        if (!mark || !mark.week) { await save({ week, at: new Date().toISOString(), started: true }); return; }
+        if (mark.week >= week) return;
+        if (!(await save({ week, at: new Date().toISOString() }))) return;   // claimed: this browser clears
+        if (shared) {
+            await Promise.all([pullMMRFromBackend(), mmrNewLeaseController.pullFromBackend(), mmrRenewalController.pullFromBackend(), pullMmrTrafficFromBackend()]).catch(() => {});
+            await backendPush(MMR_BACKUP_KEY, { week: mark.week, savedAt: new Date().toISOString(), weekly: MMR_DATA, newLeases: mmrNewLeaseController.getRows(), renewals: mmrRenewalController.getRows(), traffic: MMR_TRAFFIC });
+        }
+        const [y, m, d] = week.split('-').map(Number);
+        mmrClearAllNow(mmrIsoUtc(y, m, d + 6));   // report Date: the coming Sunday
+        const note = document.getElementById('mmrSaveStatus');
+        if (note) note.textContent = `Cleared automatically for the week of ${m}/${d} (Monday 9:00 am). Last week\u2019s MMR was backed up.`;
+    } finally { mmrAutoBusy = false; }
+}
+setTimeout(mmrAutoClearCheck, 8000);
+setInterval(mmrAutoClearCheck, 5 * 60 * 1000);
+// Adds a sentence to a Weekly Traffic Detail reason, on top of the
+// backend's latest copy (so teammates' notes aren't overwritten).
+async function mmrTrafficAppend(reason, sentence) {
+    const shared = BACKEND_URL && APP_MODE !== 'test';
+    let base = MMR_TRAFFIC;
+    if (shared) { const r = await backendPullChecked(MMR_TRAFFIC_BACKEND_KEY); if (r === undefined) return false; base = r && typeof r === 'object' ? r : {}; }
+    const row = Object.assign({}, base[reason]);
+    const cur = String(row.comments || '');
+    if (cur.includes(sentence)) return true;
+    row.comments = cur.trim() ? cur.replace(/\s+$/, '') + ' ' + sentence : sentence;
+    const n = mmrTrafficCount(row.comments);
+    row.shows = n ? String(n) : '';
+    MMR_TRAFFIC = Object.assign({}, base, { [reason]: row });
+    mmrTrafficPersistLocal();
+    if (!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#mmrTrafficBody'))) renderMmrTraffic();
+    return shared ? backendPush(MMR_TRAFFIC_BACKEND_KEY, MMR_TRAFFIC) : true;
+}
 let MMR_TEMPLATE_NAME = '';
 // The uploaded MMR's week: from its file name ("..._2026_10_18.xlsx",
 // "2026-10-18", "10.18.26") or else its Weekly Stats Date cell (B1).
