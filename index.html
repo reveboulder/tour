@@ -1093,9 +1093,12 @@
         background: transparent;
         font-family: var(--sans);
         font-size: 12px;
-        resize: vertical;
+        line-height: 1.4;
+        resize: none;
+        overflow: hidden;
         padding: 3px;
         min-height: 34px;
+        box-sizing: border-box;
     }
     .renewal-notes-input:focus { outline: 1px solid var(--reve-orange); background: #fff; border-radius: 3px; }
     .renewal-notes-wrap { position: relative; }
@@ -1683,7 +1686,7 @@
         .bp-viewport { height: 60vh; }
     }
     /* -- Lease › Sample lease questions -- */
-    .ls-card { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 12px 14px; margin: -8px 0 20px; max-width: 900px; }
+    .ls-card { border: 1px solid var(--line); border-radius: 10px; background: #ecebe7; border-color: #d6d2c8; padding: 12px 14px; margin: -8px 0 20px; max-width: 900px; }
     .ls-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .ls-file { font-size: 12.5px; font-weight: 700; }
     .ls-status { margin: 6px 0 0; min-height: 0; }
@@ -1959,11 +1962,13 @@
     .tn-top2 { margin-bottom: 10px; }
     .tn-daypanel { flex: 1 1 380px; min-width: 0; max-width: 900px; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; min-height: 0; }
     .tn-today-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
-    .tn-today-label { font-size: 13px; font-weight: 700; }
+    /* Fixed width (the longest day name fits), so the arrows never move while clicking through days. */
+    .tn-today-label { font-size: 13px; font-weight: 700; width: 10em; text-align: center; white-space: nowrap; flex: none; }
     .tn-today-tag { display: inline-block; background: var(--reve-orange); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 4px; padding: 1px 6px; margin-right: 6px; vertical-align: 1px; }
     .tn-today-reset { border: 0; background: transparent; color: var(--reve-orange); font: inherit; font-size: 11.5px; font-weight: 600; cursor: pointer; padding: 0 4px; }
     .tn-today-reset:hover { text-decoration: underline; }
-    .tn-today-sum { margin-left: auto; font-size: 11px; color: var(--ink-soft); }
+    .tn-today-right { margin-left: auto; display: flex; align-items: center; gap: 0; }
+    .tn-today-sum { font-size: 11px; color: var(--ink-soft); }
     .tn-today-list { flex: 1 1 0; min-height: 120px; max-height: 196px; overflow-y: auto; }
     .tn-today-list .cal-unit-card { padding: 6px 10px; margin-bottom: 5px; gap: 10px; }
     .tn-today-list .cal-unit-card-main { font-size: 12.5px; }
@@ -3981,7 +3986,7 @@
                 <span class="tn-today-label" id="tnTodayLabel"></span>
                 <button type="button" class="tn-mini-nav" id="tnTodayNext" title="Next day">&rsaquo;</button>
                 <button type="button" class="tn-today-reset" id="tnTodayReset">Back to today</button>
-                <span class="tn-today-sum" id="tnTodaySum"></span>
+                <span class="tn-today-right"><span class="tn-today-tag" id="tnTodayTag">Today</span><span class="tn-today-sum" id="tnTodaySum"></span></span>
             </div>
             <div class="tn-today-list" id="tnTodayList"></div>
         </div>
@@ -4106,7 +4111,7 @@
 
     <div class="res-checkin-card" id="resCheckIn">
         <div class="res-checkin-h">Check In</div>
-        <div class="res-checkin-sub">Move-ins in the next 7 days &mdash; click one for its DOOR email draft</div>
+        <div class="res-checkin-sub">Move-ins in the next 14 days &mdash; click one for its DOOR email draft</div>
         <div class="res-checkin-list" id="resCheckInList"></div>
     </div>
 
@@ -6226,9 +6231,18 @@ function chipFilterLabel(arr, fmt, fallback) {
     if (!arr.length) return fallback;
     return arr.length === 1 ? fmt(arr[0]) : `${fmt(arr[0])} +${arr.length - 1}`;
 }
+// Every apartment has a balcony except the S2 and S4 floorplans and, of
+// the two S3s, Apt 1422 (1322 does have one).
+function unitHasBalcony(u) {
+    if (!u) return false;
+    const fp = String(u.floorplan || '').toUpperCase();
+    return !(fp === 'S2' || fp === 'S4' || u.unit === '1422');
+}
+const UNIT_AMENITIES = ['Mountain View', 'Corner Unit', 'Balcony'];
 function unitMatchesAmenity(u, amenity) {
     if (amenity === 'Mountain View') return isMountainView(u);
     if (amenity === 'Corner Unit') return CORNER_UNITS.has(u.unit);
+    if (amenity === 'Balcony') return unitHasBalcony(u);
     return true;
 }
 
@@ -6254,7 +6268,7 @@ function buildChipRow(box, values, labelFn, getActive, setActive) {
 buildChipRow(bldgFilterBox, buildings, b => b.replace('Bldg ', 'Building '), () => activeBldgFilter, v => activeBldgFilter = v);
 buildChipRow(floorFilterBox, floors, f => `Floor ${f}`, () => activeFloorFilter, v => activeFloorFilter = v);
 buildChipRow(typeFilterBox, typeOrder, t => t, () => activeTypeFilter, v => activeTypeFilter = v);
-buildChipRow(viewFilterBox, ['Mountain View', 'Corner Unit'], v => v, () => activeAmenity, v => activeAmenity = v);
+buildChipRow(viewFilterBox, UNIT_AMENITIES, v => v, () => activeAmenity, v => activeAmenity = v);
 
 /* Floorplan filter: unique "Web FP" (roster floorplan) codes among units
    that are actually in today's uploaded pricing sheet — i.e. the join is
@@ -7530,6 +7544,7 @@ function switchTab(name) {
     if (name === 'turns' && typeof renderTurns === 'function') renderTurns();
     if (name === 'wl') wlEnsureFormVisible();
     if (name === 'lease' && typeof lsOnShow === 'function') lsOnShow();
+    if (name === 'renewals') requestAnimationFrame(renewalNotesFitAll);
     if (name === 'admin' && !adminUnlocked) adminAuthLoad();
     if (name === 'media' && typeof renderSitemap === 'function') renderSitemap();
     if (name === 'howto' && typeof renderHowTo === 'function') renderHowTo();
@@ -7591,7 +7606,7 @@ let activeAvailType = [], activeAvailFloorplan = [], activeAvailFloor = [], acti
 
 const availTypeBox = document.getElementById('availTypeFilters');
 buildFilterChips(availTypeBox, typeOrderPH, t => t, () => activeAvailType, v => activeAvailType = v, renderCalendar, updateAvailCaptionStates);
-buildFilterChips(document.getElementById('availAmenityFilters'), ['Mountain View', 'Corner Unit'], v => v, () => activeAvailAmenity, v => activeAvailAmenity = v, renderCalendar, updateAvailCaptionStates);
+buildFilterChips(document.getElementById('availAmenityFilters'), UNIT_AMENITIES, v => v, () => activeAvailAmenity, v => activeAvailAmenity = v, renderCalendar, updateAvailCaptionStates);
 
 function updateAvailCaptionStates() {
     const sqftMin = document.getElementById('availSqftMin').value.trim();
@@ -8277,7 +8292,7 @@ function rebuildExpiringFilters() {
     activeExpBldg = activeExpBldg.filter(b => bldgCodes.includes(b));
 
     buildFilterChips(document.getElementById('expTypeFilters'), typeOrderPH, t => t, () => activeExpType, v => activeExpType = v, renderExpiringList, updateExpCaptionStates);
-    buildFilterChips(document.getElementById('expAmenityFilters'), ['Mountain View', 'Corner Unit'], v => v, () => activeExpAmenity, v => activeExpAmenity = v, renderExpiringList, updateExpCaptionStates);
+    buildFilterChips(document.getElementById('expAmenityFilters'), UNIT_AMENITIES, v => v, () => activeExpAmenity, v => activeExpAmenity = v, renderExpiringList, updateExpCaptionStates);
 
     const nameBox = document.getElementById('expNameFilters');
     if (floorplanCodes.length) {
@@ -8339,7 +8354,7 @@ function renderExpiringList() {
             const u = byUnit[r.unit];
             if (!u || !activeExpType.includes(unitTypeCategoryPH(u))) return false;
         }
-        if (activeExpAmenity.length && !activeExpAmenity.some(a => a === 'Mountain View' ? MOUNTAIN_VIEW_UNITS.has(r.unit) : CORNER_UNITS.has(r.unit))) return false;
+        if (activeExpAmenity.length && !activeExpAmenity.some(a => unitMatchesAmenity(byUnit[r.unit] || { unit: r.unit }, a))) return false;
         return true;
     });
 
@@ -8686,7 +8701,9 @@ function renderRenewalTable() {
     });
     [...mount.querySelectorAll('.renewal-notes-input')].forEach(inp => {
         const ghost = inp.parentElement.querySelector('.renewal-notes-ghost');
+        renewalNoteFit(inp);
         inp.addEventListener('input', (e) => {
+            renewalNoteFit(e.target);
             const tr = e.target.closest('tr');
             const unit = tr.getAttribute('data-unit');
             const state = RENEWAL_STATE[unit] = RENEWAL_STATE[unit] || { renewed: false, notice: false, notes: '' };
@@ -8707,6 +8724,7 @@ function renderRenewalTable() {
             ghost.innerHTML = '';
             delete ghost.dataset.suggestion;
             inp.setSelectionRange(full.length, full.length);
+            renewalNoteFit(inp);
         });
         inp.addEventListener('blur', () => { ghost.innerHTML = ''; delete ghost.dataset.suggestion; });
     });
@@ -8717,6 +8735,14 @@ function renderRenewalTable() {
 // of these (case-insensitive) — Tab accepts it, any other key just
 // continues typing normally and the suggestion re-evaluates.
 const RENEWAL_NOTE_SUGGESTIONS = ['lease is out for signature'];
+// Notes boxes grow to show all their text (and the row with them). Hidden
+// boxes have no size yet, so they're fitted again when Renewals opens.
+function renewalNoteFit(ta) {
+    if (!ta.offsetParent) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(34, ta.scrollHeight + 2) + 'px';
+}
+function renewalNotesFitAll() { document.querySelectorAll('.renewal-notes-input').forEach(renewalNoteFit); }
 function updateNoteGhost(textarea, ghostEl) {
     const val = textarea.value;
     const lower = val.toLowerCase();
@@ -15205,10 +15231,10 @@ function renderPropertyCard() {
     setTimeout(propSync, 0);
 })();
 
-// ---- Check In card: move-ins from today through the next 7 days ----
+// ---- Check In card: move-ins from today through the next 14 days ----
 function resIsoDay(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 function resCheckInRows() {
-    const t = new Date(), from = resIsoDay(t), to = resIsoDay(new Date(t.getFullYear(), t.getMonth(), t.getDate() + 7));
+    const t = new Date(), from = resIsoDay(t), to = resIsoDay(new Date(t.getFullYear(), t.getMonth(), t.getDate() + 14));
     return Object.keys(RESIDENT_ROWS).map(id => ({ id, r: RESIDENT_ROWS[id] }))
         .filter(({ r }) => !r.deleted && !r.movedIn && r.moveInDate && r.moveInDate >= from && r.moveInDate <= to)
         .sort((a, b) => a.r.moveInDate.localeCompare(b.r.moveInDate) || String(a.r.unit || '').localeCompare(String(b.r.unit || '')));
@@ -15225,7 +15251,7 @@ function renderResCheckIn() {
         const who = `${r.first || ''} ${r.last || ''}`.trim() || '\u2014';
         return `<button type="button" class="res-checkin-item${r.moveInDate === resCheckInDay ? ' today' : ''}" data-checkin-id="${escapeAttr(id)}" title="Create the Check In email draft for ${escapeAttr(who)}">
             <span class="res-checkin-unit">${escapeHtml(r.unit || '?')}</span><span class="res-checkin-who">${escapeHtml(who)}<small>${escapeHtml(when)}</small></span><span aria-hidden="true">\u2709</span></button>`;
-    }).join('') || '<div class="empty-note" style="margin:0;">No move-ins in the next 7 days.</div>';
+    }).join('') || '<div class="empty-note" style="margin:0;">No move-ins in the next 14 days.</div>';
 }
 // "Tuesday, October 21st"
 function resLongDate(iso) {
@@ -16051,7 +16077,8 @@ function renderTurnToday(byDate) {
     const el = document.getElementById('tnTodayList');
     if (!el) return;
     const iso = turnIsoOf(turnPanelDate), list = byDate[iso] || [], isToday = iso === turnTodayIso();
-    document.getElementById('tnTodayLabel').innerHTML = (isToday ? '<span class="tn-today-tag">Today</span>' : '') + escapeHtml(turnPanelDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }));
+    document.getElementById('tnTodayLabel').textContent = turnPanelDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    document.getElementById('tnTodayTag').style.display = isToday ? '' : 'none';
     document.getElementById('tnTodayReset').style.visibility = isToday ? 'hidden' : '';
     const open = list.filter(e => !e.done).length, late = list.filter(e => e.state === 'late').length;
     document.getElementById('tnTodaySum').innerHTML = list.length ? `<b>${list.length}</b> item${list.length === 1 ? '' : 's'} &middot; <b>${open}</b> open${late ? ` &middot; <b style="color:#d00">${late}</b> past due` : ''}` : '';
@@ -18474,6 +18501,7 @@ function unitAmenityTag(u) {
     const tags = [];
     if (MOUNTAIN_VIEW_UNITS.has(u.unit)) tags.push('MV');
     if (CORNER_UNITS.has(u.unit)) tags.push('Corner');
+    if (unitHasBalcony(u)) tags.push('Balcony');
     return tags.length ? tags.join(', ') : '-';
 }
 
