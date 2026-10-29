@@ -2235,7 +2235,6 @@
     .tt-active { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 10px; margin: -4px 0 12px; border-radius: 8px; background: rgba(222,84,38,.1); border: 1px solid var(--reve-orange); font-size: 13px; }
     .tt-active-btns { margin-left: auto; display: flex; gap: 6px; }
     .tt-active-btns .btn { width: auto; flex: none; padding: 6px 14px; }
-    #tab-tour.touring #addUnitBtn { display: none; }
     body.dark-mode .tt-chip { background: var(--dm-card-alt); }
     .docs-tab-row-sub { padding-left: 14px; border-left: 3px solid var(--line); }
     .docs-tab-row-sub .wl-subtab { font-size: 12px; padding: 5px 12px; }
@@ -3467,19 +3466,6 @@
 
         <div class="editor-scroll">
 
-            <div class="tt-bar" id="ttBar">
-                <span class="tt-label">Today&rsquo;s Tours:</span>
-                <span class="tt-list" id="ttList"></span>
-                <button type="button" class="tt-add" id="ttAdd">+ Add</button>
-            </div>
-            <div class="tt-active" id="ttActive" style="display:none;">
-                <span id="ttActiveText"></span>
-                <span class="tt-active-btns">
-                    <button type="button" class="btn primary" id="ttComplete">Complete Tour</button>
-                    <button type="button" class="btn" id="ttExit" title="Back to the regular Tour view; this tour is kept">Done</button>
-                </span>
-            </div>
-
             <div class="concession-banner">
                 <div class="concession-banner-text"><b>Current Concession:</b> <span id="concessionSummaryText">None set</span></div>
                 <button type="button" class="btn" id="concessionEditBtn" style="width:auto;padding:6px 12px;">Edit</button>
@@ -3495,6 +3481,20 @@
                 <button type="button" class="pricing-clear" id="pricingClearBtn" style="display:none;">Clear pricing sheet</button>
                 <div class="save-note" data-save-keys="pricing-summary" aria-live="polite"></div>
                 <div class="save-note" id="pricingDriveNote" aria-live="polite"></div>
+            </div>
+
+            <div class="tt-bar" id="ttBar">
+                <span class="tt-label">Today&rsquo;s Tours:</span>
+                <span class="tt-list" id="ttList"></span>
+                <button type="button" class="tt-add" id="ttAdd">+ Add</button>
+            </div>
+            <div class="tt-active" id="ttActive" style="display:none;">
+                <span id="ttActiveText"></span>
+                <span class="tt-active-btns">
+                    <button type="button" class="btn" id="ttAddUnit" title="Pick another unit for this tour">+ Add a unit</button>
+                    <button type="button" class="btn primary" id="ttComplete">Complete Tour</button>
+                    <button type="button" class="btn" id="ttExit" title="Back to the regular Tour view; this tour is kept">Done</button>
+                </span>
             </div>
 
             <div class="section-label"><span class="dot"></span>Find a unit</div>
@@ -6621,8 +6621,9 @@ function populateEditorForUnit(unit) {
 
 function renderUnitTabs() {
     const box = document.getElementById('unitTabs');
-    if (selectedUnits.length < 2) { box.innerHTML = ''; return; }
-    box.innerHTML = `<div class="section-label" style="margin-top:0;"><span class="dot"></span>${TOUR_ACTIVE ? 'Units in this tour <span class="hint">each is its own pamphlet</span>' : 'Units in this pamphlet'}</div>` +
+    // A tour lists its units from the first one, so it's clear more can be added.
+    if (selectedUnits.length < (TOUR_ACTIVE ? 1 : 2)) { box.innerHTML = ''; return; }
+    box.innerHTML = `<div class="section-label" style="margin-top:0;"><span class="dot"></span>${TOUR_ACTIVE ? 'Units in this tour <span class="hint">each its own pamphlet</span>' : 'Units in this pamphlet'}</div>` +
         selectedUnits.map(unit => {
             const isActive = unit === currentUnit;
             return `<div class="unit-row${isActive ? ' active' : ''}">
@@ -7644,7 +7645,7 @@ function renderTourBar() {
     strip.style.display = t ? '' : 'none';
     if (t) {
         const n = selectedUnits.length;
-        document.getElementById('ttActiveText').innerHTML = `Touring <b>${escapeHtml(t.name)}</b> &mdash; ${n ? `${n} unit${n === 1 ? '' : 's'} (each saved as its own pamphlet)` : 'pick units from Find a unit; each one is added to this tour'}`;
+        document.getElementById('ttActiveText').innerHTML = `Touring <b>${escapeHtml(t.name)}</b> &mdash; ${n ? `${n} unit${n === 1 ? '' : 's'} (each its own pamphlet). Click <b>+ Add a unit</b> or pick from Find a unit to add more.` : 'click <b>+ Add a unit</b> or pick from Find a unit; every unit you pick is added to this tour.'}`;
         document.getElementById('ttComplete').disabled = !n;
     }
     document.getElementById('tab-tour').classList.toggle('touring', !!t);
@@ -7744,6 +7745,13 @@ async function tourComplete() {
     document.querySelector('#tab-tour .filter-icon-bar').addEventListener('input', saveSoon);
     document.getElementById('tourClearFiltersBtn').addEventListener('click', saveSoon);
     document.getElementById('ttComplete').addEventListener('click', tourComplete);
+    // Picking any unit in a tour adds it; this just takes you to the search.
+    document.getElementById('ttAddUnit').addEventListener('click', () => {
+        searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        searchInput.focus();
+        runSearch();
+        resultsBox.classList.add('open');
+    });
     renderTourBar();
 })();
 
