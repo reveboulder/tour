@@ -2220,6 +2220,23 @@
     .ds-tab.on { background: var(--reve-orange); border-color: var(--reve-orange); color: #fff; }
     #docsSubtabs { flex-direction: column; align-items: flex-start; gap: 8px; }
     .docs-tab-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tt-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 10px; margin-bottom: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+    .tt-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); }
+    .tt-list { display: contents; }
+    .tt-empty { font-size: 12px; color: var(--ink-soft); }
+    .tt-chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 999px; padding: 2px 4px 2px 10px; font-size: 12.5px; background: var(--paper); }
+    .tt-chip.active { border-color: var(--reve-orange); background: rgba(222,84,38,.08); font-weight: 700; }
+    .tt-chip.done .tt-name { color: var(--good); }
+    .tt-chip small { font-weight: 400; color: var(--ink-soft); }
+    .tt-edit { border: 0; background: var(--reve-orange); color: #fff; border-radius: 999px; font: inherit; font-size: 11px; font-weight: 600; padding: 2px 9px; cursor: pointer; }
+    .tt-x { border: 0; background: none; color: var(--ink-soft); font-size: 15px; line-height: 1; cursor: pointer; padding: 0 4px; }
+    .tt-x:hover { color: #c0392b; }
+    .tt-add { border: 1px dashed var(--reve-orange); background: none; color: var(--reve-orange); border-radius: 999px; font: inherit; font-size: 12px; font-weight: 600; padding: 3px 10px; cursor: pointer; }
+    .tt-active { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 10px; margin: -4px 0 12px; border-radius: 8px; background: rgba(222,84,38,.1); border: 1px solid var(--reve-orange); font-size: 13px; }
+    .tt-active-btns { margin-left: auto; display: flex; gap: 6px; }
+    .tt-active-btns .btn { width: auto; flex: none; padding: 6px 14px; }
+    #tab-tour.touring #addUnitBtn { display: none; }
+    body.dark-mode .tt-chip { background: var(--dm-card-alt); }
     .docs-tab-row-sub { padding-left: 14px; border-left: 3px solid var(--line); }
     .docs-tab-row-sub .wl-subtab { font-size: 12px; padding: 5px 12px; }
     .tab-lock { width: 11px; height: 11px; margin-left: 3px; vertical-align: -1px; color: #9a958c; opacity: .9; }
@@ -3449,6 +3466,19 @@
         </div>
 
         <div class="editor-scroll">
+
+            <div class="tt-bar" id="ttBar">
+                <span class="tt-label">Today&rsquo;s Tours:</span>
+                <span class="tt-list" id="ttList"></span>
+                <button type="button" class="tt-add" id="ttAdd">+ Add</button>
+            </div>
+            <div class="tt-active" id="ttActive" style="display:none;">
+                <span id="ttActiveText"></span>
+                <span class="tt-active-btns">
+                    <button type="button" class="btn primary" id="ttComplete">Complete Tour</button>
+                    <button type="button" class="btn" id="ttExit" title="Back to the regular Tour view; this tour is kept">Done</button>
+                </span>
+            </div>
 
             <div class="concession-banner">
                 <div class="concession-banner-text"><b>Current Concession:</b> <span id="concessionSummaryText">None set</span></div>
@@ -6161,6 +6191,7 @@ function saveDraft() {
     if (!currentUnit) return;
     SESSION_DRAFTS[currentUnit] = draft;
     flashSaved();
+    tourSaveActive();
 }
 let saveTimer = null;
 function flashSaved() {
@@ -6512,7 +6543,8 @@ function selectUnit(unit) {
     searchInput.value = '';
     resultsBox.classList.remove('open');
 
-    if (addingUnit) {
+    if (addingUnit || TOUR_ACTIVE) {
+        // "+ Add unit", or a tour (Today's Tours): every pick joins the list.
         addingUnit = false;
         setAddUnitArmed(false);
         if (!selectedUnits.includes(unit)) selectedUnits.push(unit);
@@ -6525,6 +6557,7 @@ function selectUnit(unit) {
     populateEditorForUnit(unit);
     renderUnitTabs();
     renderPreview();
+    tourSaveActive();
 }
 
 // Refreshes the open flyer(s) after shared data changes (pricing sheet,
@@ -6589,7 +6622,7 @@ function populateEditorForUnit(unit) {
 function renderUnitTabs() {
     const box = document.getElementById('unitTabs');
     if (selectedUnits.length < 2) { box.innerHTML = ''; return; }
-    box.innerHTML = `<div class="section-label" style="margin-top:0;"><span class="dot"></span>Units in this pamphlet</div>` +
+    box.innerHTML = `<div class="section-label" style="margin-top:0;"><span class="dot"></span>${TOUR_ACTIVE ? 'Units in this tour <span class="hint">each is its own pamphlet</span>' : 'Units in this pamphlet'}</div>` +
         selectedUnits.map(unit => {
             const isActive = unit === currentUnit;
             return `<div class="unit-row${isActive ? ' active' : ''}">
@@ -6628,12 +6661,14 @@ function removeSelectedUnit(unit) {
         previewLabel.textContent = 'No unit selected';
         document.getElementById('unitTabs').innerHTML = '';
         document.getElementById('flyerMount').classList.remove('multi');
+        tourSaveActive();
         document.getElementById('flyerMount').innerHTML = '<div class="no-unit">Search for a unit on the left to start building its tour pamphlet.<br><br>Specs, sq&nbsp;ft, bed/bath, address, and video link auto-fill from your roster. Pricing, availability, and images are entered per flyer since they change often.</div>';
         return;
     }
     if (unit === currentUnit) populateEditorForUnit(selectedUnits[0]);
     renderUnitTabs();
     renderPreview();
+    tourSaveActive();
 }
 
 function setAddUnitArmed(on) {
@@ -7384,21 +7419,16 @@ function renderPreview() {
    the visible preview) so a "printable" export never disturbs what's on
    screen, and multi-unit exports always reflect every selected unit's
    latest draft, not just whichever one is currently being edited. */
-async function exportPdf(printable) {
-    if (!selectedUnits.length) return;
-    const btnId = printable ? 'exportPrintablePdfBtn' : 'exportPdfBtn';
-    const btn = document.getElementById(btnId);
-    const originalLabel = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Generating…';
-
-    const multi = selectedUnits.length > 1;
+// One pamphlet PDF (jsPDF) for these units: side by side on one page
+// when there are several. Used by Download PDF and by Complete Tour.
+async function buildFlyerPdf(units, printable) {
+    const multi = units.length > 1;
     // Documents floorplans (and PDF pages) must be ready before capture.
-    await Promise.all(selectedUnits.map(unit => {
+    await Promise.all(units.map(unit => {
         const d = unit === currentUnit ? draft : loadDraft(unit);
         return /^doc:/.test(d.floorplanImg || '') ? tourFpResolve(d.floorplanImg.slice(4)) : null;
     }));
-    const cardsHtml = selectedUnits.map(unit => {
+    const cardsHtml = units.map(unit => {
         const u = byUnit[unit];
         const d = unit === currentUnit ? draft : loadDraft(unit);
         const card = flyerHTML(u, d, { printable });
@@ -7483,12 +7513,29 @@ async function exportPdf(printable) {
             });
         }
 
-        const nameBase = multi ? `apt-${selectedUnits.join('-')}` : `apt-${selectedUnits[0]}`;
-        pdf.save(`${nameBase}-pamphlet${printable ? '-printable' : ''}.pdf`);
+        return pdf;
+    } finally {
+        document.body.removeChild(holder);
+    }
+}
+async function exportPdf(printable) {
+    if (!selectedUnits.length) return;
+    const btnId = printable ? 'exportPrintablePdfBtn' : 'exportPdfBtn';
+    const btn = document.getElementById(btnId);
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+    try {
+        // In a tour (Today's Tours), each unit is its own pamphlet.
+        const groups = TOUR_ACTIVE ? selectedUnits.map(u => [u]) : [selectedUnits.slice()];
+        for (const units of groups) {
+            const pdf = await buildFlyerPdf(units, printable);
+            const nameBase = units.length > 1 ? `apt-${units.join('-')}` : `apt-${units[0]}`;
+            pdf.save(`${nameBase}-pamphlet${printable ? '-printable' : ''}.pdf`);
+        }
     } catch (err) {
         alert('Could not generate the PDF. Try again, or use the Print button instead.');
     } finally {
-        document.body.removeChild(holder);
         btn.disabled = false;
         btn.textContent = originalLabel;
     }
@@ -7496,6 +7543,209 @@ async function exportPdf(printable) {
 
 document.getElementById('exportPdfBtn').addEventListener('click', () => exportPdf(false));
 document.getElementById('exportPrintablePdfBtn').addEventListener('click', () => exportPdf(true));
+
+/* ============================================================
+   TODAY'S TOURS — one entry per prospect touring today (kept on this
+   device; a new day starts an empty list). "Edit Tour" switches the Tour
+   tab to that person: their own filters, units and flyer edits, with
+   every unit picked added to their list (each saved as its own
+   pamphlet). "Complete Tour" asks for their email and builds an email
+   draft with one pamphlet PDF per unit, the REVE fee sheet, and the
+   "Tour follow-up" template (Documents › Email Templates), which names
+   the kinds of apartments toured.
+   ============================================================ */
+const TOURS_KEY = 'reve-todays-tours';
+// var (not let): selectUnit/saveDraft check these and can run before this
+// part of the page has loaded.
+var TOURS = { date: '', list: [] };
+var TOUR_ACTIVE = '';        // id of the tour being edited ('' = the regular Tour view)
+var tourDefaultState = null; // the regular view, put back when leaving a tour
+var tourApplying = false;    // while a tour's state is being put back, nothing is saved
+function tourToday() { return resIsoDay(new Date()); }
+function toursLoad() {
+    try { TOURS = JSON.parse(localStorage.getItem(TOURS_KEY) || 'null') || { date: '', list: [] }; } catch (e) { TOURS = { date: '', list: [] }; }
+    if (TOURS.date !== tourToday()) TOURS = { date: tourToday(), list: [] };
+}
+function toursSave() { try { localStorage.setItem(TOURS_KEY, JSON.stringify(TOURS)); } catch (e) {} }
+function tourById(id) { return TOURS.list.find(t => t.id === id) || null; }
+// The Tour tab's filters, picked units and flyer edits, as one object.
+function tourCaptureState() {
+    const v = id => document.getElementById(id).value;
+    return {
+        filters: {
+            bldg: activeBldgFilter.slice(), floor: activeFloorFilter.slice(), type: activeTypeFilter.slice(), amenity: activeAmenity.slice(), floorplan: activeFloorplanFilter.slice(),
+            sqftMin: v('sqftMin'), sqftMax: v('sqftMax'), priceMin: v('priceMin'), priceMax: v('priceMax'), moveIn: v('moveInDateFilterInput')
+        },
+        units: selectedUnits.slice(), current: currentUnit || '',
+        drafts: JSON.parse(JSON.stringify(SESSION_DRAFTS))
+    };
+}
+function tourApplyState(st) {
+    tourApplying = true;
+    try { tourApplyStateNow(st); } finally { tourApplying = false; }
+}
+function tourApplyStateNow(st) {
+    const f = (st && st.filters) || {};
+    activeBldgFilter = (f.bldg || []).slice(); activeFloorFilter = (f.floor || []).slice(); activeTypeFilter = (f.type || []).slice();
+    activeAmenity = (f.amenity || []).slice(); activeFloorplanFilter = (f.floorplan || []).slice();
+    [['sqftMin', f.sqftMin], ['sqftMax', f.sqftMax], ['priceMin', f.priceMin], ['priceMax', f.priceMax], ['moveInDateFilterInput', f.moveIn]].forEach(([id, val]) => { document.getElementById(id).value = val || ''; });
+    tourRebuildChips();
+    updateFilterCaptionStates();
+    runSearch();
+    SESSION_DRAFTS = JSON.parse(JSON.stringify((st && st.drafts) || {}));
+    selectedUnits = ((st && st.units) || []).filter(u => byUnit[u]);
+    addingUnit = false; setAddUnitArmed(false);
+    const cur = st && st.current && selectedUnits.includes(st.current) ? st.current : selectedUnits[0];
+    if (cur) { populateEditorForUnit(cur); renderUnitTabs(); renderPreview(); }
+    else removeSelectedUnit('__none__');   // shows the empty editor
+}
+function tourRebuildChips() {
+    buildChipRow(bldgFilterBox, buildings, b => b.replace('Bldg ', 'Building '), () => activeBldgFilter, v => activeBldgFilter = v);
+    buildChipRow(floorFilterBox, floors, f => `Floor ${f}`, () => activeFloorFilter, v => activeFloorFilter = v);
+    buildChipRow(typeFilterBox, typeOrder, t => t, () => activeTypeFilter, v => activeTypeFilter = v);
+    buildChipRow(viewFilterBox, UNIT_AMENITIES, v => v, () => activeAmenity, v => activeAmenity = v);
+    rebuildFloorplanFilter();
+}
+// Called after any change while a tour is open, so it's never lost.
+function tourSaveActive() {
+    if (tourApplying) return;
+    const t = TOUR_ACTIVE && tourById(TOUR_ACTIVE);
+    if (!t) return;
+    Object.assign(t, tourCaptureState());
+    toursSave();
+    renderTourBar();
+}
+function tourEnter(id) {
+    const t = tourById(id);
+    if (!t || id === TOUR_ACTIVE) return;
+    if (TOUR_ACTIVE) tourSaveActive(); else tourDefaultState = tourCaptureState();
+    TOUR_ACTIVE = id;
+    tourApplyState(t.filters ? t : null);
+    renderTourBar();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function tourExit() {
+    if (!TOUR_ACTIVE) return;
+    tourSaveActive();
+    TOUR_ACTIVE = '';
+    tourApplyState(tourDefaultState);
+    tourDefaultState = null;
+    renderTourBar();
+}
+function renderTourBar() {
+    const t = TOUR_ACTIVE && tourById(TOUR_ACTIVE);
+    const list = document.getElementById('ttList');
+    list.innerHTML = TOURS.list.map(x => `<span class="tt-chip${x.id === TOUR_ACTIVE ? ' active' : ''}${x.completed ? ' done' : ''}">
+            <span class="tt-name">${x.completed ? '✓ ' : ''}${escapeHtml(x.name)}${x.units && x.units.length ? ` <small>(${x.units.length})</small>` : ''}</span>
+            ${x.id === TOUR_ACTIVE ? '' : `<button type="button" class="tt-edit" data-tt-edit="${escapeAttr(x.id)}">Edit Tour</button>`}
+            <button type="button" class="tt-x" data-tt-del="${escapeAttr(x.id)}" title="Remove from today's tours" aria-label="Remove ${escapeAttr(x.name)}">&times;</button>
+        </span>`).join('') || '<span class="tt-empty">No tours yet today.</span>';
+    const strip = document.getElementById('ttActive');
+    strip.style.display = t ? '' : 'none';
+    if (t) {
+        const n = selectedUnits.length;
+        document.getElementById('ttActiveText').innerHTML = `Touring <b>${escapeHtml(t.name)}</b> &mdash; ${n ? `${n} unit${n === 1 ? '' : 's'} (each saved as its own pamphlet)` : 'pick units from Find a unit; each one is added to this tour'}`;
+        document.getElementById('ttComplete').disabled = !n;
+    }
+    document.getElementById('tab-tour').classList.toggle('touring', !!t);
+    document.getElementById('exportPdfBtn').textContent = t && selectedUnits.length > 1 ? 'Download PDFs (one per unit)' : 'Download PDF';
+    renderUnitTabs();
+}
+// "the 1-Bedroom and Studio apartments", "the 2-Bedroom apartment", ...
+function tourApartmentsPhrase(units) {
+    const names = { 'Studio': 'Studio', '1-Bed': '1-Bedroom', '2-Bed': '2-Bedroom', '3-Bed': '3-Bedroom', 'Townhome': 'Townhome', 'Live/Work': 'Live/Work', 'Penthouse': 'Penthouse' };
+    const kinds = [];
+    units.forEach(u => { const k = names[unitTypeCategoryPH(byUnit[u])] || 'apartment'; if (!kinds.includes(k)) kinds.push(k); });
+    if (!kinds.length) return 'the apartments';
+    const list = kinds.length === 1 ? kinds[0] : kinds.slice(0, -1).join(', ') + (kinds.length > 2 ? ',' : '') + ' and ' + kinds[kinds.length - 1];
+    return `the ${list} apartment${units.length > 1 ? 's' : ''}`;
+}
+// The REVE fee sheet from Documents (title or file name mentioning fees).
+function tourFeesDoc() {
+    const all = DOC_SECTIONS.flatMap(sec => docsForSection(sec.id, false).map(d => ({ sec: sec.id, d })));
+    const t = x => `${x.d.title || ''} ${x.d.filename || ''}`;
+    return all.find(x => /\bfees?\b/i.test(t(x)) && /reve|rêve/i.test(t(x))) || all.find(x => /\bfees?\b/i.test(t(x))) || null;
+}
+function tourPdfName(unit) {
+    const u = byUnit[unit];
+    return `REVE Boulder - Apt ${unit}${u && u.floorplan ? ' (' + u.floorplan + ')' : ''}.pdf`.replace(/[\\/:*?"<>|]+/g, '-');
+}
+async function tourComplete() {
+    const t = TOUR_ACTIVE && tourById(TOUR_ACTIVE);
+    if (!t) return;
+    tourSaveActive();
+    const units = selectedUnits.slice();
+    if (!units.length) return;
+    const emails = await wlAskEmails(t.name, String(t.email || '').split(/[,;\s]+/).filter(Boolean), 'Who should the tour follow-up email (with the pamphlets) go to?');
+    if (!emails) return;
+    t.email = emails.join(', ');
+    toursSave();
+    const btn = document.getElementById('ttComplete');
+    const label = btn.textContent;
+    btn.disabled = true;
+    try {
+        const files = [];
+        for (let i = 0; i < units.length; i++) {
+            btn.textContent = `Building pamphlet ${i + 1} of ${units.length}…`;
+            const pdf = await buildFlyerPdf([units[i]], false);
+            files.push({ name: tourPdfName(units[i]), blob: pdf.output('blob') });
+        }
+        btn.textContent = 'Creating email draft…';
+        const tpl = Object.assign({}, ET_BUILTIN.find(b => b.id === 'tour'), etFor('tour') || {});
+        const fees = tourFeesDoc();
+        if (!fees && !(await appDialog({ title: 'REVE fee sheet not found', text: 'No document with “Fees” in its name was found in Documents. Create the draft without it?', ok: 'Create draft' }))) return;
+        const atts = fees ? [{ ref: `doc:${fees.sec}|${fees.d.key}`, title: fees.d.title || fees.d.filename }] : [];
+        tpl.attachments = atts.concat((tpl.attachments || []).filter(a => !atts.some(x => x.ref === a.ref)));
+        const hasVideo = units.some(u => { const d = u === currentUnit ? draft : loadDraft(u); return !!(d && d.videoUrl); });
+        await etOpenDraft(emails, tpl, {
+            name: String(t.name || '').trim().split(/\s+/)[0] || '',
+            apartments: tourApartmentsPhrase(units),
+            videoTours: hasVideo ? ', as well as video tours' : ''
+        }, files);
+        t.completed = true;
+        toursSave();
+        renderTourBar();
+    } catch (err) {
+        console.error(err);
+        alert('Could not build the tour email. Please try again.');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = label;
+    }
+}
+(function wireTours() {
+    toursLoad();
+    document.getElementById('ttAdd').addEventListener('click', async () => {
+        const r = await appDialog({ title: 'Add today’s tour', text: 'Who are you touring?', input: '', placeholder: 'Prospect name', ok: 'Add' });
+        if (!r) return;
+        const t = { id: 'tt' + Date.now().toString(36), name: r.value, added: new Date().toISOString() };
+        if (TOURS.date !== tourToday()) TOURS = { date: tourToday(), list: [] };
+        TOURS.list.push(t);
+        toursSave();
+        tourEnter(t.id);
+    });
+    document.getElementById('ttList').addEventListener('click', async e => {
+        const ed = e.target.closest('[data-tt-edit]');
+        if (ed) { tourEnter(ed.getAttribute('data-tt-edit')); return; }
+        const del = e.target.closest('[data-tt-del]');
+        if (del) {
+            const t = tourById(del.getAttribute('data-tt-del'));
+            if (!t || !(await appDialog({ title: 'Remove tour?', text: `Remove ${t.name} from today’s tours? Their units and edits are discarded.`, ok: 'Remove' }))) return;
+            if (TOUR_ACTIVE === t.id) { TOUR_ACTIVE = ''; tourApplyState(tourDefaultState); tourDefaultState = null; }
+            TOURS.list = TOURS.list.filter(x => x.id !== t.id);
+            toursSave();
+            renderTourBar();
+        }
+    });
+    document.getElementById('ttExit').addEventListener('click', tourExit);
+    // Filter changes in a tour are that person's preferences: keep them.
+    const saveSoon = () => setTimeout(tourSaveActive, 0);
+    document.querySelector('#tab-tour .filter-icon-bar').addEventListener('click', saveSoon);
+    document.querySelector('#tab-tour .filter-icon-bar').addEventListener('input', saveSoon);
+    document.getElementById('tourClearFiltersBtn').addEventListener('click', saveSoon);
+    document.getElementById('ttComplete').addEventListener('click', tourComplete);
+    renderTourBar();
+})();
 
 document.getElementById('syncPricingBtn').addEventListener('click', () => {
     if (!currentUnit) return;
@@ -17275,7 +17525,7 @@ async function wlDownloadSticker(btn) {
    button opens a new draft with the template's subject and body, with
    {name} and {unit} filled in. Built-in templates can be edited (and
    reset); custom ones can be added and deleted. */
-const ET_SLOTS = [{ id: 'wl', label: 'WL tab › Create Email Draft' }, { id: 'checkin', label: 'Residents › Check In' }];
+const ET_SLOTS = [{ id: 'wl', label: 'WL tab › Create Email Draft' }, { id: 'checkin', label: 'Residents › Check In' }, { id: 'tour', label: 'Tour › Complete Tour' }];
 const ET_BUILTIN = [{
     id: 'checkin', builtIn: true, slot: 'checkin',
     name: 'Check In / How to use DOOR',
@@ -17374,6 +17624,20 @@ const ET_BUILTIN = [{
         "Please let us know if you have any additional questions or if you don't receive the documents mentioned above. We all look forward to welcoming you to your new home!",
         ''
     ].join('\n')
+}, {
+    // Today's Tours › Complete Tour. {apartments} names the kinds of units
+    // toured ("the 1-Bedroom and Studio apartments"); {videoTours} adds
+    // ", as well as video tours" when a pamphlet has a video link.
+    id: 'tour', builtIn: true, slot: 'tour',
+    name: 'Tour follow-up',
+    subject: 'Thank you for touring R\u00caVE Boulder',
+    body: [
+        'Hello {name}, and thank you again for taking the time to tour with us today.',
+        '',
+        'I have included here for your reference information about {apartments} we toured/discussed; pricing for various lease term options of the current availabilities{videoTours}.',
+        '',
+        'Let me know if you have any questions at all, I am happy to help!'
+    ].join('\n')
 }];
 const ET_KEY = 'reve-email-templates';
 const ET_BACKEND_KEY = 'email-templates';
@@ -17423,7 +17687,7 @@ function etTemplates() {
 }
 function etFor(slot) { return etTemplates().find(t => t.slot === slot) || null; }
 function etFill(text, vars) {
-    return String(text || '').replace(/\{(name|unit|date|officeHours|requirements)\}/g, (m, k) => vars[k] || '').replace(/^(Hi|Hello|Dear) +([,!])/m, '$1$2');
+    return String(text || '').replace(/\{(name|unit|date|officeHours|requirements|apartments|videoTours)\}/g, (m, k) => vars[k] || '').replace(/^(Hi|Hello|Dear) +([,!])/m, '$1$2');
 }
 function etSaveLocal() { try { localStorage.setItem(ET_KEY, JSON.stringify(ET_STORE)); } catch (e) {} }
 async function etSync() {
