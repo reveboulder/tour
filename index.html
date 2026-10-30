@@ -1478,6 +1478,9 @@
     .vault-modal-foot .btn { flex: none; width: auto; padding: 7px 16px; }
     .wl-email-list { display: flex; flex-direction: column; gap: 6px; }
     .wl-email-row { display: flex; gap: 6px; align-items: center; }
+    .wl-email-notes { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; }
+    .wl-email-notes span { font-weight: 400; color: var(--ink-soft); font-size: 11.5px; }
+    .wl-email-notes textarea { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 13px; font-weight: 400; background: var(--panel); color: var(--ink); resize: vertical; }
     .docs-up-modal .vault-modal-card { max-width: 440px; max-height: calc(100vh - 32px); overflow: auto; }
     .docs-up-list { display: flex; flex-direction: column; gap: 8px; }
     .docs-up-row { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ink-soft); }
@@ -7652,21 +7655,112 @@ function renderTourBar() {
     document.getElementById('exportPdfBtn').textContent = t && selectedUnits.length > 1 ? 'Download PDFs (one per unit)' : 'Download PDF';
     renderUnitTabs();
 }
-// A completed tour is one show in MMR › Weekly Traffic Detail, under
-// "Pending": "Jane Doe - 1-Bed." (the kinds of units toured), with
-// details to add by hand. Each tour is added once.
-const TOUR_MMR_REASON = 'Pending';
+// A completed tour is one show in MMR › Weekly Traffic Detail, written
+// from the person's filters in the tour — "John Smith is looking for a
+// 1-Bed in November, under $2,500, 4th floor only." — plus their
+// Specific Notes. Row: Future (over 90 Days) when the move-in date is
+// more than 90 days out, otherwise Future (over 30 days), unless the
+// notes point to another reason (e.g. "not sure about moving" -> Not
+// sure if moving yet). Each tour is added once.
+const TOUR_NOTE_REASONS = [
+    [/leased (elsewhere|somewhere else|at (another|a different))|competitor|signed (elsewhere|somewhere else|with another)/i, 'Leased at competitor'],
+    [/decided not to move|not (going to )?move|staying (put|where)|renew(ing|ed) (at|their|her|his) current/i, 'Decided not to move'],
+    [/not sure|unsure|undecided|maybe mov|if (they|she|he|I)('?re| are| is)? (going to )?mov|still deciding (whether|if)/i, 'Not sure if moving yet'],
+    [/just start|starting (the|their|her|his|my) search|beginning (the|their|her|his) search|first (place|tour) (they|she|he)/i, 'Just started search'],
+    [/roommate|partner|spouse|wife|husband|parent|relative|family/i, 'Roommate/relative needs to see'],
+    [/friend/i, 'Looking for friend/relative'],
+    [/(job|employment|work) offer|pending (a |the )?(job|offer|employment)|waiting (on|for) (a |the )?(job|offer)/i, 'Pending employment offer'],
+    [/too expensive|pricey|over (their|her|his) budget|price|afford/i, 'Price-too expensive'],
+    [/too small|bigger|more space/i, 'Unit too small'],
+    [/pet (policy|breed|weight)|breed restrict|not allowed.*(dog|cat|pet)|(dog|cat|pet).*not allowed/i, 'Pet does not meet community policies'],
+    [/garage|storage/i, 'Garage/storage not available'],
+    [/lease term|term length|short[- ]term|month[- ]to[- ]month/i, 'Desired lease term unavailable'],
+    [/didn'?t like|dislike|not a fan of (the )?(layout|floor ?plan|location)/i, 'Disliked unit floor plan/location'],
+    [/floor ?plan.*(unavailable|not available)|(unavailable|not available).*floor ?plan/i, 'Desired floor plan unavailable'],
+    [/amenit/i, 'Amenities lacking'],
+    [/unqualified|credit|income (requirement|too low)|doesn'?t qualify/i, 'Unqualified'],
+    [/deciding between|between (two|2|the) (floor ?plans|layouts|units)/i, 'Other - Deciding between floorplans'],
+    [/virtual/i, 'Other - Virtual showing via Rent Café'],
+    [/market tour|comparing|shopping around|looking around|other (options|properties|places)/i, 'Other - Market Tour'],
+    [/appl(y|ied|ication|ying)/i, 'Application'],
+    [/\bpending\b/i, 'Pending']
+];
+function tourNoteReason(notes) {
+    const hit = TOUR_NOTE_REASONS.find(([re]) => re.test(notes || ''));
+    return hit ? hit[1] : '';
+}
+function tourMoveInDate(t) { const v = t.filters && t.filters.moveIn; return v ? new Date(v + 'T00:00:00') : null; }
+function tourMmrReason(t) {
+    const byNote = tourNoteReason(t.notes);
+    if (byNote) return byNote;
+    const d = tourMoveInDate(t);
+    if (d && (d - new Date()) / 86400000 > 90) return 'Future (over 90 Days)';
+    return 'Future (over 30 days)';
+}
+function tourOrList(arr) { return arr.length <= 2 ? arr.join(' or ') : arr.slice(0, -1).join(', ') + ', or ' + arr[arr.length - 1]; }
+function tourMoney(v) { const n = parseFloat(String(v).replace(/[$,]/g, '')); return isNaN(n) ? '' : '$' + Math.round(n).toLocaleString('en-US'); }
+function tourNum(v) { const n = parseFloat(String(v).replace(/,/g, '')); return isNaN(n) ? '' : Math.round(n).toLocaleString('en-US'); }
+function tourOrdinal(n) { n = parseInt(n, 10); const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
 function tourMmrSentence(t) {
+    const f = t.filters || {};
     const name = String(t.name || '').trim().split(/\s+/).filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Prospect';
-    const kinds = [];
-    (t.units || []).forEach(u => { const k = byUnit[u] && unitTypeCategory(byUnit[u]); if (k && !kinds.includes(k)) kinds.push(k); });
-    return `${name} - ${kinds.length ? kinds.join(' / ') : 'Toured'}.`;
+    // What: floorplans picked, else beds picked, else the kinds of units toured.
+    let what = (f.floorplan || []).length ? tourOrList(f.floorplan) : (f.type || []).length ? tourOrList(f.type) : '';
+    if (!what) {
+        const kinds = [];
+        (t.units || []).forEach(u => { const k = byUnit[u] && unitTypeCategory(byUnit[u]); if (k && !kinds.includes(k)) kinds.push(k); });
+        what = kinds.length ? tourOrList(kinds) : 'an apartment';
+    }
+    const article = /^an apartment$/.test(what) ? '' : (/^[AEIOFHLMNRSX8]/.test(what) && !/^(Studio|Live|Penthouse|Townhome|Mountain)/.test(what) ? 'an ' : 'a ');
+    let line = `${name} is looking for ${article}${what}`;
+    const d = tourMoveInDate(t);
+    if (d && !isNaN(d)) {
+        const month = d.toLocaleDateString('en-US', { month: 'long' });
+        line += d.getFullYear() === new Date().getFullYear() ? ` in ${month}` : ` for ${month} ${d.getFullYear()}`;
+    }
+    const extras = [];
+    const pMin = tourMoney(f.priceMin || ''), pMax = tourMoney(f.priceMax || '');
+    if (pMin && pMax) extras.push(`${pMin}–${pMax}`); else if (pMax) extras.push(`under ${pMax}`); else if (pMin) extras.push(`over ${pMin}`);
+    const sMin = tourNum(f.sqftMin || ''), sMax = tourNum(f.sqftMax || '');
+    if (sMin && sMax) extras.push(`${sMin}–${sMax} sq. ft.`); else if (sMin) extras.push(`over ${sMin} sq. ft.`); else if (sMax) extras.push(`under ${sMax} sq. ft.`);
+    const fl = (f.floor || []).map(tourOrdinal);
+    if (fl.length === 1) extras.push(`${fl[0]} floor only`); else if (fl.length) extras.push(`on the ${tourOrList(fl)} floor`);
+    const bl = (f.bldg || []).map(b => String(b).replace(/^Bldg\s*/i, ''));
+    if (bl.length) extras.push(`in Building ${tourOrList(bl)}`);
+    const am = (f.amenity || []).map(a => a === 'Mountain View' ? 'with Mountain views' : a === 'Corner Unit' ? 'in a corner unit' : a === 'Balcony' ? 'with a balcony' : a);
+    if (am.length) extras.push(am.join(' and '));
+    if (extras.length) line += ', ' + extras.join(', ');
+    // Notes stay in the same sentence (so they don't count as another show).
+    const notes = String(t.notes || '').trim().replace(/\.(\s+|$)/g, '; ').replace(/[;\s]+$/, '');
+    if (notes) line += ` — ${notes.charAt(0).toLowerCase() + notes.slice(1)}`;
+    return line.replace(/\.$/, '') + '.';
 }
 async function tourAddToMmr(t) {
     if (!t || !t.completed || t.mmrAdded) return;
     let ok = false;
-    try { ok = await mmrTrafficAppend(TOUR_MMR_REASON, tourMmrSentence(t)); } catch (e) { ok = false; }
+    try { ok = await mmrTrafficAppend(tourMmrReason(t), tourMmrSentence(t)); } catch (e) { ok = false; }
     if (ok) { t.mmrAdded = true; toursSave(); }
+}
+// A sentence for the email matching the Specific Notes (kept general).
+function tourNotesLine(t) {
+    const reason = tourNoteReason(t.notes);
+    const lines = {
+        'Not sure if moving yet': 'I understand you are still looking around at your options, but I wanted to follow up and provide you with the availabilities we have currently.',
+        'Just started search': 'I understand you are still looking around at your options, but I wanted to follow up and provide you with the availabilities we have currently.',
+        'Other - Market Tour': 'I understand you are still looking around at your options, but I wanted to follow up and provide you with the availabilities we have currently.',
+        'Other - Deciding between floorplans': 'I know you are deciding between a few layouts, so I have included each of them below to make comparing a little easier.',
+        'Roommate/relative needs to see': 'Whenever anyone else you are moving with would like to see the apartments, I am happy to set up another tour.',
+        'Looking for friend/relative': 'Please feel free to share this with anyone you are looking on behalf of — I am happy to set up a tour for them as well.',
+        'Pending employment offer': 'Best of luck with the job offer — I am happy to hold anything off until you know more.',
+        'Price-too expensive': 'If pricing is a concern, I am happy to walk through the different lease terms, as some can lower the monthly rent.',
+        'Desired lease term unavailable': 'I am happy to go over any of the lease term options with you, including ones not listed here.',
+        'Application': 'Whenever you are ready to apply, the Apply Now link on each page will take you right to the application.',
+        'Future (over 90 Days)': 'I know your move is still a little way off, but I wanted to follow up and provide you with the availabilities we have currently.'
+    };
+    if (lines[reason]) return lines[reason];
+    const d = tourMoveInDate(t);
+    if (!reason && d && (d - new Date()) / 86400000 > 90) return lines['Future (over 90 Days)'];
+    return '';
 }
 // "the 1-Bedroom and Studio apartments", "the 2-Bedroom apartment", ...
 function tourApartmentsPhrase(units) {
@@ -7693,9 +7787,11 @@ async function tourComplete() {
     tourSaveActive();
     const units = selectedUnits.slice();
     if (!units.length) return;
-    const emails = await wlAskEmails(t.name, String(t.email || '').split(/[,;\s]+/).filter(Boolean), 'Who should the tour follow-up email (with the pamphlets) go to?');
-    if (!emails) return;
+    const answer = await wlAskEmails(t.name, String(t.email || '').split(/[,;\s]+/).filter(Boolean), 'Who should the tour follow-up email (with the pamphlets) go to?', { notes: t.notes || '' });
+    if (!answer) return;
+    const emails = answer.emails;
     t.email = emails.join(', ');
+    t.notes = answer.notes;
     toursSave();
     const btn = document.getElementById('ttComplete');
     const label = btn.textContent;
@@ -7717,7 +7813,8 @@ async function tourComplete() {
         await etOpenDraft(emails, tpl, {
             name: String(t.name || '').trim().split(/\s+/)[0] || '',
             apartments: tourApartmentsPhrase(units),
-            videoTours: hasVideo ? ', as well as video tours' : ''
+            videoTours: hasVideo ? ', as well as video tours' : '',
+            notesLine: tourNotesLine(t)
         }, files);
         t.completed = true;
         toursSave();
@@ -17724,12 +17821,15 @@ const ET_BUILTIN = [{
 }, {
     // Today's Tours › Complete Tour. {apartments} names the kinds of units
     // toured ("the 1-Bedroom and Studio apartments"); {videoTours} adds
-    // ", as well as video tours" when a pamphlet has a video link.
+    // ", as well as video tours" when a pamphlet has a video link;
+    // {notesLine} a sentence matching the tour's Specific Notes (or nothing).
     id: 'tour', builtIn: true, slot: 'tour',
     name: 'Tour follow-up',
     subject: 'Thank you for touring R\u00caVE Boulder',
     body: [
         'Hello {name}, and thank you again for taking the time to tour with us today.',
+        '',
+        '{notesLine}',
         '',
         'I have included here for your reference information about {apartments} we toured/discussed; pricing for various lease term options of the current availabilities{videoTours}.',
         '',
@@ -17784,7 +17884,8 @@ function etTemplates() {
 }
 function etFor(slot) { return etTemplates().find(t => t.slot === slot) || null; }
 function etFill(text, vars) {
-    return String(text || '').replace(/\{(name|unit|date|officeHours|requirements|apartments|videoTours)\}/g, (m, k) => vars[k] || '').replace(/^(Hi|Hello|Dear) +([,!])/m, '$1$2');
+    return String(text || '').replace(/\{(name|unit|date|officeHours|requirements|apartments|videoTours|notesLine)\}/g, (m, k) => vars[k] || '').replace(/^(Hi|Hello|Dear) +([,!])/m, '$1$2')
+        .replace(/\n[ \t]*\n([ \t]*\n)+/g, '\n\n');   // an empty {var} on its own line leaves no gap
 }
 function etSaveLocal() { try { localStorage.setItem(ET_KEY, JSON.stringify(ET_STORE)); } catch (e) {} }
 async function etSync() {
@@ -18086,7 +18187,10 @@ async function etOpenDraft(to, t, vars, extraFiles) {
 
 // In-app dialog for the recipients: one box per address, "+ Add another
 // email address", then "Submit Draft". Resolves to the list, or null.
-function wlAskEmails(who, initial, question) {
+// opts.notes: also show a "Specific Notes" box (initial text); then it
+// resolves to { emails, notes } instead of the list.
+function wlAskEmails(who, initial, question, opts) {
+    opts = opts || {};
     return new Promise(resolve => {
         const m = document.createElement('div');
         m.className = 'vault-modal wl-email-modal';
@@ -18096,6 +18200,7 @@ function wlAskEmails(who, initial, question) {
             <div class="empty-note" style="margin:0;">${escapeHtml(question || 'Who should this welcome email go to?')}</div>
             <div class="wl-email-list"></div>
             <button type="button" class="wl-email-add">+ Add another email address</button>
+            ${opts.notes !== undefined ? `<label class="wl-email-notes">Specific Notes <span>(optional &mdash; e.g. &ldquo;not sure about moving yet&rdquo;, &ldquo;roommate needs to see it&rdquo;)</span><textarea rows="3" placeholder="Anything to note about this prospect\u2026">${escapeHtml(opts.notes || '')}</textarea></label>` : ''}
             <div class="empty-note wl-email-err" style="display:none;color:#c0392b;margin:0;"></div>
             <div class="vault-modal-foot"><button type="button" class="btn small wl-email-cancel">Cancel</button><button type="button" class="btn small primary wl-email-submit">Submit Draft</button></div>
         </div>`;
@@ -18115,9 +18220,10 @@ function wlAskEmails(who, initial, question) {
             const bad = emails.filter(e => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
             if (!emails.length) { err.textContent = 'Enter at least one email address.'; err.style.display = ''; return; }
             if (bad.length) { err.textContent = `That doesn\u2019t look like a valid email address: ${bad.join(', ')}`; err.style.display = ''; return; }
-            done(emails);
+            const notesBox = m.querySelector('.wl-email-notes textarea');
+            done(notesBox ? { emails, notes: notesBox.value.trim() } : emails);
         };
-        const onKey = e => { if (e.key === 'Escape') done(null); else if (e.key === 'Enter' && m.contains(e.target) && e.target.tagName === 'INPUT') { e.preventDefault(); submit(); } };
+        const onKey = e => { if (e.key === 'Escape') done(null); else if (e.key === 'Enter' && m.contains(e.target) && e.target.tagName === 'INPUT') { e.preventDefault(); submit(); } };   // Enter in Notes = new line
         document.addEventListener('keydown', onKey, true);
         m.querySelector('.wl-email-add').onclick = () => addBox('', true);
         list.addEventListener('input', () => { m.querySelector('.wl-email-err').style.display = 'none'; });
