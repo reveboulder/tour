@@ -195,6 +195,12 @@
     .unit-result:hover, .unit-result.active { background: #fbeee8; }
     .unit-result .u-num { font-family: var(--mono); font-weight: 700; }
     .unit-result .u-meta { color: var(--ink-soft); font-size: 11.5px; }
+    .unit-result-group { padding: 6px 10px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); background: #f1efea; border-bottom: 1px solid var(--line-soft); }
+    .unit-result.expiring { background: #f6f5f2; }
+    .unit-result.expiring .u-num, .unit-result.expiring .u-meta { color: #9a958b; }
+    .unit-result.expiring:hover { background: #ecebe7; }
+    .unit-result .u-exp-note { font-family: var(--sans); font-weight: 600; font-size: 11px; color: #8a6d3b; }
+    body.dark-mode .unit-result-group, body.dark-mode .unit-result.expiring { background: var(--dm-card-alt); }
 
     .quick-filters {
         display: flex;
@@ -6452,10 +6458,56 @@ function runSearch() {
     }
 
     list = list.slice(0, 40);
-    renderResults(list, marketed);
+    renderResults(list, marketed, tourExpiringMatches(q, marketed));
+}
+// With any filter set, units from the Expiring Leases report that match
+// (not on today's sheet, not renewed) are listed too, grayed, soonest
+// lease end first — they open as non-available pamphlets. Price can't be
+// matched (no pricing yet); Move-In Date keeps leases ending by then.
+function tourFiltersActive() {
+    return !!(activeBldgFilter.length || activeFloorFilter.length || activeTypeFilter.length || activeAmenity.length || activeFloorplanFilter.length
+        || ['sqftMin', 'sqftMax', 'priceMin', 'priceMax', 'moveInDateFilterInput'].some(id => document.getElementById(id).value.trim()));
+}
+function tourExpiringMatches(q, marketed) {
+    if (!tourFiltersActive() || !EXPIRING_UNITS.length) return [];
+    const sqftB = availNumBounds('sqftMin', 'sqftMax');
+    const moveInVal = document.getElementById('moveInDateFilterInput').value;
+    const moveIn = moveInVal ? new Date(moveInVal + 'T23:59:59') : null;
+    return EXPIRING_UNITS.filter(r => {
+        const u = byUnit[r.unit];
+        if (!u || marketed.has(r.unit)) return false;
+        if (RENEWAL_STATE[r.unit] && RENEWAL_STATE[r.unit].renewed) return false;
+        if (moveIn && r.leaseTo > moveIn) return false;
+        if (activeBldgFilter.length && !activeBldgFilter.includes(u.bldg)) return false;
+        if (activeFloorFilter.length && !activeFloorFilter.includes(u.floor)) return false;
+        if (activeTypeFilter.length && !activeTypeFilter.includes(unitTypeCategory(u))) return false;
+        if (activeAmenity.length && !activeAmenity.some(a => unitMatchesAmenity(u, a))) return false;
+        if (activeFloorplanFilter.length && !activeFloorplanFilter.includes(u.floorplan)) return false;
+        const sqft = parseFloat(u.sqft);
+        if (!isNaN(sqft) && (sqft < sqftB.min || sqft > sqftB.max)) return false;
+        if (q && !(u.unit.toLowerCase().includes(q) || u.floorplan.toLowerCase().includes(q) || u.yardi.toLowerCase().includes(q))) return false;
+        return true;
+    }).sort((a, b) => a.leaseTo - b.leaseTo).slice(0, 30);
 }
 
-function renderResults(list, marketed) {
+function renderResults(list, marketed, expiring) {
+    expiring = expiring || [];
+    const expHtml = expiring.length ? `<div class="unit-result-group">From Expiring Leases &mdash; not available yet (${expiring.length})</div>` + expiring.map(r => {
+        const u = byUnit[r.unit];
+        const ends = r.leaseTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return `<div class="unit-result expiring" data-unit="${r.unit}" title="Potential match from Expiring Leases \u2014 opens as a non-available unit">
+            <span class="u-num">Apt ${r.unit} <span class="u-exp-note">lease ends ${ends}${r.status === 'Notice' ? ' \u00b7 on notice' : ''}</span></span>
+            <span class="u-meta">${u.floorplan} &middot; ${u.bedBath} &middot; ${u.sqft} sf &middot; ${u.bldg} &middot; from Expiring Leases</span>
+        </div>`;
+    }).join('') : '';
+    if (!list.length && expHtml) {
+        resultsBox.innerHTML = `<div class="unit-result"><span class="u-meta">No matching units in today\u2019s pricing sheet.</span></div>` + expHtml;
+        resultsBox.classList.add('open');
+        [...resultsBox.querySelectorAll('.unit-result[data-unit]')].forEach(row => {
+            row.addEventListener('click', () => { selectUnit(row.getAttribute('data-unit')); tourScrollToPreviewOnMobile(); });
+        });
+        return;
+    }
     if (!list.length) {
         const msg = marketed.size === 0
             ? "Upload today's pricing sheet to populate this list, or type a unit number directly."
@@ -6473,9 +6525,9 @@ function renderResults(list, marketed) {
             <span class="u-meta">${u.floorplan} &middot; ${u.bedBath} &middot; ${u.sqft} sf &middot; ${u.bldg}${marketed.has(u.unit) ? '' : ' &middot; not in today\'s sheet'}</span>
         </div>
     `;
-    }).join('');
+    }).join('') + expHtml;
     resultsBox.classList.add('open');
-    [...resultsBox.querySelectorAll('.unit-result')].forEach(row => {
+    [...resultsBox.querySelectorAll('.unit-result[data-unit]')].forEach(row => {
         row.addEventListener('click', () => { selectUnit(row.getAttribute('data-unit')); tourScrollToPreviewOnMobile(); });
     });
 }
