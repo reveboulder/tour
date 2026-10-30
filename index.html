@@ -7708,7 +7708,11 @@ function tourMmrSentence(t) {
     let what = (f.floorplan || []).length ? tourOrList(f.floorplan) : (f.type || []).length ? tourOrList(f.type) : '';
     if (!what) {
         const kinds = [];
-        (t.units || []).forEach(u => { const k = byUnit[u] && unitTypeCategory(byUnit[u]); if (k && !kinds.includes(k)) kinds.push(k); });
+        (t.units || []).forEach(u => {
+            let k = byUnit[u] && unitTypeCategory(byUnit[u]);
+            if (k === '1-Bed' && unitHasDen(byUnit[u])) k = '1-Bed w/ Den';
+            if (k && !kinds.includes(k)) kinds.push(k);
+        });
         what = kinds.length ? tourOrList(kinds) : 'an apartment';
     }
     const article = /^an apartment$/.test(what) ? '' : (/^[AEIOFHLMNRSX8]/.test(what) && !/^(Studio|Live|Penthouse|Townhome|Mountain)/.test(what) ? 'an ' : 'a ');
@@ -7762,11 +7766,17 @@ function tourNotesLine(t) {
     if (!reason && d && (d - new Date()) / 86400000 > 90) return lines['Future (over 90 Days)'];
     return '';
 }
-// "the 1-Bedroom and Studio apartments", "the 2-Bedroom apartment", ...
+// The A7 and A9 floorplans are 1-Bedrooms with a den.
+function unitHasDen(u) { return !!u && /^A[79]$/i.test(String(u.floorplan || '')); }
+// "the 1-Bedroom and Studio apartments", "the 1-Bedroom with Den apartment", ...
 function tourApartmentsPhrase(units) {
     const names = { 'Studio': 'Studio', '1-Bed': '1-Bedroom', '2-Bed': '2-Bedroom', '3-Bed': '3-Bedroom', 'Townhome': 'Townhome', 'Live/Work': 'Live/Work', 'Penthouse': 'Penthouse' };
     const kinds = [];
-    units.forEach(u => { const k = names[unitTypeCategoryPH(byUnit[u])] || 'apartment'; if (!kinds.includes(k)) kinds.push(k); });
+    units.forEach(u => {
+        const cat = unitTypeCategoryPH(byUnit[u]);
+        const k = cat === '1-Bed' && unitHasDen(byUnit[u]) ? '1-Bedroom with Den' : (names[cat] || 'apartment');
+        if (!kinds.includes(k)) kinds.push(k);
+    });
     if (!kinds.length) return 'the apartments';
     const list = kinds.length === 1 ? kinds[0] : kinds.slice(0, -1).join(', ') + (kinds.length > 2 ? ',' : '') + ' and ' + kinds[kinds.length - 1];
     return `the ${list} apartment${units.length > 1 ? 's' : ''}`;
