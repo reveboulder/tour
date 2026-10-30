@@ -182,6 +182,9 @@
         background: #fff;
     }
     .unit-results.open { display: block; }
+    .movein-lbl { display: flex; flex-direction: column; gap: 3px; width: 100%; font-size: 11.5px; font-weight: 600; color: var(--ink-soft); }
+    .movein-lbl + .movein-lbl { margin-top: 6px; }
+    .movein-lbl span { font-weight: 400; }
     .unit-result {
         padding: 8px 10px;
         font-size: 13px;
@@ -3518,7 +3521,8 @@
                         <span class="filter-icon-label-text" id="moveInDateFiltersLabel">Move-In Date</span>
                     </button>
                     <div class="quick-filters collapsed popover-mode" id="moveInDateFilters">
-                        <input type="date" id="moveInDateFilterInput" style="width:100%;box-sizing:border-box;">
+                        <label class="movein-lbl">Move-in before<input type="date" id="moveInDateFilterInput" style="width:100%;box-sizing:border-box;"></label>
+                        <label class="movein-lbl">Move-in after <span>(optional)</span><input type="date" id="moveInAfterFilterInput" style="width:100%;box-sizing:border-box;"></label>
                     </div>
                 </div>
                 <div class="filter-group icon-mode">
@@ -3728,7 +3732,8 @@
                         <span class="filter-icon-label-text" id="availMoveInDateFiltersLabel">Move-In Date</span>
                     </button>
                     <div class="quick-filters collapsed popover-mode" id="availMoveInDateFilters">
-                        <input type="date" id="availMoveInDateFilterInput" style="width:100%;box-sizing:border-box;">
+                        <label class="movein-lbl">Move-in before<input type="date" id="availMoveInDateFilterInput" style="width:100%;box-sizing:border-box;"></label>
+                        <label class="movein-lbl">Move-in after <span>(optional)</span><input type="date" id="availMoveInAfterFilterInput" style="width:100%;box-sizing:border-box;"></label>
                     </div>
                 </div>
                 <div class="filter-group icon-mode">
@@ -3849,7 +3854,8 @@
                     </button>
                     <div class="quick-filters collapsed popover-mode" id="expMoveInDateFilters">
                         <label style="display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-soft);margin-bottom:5px;">Show expirations on or before</label>
-                        <input type="date" id="expiringMoveInDate" style="width:100%;box-sizing:border-box;">
+                        <label class="movein-lbl">Move-in before<input type="date" id="expiringMoveInDate" style="width:100%;box-sizing:border-box;"></label>
+                        <label class="movein-lbl">Move-in after <span>(optional)</span><input type="date" id="expiringMoveInAfter" style="width:100%;box-sizing:border-box;"></label>
                         <div class="empty-note" style="margin-top:5px;">Leave blank to show all upcoming expirations.</div>
                     </div>
                 </div>
@@ -6332,6 +6338,21 @@ function rebuildFloorplanFilter() {
     updateFilterCaptionStates();
 }
 
+/* Move-In Date filters (Tour, Availability, Expiring): "Move-in before"
+   (the main one) and an optional "Move-in after", for someone moving
+   well in the future who doesn't need units available sooner. */
+function moveInRange(beforeId, afterId) {
+    const b = document.getElementById(beforeId).value, a = document.getElementById(afterId).value;
+    return { before: b ? new Date(b + 'T23:59:59').getTime() : null, after: a ? new Date(a + 'T00:00:00').getTime() : null, b, a };
+}
+// Caption text: "11/30/26", "after 12/1/26", or "12/1/26–3/31/27".
+function moveInCaption(r) {
+    const f = v => new Date(v + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
+    if (r.a && r.b) return `${f(r.a)}\u2013${f(r.b)}`;
+    if (r.a) return `after ${f(r.a)}`;
+    return r.b ? f(r.b) : 'Move-In Date';
+}
+function moveInOk(ms, r) { return (r.before === null || ms <= r.before) && (r.after === null || ms >= r.after); }
 /* ---------- collapsible filter sections ---------- */
 function updateFilterCaptionStates() {
     const sqftMin = document.getElementById('sqftMin').value.trim();
@@ -6340,9 +6361,9 @@ function updateFilterCaptionStates() {
     const priceMax = document.getElementById('priceMax').value.trim();
     const sqftActive = !!(sqftMin || sqftMax);
     const priceActive = !!(priceMin || priceMax);
-    const moveInVal = document.getElementById('moveInDateFilterInput').value;
+    const moveIn = moveInRange('moveInDateFilterInput', 'moveInAfterFilterInput');
     const map = [
-        ['moveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
+        ['moveInDateFilters', !!(moveIn.a || moveIn.b), moveInCaption(moveIn)],
         ['bldgFilters', activeBldgFilter.length > 0, chipFilterLabel(activeBldgFilter, b => b, 'Building')],
         ['sqftFilters', sqftActive, sqftActive ? `${sqftMin || '0'}\u2013${sqftMax || '\u221e'}` : 'Sq Ft'],
         ['priceFilters', priceActive, priceActive ? `$${priceMin || '0'}\u2013$${priceMax || '\u221e'}` : 'Price'],
@@ -6386,7 +6407,7 @@ document.addEventListener('click', (e) => {
     updateFilterFocus();
 });
 document.getElementById('tourClearFiltersBtn').addEventListener('click', () => {
-    ['sqftMin', 'sqftMax', 'priceMin', 'priceMax', 'moveInDateFilterInput'].forEach(id => { document.getElementById(id).value = ''; });
+    ['sqftMin', 'sqftMax', 'priceMin', 'priceMax', 'moveInDateFilterInput', 'moveInAfterFilterInput'].forEach(id => { document.getElementById(id).value = ''; });
     activeBldgFilter = []; activeFloorFilter = []; activeTypeFilter = []; activeAmenity = []; activeFloorplanFilter = [];
     [...document.querySelectorAll('#tab-tour .filter-icon-bar .chip.active')].forEach(c => c.classList.remove('active'));
     updateFilterCaptionStates();
@@ -6415,12 +6436,11 @@ function runSearch() {
     if (activeTypeFilter.length) list = list.filter(u => activeTypeFilter.includes(unitTypeCategory(u)));
     if (activeAmenity.length) list = list.filter(u => activeAmenity.some(a => unitMatchesAmenity(u, a)));
     if (activeFloorplanFilter.length) list = list.filter(u => activeFloorplanFilter.includes(u.floorplan));
-    const moveInDateVal = document.getElementById('moveInDateFilterInput').value;
-    if (moveInDateVal) {
-        const cutoff = new Date(moveInDateVal + 'T23:59:59');
+    const moveIn = moveInRange('moveInDateFilterInput', 'moveInAfterFilterInput');
+    if (moveIn.before !== null || moveIn.after !== null) {
         list = list.filter(u => {
             const p = PRICING_SUMMARY[u.unit];
-            return p && p.availableSortKey !== undefined && p.availableSortKey <= cutoff.getTime();
+            return p && p.availableSortKey !== undefined && moveInOk(p.availableSortKey, moveIn);
         });
     }
     list = list.filter(u => {
@@ -6466,18 +6486,17 @@ function runSearch() {
 // matched (no pricing yet); Move-In Date keeps leases ending by then.
 function tourFiltersActive() {
     return !!(activeBldgFilter.length || activeFloorFilter.length || activeTypeFilter.length || activeAmenity.length || activeFloorplanFilter.length
-        || ['sqftMin', 'sqftMax', 'priceMin', 'priceMax', 'moveInDateFilterInput'].some(id => document.getElementById(id).value.trim()));
+        || ['sqftMin', 'sqftMax', 'priceMin', 'priceMax', 'moveInDateFilterInput', 'moveInAfterFilterInput'].some(id => document.getElementById(id).value.trim()));
 }
 function tourExpiringMatches(q, marketed) {
     if (!tourFiltersActive() || !EXPIRING_UNITS.length) return [];
     const sqftB = availNumBounds('sqftMin', 'sqftMax');
-    const moveInVal = document.getElementById('moveInDateFilterInput').value;
-    const moveIn = moveInVal ? new Date(moveInVal + 'T23:59:59') : null;
+    const moveIn = moveInRange('moveInDateFilterInput', 'moveInAfterFilterInput');
     return EXPIRING_UNITS.filter(r => {
         const u = byUnit[r.unit];
         if (!u || marketed.has(r.unit)) return false;
         if (RENEWAL_STATE[r.unit] && RENEWAL_STATE[r.unit].renewed) return false;
-        if (moveIn && r.leaseTo > moveIn) return false;
+        if (!moveInOk(r.leaseTo.getTime(), moveIn)) return false;
         if (activeBldgFilter.length && !activeBldgFilter.includes(u.bldg)) return false;
         if (activeFloorFilter.length && !activeFloorFilter.includes(u.floor)) return false;
         if (activeTypeFilter.length && !activeTypeFilter.includes(unitTypeCategory(u))) return false;
@@ -6553,7 +6572,7 @@ function tourScrollToPreviewOnMobile() {
 ['sqftMin', 'sqftMax', 'priceMin', 'priceMax'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => { updateFilterCaptionStates(); runSearch(); });
 });
-document.getElementById('moveInDateFilterInput').addEventListener('input', () => { updateFilterCaptionStates(); runSearch(); });
+['moveInDateFilterInput', 'moveInAfterFilterInput'].forEach(id => document.getElementById(id).addEventListener('input', () => { updateFilterCaptionStates(); runSearch(); }));
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.picker-block')) resultsBox.classList.remove('open');
 });
@@ -7630,7 +7649,7 @@ function tourCaptureState() {
     return {
         filters: {
             bldg: activeBldgFilter.slice(), floor: activeFloorFilter.slice(), type: activeTypeFilter.slice(), amenity: activeAmenity.slice(), floorplan: activeFloorplanFilter.slice(),
-            sqftMin: v('sqftMin'), sqftMax: v('sqftMax'), priceMin: v('priceMin'), priceMax: v('priceMax'), moveIn: v('moveInDateFilterInput')
+            sqftMin: v('sqftMin'), sqftMax: v('sqftMax'), priceMin: v('priceMin'), priceMax: v('priceMax'), moveIn: v('moveInDateFilterInput'), moveInAfter: v('moveInAfterFilterInput')
         },
         units: selectedUnits.slice(), current: currentUnit || '',
         drafts: JSON.parse(JSON.stringify(SESSION_DRAFTS))
@@ -7644,7 +7663,7 @@ function tourApplyStateNow(st) {
     const f = (st && st.filters) || {};
     activeBldgFilter = (f.bldg || []).slice(); activeFloorFilter = (f.floor || []).slice(); activeTypeFilter = (f.type || []).slice();
     activeAmenity = (f.amenity || []).slice(); activeFloorplanFilter = (f.floorplan || []).slice();
-    [['sqftMin', f.sqftMin], ['sqftMax', f.sqftMax], ['priceMin', f.priceMin], ['priceMax', f.priceMax], ['moveInDateFilterInput', f.moveIn]].forEach(([id, val]) => { document.getElementById(id).value = val || ''; });
+    [['sqftMin', f.sqftMin], ['sqftMax', f.sqftMax], ['priceMin', f.priceMin], ['priceMax', f.priceMax], ['moveInDateFilterInput', f.moveIn], ['moveInAfterFilterInput', f.moveInAfter]].forEach(([id, val]) => { document.getElementById(id).value = val || ''; });
     tourRebuildChips();
     updateFilterCaptionStates();
     runSearch();
@@ -7741,7 +7760,7 @@ function tourNoteReason(notes) {
     const hit = TOUR_NOTE_REASONS.find(([re]) => re.test(notes || ''));
     return hit ? hit[1] : '';
 }
-function tourMoveInDate(t) { const v = t.filters && t.filters.moveIn; return v ? new Date(v + 'T00:00:00') : null; }
+function tourMoveInDate(t) { const v = t.filters && (t.filters.moveIn || t.filters.moveInAfter); return v ? new Date(v + 'T00:00:00') : null; }
 function tourMmrReason(t) {
     const byNote = tourNoteReason(t.notes);
     if (byNote) return byNote;
@@ -8052,9 +8071,9 @@ function updateAvailCaptionStates() {
     const sqftActive = !!(sqftMin || sqftMax);
     const priceActive = !!(priceMin || priceMax);
 
-    const moveInVal = document.getElementById('availMoveInDateFilterInput').value;
+    const moveIn = moveInRange('availMoveInDateFilterInput', 'availMoveInAfterFilterInput');
     const map = [
-        ['availMoveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
+        ['availMoveInDateFilters', !!(moveIn.a || moveIn.b), moveInCaption(moveIn)],
         ['availSqftFilters', sqftActive, sqftActive ? `${sqftMin || '0'}\u2013${sqftMax || '\u221e'}` : 'Sq Ft'],
         ['availPriceFilters', priceActive, priceActive ? `$${priceMin || '0'}\u2013$${priceMax || '\u221e'}` : 'Price'],
         ['availTypeFilters', activeAvailType.length > 0, chipFilterLabel(activeAvailType, t => t, 'Beds')],
@@ -8139,16 +8158,15 @@ function availFilteredUnits() {
     const marketed = marketedUnits();
     const sqftB = availNumBounds('availSqftMin', 'availSqftMax');
     const priceB = availNumBounds('availPriceMin', 'availPriceMax');
-    const moveInVal = document.getElementById('availMoveInDateFilterInput').value;
-    const moveInCutoff = moveInVal ? new Date(moveInVal + 'T23:59:59').getTime() : null;
+    const moveIn = moveInRange('availMoveInDateFilterInput', 'availMoveInAfterFilterInput');
     return [...marketed].map(unit => byUnit[unit]).filter(Boolean).filter(u => {
         const sqft = parseFloat(u.sqft);
         if (!isNaN(sqft) && (sqft < sqftB.min || sqft > sqftB.max)) return false;
         const p = PRICING_SUMMARY[u.unit];
         const price = p ? parsePriceNum(p.bestPrice) : null;
         if (price !== null && (price < priceB.min || price > priceB.max)) return false;
-        if (moveInCutoff !== null) {
-            if (!p || p.availableSortKey === undefined || p.availableSortKey > moveInCutoff) return false;
+        if (moveIn.before !== null || moveIn.after !== null) {
+            if (!p || p.availableSortKey === undefined || !moveInOk(p.availableSortKey, moveIn)) return false;
         }
         if (activeAvailType.length && !activeAvailType.includes(unitTypeCategoryPH(u))) return false;
         if (activeAvailFloorplan.length && !activeAvailFloorplan.includes(u.floorplan)) return false;
@@ -8485,12 +8503,14 @@ document.getElementById('calViewWeekBtn').addEventListener('click', () => {
 ['availSqftMin', 'availSqftMax', 'availPriceMin', 'availPriceMax'].forEach(id => {
     document.getElementById(id).addEventListener('input', renderCalendar);
 });
-document.getElementById('availMoveInDateFilterInput').addEventListener('input', renderCalendar);
+['availMoveInDateFilterInput', 'availMoveInAfterFilterInput'].forEach(id => document.getElementById(id).addEventListener('input', renderCalendar));
 document.getElementById('availClearBtn').addEventListener('click', () => {
     document.getElementById('availSqftMin').value = '';
     document.getElementById('availSqftMax').value = '';
     document.getElementById('availPriceMin').value = '';
     document.getElementById('availPriceMax').value = '';
+    document.getElementById('availMoveInDateFilterInput').value = '';
+    document.getElementById('availMoveInAfterFilterInput').value = '';
     activeAvailType = []; activeAvailFloorplan = []; activeAvailFloor = []; activeAvailBldg = []; activeAvailAmenity = [];
     [...availTypeBox.children, ...document.getElementById('availAmenityFilters').children].forEach(c => c.classList.remove('active'));
     rebuildAvailFilters();
@@ -8698,11 +8718,11 @@ document.getElementById('expiringClearBtn').addEventListener('click', () => {
 });
 
 function updateExpCaptionStates() {
-    const moveInVal = document.getElementById('expiringMoveInDate').value;
+    const moveIn = moveInRange('expiringMoveInDate', 'expiringMoveInAfter');
     const expSqftMin = document.getElementById('expSqftMin').value.trim(), expSqftMax = document.getElementById('expSqftMax').value.trim();
     const expSqftActive = !!(expSqftMin || expSqftMax);
     const map = [
-        ['expMoveInDateFilters', !!moveInVal, moveInVal ? new Date(moveInVal + 'T00:00:00').toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'Move-In Date'],
+        ['expMoveInDateFilters', !!(moveIn.a || moveIn.b), moveInCaption(moveIn)],
         ['expSqftFilters', expSqftActive, expSqftActive ? `${expSqftMin || '0'}\u2013${expSqftMax || '\u221e'}` : 'Sq Ft'],
         ['expTypeFilters', activeExpType.length > 0, chipFilterLabel(activeExpType, t => t, 'Beds')],
         ['expNameFilters', activeExpFloorplan.length > 0, chipFilterLabel(activeExpFloorplan, c => c, 'Floorplan')],
@@ -8754,10 +8774,11 @@ function rebuildExpiringFilters() {
     updateExpCaptionStates();
 }
 
-document.getElementById('expiringMoveInDate').addEventListener('input', () => { updateExpCaptionStates(); renderExpiringList(); });
+['expiringMoveInDate', 'expiringMoveInAfter'].forEach(id => document.getElementById(id).addEventListener('input', () => { updateExpCaptionStates(); renderExpiringList(); }));
 ['expSqftMin', 'expSqftMax'].forEach(id => document.getElementById(id).addEventListener('input', () => { updateExpCaptionStates(); renderExpiringList(); }));
 document.getElementById('expClearFiltersBtn').addEventListener('click', () => {
     document.getElementById('expiringMoveInDate').value = '';
+    document.getElementById('expiringMoveInAfter').value = '';
     document.getElementById('expSqftMin').value = ''; document.getElementById('expSqftMax').value = '';
     activeExpType = []; activeExpFloorplan = []; activeExpFloor = []; activeExpBldg = []; activeExpAmenity = [];
     rebuildExpiringFilters();
@@ -8775,12 +8796,11 @@ function renderExpiringList() {
         return;
     }
 
-    const moveInVal = document.getElementById('expiringMoveInDate').value;
-    const moveInDate = moveInVal ? new Date(moveInVal + 'T23:59:59') : null;
+    const moveIn = moveInRange('expiringMoveInDate', 'expiringMoveInAfter');
 
     const sqftB = availNumBounds('expSqftMin', 'expSqftMax');
     const list = EXPIRING_UNITS.filter(r => {
-        if (moveInDate && r.leaseTo > moveInDate) return false;
+        if (!moveInOk(r.leaseTo.getTime(), moveIn)) return false;
         const sqft = parseFloat((byUnit[r.unit] || {}).sqft);
         if (!isNaN(sqft) && (sqft < sqftB.min || sqft > sqftB.max)) return false;
         if (activeExpFloorplan.length && !activeExpFloorplan.includes(r.floorplan)) return false;
