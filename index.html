@@ -3246,6 +3246,16 @@
     }
     .pay-period-horizontal .pp-block { margin-bottom: 0; flex: 1; }
     .comm-suggest-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .mmr-reports { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 10px 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .mmr-reports-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+    .mmr-reports-status { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+    .mmr-rep { border-radius: 999px; padding: 2px 10px; border: 1px solid var(--line); }
+    .mmr-rep.ok { background: #e7f4ea; border-color: #b6dcc0; color: #1d6b3c; }
+    .mmr-rep.missing { color: var(--ink-soft); }
+    .mmr-rep-note { color: var(--ink-soft); align-self: center; }
+    .mmr-table input.mmr-auto { background: #e7f4ea; }
+    .mmr-date-alert { color: #d0302b; font-size: 15px; margin-left: 8px; vertical-align: middle; cursor: help; }
+    body.dark-mode .mmr-table input.mmr-auto { background: #24412e; }
     .comm-suggest-chip {
         display: flex;
         align-items: center;
@@ -4585,14 +4595,23 @@
             </div>
 
             <div id="mmrPanel-weekly" class="mmr-subpanel">
+                <div class="mmr-reports">
+                    <div class="mmr-reports-head">
+                        <b>Weekly reports</b> <span class="empty-note" style="margin:0;">Upload on Saturdays: BoxScore Summary plus the three DataGridExports (Notices, Expiring Leases, Scheduled Renewals) &mdash; any names, any order. They fill the fields marked in green.</span>
+                        <label class="file-label" for="mmrReportsInput" style="margin-left:auto;">Upload Weekly Reports</label>
+                        <input type="file" id="mmrReportsInput" accept=".xlsx,.xls,.csv" multiple style="display:none;">
+                    </div>
+                    <div class="mmr-reports-status" id="mmrReportsStatus"></div>
+                    <div class="empty-note" id="mmrReportsMsg" style="margin:0;"></div>
+                </div>
                 <div class="mmr-table-wrap">
                 <table class="mmr-table">
                     <thead><tr><th>Field</th><th>Value</th><th>Reports</th></tr></thead>
                     <tbody>
                         <tr>
                             <td class="mmr-label">Date</td>
-                            <td class="mmr-value"><input type="date" id="mmrDate"></td>
-                            <td class="mmr-report"></td>
+                            <td class="mmr-value"><input type="date" id="mmrDate"><span class="mmr-date-alert" id="mmrDateAlert" style="display:none;" role="img" aria-label="Date is out of date">&#9650;</span></td>
+                            <td class="mmr-report" id="mmrReport-date"></td>
                         </tr>
                         <tr>
                             <td class="mmr-label">Property Name</td>
@@ -4627,7 +4646,7 @@
                         <tr>
                             <td class="mmr-label">Notice Rented <span class="mmr-hint">for next 30 days</span></td>
                             <td class="mmr-value"><input type="number" id="mmrNoticeRented" min="0" step="1"></td>
-                            <td class="mmr-report">Manually Count Rented from Notices</td>
+                            <td class="mmr-report">Notices with a Pending (not moved in) resident in Residents &mdash; from the Notices report, or count by hand</td>
                         </tr>
                         <tr>
                             <td class="mmr-label">Percentage Trending</td>
@@ -4642,7 +4661,7 @@
                         <tr>
                             <td class="mmr-label">Model/Guest Suite</td>
                             <td class="mmr-value"><input type="number" id="mmrModelGuest" min="0" step="1"></td>
-                            <td class="mmr-report"></td>
+                            <td class="mmr-report" id="mmrBoxModelDown"></td>
                         </tr>
                         <tr>
                             <td class="mmr-label">Down Units</td>
@@ -4705,6 +4724,9 @@
                     <button type="button" class="btn primary" id="mmrNewLeaseAddBtn" style="width:auto;flex:none;padding:8px 16px;">+ New Lease</button>
                     <span class="empty-note" id="mmrNewLeaseMatch" style="margin:0;font-weight:600;"></span>
                 </div>
+                <div class="mmr-section-title" style="margin-top:16px;">SUGGESTED NEW LEASES <span class="mmr-count-badge" id="mmrNlSuggestCount">(0)</span></div>
+                <div class="empty-note" style="margin-bottom:8px;">From Residents, whose Date Applied falls in this MMR week (Monday through the Sunday Date). + adds to the table; &times; rejects.</div>
+                <div id="mmrNlSuggest" class="comm-suggest-list"></div>
                 <div class="mmr-table-wrap" style="margin-top:12px;">
                     <table class="mmr-table mmr-lease-table">
                         <thead><tr>
@@ -4718,6 +4740,9 @@
             </div>
             <div id="mmrPanel-renewals" class="mmr-subpanel" style="display:none;">
                 <button type="button" class="btn primary" id="mmrRenewalAddBtn" style="width:auto;padding:8px 16px;">+ New Renewal</button>
+                <div class="mmr-section-title" style="margin-top:16px;">SUGGESTED UNIT RENEWALS <span class="mmr-count-badge" id="mmrRnSuggestCount">(0)</span></div>
+                <div class="empty-note" style="margin-bottom:8px;">From the Scheduled Renewals file (Weekly Stats &rsaquo; Upload Weekly Reports), whose new lease begins in this MMR week (Monday through the Sunday Date). + adds to the table; &times; rejects.</div>
+                <div id="mmrRnSuggest" class="comm-suggest-list"></div>
                 <div class="mmr-table-wrap" style="margin-top:12px;">
                     <table class="mmr-table mmr-lease-table">
                         <thead><tr>
@@ -12073,6 +12098,16 @@ function recomputeMMR() {
     document.getElementById('mmrClosingRatio').textContent = weeklyTraffic ? (weeklyRentals / weeklyTraffic).toFixed(2) : '\u2014';
     document.getElementById('mmrRenewalRatio').textContent = leasesExpiring ? (leasesRenewed / leasesExpiring).toFixed(2) : '\u2014';
 
+    // Date check: the MMR is done Saturday for the Sunday Date; Sunday and
+    // the Monday after are fine. Two or more days after the Date: alert.
+    const alertEl = document.getElementById('mmrDateAlert'), dateNote = document.getElementById('mmrReport-date');
+    if (alertEl) {
+        const t = new Date(); t.setHours(0, 0, 0, 0);
+        const late = d && !isNaN(d.getTime()) ? Math.round((t - d) / 86400000) : 0;
+        alertEl.style.display = late >= 2 ? '' : 'none';
+        alertEl.title = late >= 2 ? `This Date is ${late} days ago \u2014 change it to this week\u2019s Sunday.` : '';
+        if (dateNote) { dateNote.textContent = late >= 2 ? `Date is ${late} days ago \u2014 change it to this week\u2019s Sunday.` : ''; dateNote.style.color = late >= 2 ? '#d0302b' : ''; }
+    }
     const reportIds = ['mmrReport-totalVacant', 'mmrReport-totalNotices', 'mmrReport-rentReady', 'mmrReport-weeklyTraffic', 'mmrReport-mtdIncome', 'mmrReport-delinquency', 'mmrReport-leasesExpiring'];
     if (d && !isNaN(d.getTime())) {
         const mon = mmrMondayBefore(d);
@@ -12092,6 +12127,7 @@ function recomputeMMR() {
     el.addEventListener('input', () => {
         const field = Object.keys(MMR_FIELD_TO_ID).find(f => MMR_FIELD_TO_ID[f] === el.id);
         if (field) MMR_DATA[field] = el.value;
+        el.classList.remove('mmr-auto');
         persistMMRLocal();
         recomputeMMR();
         const status = document.getElementById('mmrSaveStatus');
@@ -12107,6 +12143,7 @@ function recomputeMMR() {
         ['weekly', 'newleases', 'renewals', 'traffic'].forEach(name => {
             document.getElementById('mmrPanel-' + name).style.display = (name === target) ? 'block' : 'none';
         });
+        if (typeof renderMmrSuggested === 'function') renderMmrSuggested();
     });
 });
 
@@ -12233,7 +12270,8 @@ function renderMmrTrafficTotal() {
     el.textContent = String(total);
     const note = document.getElementById('mmrTrafficTotalNote');
     const matches = total === weekly;
-    note.textContent = matches ? `Matches Weekly Stats (${weekly} shows).` : `Should match Weekly Stats — Total Weekly Traffic is ${weekly}.`;
+    const box = typeof MMR_REPORTS !== 'undefined' && MMR_REPORTS.box && MMR_REPORTS.box.show !== null && MMR_REPORTS.box.show !== undefined ? ` BoxScore (${MMR_REPORTS.box.from ? fmtMMRDate(new Date(MMR_REPORTS.box.from + 'T00:00:00')) : ''}\u2013${MMR_REPORTS.box.to ? fmtMMRDate(new Date(MMR_REPORTS.box.to + 'T00:00:00')) : ''}) counted ${MMR_REPORTS.box.show} show${MMR_REPORTS.box.show === 1 ? '' : 's'}; ${total} entered here so far.` : '';
+    note.textContent = (matches ? `Matches Weekly Stats (${weekly} shows).` : `Should match Weekly Stats — Total Weekly Traffic is ${weekly}.`) + box;
     note.style.color = matches ? 'var(--good)' : 'var(--bad, #c0392b)';
 }
 function renderMmrTraffic() {
@@ -12446,6 +12484,232 @@ async function mmrTrafficAppend(reason, sentence) {
     if (!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#mmrTrafficBody'))) renderMmrTraffic();
     return shared ? backendPush(MMR_TRAFFIC_BACKEND_KEY, MMR_TRAFFIC) : true;
 }
+/* ============================================================
+   MMR — weekly report uploads (Saturdays). Four exports, recognized by
+   their contents (not file names), fill most of Weekly Stats:
+   - BoxScore Summary: report week (Mon–Sun), Vacant Rented/Unrented,
+     Show, Applied (and Model/Down, shown only — those stay manual).
+   - Notices (Move Out Date / Unit / Resident / Status): Total Notices
+     moving out Date through a month later less a day; Notice Rented =
+     those units with a Pending (not moved in) resident in Residents.
+   - Expiring leases (Lease Expires / ... / Appr Status): leases ending in
+     that window, not renewed.
+   - Scheduled renewals (Resident / Unit / Current Lease Expires / New
+     Lease Begins / ... / Renewal Status): renewed leases ending in that
+     window, and suggested Unit Renewals (new lease begins Mon–Sun).
+   The parsed reports are shared (backend 'mmr-weekly-reports'), so the
+   counts re-run when the Date changes.
+   ============================================================ */
+const MMR_REPORTS_KEY = 'reve-mmr-weekly-reports', MMR_REPORTS_BACKEND_KEY = 'mmr-weekly-reports';
+var MMR_REPORTS = {};   // var: read by renderMmrTrafficTotal, which runs before this line loads
+try { MMR_REPORTS = JSON.parse(localStorage.getItem(MMR_REPORTS_KEY) || '{}') || {}; } catch (e) { MMR_REPORTS = {}; }
+function mmrReportsSave() {
+    try { localStorage.setItem(MMR_REPORTS_KEY, JSON.stringify(MMR_REPORTS)); } catch (e) {}
+    if (BACKEND_URL && APP_MODE !== 'test') backendPush(MMR_REPORTS_BACKEND_KEY, MMR_REPORTS);
+}
+async function pullMmrReportsFromBackend() {
+    if (!BACKEND_URL || APP_MODE === 'test') return;
+    const r = await backendPull(MMR_REPORTS_BACKEND_KEY);
+    if (r && typeof r === 'object' && JSON.stringify(r) !== JSON.stringify(MMR_REPORTS)) {
+        MMR_REPORTS = r;
+        try { localStorage.setItem(MMR_REPORTS_KEY, JSON.stringify(MMR_REPORTS)); } catch (e) {}
+        renderMmrReportsStatus(); renderMmrSuggested();
+    }
+}
+// "11/28/26", "2026-11-28", Excel dates -> yyyy-mm-dd ('' if none).
+function mmrIsoOf(v) {
+    if (v instanceof Date && !isNaN(v)) return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`;
+    const s = String(v || '').trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (m) return `${m[3].length === 2 ? '20' + m[3] : m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[1]}-${m[2]}-${m[3]}` : '';
+}
+function mmrNumOf(v) { const n = parseFloat(String(v).replace(/[$,%\s]/g, '')); return isNaN(n) ? 0 : n; }
+// Rows (arrays) of the first sheet -> which report it is, parsed.
+function mmrParseReport(rows) {
+    const norm = r => r.map(c => String(c == null ? '' : c).trim().toLowerCase());
+    const flat = rows.slice(0, 6).map(r => norm(r).join('|')).join('\n');
+    if (/boxscore summary/.test(flat)) {
+        const out = { kind: 'box' };
+        rows.forEach(r => { const m = String(r[0] || '').match(/Date\s*=\s*(\d{1,2}\/\d{1,2}\/\d{4})\s*-\s*(\d{1,2}\/\d{1,2}\/\d{4})/i); if (m) { out.from = mmrIsoOf(m[1]); out.to = mmrIsoOf(m[2]); } });
+        // Each section: a header row ("Code", "Name", ...) then a "Total" row.
+        for (let i = 0; i < rows.length; i++) {
+            const h = norm(rows[i]);
+            if (h[0] !== 'code') continue;
+            const total = rows.slice(i + 1).find(r => /^total$/i.test(String(r[1] || '').trim())) || rows[i + 1] || [];
+            const col = name => { const j = h.indexOf(name); return j >= 0 ? mmrNumOf(total[j]) : null; };
+            if (h.includes('vacant rented')) Object.assign(out, { vacantRented: col('vacant rented'), vacantUnrented: col('vacant unrented'), noticeRented: col('notice rented'), noticeUnrented: col('notice unrented'), model: col('model'), down: col('down') });
+            if (h.includes('show')) Object.assign(out, { show: col('show'), applied: col('applied') });
+        }
+        return out.from ? out : null;
+    }
+    const hi = rows.findIndex(r => norm(r).filter(Boolean).length >= 3);
+    if (hi < 0) return null;
+    const h = norm(rows[hi]);
+    const idx = name => h.indexOf(name);
+    const body = rows.slice(hi + 1).filter(r => r.some(c => String(c).trim()));
+    if (idx('move out date') >= 0 && idx('unit') >= 0) {
+        return { kind: 'notices', rows: body.map(r => ({ date: mmrIsoOf(r[idx('move out date')]), unit: String(r[idx('unit')]).trim(), resident: String(r[idx('resident')] || '').trim(), status: String(r[idx('status')] || '').trim() })).filter(x => x.unit) };
+    }
+    if (idx('renewal status') >= 0 && idx('new lease begins') >= 0) {
+        return { kind: 'renewals', rows: body.map(r => ({ expires: mmrIsoOf(r[idx('current lease expires')]), begins: mmrIsoOf(r[idx('new lease begins')]), unit: String(r[idx('unit')]).trim(), resident: String(r[idx('resident')] || '').trim(), status: String(r[idx('renewal status')] || '').trim() })).filter(x => x.unit) };
+    }
+    if (idx('lease expires') >= 0 && idx('unit') >= 0) {
+        return { kind: 'expiring', rows: body.map(r => ({ date: mmrIsoOf(r[idx('lease expires')]), unit: String(r[idx('unit')]).trim(), resident: String(r[idx('resident')] || '').trim(), mtm: String(r[idx('mtm?')] || '').trim() })).filter(x => x.unit) };
+    }
+    return null;
+}
+const MMR_REPORT_LABELS = { box: 'BoxScore Summary', notices: 'Notices', expiring: 'Expiring Leases', renewals: 'Scheduled Renewals' };
+// The window the counts use: the MMR Date through a month later, less a day.
+function mmrWindow() {
+    const v = document.getElementById('mmrDate').value;
+    if (!v) return null;
+    const d = new Date(v + 'T00:00:00');
+    return { from: v, to: mmrIsoOf(mmrPlusMonthMinusDay(d)), weekFrom: mmrIsoOf(new Date(d.getFullYear(), d.getMonth(), d.getDate() - 6)), weekTo: v };
+}
+function mmrPendingUnits() {
+    const set = new Set();
+    Object.values(RESIDENT_ROWS || {}).forEach(r => { if (r && !r.deleted && !r.movedIn && r.unit) set.add(String(r.unit).trim()); });
+    return set;
+}
+// Fills Weekly Stats from the loaded reports (fields auto-filled get a tint).
+function mmrApplyReports(setDate) {
+    const R = MMR_REPORTS, filled = [];
+    const put = (field, val) => {
+        if (val === null || val === undefined || isNaN(val)) return;
+        MMR_DATA[field] = String(val);
+        const el = document.getElementById(MMR_FIELD_TO_ID[field]);
+        if (el) { el.value = String(val); el.classList.add('mmr-auto'); }
+        filled.push(field);
+    };
+    if (setDate && R.box && R.box.to) { MMR_DATA.date = R.box.to; document.getElementById('mmrDate').value = R.box.to; }
+    if (R.box) {
+        put('totalVacant', (R.box.vacantRented || 0) + (R.box.vacantUnrented || 0));
+        put('vacantRented', R.box.vacantRented);
+        put('weeklyTraffic', R.box.show);
+        put('weeklyRentals', R.box.applied);
+    }
+    const w = mmrWindow();
+    if (w) {
+        const inWin = d => d && d >= w.from && d <= w.to;
+        if (R.notices) {
+            const list = R.notices.rows.filter(x => inWin(x.date) && !/cancel/i.test(x.status));
+            const pending = mmrPendingUnits();
+            put('totalNotices', list.length);
+            put('noticeRented', list.filter(x => pending.has(x.unit)).length);
+        }
+        const renewed = R.renewals ? R.renewals.rows.filter(x => inWin(x.expires)).length : null;
+        const notRenewed = R.expiring ? R.expiring.rows.filter(x => inWin(x.date)).length : null;
+        if (renewed !== null || notRenewed !== null) put('leasesExpiring', (renewed || 0) + (notRenewed || 0));
+        if (renewed !== null) put('leasesRenewed', renewed);
+    }
+    persistMMRLocal();
+    recomputeMMR();
+    if (filled.length && BACKEND_URL && APP_MODE !== 'test') backendPush(MMR_BACKEND_KEY, MMR_DATA);
+    renderMmrReportsStatus();
+    renderMmrSuggested();
+    return filled;
+}
+function renderMmrReportsStatus() {
+    const box = document.getElementById('mmrReportsStatus');
+    if (!box) return;
+    const R = MMR_REPORTS, d = s => s ? fmtMMRDate(new Date(s + 'T00:00:00')) : '';
+    const w = mmrWindow();
+    const items = ['box', 'notices', 'expiring', 'renewals'].map(k => {
+        if (!R[k]) return `<span class="mmr-rep missing">${MMR_REPORT_LABELS[k]}: not uploaded</span>`;
+        const extra = k === 'box' ? ` (${d(R.box.from)}–${d(R.box.to)})` : ` (${R[k].rows.length} rows)`;
+        return `<span class="mmr-rep ok">✓ ${MMR_REPORT_LABELS[k]}${extra}</span>`;
+    });
+    box.innerHTML = items.join('') + (w ? `<span class="mmr-rep-note">Notices and expiring leases counted ${d(w.from)}–${d(w.to)}.</span>` : '');
+    // Model / Down from the BoxScore, for reference (they stay manual).
+    const md = document.getElementById('mmrBoxModelDown');
+    if (md) md.textContent = R.box && (R.box.model !== null || R.box.down !== null) ? `BoxScore shows Model ${R.box.model ?? '—'} · Down ${R.box.down ?? '—'} (not filled in — manual only)` : '';
+    renderMmrTrafficTotal();
+}
+// Suggested New Leases (Residents applied Mon–Sun of the MMR week) and
+// Suggested Unit Renewals (renewals file: new lease begins Mon–Sun).
+const MMR_SUGGEST_REJECTED_KEY = 'reve-mmr-suggested-rejected';
+let MMR_SUGGEST_REJECTED = new Set();
+try { MMR_SUGGEST_REJECTED = new Set(JSON.parse(localStorage.getItem(MMR_SUGGEST_REJECTED_KEY) || '[]')); } catch (e) {}
+function mmrSuggestRejectToggle(key) {
+    if (MMR_SUGGEST_REJECTED.has(key)) MMR_SUGGEST_REJECTED.delete(key); else MMR_SUGGEST_REJECTED.add(key);
+    try { localStorage.setItem(MMR_SUGGEST_REJECTED_KEY, JSON.stringify([...MMR_SUGGEST_REJECTED])); } catch (e) {}
+    renderMmrSuggested();
+}
+function renderMmrSuggested() {
+    let nlRows, rnRows;
+    try { nlRows = mmrNewLeaseController.getRows(); rnRows = mmrRenewalController.getRows(); } catch (e) { return; }   // tables not set up yet
+    const w = mmrWindow();
+    const draw = (listId, countId, items, empty) => {
+        const el = document.getElementById(listId), c = document.getElementById(countId);
+        if (!el) return;
+        if (c) c.textContent = `(${items.length})`;
+        el.innerHTML = !w ? '<div class="empty-note">Set the Date on Weekly Stats to see suggestions.</div>'
+            : items.length ? items.map(x => {
+                const rej = MMR_SUGGEST_REJECTED.has(x.key);
+                return `<div class="comm-suggest-chip${rej ? ' rejected' : ''}"><span>${escapeHtml(x.label)}</span>
+                    <button type="button" class="comm-suggest-add" data-mmr-sg-add="${escapeAttr(x.key)}" ${rej ? 'disabled' : ''} title="Add to the table">+</button>
+                    <button type="button" class="comm-suggest-reject" data-mmr-sg-rej="${escapeAttr(x.key)}" title="${rej ? 'Un-reject' : 'Reject'}">${rej ? '↺' : '✕'}</button></div>`;
+            }).join('') : `<div class="empty-note">${empty}</div>`;
+    };
+    const inWeek = d => w && d && d >= w.weekFrom && d <= w.weekTo;
+    const have = rows => new Set(Object.values(rows).filter(r => !r.deleted).map(r => String(r.unit || '').trim()));
+    const nlHave = have(nlRows), rnHave = have(rnRows);
+    const nl = Object.keys(RESIDENT_ROWS || {}).map(id => ({ id, r: RESIDENT_ROWS[id] }))
+        .filter(({ r }) => r && !r.deleted && r.unit && inWeek(r.dateApplied) && !nlHave.has(String(r.unit).trim()))
+        .map(({ id, r }) => ({ key: 'nl:' + id, id, label: `${r.unit} — ${(r.first || '')} ${(r.last || '')} · applied ${fmtMMRDate(new Date(r.dateApplied + 'T00:00:00'))}`.replace(/\s+/g, ' ') }));
+    const rn = (MMR_REPORTS.renewals ? MMR_REPORTS.renewals.rows : [])
+        .filter(x => inWeek(x.begins) && !rnHave.has(x.unit))
+        .map(x => ({ key: `rn:${x.unit}:${x.begins}`, row: x, label: `${x.unit} — ${x.resident} · new lease ${fmtMMRDate(new Date(x.begins + 'T00:00:00'))}` }));
+    draw('mmrNlSuggest', 'mmrNlSuggestCount', nl, 'No Residents applications dated in this MMR week (Monday–Sunday).');
+    draw('mmrRnSuggest', 'mmrRnSuggestCount', MMR_REPORTS.renewals ? rn : [], MMR_REPORTS.renewals ? 'No renewals in the Scheduled Renewals file begin this MMR week.' : 'Upload the Scheduled Renewals file on Weekly Stats to see suggestions.');
+    mmrRenderSuggested.nl = nl; mmrRenderSuggested.rn = rn;
+}
+const mmrRenderSuggested = {};
+document.addEventListener('click', e => {
+    const add = e.target.closest('[data-mmr-sg-add]'), rej = e.target.closest('[data-mmr-sg-rej]');
+    if (rej) { mmrSuggestRejectToggle(rej.getAttribute('data-mmr-sg-rej')); return; }
+    if (!add) return;
+    const key = add.getAttribute('data-mmr-sg-add');
+    if (key.startsWith('nl:')) {
+        const r = RESIDENT_ROWS[key.slice(3)];
+        if (!r) return;
+        const u = byUnit[String(r.unit).trim()] || {};
+        mmrNewLeaseController.addRowWithData({ unit: String(r.unit).trim(), dateLeased: r.dateApplied || '', moveIn: r.moveInDate || '', leaseTerm: r.leaseTerm || '', marketRent: u.marketRent || '', effectiveRent: r.rate || '', concession: r.promo || '' });
+    } else if (key.startsWith('rn:')) {
+        const x = (mmrRenderSuggested.rn || []).find(s => s.key === key);
+        if (!x) return;
+        mmrRenewalController.addRowWithData({ unit: x.row.unit, dateRenewed: x.row.begins });
+    }
+    renderMmrSuggested();
+});
+document.getElementById('mmrReportsInput').addEventListener('change', async e => {
+    const files = [...(e.target.files || [])];
+    e.target.value = '';
+    if (!files.length) return;
+    const msg = document.getElementById('mmrReportsMsg');
+    const got = [], skipped = [];
+    for (const f of files) {
+        try {
+            const wb = XLSX.read(new Uint8Array(await f.arrayBuffer()), { type: 'array', cellDates: true });
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: false, defval: '' });
+            const rep = mmrParseReport(rows);
+            if (!rep) { skipped.push(f.name); continue; }
+            const kind = rep.kind; delete rep.kind;
+            MMR_REPORTS[kind] = Object.assign(rep, { file: f.name, uploadedAt: new Date().toISOString() });
+            got.push(MMR_REPORT_LABELS[kind]);
+        } catch (err) { console.error(err); skipped.push(f.name); }
+    }
+    mmrReportsSave();
+    const filled = mmrApplyReports(got.includes('BoxScore Summary'));
+    msg.innerHTML = (got.length ? `Read: ${escapeHtml(got.join(', '))}. Filled ${filled.length} field${filled.length === 1 ? '' : 's'}.` : '')
+        + (skipped.length ? ` <span style="color:#c0392b;">Not recognized: ${escapeHtml(skipped.join(', '))}.</span>` : '');
+});
+// A changed Date re-counts the date-based fields from the loaded reports.
+document.getElementById('mmrDate').addEventListener('change', () => { if (Object.keys(MMR_REPORTS).length) mmrApplyReports(false); else renderMmrSuggested(); });
+setTimeout(() => { renderMmrReportsStatus(); renderMmrSuggested(); pullMmrReportsFromBackend(); }, 0);
+
 let MMR_TEMPLATE_NAME = '';
 // The uploaded MMR's week: from its file name ("..._2026_10_18.xlsx",
 // "2026-10-18", "10.18.26") or else its Weekly Stats Date cell (B1).
@@ -23416,6 +23680,7 @@ setInterval(() => {
     pullAllFromBackend();
     pullWaitlistFromBackend();
     pullConcessionFromBackend();
+    pullMmrReportsFromBackend();
     if (sitemapCurrentFloor === 'doors') pullDoorData();
     pullStorageFromBackend();
     pullLockersFromBackend();
