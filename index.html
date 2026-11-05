@@ -3012,6 +3012,9 @@
     .pcard-prev { margin-top: 18px; font-size: 12.5px; }
     .pcard-prev summary { cursor: pointer; font-weight: 600; margin-bottom: 8px; }
     .pcard-prev-table td, .pcard-prev-table th { font-size: 11px; padding: 3px 6px; }
+    .pcard-add-table tr.pcard-add-new td { background: #eef7ee; }
+    body.dark-mode .pcard-add-table tr.pcard-add-new td { background: rgba(46,125,50,0.18); }
+    .pcard-add-note { font-size: 11.5px; color: var(--ink-soft); margin: 0 0 6px; }
     .pcard-calcs { flex: 0 0 240px; display: flex; flex-direction: column; gap: 14px; }
     .pcard-calc { border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: #fff; display: flex; flex-direction: column; gap: 8px; }
     .pcard-calc-title { font-family: 'Oswald', var(--sans); font-weight: 600; font-size: 13px; }
@@ -4933,6 +4936,14 @@
                         <div class="mmr-table-wrap"><table class="mmr-table pcard-prev-table">
                             <thead><tr><th>Row</th><th>Date</th><th>GL Code</th><th>To</th><th>Amount</th><th>For</th></tr></thead>
                             <tbody id="pcardPrevBody"></tbody>
+                        </table></div>
+                    </details>
+                    <details class="pcard-prev" id="pcardAddWrap" open style="display:none;">
+                        <summary id="pcardAddSummary">Items being added</summary>
+                        <div class="pcard-add-note" id="pcardAddNote"></div>
+                        <div class="mmr-table-wrap"><table class="mmr-table pcard-prev-table pcard-add-table">
+                            <thead><tr><th>Row</th><th>Date</th><th>GL Code</th><th>To</th><th>Amount</th><th>For</th></tr></thead>
+                            <tbody id="pcardAddBody"></tbody>
                         </table></div>
                     </details>
                 </div>
@@ -15257,6 +15268,7 @@ function renderPcardSummary() {
             : ` &middot; ${room - items.length} empty row${room - items.length === 1 ? '' : 's'} left after`;
     }
     document.getElementById('pcardSummary').innerHTML = html;
+    try { pcardRenderAdding(); } catch (e) { console.error(e); }
 }
 new MutationObserver(renderPcardSummary).observe(document.getElementById('pcardBody'), { childList: true });
 document.getElementById('pcardBody').addEventListener('input', renderPcardSummary);
@@ -15267,7 +15279,8 @@ function pcardRenderPrev() {
     wrap.style.display = PCARD_TEMPLATE_BYTES ? '' : 'none';
     const total = PCARD_PREV.reduce((t, r) => t + (typeof r.amount === 'number' ? r.amount : 0), 0);
     document.getElementById('pcardPrevSummary').textContent = `Items already in the uploaded file (${PCARD_PREV.length}, ${pcardMoney(total)})`;
-    const fmtDate = d => d instanceof Date && !isNaN(d) ? d.toLocaleDateString('en-US') : (d || '');
+    const fmtDate = d => d instanceof Date && !isNaN(d) ? d.toLocaleDateString('en-US')
+        : typeof d === 'number' ? new Date(Math.round((d - 25569) * 864e5)).toLocaleDateString('en-US', { timeZone: 'UTC' }) : String(d || '');
     document.getElementById('pcardPrevBody').innerHTML = PCARD_PREV.length
         ? PCARD_PREV.map(r => `<tr><td>${r.row}</td><td>${escapeHtml(fmtDate(r.date))}</td><td>${escapeHtml(String(r.gl || ''))}</td><td>${escapeHtml(String(r.to || ''))}</td><td>${typeof r.amount === 'number' ? pcardMoney(r.amount) : escapeHtml(String(r.amount || ''))}</td><td>${escapeHtml(String(r.forText || ''))}</td></tr>`).join('')
         : `<tr><td colspan="6" class="no-unit" style="border:none;">No items in rows ${PCARD_FIRST_ROW}\u2013${PCARD_LAST_ROW}.</td></tr>`;
@@ -15429,6 +15442,78 @@ function pcardCellHasValue(xml, ref) {
     const m = xml.match(new RegExp(`<c r="${ref}"[^>]*?(?:/>|>([\\s\\S]*?)<\\/c>)`));
     return !!(m && m[1] && /<(v|is|f)\b/.test(m[1]) && !/^<v><\/v>$/.test(m[1]));
 }
+// Ditto marks: a row whose To (or Date) is " belongs to the purchase above it.
+function pcardIsDitto(v) { return /^\s*(["“”″〃]|''|ditto)\s*$/i.test(String(v == null ? '' : v)); }
+function pcardSerial(d) { const v = d instanceof Date ? d : mmrExcelDateFromInput(d); return v instanceof Date && !isNaN(v) ? excelSerialFromDate(v) : null; }
+// The app's new items as file rows (B Date, C GL, E To, G Amount, H For), in the order they were added.
+function pcardNewEntries() {
+    return pcardItems().map(it => {
+        const gl = String(it.gl || '').trim();
+        const amount = parseMoneyLoose(it.amount);
+        const serial = it.date ? pcardSerial(it.date) : null;
+        return { serial, isNew: true, vals: {
+            B: serial !== null ? serial : String(it.date || '').trim(),
+            C: /^\d+(\.\d+)?$/.test(gl) ? Number(gl) : gl,
+            E: String(it.to || '').trim(),
+            G: amount !== null ? amount : String(it.amount || '').trim(),
+            H: String(it.for || '').trim()
+        } };
+    });
+}
+// Final order of the item rows: purchases sorted by date (oldest first,
+// undated last, ties keep their order), and each " row stays right under
+// the purchase it belongs to, with both its Date and To written as ".
+function pcardOrderEntries(existing, added) {
+    const groups = [];
+    const addGroups = list => {
+        let head = null;
+        list.forEach(e => {
+            if (head && (pcardIsDitto(e.vals.E) || pcardIsDitto(e.vals.B))) { head.rows.push(e); return; }
+            head = { serial: e.serial, rows: [e] };
+            groups.push(head);
+        });
+    };
+    addGroups(existing); addGroups(added);
+    groups.forEach((g, i) => { g.i = i; });
+    groups.sort((a, b) => (a.serial === null) - (b.serial === null) || (a.serial || 0) - (b.serial || 0) || a.i - b.i);
+    const out = [];
+    groups.forEach(g => g.rows.forEach((e, k) => {
+        if (k > 0) {
+            e.vals.E = '"';
+            if (pcardIsDitto(e.vals.B) || e.vals.B === '' || e.vals.B == null || (e.serial !== null && e.serial === g.serial)) e.vals.B = '"';
+        }
+        out.push(e);
+    }));
+    return out;
+}
+// Preview: where the new items will land in the file and how they'll read.
+function pcardRenderAdding() {
+    const wrap = document.getElementById('pcardAddWrap');
+    if (!wrap) return;
+    const added = pcardNewEntries();
+    wrap.style.display = added.length ? '' : 'none';
+    if (!added.length) return;
+    const keep = PCARD_TEMPLATE_BYTES && pcardMode() !== 'clear' ? PCARD_PREV : [];
+    const existing = keep.map(r => {
+        const serial = r.date instanceof Date ? pcardSerial(r.date) : (typeof r.date === 'number' ? r.date : (r.date && !pcardIsDitto(r.date) ? pcardSerial(String(r.date)) : null));
+        return { serial, isNew: false, vals: { B: serial !== null ? serial : (r.date || ''), C: r.gl, E: r.to, G: r.amount, H: r.forText } };
+    });
+    const all = pcardOrderEntries(existing, added);
+    const first = PCARD_TEMPLATE_BYTES ? PCARD_FIRST_ROW : 1;
+    const fmtDate = v => typeof v === 'number' ? new Date(Math.round((v - 25569) * 864e5)).toLocaleDateString('en-US', { timeZone: 'UTC' }) : String(v == null ? '' : v);
+    const fmtAmt = v => typeof v === 'number' ? pcardMoney(v) : String(v == null ? '' : v);
+    const total = added.reduce((t, e) => t + (typeof e.vals.G === 'number' ? e.vals.G : 0), 0);
+    document.getElementById('pcardAddSummary').textContent = `Items being added (${added.length}, ${pcardMoney(total)})`;
+    const firstNew = all.findIndex(e => e.isNew);
+    const between = all.slice(firstNew).some(e => !e.isNew);
+    const dittos = added.filter(e => pcardIsDitto(e.vals.E)).length;
+    document.getElementById('pcardAddNote').innerHTML = (PCARD_TEMPLATE_BYTES ? `How they'll appear in the file${pcardMode() === 'clear' ? ' (starting fresh)' : ', after the items already there'}. ` : 'Upload the previous PCard file to see their row numbers. ')
+        + (between ? '<b>Some new items are dated earlier than items already in the file, so they go in between (all items are sorted by date).</b> ' : '')
+        + (dittos ? `A To of <b>"</b> keeps that row with the purchase above it, and its Date is written as <b>"</b> too.` : 'Tip: type <b>"</b> in To for another line of the same purchase.');
+    // From the first new row to the end, so rows placed in between show in context.
+    document.getElementById('pcardAddBody').innerHTML = all.map((e, i) => ({ e, row: first + i })).slice(Math.max(0, firstNew)).map(({ e, row }) =>
+        `<tr class="${e.isNew ? 'pcard-add-new' : ''}"><td>${PCARD_TEMPLATE_BYTES ? row : ''}</td><td>${escapeHtml(fmtDate(e.vals.B))}</td><td>${escapeHtml(String(e.vals.C == null ? '' : e.vals.C))}</td><td>${escapeHtml(String(e.vals.E == null ? '' : e.vals.E))}</td><td>${escapeHtml(fmtAmt(e.vals.G))}</td><td>${escapeHtml(String(e.vals.H == null ? '' : e.vals.H))}</td></tr>`).join('');
+}
 async function exportPcardViaXmlSurgery() {
     const zip = await JSZip.loadAsync(PCARD_TEMPLATE_BYTES);
     const wbXml = await zip.file('xl/workbook.xml').async('string');
@@ -15462,33 +15547,20 @@ async function exportPcardViaXmlSurgery() {
     const ssFile = zip.file('xl/sharedStrings.xml');
     const sst = ssFile ? xmlParseSharedStrings(await ssFile.async('string')).map(xmlUnescapeText) : [];
     const COLS = ['B', 'C', 'E', 'G', 'H'];
-    const toSerial = d => { const v = d instanceof Date ? d : mmrExcelDateFromInput(d); return v instanceof Date && !isNaN(v) ? excelSerialFromDate(v) : null; };
-    const entries = [];
+    const toSerial = pcardSerial;
+    const existing = [];
     if (pcardMode() !== 'clear') {
         for (let r = PCARD_FIRST_ROW; r <= PCARD_LAST_ROW; r++) {
             if (!PCARD_DATA_COLS.some(c => pcardCellHasValue(xml, c + r))) continue;
             const vals = {};
             COLS.forEach(c => { vals[c] = pcardReadCell(xml, c + r, sst); });
-            const serial = typeof vals.B === 'number' ? vals.B : (vals.B ? toSerial(String(vals.B)) : null);
+            const serial = typeof vals.B === 'number' ? vals.B : (vals.B && !pcardIsDitto(vals.B) ? toSerial(String(vals.B)) : null);
             if (serial !== null) vals.B = serial;
-            entries.push({ serial, vals });
+            existing.push({ serial, vals });
         }
     }
-    items.forEach(it => {
-        const gl = String(it.gl || '').trim();
-        const amount = parseMoneyLoose(it.amount);
-        const serial = it.date ? toSerial(it.date) : null;
-        entries.push({ serial, vals: {
-            B: serial !== null ? serial : String(it.date || '').trim(),
-            C: /^\d+(\.\d+)?$/.test(gl) ? Number(gl) : gl,
-            E: String(it.to || '').trim(),
-            G: amount !== null ? amount : String(it.amount || '').trim(),
-            H: String(it.for || '').trim()
-        } });
-    });
-    // Stable sort: by date, undated last, ties keep their order.
-    entries.forEach((e, i) => { e.i = i; });
-    entries.sort((a, b) => (a.serial === null) - (b.serial === null) || (a.serial || 0) - (b.serial || 0) || a.i - b.i);
+    // Sorted by date, with each " row kept under its purchase.
+    const entries = pcardOrderEntries(existing, pcardNewEntries());
     const room = PCARD_LAST_ROW - PCARD_FIRST_ROW + 1;
     if (entries.length > room) {
         throw new Error(`Only ${room} rows in B${PCARD_FIRST_ROW}:H${PCARD_LAST_ROW} for ${entries.length} items (${entries.length - items.length} already in the file). Choose "Clear the file's items", or export fewer items.`);
@@ -15547,7 +15619,7 @@ document.getElementById('pcardExportBtn').addEventListener('click', async () => 
     if (pcardMode() === 'clear' && PCARD_PREV.length && !confirm(`Clear the ${PCARD_PREV.length} item(s) already in the file (B${PCARD_FIRST_ROW}:H${PCARD_LAST_ROW}) and start fresh with ${items.length} new item(s)?`)) return;
     try {
         const r = await exportPcardViaXmlSurgery();
-        status.innerHTML = `<b style="color:var(--good);">Exported.</b> ${r.count} item${r.count === 1 ? '' : 's'} added; all ${r.total} item${r.total === 1 ? '' : 's'} sorted by date in rows ${r.start}\u2013${r.start + r.total - 1}; ${PCARD_APPROVAL_CELL} set to today.`;
+        status.innerHTML = `<b style="color:var(--good);">Exported.</b> ${r.count} item${r.count === 1 ? '' : 's'} added; all ${r.total} item${r.total === 1 ? '' : 's'} sorted by date (" rows kept with their purchase) in rows ${r.start}\u2013${r.start + r.total - 1}; ${PCARD_APPROVAL_CELL} set to today.`;
         if (items.length && confirm(`Exported. Clear these ${items.length} item(s) from the app now that they're in the file? (Recommended, so they aren't added twice next time.)`)) {
             const rows = pcardController.getRows();
             Object.keys(rows).forEach(id => { if (!rows[id].deleted) rows[id].deleted = true; });
