@@ -4903,8 +4903,8 @@
                 <div class="empty-note" id="pcardTemplateStatus">No file uploaded &mdash; upload the last PCard Reconciliation to export. It stays in this browser tab only and is never saved.</div>
             </div>
             <div class="mmr-io-bar">
-                <label class="file-label" for="pcardGlUpload">Upload GL Code File (.xls/.xlsx)</label>
-                <input type="file" id="pcardGlUpload" accept=".xls,.xlsx,.csv">
+                <label class="file-label" for="pcardGlUpload">Upload GL Code File (.pdf/.xls/.xlsx)</label>
+                <input type="file" id="pcardGlUpload" accept=".pdf,.xls,.xlsx,.csv,application/pdf">
                 <div class="empty-note" id="pcardGlStatus"></div>
             </div>
             <div class="pcard-mode" role="radiogroup" aria-label="Export mode">
@@ -14869,6 +14869,8 @@ function pcardGlBuildIndex() {
     const docs = PCARD_COA.accounts.filter(a => !a.skip).map(a => ({
         a, name: new Set(pcardGlTokens(a.name)), desc: new Set(pcardGlTokens(a.desc)), sect: new Set(pcardGlTokens(a.section)),
         text: ' ' + pcardGlTokens(a.name + ' ' + a.desc).join(' ') + ' ',
+        nameText: ' ' + pcardGlTokens(a.name).join(' ') + ' ',
+        descText: ' ' + pcardGlTokens(a.desc).join(' ') + ' ',
         // Purchases rarely belong to capex / renovation / payroll / corporate sections.
         factor: /^(capex|reno|extra|partnership|debt|payroll|management fee)/i.test(a.section) ? 0.55 : 1
     }));
@@ -14932,18 +14934,42 @@ function pcardGlMatch(row) {
     else addW(pcardGlTokens(to), 1);
     forToks.forEach(t => { if (PCARD_WORD_HINTS[t]) addW(pcardGlTokens(PCARD_WORD_HINTS[t]), 1.2); });
     addW(forToks, 1.6);
-    const bigrams = [];
-    for (let i = 0; i + 1 < forToks.length; i++) bigrams.push(' ' + forToks[i] + ' ' + forToks[i + 1] + ' ');
+    // Phrases (2-4 words in a row) from what it was For, longest first.
+    const phrases = [];
+    for (let n = Math.min(4, forToks.length); n >= 2; n--) for (let i = 0; i + n <= forToks.length; i++) phrases.push({ n, p: ' ' + forToks.slice(i, i + n).join(' ') + ' ' });
+    const forSet = new Set(forToks), itemSet = new Set(forToks.concat(pcardGlTokens(to)));   // words actually typed, not vendor guesses
     const scored = docs.map(d => {
-        let sc = 0;
+        let sc = 0, words = 0, forWords = 0;
         Object.keys(weights).forEach(t => {
             if (!df[t] && !d.sect.has(t)) return;
+            const inName = d.name.has(t), inDesc = d.desc.has(t);
             const idf = Math.log(1 + N / (df[t] || N));
-            sc += weights[t] * idf * ((d.name.has(t) ? 3 : 0) + (d.desc.has(t) ? 1 : 0) + (d.sect.has(t) ? 0.4 : 0));
+            sc += weights[t] * idf * ((inName ? 3 : 0) + (inDesc ? 1 : 0) + (d.sect.has(t) ? 0.4 : 0));
+            if (inName || inDesc) { words++; if (forSet.has(t)) forWords++; }
         });
-        bigrams.forEach(b => { if (d.text.includes(b)) sc += 2; });
-        return { d, sc: sc * d.factor };
-    }).filter(x => x.sc > 0).sort((a, b) => b.sc - a.sc);
+        // A specific phrase beats scattered single words: the longest
+        // phrase found counts most, in the account name more than its description.
+        let phraseBonus = 0;
+        const usedN = {};
+        phrases.forEach(({ n, p }) => {
+            const inName = d.nameText.includes(p), inDesc = !inName && d.descText.includes(p);
+            if (!inName && !inDesc) return;
+            if ((usedN[p] = (usedN[p] || 0) + 1) > 1) return;
+            phraseBonus = Math.max(phraseBonus, (inName ? 4 : 2) * n * n / 2);
+        });
+        sc += phraseBonus;
+        // Several different words matching beats one word matching a lot.
+        if (forWords > 1) sc *= 1 + 0.35 * (forWords - 1);
+        else if (words > 1) sc *= 1 + 0.15 * (words - 1);
+        // The account's whole name appears in the item (e.g. "Pool Chemicals"):
+        // a specific match, worth more the more words that name has.
+        const nameToks = [...d.name];
+        const covered = nameToks.length && nameToks.every(t => itemSet.has(t));
+        if (covered) sc += 3 + 2.5 * nameToks.length;
+        return { d, sc: sc * d.factor, words, covered, nameLen: nameToks.length || 99 };
+    }).filter(x => x.sc > 0)
+      // Ties go to the account matching more words, then the more specific (shorter) name.
+      .sort((a, b) => (b.sc - a.sc) || (b.words - a.words) || (a.nameLen - b.nameLen));
     let candidates = scored.slice(0, 6).map(x => x.d.a);
     if (learnedBest) {
         candidates = [learnedBest.a].concat(candidates.filter(a => a.code !== learnedBest.a.code)).slice(0, 6);
@@ -14952,7 +14978,9 @@ function pcardGlMatch(row) {
     if (learnedHint) candidates = [learnedHint.a].concat(candidates.filter(a => a.code !== learnedHint.a.code)).slice(0, 6);
     if (!scored.length) return learnedHint ? { clear: false, best: learnedHint.a, candidates } : none;
     const best = scored[0].sc, second = scored[1] ? scored[1].sc : 0;
-    const clear = !learnedHint && best >= 3 && best >= second * 1.4;
+    // Clear winner: well ahead of the next one, or the only account whose
+    // full name is in the item while the runner-up's isn't.
+    const clear = !learnedHint && best >= 3 && (best >= second * 1.4 || (scored[0].covered && !(scored[1] && scored[1].covered) && best >= second * 1.15));
     return { clear, best: scored[0].d.a, candidates };
 }
 function pcardGlAccount(code) {
@@ -15063,6 +15091,95 @@ function pcardGlFillDatalist() {
     document.getElementById('pcardGlList').innerHTML = PCARD_COA.accounts.filter(a => !a.skip)
         .map(a => `<option value="${escapeAttr(a.code)}" label="${escapeAttr(pcardGlLabel(a))}"></option>`).join('');
 }
+function pcardCoaSkip(name, desc) { return /do not use|not used|corporate use only|corp use only|corp use/i.test(name + ' ' + desc); }
+// The Chart of Accounts as a PDF: reads the text with its positions, puts
+// each line's pieces into columns (Account / Account Name / Description,
+// from the header row when there is one), joins wrapped lines onto the
+// account above, and treats a line without a code at the left edge as a
+// section title.
+async function pcardParseCoaPdf(bytes, fileName) {
+    const pdfjsLib = await docsLoadPdfJs();
+    const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+    const lines = [];
+    try {
+        for (let p = 1; p <= pdf.numPages; p++) {
+            const page = await pdf.getPage(p);
+            const tc = await page.getTextContent();
+            const items = tc.items.filter(it => it.str && it.str.trim())
+                .map(it => ({ s: it.str, x: it.transform[4], y: it.transform[5], w: it.width || 0, h: Math.abs(it.transform[3]) || 8 }))
+                .sort((a, b) => b.y - a.y || a.x - b.x);
+            let cur = null;
+            items.forEach(it => {
+                if (cur && Math.abs(cur.y - it.y) <= Math.max(2, it.h * 0.45)) cur.items.push(it);
+                else { cur = { page: p, y: it.y, h: it.h, items: [it] }; lines.push(cur); }
+            });
+        }
+    } finally { pdf.destroy(); }
+    // Pieces close together are one cell; a wider gap starts the next column.
+    lines.forEach(l => {
+        l.items.sort((a, b) => a.x - b.x);
+        const cells = [];
+        l.items.forEach(it => {
+            const last = cells[cells.length - 1];
+            const gap = last ? it.x - last.x2 : Infinity;
+            if (last && gap < Math.max(7, it.h * 1.1)) {
+                last.s += (gap > it.h * 0.12 && !/\s$/.test(last.s) && !/^\s/.test(it.s) ? ' ' : '') + it.s;
+                last.x2 = Math.max(last.x2, it.x + it.w);
+            } else cells.push({ s: it.s, x: it.x, x2: it.x + it.w });
+        });
+        l.cells = cells.map(c => Object.assign(c, { s: c.s.replace(/\s+/g, ' ').trim() })).filter(c => c.s);
+        l.text = l.cells.map(c => c.s).join(' ');
+    });
+    const CODE = /^(\d{4}(?:-\d{4})?)(?:\s+(.*))?$/;
+    const isHeader = l => l.cells.some(c => /^(gl\s*)?account(\s*(#|no\.?|number|code))?$|^gl\s*code$|^code$/i.test(c.s)) && l.cells.some(c => /name|title|description/i.test(c.s));
+    const isJunk = l => /^page\s+\d+(\s+of\s+\d+)?$/i.test(l.text) || /^\d{1,2}\/\d{1,2}\/\d{2,4}(\s+\d{1,2}:\d{2}.*)?$/.test(l.text) || /^chart of accounts$/i.test(l.text);
+    // Columns from the header row: every header cell, so extra columns
+    // (type, balance...) are recognised and left out.
+    const hdr = lines.find(isHeader);
+    const cols = hdr ? hdr.cells.map(c => ({ x: c.x, kind: /description/i.test(c.s) ? 'desc' : /name|title/i.test(c.s) ? 'name' : /account|code/i.test(c.s) ? 'code' : 'other' })) : null;
+    const codeLines = lines.filter(l => l.cells.length && CODE.test(l.cells[0].s));
+    const codeX = cols && cols.find(c => c.kind === 'code') ? cols.find(c => c.kind === 'code').x : (codeLines.length ? Math.min(...codeLines.map(l => l.cells[0].x)) : 0);
+    const colOf = (cell, i) => {
+        if (cols) {
+            let best = null;
+            cols.forEach(c => { if (c.x <= cell.x + 6 && (!best || c.x > best.x)) best = c; });
+            return best ? best.kind : 'name';
+        }
+        return i === 0 ? 'name' : 'desc';   // no header: first text is the name, the rest describes it
+    };
+    const accounts = [];
+    let section = '', acct = null, lastY = 0, lastPage = 0;
+    lines.forEach(l => {
+        if (!l.cells.length || isJunk(l)) return;
+        if (isHeader(l)) { acct = null; return; }
+        const first = l.cells[0], m = first.s.match(CODE);
+        if (m && first.x <= codeX + 12) {
+            // Code and name can share one cell ("6010-0000 Office Supplies");
+            // anything else under the Account column is the name too.
+            const parts = { name: m[2] ? [m[2]] : [], desc: [] };
+            l.cells.slice(1).forEach((c, i) => {
+                let k = colOf(c, m[2] ? i + 1 : i);
+                if (k === 'code') k = 'name';
+                if (k === 'name' || k === 'desc') parts[k].push(c.s);
+            });
+            acct = { code: m[1], name: parts.name.join(' '), desc: parts.desc.join(' '), section };
+            accounts.push(acct);
+        } else if (acct && first.x > codeX + 12 && l.page === lastPage && lastY - l.y < l.h * 2.8) {
+            // A wrapped line of the account above.
+            l.cells.forEach((c, i) => {
+                let k = cols ? colOf(c, i) : (acct.desc || i > 0 ? 'desc' : 'name');
+                if (k === 'code') k = 'name';
+                if (k === 'name') acct.name = (acct.name + ' ' + c.s).trim();
+                else if (k === 'desc') acct.desc = (acct.desc + ' ' + c.s).trim();
+            });
+        } else if (first.x <= codeX + 12 && l.cells.length <= 2 && l.text.length <= 80 && !/\d{4}-\d{4}/.test(l.text)) {
+            section = l.text; acct = null;
+        } else return;
+        lastY = l.y; lastPage = l.page;
+    });
+    accounts.forEach(a => { a.skip = pcardCoaSkip(a.name, a.desc); });
+    return { name: fileName, accounts };
+}
 function pcardParseCoa(bytes, fileName) {
     const wb = XLSX.read(bytes, { type: 'array' });
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
@@ -15073,8 +15190,7 @@ function pcardParseCoa(bytes, fileName) {
         if (/^\d{4}(-\d{4})?$/.test(a)) {
             const name = String(r[1] || '').replace(/\s+/g, ' ').trim();
             const desc = String(r[5] || '').replace(/\s+/g, ' ').trim();
-            const skip = /do not use|not used|corporate use only|corp use only|corp use/i.test(name + ' ' + desc);
-            accounts.push({ code: a, name, desc, section, skip });
+            accounts.push({ code: a, name, desc, section, skip: pcardCoaSkip(name, desc) });
         } else if (a && !String(r[1] || '').trim() && !/^account$/i.test(a)) section = a;
     });
     return { name: fileName, accounts };
@@ -15214,10 +15330,17 @@ document.getElementById('pcardGlUpload').addEventListener('change', e => {
     e.target.value = '';
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = evt => {
+    const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+    reader.onload = async evt => {
         let coa;
-        try { coa = pcardParseCoa(new Uint8Array(evt.target.result), file.name); } catch (err) { coa = null; }
-        if (!coa || !coa.accounts.length) { alert('No GL codes found. Upload the Chart of Accounts (codes like 5010-0000 in column A).'); return; }
+        const status = document.getElementById('pcardGlStatus');
+        if (isPdf && status) status.textContent = 'Reading the GL code PDF\u2026';
+        try { coa = isPdf ? await pcardParseCoaPdf(new Uint8Array(evt.target.result), file.name) : pcardParseCoa(new Uint8Array(evt.target.result), file.name); } catch (err) { console.error(err); coa = null; }
+        if (!coa || !coa.accounts.length) {
+            pcardGlStatus();
+            alert(isPdf ? 'No GL codes found in that PDF. It needs selectable text (not a scan) with codes like 5010-0000 at the start of each line.' : 'No GL codes found. Upload the Chart of Accounts (codes like 5010-0000 in column A).');
+            return;
+        }
         PCARD_COA = coa;
         try { localStorage.setItem(PCARD_COA_KEY, JSON.stringify(coa)); } catch (err) {}
         pcardGlBuildIndex();
