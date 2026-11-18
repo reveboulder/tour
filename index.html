@@ -4622,6 +4622,14 @@
     <div class="settings-card" id="adminLockScreen">
         <div class="section-label" style="margin-top:0;"><span class="dot"></span><span id="adminLockTitle">Admin Access</span></div>
         <p class="empty-note" id="adminLockNote" style="font-size:12.5px;">This area is restricted to admin use. Enter the admin password to continue.</p>
+        <div id="adminConnectBox" style="display:none;">
+            <div class="field">
+                <label>Web App URL</label>
+                <input type="text" id="adminConnectUrl" placeholder="https://script.google.com/macros/s/XXXXXXXX/exec" autocomplete="off">
+            </div>
+            <button type="button" class="btn primary" id="adminConnectBtn" style="width:100%;">Connect</button>
+            <div class="empty-note" id="adminConnectStatus" style="margin-top:8px;"></div>
+        </div>
         <div class="field" id="adminPassField">
             <label id="adminPassLabel">Password</label>
             <input type="password" id="adminPasswordInput" placeholder="Enter password" autocomplete="off">
@@ -4643,6 +4651,7 @@
             <button type="button" class="wl-subtab" data-admin-subtab="pcard" title="Has its own password">PCard <svg class="tab-lock" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M5.2 7V5.2a2.8 2.8 0 0 1 5.6 0V7" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
             <button type="button" class="wl-subtab" data-admin-subtab="deposit">Deposit Accounting</button>
             <button type="button" class="wl-subtab" data-admin-subtab="blueprints">Blueprints</button>
+            <button type="button" class="wl-subtab" data-admin-subtab="settings">Settings</button>
             <span class="wl-subtab-right admin-pw-btns"><button type="button" class="btn small" id="adminSetOwnerBtn" style="display:none;" title="One-time: set the Owner password, required to change any password">Set Owner Password</button><button type="button" class="btn small" id="adminChangePassBtn" title="Change the Admin password for everyone">Change Admin Password</button></span>
         </div>
         <div id="adminPanel-mmr" class="admin-subpanel" style="display:none;">
@@ -5025,6 +5034,88 @@
                     <div class="dep-preview" id="depPreview"></div>
                 </div>
             </div>
+        </div>
+        <div id="adminPanel-settings" class="admin-subpanel" style="display:none;">
+        <div class="settings-card">
+            <div class="section-label" style="margin-top:0;"><span class="dot"></span>Shared Backend (Google Sheet)</div>
+            <p class="empty-note" style="font-size:12.5px;">
+                Without this, every upload and every renewal checkbox/note lives only in your own browser &mdash; other agents can't see it. Paste in your deployed Apps Script Web App URL below (same URL for everyone on the team) to share the pricing sheet, expiring report, renewal report, and renewal tracker notes across all agents automatically.
+            </p>
+            <div class="field">
+                <label>Web App URL</label>
+                <input type="text" id="backendUrlInput" placeholder="https://script.google.com/macros/s/XXXXXXXX/exec">
+            </div>
+            <div class="action-row" style="margin-top:8px;">
+                <button type="button" class="btn" id="backendSaveBtn">Save</button>
+                <button type="button" class="btn" id="backendTestBtn">Test Connection</button>
+            </div>
+            <div class="empty-note" id="backendStatusNote" style="margin-top:10px;">Not configured &mdash; data stays local to this browser only.</div>
+            <div class="empty-note" id="backendSetupHint" style="margin-top:10px;">Need this set up? Ask Claude for the Apps Script code and step-by-step deployment instructions &mdash; it's a one-time, ~5 minute setup on a Google Sheet you control.</div>
+        </div>
+
+        <div class="settings-card" style="margin-top:18px;">
+            <button type="button" class="unit-info-toggle" id="propToggle">
+                <span><span class="dot"></span>SELECT PROPERTY <span class="hint">(Click to View)</span></span>
+                <span class="fc-chevron">&rsaquo;</span>
+            </button>
+            <div id="propBody" style="display:none;margin-top:12px;">
+                <p class="empty-note" style="font-size:12.5px;">Everything specific to one property, kept in one place: branding, size, resident services and the documents each property must provide. Shared with all agents. <b>The profile details are stored for reference only for now</b> &mdash; the app still uses REVE Boulder&rsquo;s built-in setup. Default Charges and Office Hours (below) are live and used across the app.</p>
+                <div class="prop-pick">
+                    <label>Property <select id="propSelect"></select></label>
+                    <button type="button" class="btn small" id="propAddBtn" style="width:auto;flex:none;">+ Add Property</button>
+                    <button type="button" class="btn small" id="propRemoveBtn" style="width:auto;flex:none;">Remove</button>
+                    <div class="save-note" data-save-keys="property-profiles" aria-live="polite" style="margin:0;"></div>
+                </div>
+                <div id="propForm"></div>
+                <div class="prop-subcard">
+                    <button type="button" class="unit-info-toggle" id="defaultChargesToggle">
+                        <span><span class="dot"></span>DEFAULT CHARGES <span class="hint">(Click to View)</span></span>
+                        <span class="fc-chevron">&rsaquo;</span>
+                    </button>
+                    <div id="defaultChargesBody" style="display:none;margin-top:12px;">
+                        <p class="empty-note" style="font-size:12.5px;">The property's standard fees (from the REVE fee sheet). Changes here are shared with all agents and update everywhere these fees are used &mdash; Welcome Letter, Lease, Commissions deposits and Deposit Accounting.</p>
+                        <div class="mmr-table-wrap" style="max-height:560px;overflow-y:auto;">
+                            <table class="mmr-table default-charges-table">
+                                <thead><tr><th>Charge</th><th>Amount</th><th>Frequency</th><th>Notes</th><th></th></tr></thead>
+                                <tbody id="defaultChargesTbody"></tbody>
+                            </table>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                            <button type="button" class="btn" id="defaultChargesAddBtn" style="width:auto;padding:7px 14px;">+ Add Charge</button>
+                            <button type="button" class="btn" id="defaultChargesResetBtn" style="width:auto;padding:7px 14px;">Reset to Fee Sheet</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="prop-subcard">
+                    <button type="button" class="unit-info-toggle" id="officeHoursToggle">
+                        <span><span class="dot"></span>OFFICE HOURS <span class="hint">(Click to View)</span></span>
+                        <span class="fc-chevron">&rsaquo;</span>
+                    </button>
+                    <div id="officeHoursBody" style="display:none;margin-top:12px;">
+                        <p class="empty-note" style="font-size:12.5px;">Shared with all agents. Used by the Residents &rsaquo; Check In email to tell residents when the office is open on their move-in day. Holidays repeat every year automatically; a special date (one-off change) overrides everything for that day.</p>
+                        <table class="mmr-table oh-table">
+                            <thead><tr><th>Day</th><th>Opens</th><th>Closes</th><th>Closed</th></tr></thead>
+                            <tbody id="officeHoursTbody"></tbody>
+                        </table>
+                        <div class="section-label" style="margin-top:14px;"><span class="dot"></span>Holidays <span style="text-transform:none;letter-spacing:0;font-weight:400;">(every year)</span></div>
+                        <table class="mmr-table oh-table">
+                            <thead><tr><th>Holiday</th><th>Next date</th><th>Opens</th><th>Closes</th><th>Closed</th><th>On</th></tr></thead>
+                            <tbody id="officeHoursHolidayTbody"></tbody>
+                        </table>
+                        <div class="section-label" style="margin-top:14px;"><span class="dot"></span>Special dates</div>
+                        <table class="mmr-table oh-table">
+                            <thead><tr><th>Date</th><th>Opens</th><th>Closes</th><th>Closed</th><th>Note</th><th></th></tr></thead>
+                            <tbody id="officeHoursSpecialTbody"></tbody>
+                        </table>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
+                            <button type="button" class="btn" id="officeHoursAddBtn" style="width:auto;flex:none;padding:7px 14px;">+ Add Special Date</button>
+                            <button type="button" class="btn" id="officeHoursResetBtn" style="width:auto;flex:none;padding:7px 14px;">Reset to Standard Hours</button>
+                            <div class="save-note" data-save-keys="office-hours" aria-live="polite" style="margin:0;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         </div>
         <div id="adminPanel-blueprints" class="admin-subpanel" style="display:none;">
             <div class="bp-bar">
@@ -5503,7 +5594,7 @@
             <label class="docs-edit-field">Use for<select id="etSlot"></select></label>
             <label class="docs-edit-field">Subject<input type="text" id="etSubject" autocomplete="off"></label>
             <label class="docs-edit-field">Message<textarea id="etBody" rows="22" spellcheck="true"></textarea></label>
-            <div class="empty-note" style="margin:2px 0 0;">Plain text &mdash; in drafts with attachments, web links and email addresses become clickable and <b style="background:yellow;color:#000;">DO TODAY:</b> / <b style="background:yellow;color:#000;">DUE BEFORE MOVE-IN:</b> / <b style="background:yellow;color:#000;">OTHER SETUP INFORMATION:</b> are bold and highlighted. <b>{name}</b>, <b>{unit}</b> and <b>{date}</b> are filled in with the resident&rsquo;s name, apartment and move-in date when a draft is created. In the Check In email, <b>{officeHours}</b> becomes the office hours on the move-in day (Settings &rsaquo; Office Hours) and <b>{requirements}</b> the move-in requirements still open.</div>
+            <div class="empty-note" style="margin:2px 0 0;">Plain text &mdash; in drafts with attachments, web links and email addresses become clickable and <b style="background:yellow;color:#000;">DO TODAY:</b> / <b style="background:yellow;color:#000;">DUE BEFORE MOVE-IN:</b> / <b style="background:yellow;color:#000;">OTHER SETUP INFORMATION:</b> are bold and highlighted. <b>{name}</b>, <b>{unit}</b> and <b>{date}</b> are filled in with the resident&rsquo;s name, apartment and move-in date when a draft is created. In the Check In email, <b>{officeHours}</b> becomes the office hours on the move-in day (Admin &rsaquo; Settings &rsaquo; Office Hours) and <b>{requirements}</b> the move-in requirements still open.</div>
             <div class="docs-edit-field et-attach">
                 <span>Attachments</span>
                 <div class="et-attach-list" id="etAttachList"></div>
@@ -5683,84 +5774,8 @@
     </div>
 
     <div class="settings-card" style="margin-top:18px;">
-        <div class="section-label" style="margin-top:0;"><span class="dot"></span>Shared Backend (Google Sheet)</div>
-        <p class="empty-note" style="font-size:12.5px;">
-            Without this, every upload and every renewal checkbox/note lives only in your own browser &mdash; other agents can't see it. Paste in your deployed Apps Script Web App URL below (same URL for everyone on the team) to share the pricing sheet, expiring report, renewal report, and renewal tracker notes across all agents automatically.
-        </p>
-        <div class="field">
-            <label>Web App URL</label>
-            <input type="text" id="backendUrlInput" placeholder="https://script.google.com/macros/s/XXXXXXXX/exec">
-        </div>
-        <div class="action-row" style="margin-top:8px;">
-            <button type="button" class="btn" id="backendSaveBtn">Save</button>
-            <button type="button" class="btn" id="backendTestBtn">Test Connection</button>
-        </div>
-        <div class="empty-note" id="backendStatusNote" style="margin-top:10px;">Not configured &mdash; data stays local to this browser only.</div>
-        <div class="empty-note" id="backendSetupHint" style="margin-top:10px;">Need this set up? Ask Claude for the Apps Script code and step-by-step deployment instructions &mdash; it's a one-time, ~5 minute setup on a Google Sheet you control.</div>
-    </div>
-
-    <div class="settings-card" style="margin-top:18px;">
-        <button type="button" class="unit-info-toggle" id="propToggle">
-            <span><span class="dot"></span>SELECT PROPERTY <span class="hint">(Click to View)</span></span>
-            <span class="fc-chevron">&rsaquo;</span>
-        </button>
-        <div id="propBody" style="display:none;margin-top:12px;">
-            <p class="empty-note" style="font-size:12.5px;">Everything specific to one property, kept in one place: branding, size, resident services and the documents each property must provide. Shared with all agents. <b>The profile details are stored for reference only for now</b> &mdash; the app still uses REVE Boulder&rsquo;s built-in setup. Default Charges and Office Hours (below) are live and used across the app.</p>
-            <div class="prop-pick">
-                <label>Property <select id="propSelect"></select></label>
-                <button type="button" class="btn small" id="propAddBtn" style="width:auto;flex:none;">+ Add Property</button>
-                <button type="button" class="btn small" id="propRemoveBtn" style="width:auto;flex:none;">Remove</button>
-                <div class="save-note" data-save-keys="property-profiles" aria-live="polite" style="margin:0;"></div>
-            </div>
-            <div id="propForm"></div>
-            <div class="prop-subcard">
-                <button type="button" class="unit-info-toggle" id="defaultChargesToggle">
-                    <span><span class="dot"></span>DEFAULT CHARGES <span class="hint">(Click to View)</span></span>
-                    <span class="fc-chevron">&rsaquo;</span>
-                </button>
-                <div id="defaultChargesBody" style="display:none;margin-top:12px;">
-                    <p class="empty-note" style="font-size:12.5px;">The property's standard fees (from the REVE fee sheet). Changes here are shared with all agents and update everywhere these fees are used &mdash; Welcome Letter, Lease, Commissions deposits and Deposit Accounting.</p>
-                    <div class="mmr-table-wrap" style="max-height:560px;overflow-y:auto;">
-                        <table class="mmr-table default-charges-table">
-                            <thead><tr><th>Charge</th><th>Amount</th><th>Frequency</th><th>Notes</th><th></th></tr></thead>
-                            <tbody id="defaultChargesTbody"></tbody>
-                        </table>
-                    </div>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-                        <button type="button" class="btn" id="defaultChargesAddBtn" style="width:auto;padding:7px 14px;">+ Add Charge</button>
-                        <button type="button" class="btn" id="defaultChargesResetBtn" style="width:auto;padding:7px 14px;">Reset to Fee Sheet</button>
-                    </div>
-                </div>
-            </div>
-            <div class="prop-subcard">
-                <button type="button" class="unit-info-toggle" id="officeHoursToggle">
-                    <span><span class="dot"></span>OFFICE HOURS <span class="hint">(Click to View)</span></span>
-                    <span class="fc-chevron">&rsaquo;</span>
-                </button>
-                <div id="officeHoursBody" style="display:none;margin-top:12px;">
-                    <p class="empty-note" style="font-size:12.5px;">Shared with all agents. Used by the Residents &rsaquo; Check In email to tell residents when the office is open on their move-in day. Holidays repeat every year automatically; a special date (one-off change) overrides everything for that day.</p>
-                    <table class="mmr-table oh-table">
-                        <thead><tr><th>Day</th><th>Opens</th><th>Closes</th><th>Closed</th></tr></thead>
-                        <tbody id="officeHoursTbody"></tbody>
-                    </table>
-                    <div class="section-label" style="margin-top:14px;"><span class="dot"></span>Holidays <span style="text-transform:none;letter-spacing:0;font-weight:400;">(every year)</span></div>
-                    <table class="mmr-table oh-table">
-                        <thead><tr><th>Holiday</th><th>Next date</th><th>Opens</th><th>Closes</th><th>Closed</th><th>On</th></tr></thead>
-                        <tbody id="officeHoursHolidayTbody"></tbody>
-                    </table>
-                    <div class="section-label" style="margin-top:14px;"><span class="dot"></span>Special dates</div>
-                    <table class="mmr-table oh-table">
-                        <thead><tr><th>Date</th><th>Opens</th><th>Closes</th><th>Closed</th><th>Note</th><th></th></tr></thead>
-                        <tbody id="officeHoursSpecialTbody"></tbody>
-                    </table>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
-                        <button type="button" class="btn" id="officeHoursAddBtn" style="width:auto;flex:none;padding:7px 14px;">+ Add Special Date</button>
-                        <button type="button" class="btn" id="officeHoursResetBtn" style="width:auto;flex:none;padding:7px 14px;">Reset to Standard Hours</button>
-                        <div class="save-note" data-save-keys="office-hours" aria-live="polite" style="margin:0;"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div class="section-label" style="margin-top:0;"><span class="dot"></span>Backend &amp; Property</div>
+        <p class="empty-note" style="font-size:12.5px;margin:0;">The Shared Backend (Web App URL) and Select Property (property profile, Default Charges, Office Hours) are in <b>Admin &rsaquo; Settings</b> (Admin password).</p>
     </div>
 
     <div class="settings-card" style="margin-top:18px;" id="mrsCard">
@@ -11300,7 +11315,9 @@ let adminAuthLoading = null;
 function adminAuthLoad() {
     if (adminAuthLoading) return adminAuthLoading;
     adminAuthLoading = (async () => {
-        if (!adminBackendOn()) { if (!ADMIN_AUTH) adminAuthState = 'new'; return; }
+        // A device with no backend connects it first (from the lock screen),
+        // then the team's shared password is checked. Test mode stays local.
+        if (!adminBackendOn()) { if (!ADMIN_AUTH) adminAuthState = APP_MODE === 'test' ? 'new' : 'connect'; return; }
         const remote = await backendPullChecked(ADMIN_AUTH_KEY);
         if (remote && remote.hash) { ADMIN_AUTH = remote; adminAuthState = 'ready'; adminStoreLocal(remote); }
         else if (remote === null) {
@@ -11317,6 +11334,18 @@ function adminLockRender() {
     if (adminUnlocked && !adminChanging) return;
     const st = adminChanging ? 'change' : adminAuthState;
     const setup = st === 'new' || st === 'change';
+    const connect = st === 'connect';
+    document.getElementById('adminConnectBox').style.display = connect ? '' : 'none';
+    document.getElementById('adminUnlockBtn').style.display = connect ? 'none' : '';
+    if (connect) {
+        document.getElementById('adminLockTitle').textContent = 'Connect the Shared Backend';
+        document.getElementById('adminLockNote').textContent = 'This device isn\u2019t connected to the team\u2019s shared backend yet. Paste the Google Apps Script Web App URL (ask your manager), then enter the Admin password.';
+        document.getElementById('adminPassField').style.display = 'none';
+        document.getElementById('adminPass2Field').style.display = 'none';
+        ['adminPass3Field', 'adminPass4Field'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+        document.getElementById('adminCancelChangeBtn').style.display = 'none';
+        return;
+    }
     document.getElementById('adminLockTitle').textContent = st === 'change' ? 'Change Admin Password' : setup ? 'Set the Admin Password' : 'Admin Access';
     document.getElementById('adminLockNote').textContent =
         st === 'change' ? 'Enter the current Admin password and the Owner password, then the new one twice. The new password applies to everyone.'
@@ -11414,6 +11443,24 @@ async function tryAdminUnlock() {
     else err('Incorrect password — try again.');
 }
 document.getElementById('adminUnlockBtn').addEventListener('click', tryAdminUnlock);
+// Lock screen, no backend yet: save the URL, then check the shared password.
+async function adminConnectBackend() {
+    const url = document.getElementById('adminConnectUrl').value.trim();
+    const status = document.getElementById('adminConnectStatus');
+    if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { status.textContent = 'Paste the Web App URL from the Apps Script deployment (it starts with https://script.google.com/).'; return; }
+    BACKEND_URL = url;
+    try { localStorage.setItem(BACKEND_URL_KEY, BACKEND_URL); } catch (e) {}
+    if (typeof backendUrlInput !== 'undefined' && backendUrlInput) backendUrlInput.value = BACKEND_URL;
+    if (typeof renderBackendStatus === 'function') renderBackendStatus(null, 'Saved from the Admin sign-in screen.');
+    status.textContent = 'Connecting\u2026';
+    adminAuthState = 'loading'; adminLockRender();
+    await adminAuthLoad();
+    status.textContent = adminAuthState === 'offline' ? 'Couldn\u2019t reach that URL. Check it and that the deployment allows "Anyone", then try again.' : '';
+    if (adminAuthState === 'offline') { adminAuthState = 'connect'; BACKEND_URL = ''; try { localStorage.removeItem(BACKEND_URL_KEY); } catch (e) {} adminLockRender(); return; }
+    if (typeof pullAllFromBackend === 'function') pullAllFromBackend();
+}
+document.getElementById('adminConnectBtn').addEventListener('click', adminConnectBackend);
+document.getElementById('adminConnectUrl').addEventListener('keydown', e => { if (e.key === 'Enter') adminConnectBackend(); });
 ['adminPasswordInput', 'adminPasswordInput2'].forEach(id => document.getElementById(id).addEventListener('keydown', (e) => {
     if (e.key === 'Enter') tryAdminUnlock();
 }));
@@ -11546,7 +11593,7 @@ let adminSubTab = 'info';
     btn.addEventListener('click', () => {
         adminSubTab = btn.getAttribute('data-admin-subtab');
         [...document.querySelectorAll('#adminTopSubtabs .wl-subtab')].forEach(b => b.classList.toggle('active', b === btn));
-        ['mmr', 'commissions', 'pcard', 'deposit', 'blueprints', 'info'].forEach(name => {
+        ['mmr', 'commissions', 'pcard', 'deposit', 'blueprints', 'settings', 'info'].forEach(name => {
             document.getElementById('adminPanel-' + name).style.display = (name === adminSubTab) ? 'block' : 'none';
         });
         if (SECTION_LOCKS[adminSubTab]) SECTION_LOCKS[adminSubTab].show();   // Commissions / PCard: own password
@@ -16822,7 +16869,7 @@ function propRequirements(p) {
         [`Mover\u2019s Map for each floor (${floors})`, 'Documents \u203a Sitemaps', live ? [maps === floors, `${maps} of ${floors}`] : [false, 'Needed']],
         ['Property sitemaps', 'Documents \u203a Sitemaps', live ? [n('sitemaps') > 0, `${n('sitemaps')} documents`] : [false, 'Needed']],
         ['Building access app instructions', 'Any Documents section', live ? [!!resDoorAppDoc(), resDoorAppDoc() ? 'Found' : 'Missing'] : [false, 'Needed']],
-        ['Fee sheet (standard charges)', 'Settings \u203a Default Charges', live ? [charges > 0, `${charges} charges`] : [false, 'Needed']],
+        ['Fee sheet (standard charges)', 'Admin \u203a Settings \u203a Default Charges', live ? [charges > 0, `${charges} charges`] : [false, 'Needed']],
         ['Office hours', 'Settings \u203a Office Hours', live ? [true, 'Set'] : [false, 'Needed']],
         ['Welcome & Check In email templates', 'Documents \u203a Email Templates', live ? [tpl('welcome') && tpl('checkin'), tpl('welcome') && tpl('checkin') ? 'Set' : 'Missing'] : [false, 'Needed']],
         ['Lease agreement & addenda', 'Lease tab', live ? [true, 'Built into the Lease tab'] : [false, 'Needed']]
@@ -17222,7 +17269,9 @@ async function residentReplaceAll(rows) {
 
 function promptAdminPassword(actionLabel, message) {
     if (!ADMIN_AUTH) {
-        alert(adminAuthState === 'loading' ? 'Still checking the Admin password settings \u2014 try again in a moment.' : 'No Admin password has been set yet. Open the Admin tab to set one first.');
+        alert(adminAuthState === 'loading' ? 'Still checking the Admin password settings \u2014 try again in a moment.'
+            : adminAuthState === 'connect' ? 'This device isn\u2019t connected to the shared backend yet. Open the Admin tab to connect it, then try again.'
+            : 'No Admin password has been set yet. Open the Admin tab to set one first.');
         if (adminAuthState !== 'ready') adminAuthLoad();
         return false;
     }
@@ -24071,7 +24120,7 @@ async function docsRunDelete(u, title, verb, quiet) {
 // lists the entry. step(text, fraction) reports progress.
 async function docsShareEntry(entry, b64, step) {
     step = step || (() => {});
-    if (!BACKEND_URL || APP_MODE === 'test') return { ok: false, why: 'No shared backend is set up (Settings) \u2014 saved on this device only.' };
+    if (!BACKEND_URL || APP_MODE === 'test') return { ok: false, why: 'No shared backend is set up (Admin \u203a Settings) \u2014 saved on this device only.' };
     const fileKey = `document-file-${entry.fileId || entry.id}`;
     step('Uploading file\u2026', 0.02);
     const prog = (i, n) => step(`Uploading file \u2014 part ${i} of ${n}\u2026`, 0.05 + 0.6 * i / n);
@@ -24829,7 +24878,7 @@ function seedHowToGuides() {
 // guides still gets them, and nothing existing is overwritten. Deleting a
 // built-in leaves a { deleted: true } marker so it isn't re-added.
 const HOWTO_BUILTIN_GUIDES = {
-    "builtin-app-tour": {"title": "Getting Around the App", "icon": "🧭", "category": "General", "steps": ["Top row: Tour (flyers and Today's Tours), Availability (calendar), Expiring (upcoming lease ends), Waitlist (prospects), Sitemap (site map, videos and DOOR Devices), Documents (printables, floorplans, Pricing rent lookup and Renewal Offers).", "Top right: Help (How-To guides and Questions) and Settings (Light/Dark, Refresh, Live/Test mode, shared backend, property profile, Default Charges, Office Hours, Market Rent Schedule and Carpet Measurements).", "Second row: Turns (unit turn tracker), Residents (move-in tracking), WL (Welcome Letter), Lease (new lease data), Renewals (renewal decisions & offers), and Admin (password-protected: INFO, MMR, Commissions, PCard, Deposit Accounting and Blueprints).", "Anything marked \"shared\" syncs for the whole team when the backend is connected in Settings — changes show up for everyone within about 25 seconds.", "Uploaded reports (pricing sheet, lease expirations, renewals) feed several tabs at once — upload them once and Tour, Availability, Expiring, Waitlist, Turns and Renewals all update.", "Not seeing a recent change? Go to Settings and click \"Refresh Site to Update\"."], "rev": 2},
+    "builtin-app-tour": {"title": "Getting Around the App", "icon": "🧭", "category": "General", "steps": ["Top row: Tour (flyers and Today's Tours), Availability (calendar), Expiring (upcoming lease ends), Waitlist (prospects), Sitemap (site map, videos and DOOR Devices), Documents (printables, floorplans, Pricing rent lookup and Renewal Offers).", "Top right: Help (How-To guides and Questions) and Settings (Light/Dark, Refresh, Live/Test mode, Suggest Improvements, Market Rent Schedule and Carpet Measurements).", "Second row: Turns (unit turn tracker), Residents (move-in tracking), WL (Welcome Letter), Lease (new lease data), Renewals (renewal decisions & offers), and Admin (password-protected: INFO, MMR, Commissions, PCard, Deposit Accounting, Blueprints and Settings — the shared backend, property profile, Default Charges and Office Hours).", "Anything marked \"shared\" syncs for the whole team when the backend is connected in Admin › Settings — changes show up for everyone within about 25 seconds.", "Uploaded reports (pricing sheet, lease expirations, renewals) feed several tabs at once — upload them once and Tour, Availability, Expiring, Waitlist, Turns and Renewals all update.", "Not seeing a recent change? Go to Settings and click \"Refresh Site to Update\"."], "rev": 3},
     "builtin-search-filters": {"title": "Use the Search Filters (Tour, Availability, Expiring)", "icon": "🔎", "category": "Tour", "steps": ["The round filter icons sit above the unit list on Tour, above the calendar on Availability, and above the list on Expiring.", "Click an icon to open its options, then click as many options as you like — the list updates as you pick. Click outside (or the icon again) to close it.", "Move-In: \"Move-in before\" shows units available on or before that date; add an optional \"Move-in after\" date for a range (e.g. after Dec 1, before Jan 15). On Expiring it filters by lease end date.", "Beds: Studio, 1-Bed, 2-Bed, 3-Bed, Townhome or Live/Work (A7 and A9 count as 1-Bed with Den). Floorplan: specific plans (e.g. B5). Floor and Building narrow by location.", "Price and Sq Ft (Tour and Availability): enter a Min, a Max, or both.", "Amenity: Mountain View, Corner Unit or Balcony.", "On Tour, once filters are set, matching units from the Expiring report also show — grayed — below the available ones, as possible upcoming options.", "An active filter shows your choice under its icon. Filters combine — a unit has to match all of them. Click \"Clear filters\" to reset everything, including the move-in dates.", "Tip: on Tour, typing an exact unit number always puts that unit at the top of the results, even if it is filtered out or not in today's pricing sheet."], "rev": 2},
     "builtin-pricing-concession": {"title": "Set the Current Concession", "icon": "🏷️", "category": "Tour", "steps": ["On the Tour tab, find \"Current Concession\" at the top of the left panel and click Edit.", "Concession Terms: the plain-language special shown on the Tour tab and flyers (e.g. \"6 weeks free on select units or $1500 free on all else\"). Additional Notes are for agents only.", "Up to 3 rules, checked in order. For each, pick Weeks or $ Off and enter the amount: a single digit is read as weeks, a bigger number as dollars (a $ is added). Click the other tile to switch, e.g. for 10 weeks.", "Qualifying Units: unit numbers separated by commas (e.g. 1204, 1338, 1239), floorplan types or codes (LW, 2-Bed, A9), \"All Immediate\" for units available now, or \"All else\" for every unit not covered by an earlier rule — put that one last.", "The line under each rule shows what it means and which units it covers, and flags any number that isn't a unit.", "Click \"Save Concession Settings\" — it's shared with the team and applies automatically when a matching unit is opened on Tour.", "On each flyer, \"Show concession calculator on flyer\" and \"Concession (weeks free, or $ amount off)\" control what that flyer shows; type 4 for weeks or $1500 for dollars.", "The calculator uses the unit's 3 cheapest 12–15 month rates: weeks free take that many weeks of rent off, a $ amount is taken off the whole lease, and both are shown as the effective monthly payment."], "rev": 2},
     "builtin-compare-units": {"title": "Put Several Units on One Flyer", "icon": "🗂️", "category": "Tour", "steps": ["Open the first unit on the Tour tab as usual.", "Click \"+ Add unit\", then search for and pick the next unit.", "The units appear under \"Units in this pamphlet\" — click one to edit its price, terms and links.", "Repeat for more units, or click \"Cancel add\" to stop adding.", "Download PDF or Download Printable PDF includes every unit you added."]},
@@ -24861,10 +24910,10 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx/.xls)\". The file stays in your browser tab only and is never saved.", "Optional: \"Upload GL Code File (.pdf/.xls/.xlsx)\" with the Chart of Accounts (a PDF needs selectable text). It stays in this browser and lets GL codes fill in automatically.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code, To, Amount and For. With a GL file, a clear match fills in (green); otherwise the cell turns yellow with a short list to pick from. Specific phrases in For (e.g. \"carpet cleaning\") count most, and codes you pick are remembered per vendor.", "Several lines from one receipt: put the receipt in To on the first line (e.g. \"Home Depot ($70.76)\") and type \" in To on the next lines. They stay together under it, and their Date is written as \" too.", "Check \"Items being added\" under the items already in the file: it shows the exact rows, dates and \" marks the export will write (new rows highlighted). Items are sorted by date, so an earlier-dated item can land between existing ones.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Click \"Export to Excel\". The approval date is set to today and the rest of the file is unchanged. When asked, clear the exported items so they aren't added twice next time."], "rev": 2},
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
     "builtin-refresh-theme": {"title": "Update the App and Change Light/Dark Mode", "icon": "🌓", "category": "Settings", "steps": ["Go to Settings.", "Click Light or Dark to change the look.", "Click \"Refresh Site to Update\" to load the latest version of the app — do this if a new feature or fix isn't showing."]},
-    "builtin-suggestions": {"title": "Suggest Improvements for Future Updates", "icon": "💡", "category": "Settings", "rev": 2, "steps": ["Go to Settings › Suggest Improvements and type your idea, then click \"Save suggestion\". It's saved on this device right away, even offline.", "The list shows newest first, with the date and whether each one has been copied off the device yet. ✕ deletes one.", "When online, the whole list is copied to Google Drive › REVE Office/Suggested improvements.md (plain text, not encrypted), replacing the file each time, so Claude Code can read it in a later session.", "If it can't copy, the status says why: offline (it copies when you're back online), not connected (add the backend URL in Settings › Shared Backend, or the backend script needs the v7 update), or the error."]},
+    "builtin-suggestions": {"title": "Suggest Improvements for Future Updates", "icon": "💡", "category": "Settings", "rev": 3, "steps": ["Go to Settings › Suggest Improvements and type your idea, then click \"Save suggestion\". It's saved on this device right away, even offline.", "The list shows newest first, with the date and whether each one has been copied off the device yet. ✕ deletes one.", "When online, the whole list is copied to Google Drive › REVE Office/Suggested improvements.md (plain text, not encrypted), replacing the file each time, so Claude Code can read it in a later session.", "If it can't copy, the status says why: offline (it copies when you're back online), not connected (add the backend URL in Admin › Settings › Shared Backend, or the backend script needs the v7 update), or the error."]},
     "builtin-unit-info": {"title": "Update Unit Info (Videos, Mailbox, Commission)", "icon": "🏢", "category": "Admin", "steps": ["Go to Admin (enter the Admin password), open INFO, then the \"Unit Info\" sub-tab.", "Search for a unit by number.", "Edit any field — e.g. Video Name and Video Link, Mailbox, View, Amenity or Commission. Changes save automatically and are shared with the team.", "Video links here power the Tour flyers and \"Watch Video\" on the Sitemap tab's map."]},
     "builtin-retail-info": {"title": "Keep Retail Tenant Contacts and Websites Up to Date", "icon": "🏬", "category": "Admin", "steps": ["Go to Admin (enter the Admin password), open INFO, then the \"Retail\" sub-tab.", "Edit any cell directly, or click \"+ Add Suite\" for a new tenant.", "To load many at once, click \"Paste from Spreadsheet\", paste the rows (with the header row), and click Import.", "Add a Website for a suite and that suite becomes a clickable link on the Sitemap tab's map.", "Contacts are stored in the shared backend, not in the public site code."]},
-    "builtin-backend": {"title": "Connect the Shared Backend", "icon": "🔗", "category": "Settings", "steps": ["This is a one-time setup, usually already done for the team.", "Go to Settings and paste the Google Apps Script \"Web App URL\".", "Click Save, then \"Test Connection\" — it should say Connected.", "Once connected, Residents, Waitlist, Renewals notes, How-To guides, Documents and more are shared across agents.", "Without it, data stays in your browser only."]},
+    "builtin-backend": {"title": "Connect the Shared Backend", "icon": "🔗", "category": "Admin", "rev": 2, "steps": ["This is a one-time setup per device, usually already done for the team.", "On a device that isn't connected yet, open Admin: it asks for the Google Apps Script \"Web App URL\" first. Paste it and click Connect, then enter the Admin password.", "To change it later: Admin (password) › Settings › Shared Backend. Paste the URL, click Save, then \"Test Connection\" — it should say Connected.", "Once connected, Residents, Waitlist, Renewals notes, How-To guides, Documents and more are shared across agents.", "Without it, data stays in your browser only."]},
     "builtin-market-rents": {"title": "Upload and Export the Market Rent Schedule", "icon": "🏷️", "category": "Settings", "steps": ["Export the Market Rent Schedule report (.xlsx) from Yardi.", "Go to Settings › Market Rent Schedule and click \"Upload Market Rent Schedule\". It's shared with the team.", "The table lists each unit type with its code, unit count, Market Rent, Sq Ft and Occupied units. Click a type to see its unit numbers.", "A red count means Unit Info has a different number of units for that type — fix the unit's Yardi type in Admin › INFO › Unit Info.", "Market Rent can be edited (edited cells turn yellow); \"Undo Rent Edits\" puts back the uploaded values.", "\"Download Market Rent Schedule\" gives back the same file and formatting, with your edited rents and the totals updated."], "rev": 2},
     "builtin-carpet": {"title": "Track Carpet Measurements", "icon": "📏", "category": "Turns", "steps": ["Carpet measurements are tracked per unit type: one measured unit covers every unit of that type (e.g. one RV-A1.1 covers all of them).", "On Turns, the \"Carpet Measurements Needed\" card lists the unit types still needed, with their units that are vacant now (bold + underlined) or upcoming (with a date). Types with no vacancy yet are listed at the bottom.", "Click a unit there, or go to Settings › Carpet Measurements and click \"+ Add New Entry\".", "Enter the Unit # (its unit type fills in), check Measurements? when it's measured, and enter the Quote.", "The Unit types list shows Measured or Needed for each type. Check N/A for a type with no carpet so it stops showing as needed.", "Uploading the Market Rent Schedule gives the full list of unit types; without it, the types come from Unit Info."], "rev": 2},
     "builtin-questions": {"title": "Ask the Questions Assistant", "icon": "💬", "category": "Help", "steps": ["Open Help and click the Questions sub-tab.", "Type a question and press Enter (or click Ask). Ask several at once by separating them with a question mark.", "It answers from the app's own data: a unit number (e.g. \"Tell me about 4334\"), a floorplan (\"B5\"), availability (\"2-beds available under $3000\"), fees (\"pet deposit\"), move-ins/move-outs (\"who is moving in this week\"), expiring leases, residents or prospects by name, retail suites, documents, and how to do things.", "Use the buttons under an answer to open the unit in Tour, jump to the right tab, or open the full guide.", "Answers are only as current as the uploaded reports — upload today's pricing sheet and lease expiration report for the best results.", "\"Clear chat\" empties the conversation. Nothing you ask leaves your browser."]},
@@ -25072,7 +25121,7 @@ const suggSyncer = suggStore ? Suggestions.createSyncer({
     appName: SUGG_APP,
     isOnline: () => navigator.onLine !== false,
     connection: () => APP_MODE === 'test' ? 'Test mode is on (switch to Live in Settings › App Mode).'
-        : !BACKEND_URL ? 'add the Web App URL in Settings › Shared Backend.' : '',
+        : !BACKEND_URL ? 'add the Web App URL in Admin › Settings › Shared Backend.' : '',
     send: async markdown => {
         let res;
         try {
@@ -25080,7 +25129,7 @@ const suggSyncer = suggStore ? Suggestions.createSyncer({
         } catch (e) { return { ok: false, error: 'couldn’t reach the backend (' + (e.message || e) + ').' }; }
         const j = res.ok ? await res.json().catch(() => null) : null;
         if (j && j.ok) return { ok: true };
-        if (j && (j.error === 'missing key' || /unknown action/i.test(j.error || ''))) return { ok: false, notConnected: true, error: 'the backend script needs the v7 update (Suggested improvements) — see Settings › Shared Backend.' };
+        if (j && (j.error === 'missing key' || /unknown action/i.test(j.error || ''))) return { ok: false, notConnected: true, error: 'the backend script needs the v7 update (Suggested improvements) — see Admin › Settings › Shared Backend.' };
         return { ok: false, error: (j && j.error) || ('backend replied ' + res.status) };
     }
 }) : null;
@@ -25180,9 +25229,9 @@ const QA_GLOSSARY = [
     ['Admin tab', 'Admin is password-protected and holds MMR (weekly report), Commissions (pay-period export), PCard (reconciliation) and Deposit Accounting (move-out proration + email).', 'admin', 'mmr commission pcard password deposit accounting'],
     ['MMR', 'MMR is the weekly Management/Marketing Report in Admin: upload last week’s file and this week’s reports (BoxScore, Unit Vacancy, DataGridExports) to fill Weekly Stats, check the Notes column, add New Leases, Unit Renewals and Weekly Traffic, then click Download New MMR.', 'admin', 'weekly report traffic stats boxscore vacancy'],
     ['Deposit Accounting', 'Admin > Deposit Accounting prorates move-out charges (rent, garage, pet, storage, bundle, trash, valet, admin, utilities, other) and builds an email you can copy or open as a draft.', 'admin', 'move out prorate proration refund deposit email'],
-    ['Settings tab', 'Settings has Light/Dark mode, Refresh Site to Update, Live/Test mode, the shared backend URL and Default Charges. Unit Info and Retail Info are in Admin › INFO.', 'settings', 'preferences dark light test backend'],
+    ['Settings tab', 'Settings has Light/Dark mode, Refresh Site to Update, Live/Test mode, Suggest Improvements, Market Rent Schedule and Carpet Measurements. The shared backend URL, Select Property, Default Charges and Office Hours are in Admin › Settings. Unit Info and Retail Info are in Admin › INFO.', 'settings', 'preferences dark light test backend'],
     ['Unit Info', 'Admin › INFO › Unit Info is the unit roster (floorplan, sq ft, building, floor, Yardi code, bed/bath, address, view, mailbox, amenity, commission, market rent, video) with statistics you can click to filter.', 'admin', 'roster unit data statistics stats'],
-    ['Default Charges', 'Settings > Default Charges is the property fee sheet. Every fee used in the Welcome Letter, Lease, Commissions and Deposit Accounting comes from this table.', 'settings', 'fee sheet charges cost price'],
+    ['Default Charges', 'Admin › Settings › Select Property › Default Charges is the property fee sheet. Every fee used in the Welcome Letter, Lease, Commissions and Deposit Accounting comes from this table.', 'settings', 'fee sheet charges cost price'],
     ['Suggest Improvements', 'Settings › Suggest Improvements saves ideas for future updates on this device (works offline) and copies the whole list to Google Drive › REVE Office/Suggested improvements.md in plain text for Claude Code to read later.', 'settings', 'idea feedback feature request suggestion improve'],
     ['Test mode', 'Settings > Test switches every tab to sample data; nothing you do touches real data. Click Live to return.', 'settings', 'practice sample demo sandbox'],
     ['Refresh Site to Update', 'Settings > "Refresh Site to Update" (or a hard refresh, Cmd/Ctrl+Shift+R) loads the newest version of the app. Do this after a new feature is deployed.', 'settings', 'update reload new version cache hard refresh'],
