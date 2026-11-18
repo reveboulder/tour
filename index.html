@@ -3025,6 +3025,20 @@
     body.dark-mode .pcard-calc, body.dark-mode .pcard-calc input { background: var(--dm-card-alt); color: inherit; }
     @media (max-width: 900px) { .pcard-calcs { flex: 0 0 auto; width: 100%; max-width: 420px; } }
 
+    /* -- Settings › Suggest Improvements -- */
+    .sugg-status { font-size: 12px; color: var(--ink-soft); }
+    .sugg-status.ok { color: var(--good); }
+    .sugg-status.offline, .sugg-status.not-connected { color: #8a6d1a; }
+    .sugg-status.error { color: #b3261e; }
+    .sugg-list { list-style: none; margin: 12px 0 0; padding: 0; }
+    .sugg-item { display: flex; gap: 10px; align-items: flex-start; border-top: 1px solid var(--line); padding: 8px 0; }
+    .sugg-item-text { flex: 1; white-space: pre-wrap; font-size: 13px; word-break: break-word; }
+    .sugg-item-meta { font-size: 11px; color: var(--ink-soft); margin-top: 3px; }
+    .sugg-copied { color: var(--good); font-weight: 700; }
+    .sugg-pending { color: #8a6d1a; font-weight: 700; }
+    .sugg-del { border: 0; background: none; color: var(--ink-soft); cursor: pointer; font-size: 15px; padding: 2px 6px; }
+    .sugg-del:hover { color: #b3261e; }
+
     /* -- Concession rule: Weeks / $ Off tiles -- */
     .conc-kind { display: inline-flex; align-self: flex-start; width: max-content; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 5px; }
     .conc-kind-btn { border: 0; background: #fff; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; color: var(--ink-soft); font-family: var(--sans); }
@@ -3487,6 +3501,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="suggestions.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600&family=Inter:wght@700&display=swap" rel="stylesheet">
@@ -5649,6 +5664,22 @@
         </div>
         <div class="empty-note" id="modeStatusNote" style="margin-top:8px;">Currently in <b>Live</b> mode.</div>
     </div>
+    </div>
+
+    <div class="settings-card" style="margin-top:18px;" id="suggCard">
+        <button type="button" class="unit-info-toggle" id="suggToggle">
+            <span><span class="dot"></span>SUGGEST IMPROVEMENTS <span class="hint" id="suggHint">(Click to View)</span></span>
+            <span class="fc-chevron">&rsaquo;</span>
+        </button>
+        <div id="suggBody" style="display:none;margin-top:12px;">
+            <p class="empty-note" style="font-size:12.5px;">Write down ideas for future updates. They&rsquo;re saved on this device first (works offline), then the whole list is copied to Google Drive &rsaquo; <b>REVE Office/Suggested improvements.md</b> so Claude Code can read them in a later session. That file is stored in <b>plain text</b> (not encrypted).</p>
+            <textarea class="wl-field" id="suggText" rows="3" placeholder="e.g. Add a filter for pet-friendly units on the Tour tab" style="width:100%;box-sizing:border-box;"></textarea>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;">
+                <button type="button" class="btn primary" id="suggSaveBtn" style="width:auto;flex:none;padding:8px 16px;">Save suggestion</button>
+                <span class="sugg-status" id="suggStatus" aria-live="polite"></span>
+            </div>
+            <ul class="sugg-list" id="suggList"></ul>
+        </div>
     </div>
 
     <div class="settings-card" style="margin-top:18px;">
@@ -24830,6 +24861,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx/.xls)\". The file stays in your browser tab only and is never saved.", "Optional: \"Upload GL Code File (.pdf/.xls/.xlsx)\" with the Chart of Accounts (a PDF needs selectable text). It stays in this browser and lets GL codes fill in automatically.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code, To, Amount and For. With a GL file, a clear match fills in (green); otherwise the cell turns yellow with a short list to pick from. Specific phrases in For (e.g. \"carpet cleaning\") count most, and codes you pick are remembered per vendor.", "Several lines from one receipt: put the receipt in To on the first line (e.g. \"Home Depot ($70.76)\") and type \" in To on the next lines. They stay together under it, and their Date is written as \" too.", "Check \"Items being added\" under the items already in the file: it shows the exact rows, dates and \" marks the export will write (new rows highlighted). Items are sorted by date, so an earlier-dated item can land between existing ones.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Click \"Export to Excel\". The approval date is set to today and the rest of the file is unchanged. When asked, clear the exported items so they aren't added twice next time."], "rev": 2},
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
     "builtin-refresh-theme": {"title": "Update the App and Change Light/Dark Mode", "icon": "🌓", "category": "Settings", "steps": ["Go to Settings.", "Click Light or Dark to change the look.", "Click \"Refresh Site to Update\" to load the latest version of the app — do this if a new feature or fix isn't showing."]},
+    "builtin-suggestions": {"title": "Suggest Improvements for Future Updates", "icon": "💡", "category": "Settings", "rev": 2, "steps": ["Go to Settings › Suggest Improvements and type your idea, then click \"Save suggestion\". It's saved on this device right away, even offline.", "The list shows newest first, with the date and whether each one has been copied off the device yet. ✕ deletes one.", "When online, the whole list is copied to Google Drive › REVE Office/Suggested improvements.md (plain text, not encrypted), replacing the file each time, so Claude Code can read it in a later session.", "If it can't copy, the status says why: offline (it copies when you're back online), not connected (add the backend URL in Settings › Shared Backend, or the backend script needs the v7 update), or the error."]},
     "builtin-unit-info": {"title": "Update Unit Info (Videos, Mailbox, Commission)", "icon": "🏢", "category": "Admin", "steps": ["Go to Admin (enter the Admin password), open INFO, then the \"Unit Info\" sub-tab.", "Search for a unit by number.", "Edit any field — e.g. Video Name and Video Link, Mailbox, View, Amenity or Commission. Changes save automatically and are shared with the team.", "Video links here power the Tour flyers and \"Watch Video\" on the Sitemap tab's map."]},
     "builtin-retail-info": {"title": "Keep Retail Tenant Contacts and Websites Up to Date", "icon": "🏬", "category": "Admin", "steps": ["Go to Admin (enter the Admin password), open INFO, then the \"Retail\" sub-tab.", "Edit any cell directly, or click \"+ Add Suite\" for a new tenant.", "To load many at once, click \"Paste from Spreadsheet\", paste the rows (with the header row), and click Import.", "Add a Website for a suite and that suite becomes a clickable link on the Sitemap tab's map.", "Contacts are stored in the shared backend, not in the public site code."]},
     "builtin-backend": {"title": "Connect the Shared Backend", "icon": "🔗", "category": "Settings", "steps": ["This is a one-time setup, usually already done for the team.", "Go to Settings and paste the Google Apps Script \"Web App URL\".", "Click Save, then \"Test Connection\" — it should say Connected.", "Once connected, Residents, Waitlist, Renewals notes, How-To guides, Documents and more are shared across agents.", "Without it, data stays in your browser only."]},
@@ -25025,6 +25057,93 @@ document.getElementById('howtoSearchBar').addEventListener('input', renderHowTo)
 restoreHowToLocal();
 
 /* ============================================================
+   SETTINGS › SUGGEST IMPROVEMENTS — screen code only; the storage, file
+   format and copy tracking live in suggestions.js (unit tested). Saved to
+   localStorage first (works offline), then the whole list is written as
+   plain text to Google Drive › REVE Office/Suggested improvements.md by
+   the backend script (v7 action 'saveSuggestions'), replacing the file.
+   Copies when the section opens, after a save or delete, and when the
+   device comes back online.
+   ============================================================ */
+const SUGG_APP = 'REVE Office', SUGG_FOLDER = 'REVE Office', SUGG_FILE = 'Suggested improvements.md';
+const suggStore = window.Suggestions ? Suggestions.createStore(window.localStorage) : null;
+const suggSyncer = suggStore ? Suggestions.createSyncer({
+    store: suggStore,
+    appName: SUGG_APP,
+    isOnline: () => navigator.onLine !== false,
+    connection: () => APP_MODE === 'test' ? 'Test mode is on (switch to Live in Settings › App Mode).'
+        : !BACKEND_URL ? 'add the Web App URL in Settings › Shared Backend.' : '',
+    send: async markdown => {
+        let res;
+        try {
+            res = await fetch(BACKEND_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'saveSuggestions', folder: SUGG_FOLDER, name: SUGG_FILE, markdown }) });
+        } catch (e) { return { ok: false, error: 'couldn’t reach the backend (' + (e.message || e) + ').' }; }
+        const j = res.ok ? await res.json().catch(() => null) : null;
+        if (j && j.ok) return { ok: true };
+        if (j && (j.error === 'missing key' || /unknown action/i.test(j.error || ''))) return { ok: false, notConnected: true, error: 'the backend script needs the v7 update (Suggested improvements) — see Settings › Shared Backend.' };
+        return { ok: false, error: (j && j.error) || ('backend replied ' + res.status) };
+    }
+}) : null;
+let suggLastStatus = null;
+function suggShowStatus(r) {
+    suggLastStatus = r;
+    const el = document.getElementById('suggStatus');
+    if (!el || !r || r.state === 'busy') return;
+    el.className = 'sugg-status ' + r.state;
+    el.textContent = r.state === 'ok' ? (suggStore.list().length ? 'All copied to Google Drive › ' + SUGG_FOLDER + '/' + SUGG_FILE + '.' : 'Nothing to copy.') : r.message;
+}
+async function suggSync() {
+    if (!suggSyncer) return;
+    const el = document.getElementById('suggStatus');
+    if (el && suggStore.needsCopy() && navigator.onLine !== false) { el.className = 'sugg-status'; el.textContent = 'Copying…'; }
+    const r = await suggSyncer.sync();
+    suggShowStatus(r);
+    renderSuggestions();
+}
+function renderSuggestions() {
+    const ul = document.getElementById('suggList');
+    if (!ul) return;
+    if (!suggStore) { ul.innerHTML = '<li class="empty-note">Suggestions couldn’t load (suggestions.js is missing). Try Settings › Refresh Site to Update.</li>'; return; }
+    const items = suggStore.list();
+    const pending = items.filter(x => !x.copied).length;
+    const hint = document.getElementById('suggHint');
+    if (hint) hint.textContent = items.length ? `(${items.length} saved${pending ? ` · ${pending} not copied yet` : ''})` : '(Click to View)';
+    ul.innerHTML = items.length ? items.map(x => `<li class="sugg-item" data-sugg-id="${escapeAttr(x.id)}">
+            <div style="flex:1;min-width:0;"><div class="sugg-item-text">${escapeHtml(x.text)}</div>
+            <div class="sugg-item-meta">${escapeHtml(new Date(x.created).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }))} · ${x.copied ? '<span class="sugg-copied">Copied</span>' : '<span class="sugg-pending">Not copied yet</span>'}</div></div>
+            <button type="button" class="sugg-del" data-sugg-del="${escapeAttr(x.id)}" title="Delete this suggestion" aria-label="Delete this suggestion">✕</button>
+        </li>`).join('') : '<li class="empty-note" style="margin-top:6px;">No suggestions yet.</li>';
+}
+(function suggWire() {
+    const body = document.getElementById('suggBody');
+    document.getElementById('suggToggle').addEventListener('click', () => {
+        const hidden = body.style.display === 'none';
+        body.style.display = hidden ? '' : 'none';
+        document.getElementById('suggToggle').classList.toggle('open', hidden);
+        if (hidden) { renderSuggestions(); suggSync(); }
+    });
+    document.getElementById('suggSaveBtn').addEventListener('click', () => {
+        const ta = document.getElementById('suggText');
+        if (!suggStore || !suggStore.add(ta.value)) { ta.focus(); return; }
+        ta.value = '';
+        renderSuggestions();
+        suggSync();
+    });
+    document.getElementById('suggList').addEventListener('click', async e => {
+        const b = e.target.closest('[data-sugg-del]');
+        if (!b) return;
+        const ok = await appDialog({ title: 'Delete this suggestion?', text: (suggStore.list().find(x => x.id === b.getAttribute('data-sugg-del')) || {}).text || '', ok: 'Delete' });
+        if (!ok) return;
+        suggStore.remove(b.getAttribute('data-sugg-del'));
+        renderSuggestions();
+        suggSync();
+    });
+    window.addEventListener('online', () => { if (suggStore && suggStore.needsCopy()) suggSync(); });
+    window.addEventListener('offline', () => { if (body.style.display !== 'none' && suggStore && suggStore.needsCopy()) suggShowStatus({ state: 'offline', message: 'Offline — will copy when back online.' }); });
+    renderSuggestions();
+})();
+
+/* ============================================================
    HELP > QUESTIONS — a chat-style assistant that answers from what the
    app already knows: the How-To guides, a glossary of the app's terms,
    Default Charges, Retail Info, Documents, the concession, and live
@@ -25064,6 +25183,7 @@ const QA_GLOSSARY = [
     ['Settings tab', 'Settings has Light/Dark mode, Refresh Site to Update, Live/Test mode, the shared backend URL and Default Charges. Unit Info and Retail Info are in Admin › INFO.', 'settings', 'preferences dark light test backend'],
     ['Unit Info', 'Admin › INFO › Unit Info is the unit roster (floorplan, sq ft, building, floor, Yardi code, bed/bath, address, view, mailbox, amenity, commission, market rent, video) with statistics you can click to filter.', 'admin', 'roster unit data statistics stats'],
     ['Default Charges', 'Settings > Default Charges is the property fee sheet. Every fee used in the Welcome Letter, Lease, Commissions and Deposit Accounting comes from this table.', 'settings', 'fee sheet charges cost price'],
+    ['Suggest Improvements', 'Settings › Suggest Improvements saves ideas for future updates on this device (works offline) and copies the whole list to Google Drive › REVE Office/Suggested improvements.md in plain text for Claude Code to read later.', 'settings', 'idea feedback feature request suggestion improve'],
     ['Test mode', 'Settings > Test switches every tab to sample data; nothing you do touches real data. Click Live to return.', 'settings', 'practice sample demo sandbox'],
     ['Refresh Site to Update', 'Settings > "Refresh Site to Update" (or a hard refresh, Cmd/Ctrl+Shift+R) loads the newest version of the app. Do this after a new feature is deployed.', 'settings', 'update reload new version cache hard refresh'],
     ['Admin password', 'The Admin password isn\u2019t shown anywhere in the app \u2014 ask your manager. It unlocks the Admin tab and confirms Residents Upload/Clear, removing documents, and Games.', 'admin', 'password passcode unlock login locked'],
