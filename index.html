@@ -3025,6 +3025,21 @@
     body.dark-mode .pcard-calc, body.dark-mode .pcard-calc input { background: var(--dm-card-alt); color: inherit; }
     @media (max-width: 900px) { .pcard-calcs { flex: 0 0 auto; width: 100%; max-width: 420px; } }
 
+    /* -- PCard: split receipt hint + calculator -- */
+    .pcard-table input.pcard-amt-suggest::placeholder { color: #9a9a9a; font-style: italic; opacity: 1; }
+    .pcard-split-ok { color: var(--good); font-weight: 700; }
+    .pcard-std:focus { outline: 2px solid var(--reve-orange); outline-offset: 2px; }
+    .pcard-std-display { background: #f4f2ee; border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; text-align: right; font-variant-numeric: tabular-nums; }
+    .pcard-std-expr { font-size: 11px; color: var(--ink-soft); min-height: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pcard-std-val { font-size: 20px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pcard-std-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+    .pcard-std-keys button { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 8px 0; font-size: 14px; font-weight: 600; cursor: pointer; font-family: var(--sans); color: var(--ink); }
+    .pcard-std-keys button:hover { background: #f4f2ee; }
+    .pcard-std-keys button.fn { color: var(--ink-soft); }
+    .pcard-std-keys button.op { color: var(--reve-orange-dark); }
+    .pcard-std-keys button.eq { background: var(--reve-orange); color: #fff; border-color: var(--reve-orange); }
+    body.dark-mode .pcard-std-display, body.dark-mode .pcard-std-keys button:not(.eq) { background: var(--dm-card-alt); color: inherit; }
+
     /* -- Settings › Suggest Improvements -- */
     .sugg-status { font-size: 12px; color: var(--ink-soft); }
     .sugg-status.ok { color: var(--good); }
@@ -4996,6 +5011,18 @@
                         <label># of Items<input type="text" inputmode="decimal" id="pcardCalcQty" placeholder="0"></label>
                         <div class="pcard-calc-result"><span>Total</span><b id="pcardCalcTotal">&mdash;</b></div>
                         <button type="button" class="btn" id="pcardCalcTotalAdd" style="width:100%;padding:6px 10px;">+ Add as item</button>
+                    </div>
+                    <div class="pcard-calc pcard-std" id="pcardStdCalc" tabindex="0" aria-label="Calculator (you can type numbers and + - * / Enter)">
+                        <div class="pcard-calc-title">Calculator</div>
+                        <div class="pcard-std-display"><div class="pcard-std-expr" id="pcardStdExpr">&nbsp;</div><div class="pcard-std-val" id="pcardStdVal">0</div></div>
+                        <div class="pcard-std-keys">
+                            <button type="button" data-k="C" class="fn">C</button><button type="button" data-k="back" class="fn" aria-label="Backspace">&#9003;</button><button type="button" data-k="%" class="fn">%</button><button type="button" data-k="/" class="op" aria-label="Divide">&divide;</button>
+                            <button type="button" data-k="7">7</button><button type="button" data-k="8">8</button><button type="button" data-k="9">9</button><button type="button" data-k="*" class="op" aria-label="Multiply">&times;</button>
+                            <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button><button type="button" data-k="-" class="op" aria-label="Minus">&minus;</button>
+                            <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" data-k="+" class="op" aria-label="Plus">+</button>
+                            <button type="button" data-k="neg" class="fn" aria-label="Plus/minus">&plusmn;</button><button type="button" data-k="0">0</button><button type="button" data-k=".">.</button><button type="button" data-k="=" class="eq">=</button>
+                        </div>
+                        <button type="button" class="btn" id="pcardStdAdd" style="width:100%;padding:6px 10px;">+ Add as item</button>
                     </div>
                 </aside>
             </div>
@@ -15444,6 +15471,61 @@ function pcardMode() {
     return el ? el.value : 'append';
 }
 function pcardMoney(n) { return (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+/* Split receipts: a To with the receipt total in parentheses, e.g.
+   "Home Depot ($70.76)", followed by rows whose To is ". The first row's
+   amount is part of that total; the next empty " row shows what's left
+   as a gray suggestion (not saved; press Enter in it to use it), and the
+   summary says whether the rows add up to the receipt. */
+function pcardSplitGroups() {
+    const rows = pcardController.getRows();
+    const groups = [];
+    let g = null;
+    Object.keys(rows).filter(id => !rows[id].deleted).forEach(id => {   // the order rows are shown in
+        const to = String(rows[id].to || '').trim();
+        if (g && pcardIsDitto(to)) { g.ids.push(id); return; }
+        const m = to.match(/\(\s*\$?\s*(-?[\d,]*\.?\d+)\s*\)\s*$/);
+        g = m ? { to, total: parseFloat(m[1].replace(/,/g, '')), ids: [id] } : null;
+        if (g && isFinite(g.total)) groups.push(g); else g = null;
+    });
+    groups.forEach(gr => {
+        gr.amounts = gr.ids.map(id => parseMoneyLoose(rows[id].amount));
+        gr.entered = gr.amounts.reduce((t, a) => t + (a || 0), 0);
+        gr.remaining = Math.round((gr.total - gr.entered) * 100) / 100;
+        gr.allFilled = gr.amounts.every(a => a !== null);
+    });
+    return groups;
+}
+function pcardSplitHints(groups) {
+    const body = document.getElementById('pcardBody');
+    body.querySelectorAll('input.pcard-amt-suggest').forEach(inp => {
+        inp.classList.remove('pcard-amt-suggest'); inp.placeholder = '$0.00'; inp.removeAttribute('data-suggest'); inp.title = '';
+    });
+    groups.forEach(gr => {
+        if (gr.remaining <= 0 || gr.amounts[0] === null) return;   // wait for the first row's part
+        const i = gr.ids.findIndex((id, k) => k > 0 && gr.amounts[k] === null);
+        if (i < 0) return;
+        const inp = body.querySelector(`tr[data-row="${CSS.escape(gr.ids[i])}"] input[data-field="amount"]`);
+        if (!inp) return;
+        inp.classList.add('pcard-amt-suggest');
+        inp.placeholder = gr.remaining.toFixed(2);
+        inp.setAttribute('data-suggest', gr.remaining.toFixed(2));
+        inp.title = `Remaining from ${gr.to}: ${pcardMoney(gr.remaining)}. Press Enter here to use it.`;
+    });
+}
+function pcardSplitNote(groups) {
+    const shown = groups.filter(gr => gr.ids.length > 1 || (gr.amounts[0] !== null && gr.remaining !== 0));
+    if (!shown.length) return '';
+    return '<br>Split receipts: ' + shown.map(gr => `${escapeHtml(gr.to)} — ` + (gr.remaining === 0 ? '<span class="pcard-split-ok">✓ adds up</span>'
+        : gr.remaining > 0 ? `<span class="pcard-warn">${pcardMoney(gr.remaining)} left to assign</span>` : `<span class="pcard-warn">over by ${pcardMoney(-gr.remaining)}</span>`)).join(' &middot; ');
+}
+document.getElementById('pcardBody').addEventListener('keydown', e => {
+    const inp = e.target.closest('input.pcard-amt-suggest');
+    if (!inp || e.key !== 'Enter' || inp.value.trim()) return;
+    e.preventDefault();
+    inp.value = inp.getAttribute('data-suggest');
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    inp.dispatchEvent(new Event('change', { bubbles: true }));
+});
 function renderPcardSummary() {
     const items = pcardItems();
     const newTotal = items.reduce((t, r) => t + (parseMoneyLoose(r.amount) || 0), 0);
@@ -15458,6 +15540,8 @@ function renderPcardSummary() {
             ? ` &middot; <span class="pcard-warn">only ${room} empty row${room === 1 ? '' : 's'} left (rows ${lastUsed + 1}–${PCARD_LAST_ROW}) — clear the file's items or remove ${items.length - room}</span>`
             : ` &middot; ${room - items.length} empty row${room - items.length === 1 ? '' : 's'} left after`;
     }
+    let groups = [];
+    try { groups = pcardSplitGroups(); pcardSplitHints(groups); html += pcardSplitNote(groups); } catch (e) { console.error(e); }
     document.getElementById('pcardSummary').innerHTML = html;
     try { pcardRenderAdding(); } catch (e) { console.error(e); }
 }
@@ -15857,6 +15941,72 @@ renderPcardCalcs();
         pcardController.addRowWithData({ date: new Date().toISOString().slice(0, 10), amount: v.toFixed(2) });
     });
 });
+
+// Standard calculator (scratch tool, nothing saved). Click the keys or
+// focus the card and type: digits, . + - * / Enter (=), Backspace, Escape (C), %.
+(function pcardStdCalc() {
+    const card = document.getElementById('pcardStdCalc');
+    if (!card) return;
+    let tokens = [], cur = '0', fresh = true, lastExpr = '';
+    const fmt = n => { if (!isFinite(n)) return 'Error'; const r = Math.round(n * 1e10) / 1e10; return String(r).length > 14 ? r.toPrecision(10).replace(/\.?0+(e|$)/, '$1') : String(r); };
+    const sym = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+    // Multiply and divide before add and subtract.
+    function evaluate(list) {
+        const vals = [], ops = [];
+        const prec = o => (o === '*' || o === '/') ? 2 : 1;
+        const apply = () => { const b = vals.pop(), a = vals.pop(), o = ops.pop(); vals.push(o === '+' ? a + b : o === '-' ? a - b : o === '*' ? a * b : a / b); };
+        list.forEach(t => {
+            if (typeof t === 'number') vals.push(t);
+            else { while (ops.length && prec(ops[ops.length - 1]) >= prec(t)) apply(); ops.push(t); }
+        });
+        while (ops.length) apply();
+        return vals[0];
+    }
+    function show() {
+        document.getElementById('pcardStdVal').textContent = cur;
+        document.getElementById('pcardStdExpr').textContent = tokens.length ? tokens.map(t => typeof t === 'number' ? fmt(t) : sym[t]).join(' ') : (lastExpr || ' ');
+    }
+    function press(k) {
+        if (cur === 'Error' && k !== 'C') { cur = '0'; fresh = true; tokens = []; }
+        if (/^\d$/.test(k)) { cur = fresh || cur === '0' ? k : (cur.replace('-', '').length < 15 ? cur + k : cur); fresh = false; }
+        else if (k === '.') { if (fresh) { cur = '0.'; fresh = false; } else if (!cur.includes('.')) cur += '.'; }
+        else if (k === 'back') { if (!fresh) { cur = cur.length > 1 && cur !== '-0' ? cur.slice(0, -1) : '0'; if (cur === '-') cur = '0'; } }
+        else if (k === 'C') { tokens = []; cur = '0'; fresh = true; lastExpr = ''; }
+        else if (k === 'neg') { cur = cur.startsWith('-') ? cur.slice(1) : (cur === '0' ? cur : '-' + cur); }
+        else if (k === '%') { cur = fmt(parseFloat(cur) / 100); fresh = true; }
+        else if (sym[k]) {
+            if (fresh && tokens.length && typeof tokens[tokens.length - 1] === 'string') tokens[tokens.length - 1] = k;   // change the operator
+            else { tokens.push(parseFloat(cur), k); }
+            fresh = true; lastExpr = '';
+        } else if (k === '=') {
+            if (!tokens.length) return show();
+            tokens.push(parseFloat(cur));
+            lastExpr = tokens.map(t => typeof t === 'number' ? fmt(t) : sym[t]).join(' ') + ' =';
+            cur = fmt(evaluate(tokens));
+            tokens = []; fresh = true;
+        }
+        show();
+    }
+    card.querySelector('.pcard-std-keys').addEventListener('click', e => {
+        const b = e.target.closest('[data-k]');
+        if (b) { press(b.getAttribute('data-k')); card.focus({ preventScroll: true }); }
+    });
+    card.addEventListener('keydown', e => {
+        if (e.target.closest('button') && (e.key === 'Enter' || e.key === ' ') && !e.target.closest('.pcard-std-keys')) return;   // "+ Add as item"
+        const map = { Enter: '=', '=': '=', Backspace: 'back', Escape: 'C', Delete: 'C', ',': '.' };
+        const k = map[e.key] || (/^[\d.+\-*/%]$/.test(e.key) ? e.key : (e.key === 'x' || e.key === 'X') ? '*' : null);
+        if (!k || e.ctrlKey || e.metaKey || e.altKey) return;
+        e.preventDefault();
+        press(k);
+    });
+    document.getElementById('pcardStdAdd').addEventListener('click', () => {
+        if (tokens.length) press('=');
+        const v = parseFloat(cur);
+        if (!isFinite(v) || v === 0) return;
+        pcardController.addRowWithData({ date: new Date().toISOString().slice(0, 10), amount: (Math.round(v * 100) / 100).toFixed(2) });
+    });
+    show();
+})();
 
 document.getElementById('commExportBtn').addEventListener('click', async () => {
     if (COMM_TEMPLATE_BYTES) {
@@ -24907,7 +25057,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-mmr-weekly": {"title": "Fill In the Weekly MMR from Reports", "icon": "📊", "category": "Admin", "steps": ["Go to Admin > MMR. Upload last week's MMR file under \"Upload Previous Week's MMR\" — the export keeps its formatting.", "Set the Date to this week's Sunday (it fills in the next Sunday on upload); a red alert shows if it isn't.", "Upload this week's reports together: BoxScore Summary, Unit Vacancy and the three DataGridExports (Notices, Renewals, Expiring). Fields they fill turn green; the list under the button says which reports are loaded.", "Rent Ready = Vacant Unrented Ready + Vacant Rented Ready from Unit Vacancy. Notices, Leases Expiring and Leases Renewed count the month after the Date; changing the Date re-counts them.", "The Notes column shows which units or prospect names each number counts, for checking by hand. It's for reference only and never goes into the downloaded file.", "New Leases: Suggested New Leases from the reports and Residents can be added with one click. Unit Renewals are entered by hand (the report dates are when a renewal was processed, not when it starts).", "Click \"Download New MMR\" — the stats, new rows and traffic are written into last week's file.", "\"Clear All\" starts a new week (keeps Model/Guest Suite and Down Units). It also clears automatically every Monday at 9:00 am MT, keeping a backup of last week."], "rev": 2},
     "builtin-blueprints": {"title": "Measure and Search Blueprints", "icon": "📐", "category": "Admin", "steps": ["Go to Admin > Blueprints and click \"Open Blueprint PDF\". The file stays in this browser only and reopens next time; it is never uploaded.", "Traced units, sheet scales and measurements are shared with the team through the backend: anyone who opens the same PDF file (same name and size) sees them, and changes sync about every 25 seconds.", "Read the PDF check: \"Vector drawing\" + \"Real text\" means search and dimension reading work. A scanned set can still be measured.", "Pick a sheet on the left. Zoom with \u2212/+ or Ctrl/\u2318 + scroll; drag to pan.", "Set the sheet's scale: choose the printed scale (e.g. 1/4\" = 1'-0\"), or click Calibrate, click both ends of a known dimension (e.g. 43'-7\") and type it. Enlarged plans and details have their own scale.", "Length: click two points. Area: click each corner and click the first point again to get square feet. Zoom in for precise clicks.", "Clicks snap to the drawn corners (green square). Hold Ctrl to move freely without snapping, Shift to keep the line perfectly straight across or up/down (snapping then only sets the length), or Ctrl+Shift for both.", "Edit: drag any orange corner of a traced outline or measurement to move it, or click one corner, then a second corner on the same outline, click the new corners and finish on the second one to redraw that stretch. Delete removes a selected corner.", "Load a trace: pick a unit you traced (on any sheet) from \"Load a trace\u2026\" to copy it onto this sheet under a new name, then drag it into place with Move unit (its nearest corner snaps to the drawn lines). Rotate 90\u00b0 and Mirror handle mirrored units.", "Search any text (unit number, sheet number, a dimension) and click a result to jump to it.", "\"Dimensions on this sheet\" lists every dimension string in inches; tick several to add up a chain along a wall.", "Unit area takeoff: name the unit, enter its known sq ft and what it's measured to, click \"Trace outer boundary\" and click around the outside of its walls, then trace the inside face of the walls. The table shows each boundary's area and which one the known sq ft matches.", "\"Create blank floorplan\" draws a plain line floorplan from the outer and inner traces (the part of the inner trace outside the outer one is labeled Balcony). Download it, or click \"Use as this unit\u2019s floorplan\" to save it to Documents \u203a Floorplans and place the traced shape exactly on it, then add the measurements with \"Place traced shape on floorplan\".", "For a marketing floorplan image, use \"Open Blueprint PDF or Floorplan Image\" or pick one from \"Or open a site floorplan\", enter the known sq ft and trace just the outer boundary.", "To put the traced shape on a 2D floorplan: under \"Floorplan image with measurements\", choose a site floorplan or upload one, then click \"Place traced shape on floorplan\". Drag the shape onto the walls, resize from its corner square, rotate or mirror as needed, and click \"Download PNG\". Wall lengths always come from the blueprint."]},
     "builtin-commissions": {"title": "Run Commissions for the Pay Period", "icon": "💼", "category": "Admin", "steps": ["Go to Admin > Commissions and check the Current pay period (change its start date if needed).", "Review Suggested Move-Ins (residents moving in this pay period): + adds one officially, × rejects it.", "Add anything missing with \"+ Add Move-In\" or \"+ Add Renewal\", or use \"Import Renewals\" with the Resident Activity Detail export.", "Optional: upload last period's Commissions file to keep its formatting.", "Click \"Export to Excel\" — only officially added Move-Ins and Renewals are included."]},
-    "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx/.xls)\". The file stays in your browser tab only and is never saved.", "Optional: \"Upload GL Code File (.pdf/.xls/.xlsx)\" with the Chart of Accounts (a PDF needs selectable text). It stays in this browser and lets GL codes fill in automatically.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code, To, Amount and For. With a GL file, a clear match fills in (green); otherwise the cell turns yellow with a short list to pick from. Specific phrases in For (e.g. \"carpet cleaning\") count most, and codes you pick are remembered per vendor.", "Several lines from one receipt: put the receipt in To on the first line (e.g. \"Home Depot ($70.76)\") and type \" in To on the next lines. They stay together under it, and their Date is written as \" too.", "Check \"Items being added\" under the items already in the file: it shows the exact rows, dates and \" marks the export will write (new rows highlighted). Items are sorted by date, so an earlier-dated item can land between existing ones.", "Use the calculators on the right for pre-tax to adjusted totals or $ per item × # of items, and \"+ Add as item\" to drop the result in.", "Click \"Export to Excel\". The approval date is set to today and the rest of the file is unchanged. When asked, clear the exported items so they aren't added twice next time."], "rev": 2},
+    "builtin-pcard": {"title": "Reconcile the PCard", "icon": "💳", "category": "Admin", "steps": ["Go to Admin > PCard and click \"Upload Previous PCard File (.xlsx/.xls)\". The file stays in your browser tab only and is never saved.", "Optional: \"Upload GL Code File (.pdf/.xls/.xlsx)\" with the Chart of Accounts (a PDF needs selectable text). It stays in this browser and lets GL codes fill in automatically.", "Choose \"Add to the file's existing items\" to continue the current sheet, or \"Clear the file's items\" to start fresh.", "Click \"+ Add Item\" for each charge: Date, GL Code, To, Amount and For. With a GL file, a clear match fills in (green); otherwise the cell turns yellow with a short list to pick from. Specific phrases in For (e.g. \"carpet cleaning\") count most, and codes you pick are remembered per vendor.", "Several lines from one receipt: put the receipt total in To on the first line (e.g. \"Home Depot ($70.76)\") and type \" in To on the next lines. They stay together under it, and their Date is written as \" too.", "Enter the first line's part of the receipt; the next \" line shows what's left in gray (e.g. 45.72). It isn't saved — press Enter in that Amount box to use it, or type your own. The summary under the table says whether each split receipt adds up.", "Check \"Items being added\" under the items already in the file: it shows the exact rows, dates and \" marks the export will write (new rows highlighted). Items are sorted by date, so an earlier-dated item can land between existing ones.", "Use the cards on the right: Pre-Tax → Adjusted Total, $ per Item × # of Items, and a standard Calculator (click the keys, or click the card and type). \"+ Add as item\" drops the result in as a new item.", "Click \"Export to Excel\". The approval date is set to today and the rest of the file is unchanged. When asked, clear the exported items so they aren't added twice next time."], "rev": 3},
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
     "builtin-refresh-theme": {"title": "Update the App and Change Light/Dark Mode", "icon": "🌓", "category": "Settings", "steps": ["Go to Settings.", "Click Light or Dark to change the look.", "Click \"Refresh Site to Update\" to load the latest version of the app — do this if a new feature or fix isn't showing."]},
     "builtin-suggestions": {"title": "Suggest Improvements for Future Updates", "icon": "💡", "category": "Settings", "rev": 3, "steps": ["Go to Settings › Suggest Improvements and type your idea, then click \"Save suggestion\". It's saved on this device right away, even offline.", "The list shows newest first, with the date and whether each one has been copied off the device yet. ✕ deletes one.", "When online, the whole list is copied to Google Drive › REVE Office/Suggested improvements.md (plain text, not encrypted), replacing the file each time, so Claude Code can read it in a later session.", "If it can't copy, the status says why: offline (it copies when you're back online), not connected (add the backend URL in Admin › Settings › Shared Backend, or the backend script needs the v7 update), or the error."]},
