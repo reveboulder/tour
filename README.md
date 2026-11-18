@@ -13,7 +13,8 @@ Blueprints, INFO). Live at <https://reveboulder.github.io/tour/>.
 - `documents/`, `floorplans/`, `MEDIA_Floorplans/`, `stickers/` — static files.
 - Shared data goes through a Google Apps Script web app (a Google Sheet
   key/value store, plus Google Drive for filed PDFs). Its URL is set in
-  Settings › Shared Backend; without it, data stays in the browser.
+  Admin › Settings › Shared Backend (a device with no URL yet is asked for it
+  on the Admin sign-in screen); without it, data stays in the browser.
 
 ## Suggest Improvements
 
@@ -30,7 +31,7 @@ while using the app.
   sessions (see `CLAUDE.md`).
 - It copies when the section opens, after a save or delete, and when the
   device comes back online. If it can't, the status says why: offline, not
-  connected (no backend URL, Test mode, or the backend script hasn't had the
+  connected (no backend URL in Admin › Settings, Test mode, or the backend script hasn't had the
   v7 update), or the error.
 - File format:
 
