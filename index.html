@@ -1111,6 +1111,9 @@
     }
     .renewal-notes-input:focus { outline: 1px solid var(--reve-orange); background: #fff; border-radius: 3px; }
     .renewal-notes-wrap { position: relative; }
+    .renewal-history { font-size: 11px; color: #9a9a9a; margin-top: 3px; line-height: 1.35; }
+    .renewal-fresh { border: 0; background: none; padding: 0; margin-top: 2px; font-size: 10.5px; color: var(--ink-soft); text-decoration: underline; cursor: pointer; font-family: var(--sans); }
+    .renewal-fresh:hover { color: var(--reve-orange-dark); }
     .renewal-notes-ghost {
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
@@ -3025,6 +3028,40 @@
     body.dark-mode .pcard-calc, body.dark-mode .pcard-calc input { background: var(--dm-card-alt); color: inherit; }
     @media (max-width: 900px) { .pcard-calcs { flex: 0 0 auto; width: 100%; max-width: 420px; } }
 
+    /* -- Availability › Search by Lease Term -- */
+    .avail-term-note { font-size: 11px; color: var(--ink-soft); margin-bottom: 6px; line-height: 1.35; }
+    .avail-term-chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+    .avail-term-chips .chip { padding: 5px 0; text-align: center; }
+    .avail-term-view { padding: 4px 2px 20px; }
+    .avail-term-head { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .avail-term-head > div:first-child { flex: 1; min-width: 200px; }
+    .avail-term-title { font-family: 'Oswald', var(--sans); font-size: 20px; font-weight: 600; letter-spacing: 0.02em; }
+    .avail-term-sub { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+    .avail-term-sort { font-size: 11px; color: var(--ink-soft); display: flex; gap: 6px; align-items: center; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+    .avail-term-sort select { font-size: 12.5px; padding: 5px 8px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+    .avail-term-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+    .atc { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .atc.none { opacity: 0.6; }
+    .atc-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .atc-unit { font-size: 18px; font-weight: 800; border: 0; background: none; padding: 0; cursor: pointer; color: var(--ink); font-family: var(--sans); }
+    .atc-unit:hover { color: var(--reve-orange-dark); text-decoration: underline; }
+    .atc-avail { font-size: 11.5px; font-weight: 700; color: var(--ink-soft); text-align: right; }
+    .atc-avail.now { color: var(--good); }
+    .atc-specs { font-size: 12px; color: var(--ink); line-height: 1.45; }
+    .atc-specs span { color: var(--ink-soft); }
+    .atc-price { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .atc-price b { font-size: 22px; font-variant-numeric: tabular-nums; }
+    .atc-price .atc-term { font-size: 12px; color: var(--ink-soft); }
+    .atc-price .atc-psf { font-size: 11px; color: var(--ink-soft); margin-left: auto; }
+    .atc-near { display: flex; gap: 12px; font-size: 11px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+    .atc-near b { color: var(--ink); font-weight: 600; }
+    .atc-near .lower b { color: var(--good); }
+    .atc-extra { font-size: 11.5px; color: var(--ink-soft); line-height: 1.45; border-top: 1px dashed var(--line); padding-top: 6px; }
+    .atc-extra b { color: var(--ink); }
+    .atc-links { display: flex; gap: 10px; font-size: 12px; }
+    .atc-links a, .atc-links button { color: var(--reve-orange-dark); background: none; border: 0; padding: 0; cursor: pointer; font-size: 12px; font-family: var(--sans); text-decoration: underline; }
+    body.dark-mode .atc { background: var(--dm-card-alt); }
+
     /* -- PCard: split receipt hint + calculator -- */
     .pcard-table input.pcard-amt-suggest::placeholder { color: #9a9a9a; font-style: italic; opacity: 1; }
     .pcard-split-ok { color: var(--good); font-weight: 700; }
@@ -3813,6 +3850,16 @@
 
             <div class="filter-icon-bar">
                 <div class="filter-group icon-mode">
+                    <button type="button" class="filter-caption icon-mode" data-target="availTermFilters" title="Search by Lease Term">
+                        <span class="filter-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><line x1="9.5" y1="11.5" x2="15.5" y2="11.5"/><line x1="9.5" y1="14.5" x2="15.5" y2="14.5"/><line x1="9.5" y1="17.5" x2="13" y2="17.5"/></svg></span>
+                        <span class="filter-icon-label-text" id="availTermFiltersLabel">Lease Term</span>
+                    </button>
+                    <div class="quick-filters collapsed popover-mode" id="availTermFilters">
+                        <div class="avail-term-note">Lists every available unit with its rent for that term (and the terms either side).</div>
+                        <div class="avail-term-chips" id="availTermChips"></div>
+                    </div>
+                </div>
+                <div class="filter-group icon-mode">
                     <button type="button" class="filter-caption icon-mode" data-target="availMoveInDateFilters" title="Move-In Date">
                         <span class="filter-icon-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="1.5"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="7.5" y1="2.5" x2="7.5" y2="6.5"/><line x1="16.5" y1="2.5" x2="16.5" y2="6.5"/></svg></span>
                         <span class="filter-icon-label-text" id="availMoveInDateFiltersLabel">Move-In Date</span>
@@ -3906,6 +3953,25 @@
         </div>
         <div class="avail-banner" id="availBanner" style="display:none;"></div>
         <div class="avail-cal-grid" id="calGrid"></div>
+        <div class="avail-term-view" id="availTermView" style="display:none;">
+            <div class="avail-term-head">
+                <div>
+                    <div class="avail-term-title" id="availTermTitle"></div>
+                    <div class="avail-term-sub" id="availTermSub"></div>
+                </div>
+                <label class="avail-term-sort">Sort
+                    <select id="availTermSort">
+                        <option value="price">Rent, low to high</option>
+                        <option value="price-desc">Rent, high to low</option>
+                        <option value="date">Available soonest</option>
+                        <option value="unit">Unit number</option>
+                        <option value="sqft">Sq ft, largest</option>
+                    </select>
+                </label>
+                <button type="button" class="cal-action-btn" id="availTermExit">Back to calendar</button>
+            </div>
+            <div class="avail-term-list" id="availTermList"></div>
+        </div>
     </div>
 </div>
 </div>
@@ -4032,7 +4098,7 @@
                     <input type="file" id="renewalFileInput" accept=".csv,.xlsx,.xls">
                 </div>
                 <button type="button" class="pricing-clear" id="renewalClearBtn" style="display:none;">Clear renewal report</button>
-                <div class="empty-note" style="margin-top:6px;">Checkbox and notes entries are kept separately and survive re-uploads &mdash; only expiration/rate data refreshes.</div>
+                <div class="empty-note" style="margin-top:6px;">Checkboxes and notes survive re-uploads for the same lease &mdash; only expiration/rate data refreshes. A unit back with a later lease end starts fresh (the old notes stay in gray).</div>
             </div>
 
             <div class="section-label"><span class="dot"></span>Create Renewal Offer</div>
@@ -6708,7 +6774,7 @@ function tourExpiringMatches(q, marketed) {
     return EXPIRING_UNITS.filter(r => {
         const u = byUnit[r.unit];
         if (!u || marketed.has(r.unit)) return false;
-        if (RENEWAL_STATE[r.unit] && RENEWAL_STATE[r.unit].renewed) return false;
+        if (renewalRenewedFor(r.unit, r.leaseTo)) return false;
         if (!moveInOk(r.leaseTo.getTime(), moveIn)) return false;
         if (activeBldgFilter.length && !activeBldgFilter.includes(u.bldg)) return false;
         if (activeFloorFilter.length && !activeFloorFilter.includes(u.floor)) return false;
@@ -8298,6 +8364,31 @@ let calViewDate = new Date();
 calViewDate.setDate(1);
 let calFocusedDay = null; // null = month view; otherwise the JS Date being focused
 let activeAvailType = [], activeAvailFloorplan = [], activeAvailFloor = [], activeAvailBldg = [], activeAvailAmenity = [];
+// Search by Lease Term: a term (3–15) switches the calendar to a priced list.
+let availTerm = null;
+(function buildAvailTermChips() {
+    const box = document.getElementById('availTermChips');
+    for (let t = 3; t <= 15; t++) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'chip'; b.textContent = t + ' mo'; b.setAttribute('data-term', t);
+        b.title = `${t}-month lease`;
+        box.appendChild(b);
+    }
+    box.addEventListener('click', e => {
+        const b = e.target.closest('[data-term]');
+        if (!b) return;
+        const t = parseInt(b.getAttribute('data-term'), 10);
+        availTerm = availTerm === t ? null : t;
+        box.querySelectorAll('[data-term]').forEach(x => x.classList.toggle('active', parseInt(x.getAttribute('data-term'), 10) === availTerm));
+        updateAvailCaptionStates();
+        renderCalendar();
+        // One term at a time: close the popup so the other filters show again.
+        if (!document.getElementById('availTermFilters').classList.contains('collapsed')) document.querySelector('.filter-caption[data-target="availTermFilters"]').click();
+    });
+})();
+function availTermChipsSync() {
+    document.querySelectorAll('#availTermChips [data-term]').forEach(x => x.classList.toggle('active', parseInt(x.getAttribute('data-term'), 10) === availTerm));
+}
 
 const availTypeBox = document.getElementById('availTypeFilters');
 buildFilterChips(availTypeBox, typeOrderPH, t => t, () => activeAvailType, v => activeAvailType = v, renderCalendar, updateAvailCaptionStates);
@@ -8313,6 +8404,7 @@ function updateAvailCaptionStates() {
 
     const moveIn = moveInRange('availMoveInDateFilterInput', 'availMoveInAfterFilterInput');
     const map = [
+        ['availTermFilters', availTerm !== null, availTerm !== null ? `${availTerm}-Month` : 'Lease Term'],
         ['availMoveInDateFilters', !!(moveIn.a || moveIn.b), moveInCaption(moveIn)],
         ['availSqftFilters', sqftActive, sqftActive ? `${sqftMin || '0'}\u2013${sqftMax || '\u221e'}` : 'Sq Ft'],
         ['availPriceFilters', priceActive, priceActive ? `$${priceMin || '0'}\u2013$${priceMax || '\u221e'}` : 'Price'],
@@ -8403,8 +8495,11 @@ function availFilteredUnits() {
         const sqft = parseFloat(u.sqft);
         if (!isNaN(sqft) && (sqft < sqftB.min || sqft > sqftB.max)) return false;
         const p = PRICING_SUMMARY[u.unit];
-        const price = p ? parsePriceNum(p.bestPrice) : null;
+        // With a lease term picked, Price filters on that term's rent.
+        const termRent = availTerm !== null && p && p.allTerms ? p.allTerms[availTerm] : undefined;
+        const price = availTerm !== null ? (termRent !== undefined ? termRent : null) : (p ? parsePriceNum(p.bestPrice) : null);
         if (price !== null && (price < priceB.min || price > priceB.max)) return false;
+        if (availTerm !== null && price === null && (priceB.min > -Infinity || priceB.max < Infinity)) return false;
         if (moveIn.before !== null || moveIn.after !== null) {
             if (!p || p.availableSortKey === undefined || !moveInOk(p.availableSortKey, moveIn)) return false;
         }
@@ -8881,6 +8976,76 @@ document.getElementById('vtnList').addEventListener('click', e => {
     switchTab('tour');
     selectUnit(b.getAttribute('data-vtn-unit'));
 });
+// One card per available unit (after the other filters): rent for the
+// picked term in large type, the terms either side in small type, plus
+// specs, availability, best price, $/sq ft, the concession that applies
+// and links to open it in Tour or watch its video.
+function renderAvailTermList() {
+    const list = document.getElementById('availTermList');
+    const t = availTerm;
+    document.getElementById('availTermTitle').textContent = `${t}-Month Lease`;
+    if (!PRICING_META) {
+        document.getElementById('availTermSub').textContent = '';
+        list.innerHTML = '<div class="empty-note">No pricing sheet loaded yet. Upload today’s export on the Tour tab to see rents by lease term.</div>';
+        return;
+    }
+    const money = n => '$' + Math.round(n).toLocaleString('en-US');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const rows = availFilteredUnits().map(u => {
+        const p = PRICING_SUMMARY[u.unit] || {};
+        const terms = p.allTerms || {};
+        const rent = terms[t];
+        const key = p.availableSortKey !== undefined && isFinite(p.availableSortKey) ? p.availableSortKey : null;
+        return { u, p, terms, rent: rent === undefined ? null : rent, key, now: key === null || key <= today.getTime(), sqft: parseFloat(u.sqft) || 0 };
+    });
+    const sort = document.getElementById('availTermSort').value;
+    const byUnitNum = (a, b) => a.u.unit.localeCompare(b.u.unit, undefined, { numeric: true });
+    rows.sort((a, b) => {
+        if ((a.rent === null) !== (b.rent === null)) return a.rent === null ? 1 : -1;   // no price for this term: last
+        if (sort === 'price') return (a.rent - b.rent) || byUnitNum(a, b);
+        if (sort === 'price-desc') return (b.rent - a.rent) || byUnitNum(a, b);
+        if (sort === 'date') return ((a.key || 0) - (b.key || 0)) || (a.rent - b.rent) || byUnitNum(a, b);
+        if (sort === 'sqft') return (b.sqft - a.sqft) || byUnitNum(a, b);
+        return byUnitNum(a, b);
+    });
+    const priced = rows.filter(r => r.rent !== null);
+    const lo = priced.length ? Math.min(...priced.map(r => r.rent)) : null, hi = priced.length ? Math.max(...priced.map(r => r.rent)) : null;
+    document.getElementById('availTermSub').textContent = rows.length
+        ? `${rows.length} available unit${rows.length === 1 ? '' : 's'}${priced.length ? ` · ${money(lo)}${hi !== lo ? '–' + money(hi) : ''} for ${t} months` : ''}${rows.length - priced.length ? ` · ${rows.length - priced.length} without a ${t}-month rent` : ''} · pricing sheet ${PRICING_META.date || ''}`.replace(/ · pricing sheet $/, '')
+        : '';
+    if (!rows.length) { list.innerHTML = '<div class="empty-note">No available units match these filters.</div>'; return; }
+    list.innerHTML = rows.map(r => {
+        const u = r.u, p = r.p;
+        const near = [t - 1, t + 1].filter(x => x >= 3 && x <= 15).map(x => {
+            const v = r.terms[x];
+            return v === undefined ? `<span>${x}-mo —</span>` : `<span class="${r.rent !== null && v < r.rent ? 'lower' : ''}">${x}-mo <b>${money(v)}</b></span>`;
+        }).join('');
+        const rule = typeof findMatchingConcessionRule === 'function' ? findMatchingConcessionRule(u) : null;
+        const conc = rule ? concessionParse(rule.weeks, rule.kind) : null;
+        const eff = conc && r.rent !== null ? effectiveRent(r.rent, t, conc) : null;
+        const tags = unitAmenityTag(u);
+        const ownVideo = u.videoLink && typeof unitNeedsVideoTour === 'function' && !unitNeedsVideoTour(u);
+        const specs = [bedBathSqftLine(u), u.bldg, u.floor ? `Floor ${u.floor}` : '', u.view ? `${u.view} view` : '', tags !== '-' ? tags : ''].filter(Boolean);
+        return `<div class="atc${r.rent === null ? ' none' : ''}">
+            <div class="atc-top"><button type="button" class="atc-unit" data-atc-open="${escapeAttr(u.unit)}" title="Open in Tour">Apt ${escapeHtml(u.unit)}</button>
+                <div class="atc-avail${r.now ? ' now' : ''}">${r.now ? 'Available now' : 'Available ' + escapeHtml(p.available || '')}</div></div>
+            <div class="atc-specs">${escapeHtml(u.floorplan)}${u.yardi ? ` <span>(${escapeHtml(u.yardi)})</span>` : ''} &middot; ${escapeHtml(specs.join(' · '))}</div>
+            <div class="atc-price">${r.rent !== null ? `<b>${money(r.rent)}</b><span class="atc-term">/mo &middot; ${t}-month</span>${r.sqft ? `<span class="atc-psf">${'$' + (r.rent / r.sqft).toFixed(2)}/sq ft</span>` : ''}` : `<span class="atc-term">No ${t}-month rent on the pricing sheet</span>`}</div>
+            ${near ? `<div class="atc-near">${near}</div>` : ''}
+            <div class="atc-extra">Best: <b>${p.bestPrice && parsePriceNum(p.bestPrice) !== null ? money(parsePriceNum(p.bestPrice)) : '—'}</b> ${p.bestTerm ? '(' + escapeHtml(p.bestTerm.replace('-Month Lease', '-mo')) + ')' : ''}${conc ? ` &middot; Concession: <b>${escapeHtml(conc.label)}</b>${eff !== null ? ` → <b>${money(eff)}</b>/mo effective` : ''}` : ''}</div>
+            <div class="atc-links"><button type="button" data-atc-open="${escapeAttr(u.unit)}">Open in Tour</button>${ownVideo ? `<a href="${escapeAttr(u.videoLink)}" target="_blank" rel="noopener">Video tour</a>` : ''}</div>
+        </div>`;
+    }).join('');
+}
+document.getElementById('availTermList').addEventListener('click', e => {
+    const b = e.target.closest('[data-atc-open]');
+    if (!b) return;
+    switchTab('tour');
+    selectUnit(b.getAttribute('data-atc-open'));
+});
+document.getElementById('availTermSort').addEventListener('change', () => renderAvailTermList());
+document.getElementById('availTermExit').addEventListener('click', () => { availTerm = null; availTermChipsSync(); renderCalendar(); });
+
 function renderCalendar() {
     renderVideoToursNeeded();
     try { renderCarpetNeeded(); } catch (e) {}
@@ -8892,6 +9057,13 @@ function renderCalendar() {
 
     renderAvailFilterCounts();
     updateAvailCaptionStates();
+
+    // Search by Lease Term replaces the calendar with a priced list.
+    const termView = availTerm !== null;
+    document.getElementById('availTermView').style.display = termView ? '' : 'none';
+    grid.style.display = termView ? 'none' : '';
+    document.querySelector('#tab-availability .avail-cal-toolbar').style.display = termView ? 'none' : '';
+    if (termView) { banner.style.display = 'none'; renderAvailTermList(); return; }
 
     if (!PRICING_META) {
         label.textContent = calViewMode === 'week'
@@ -9150,6 +9322,7 @@ document.getElementById('availClearBtn').addEventListener('click', () => {
     document.getElementById('availPriceMax').value = '';
     document.getElementById('availMoveInDateFilterInput').value = '';
     document.getElementById('availMoveInAfterFilterInput').value = '';
+    availTerm = null; availTermChipsSync();
     activeAvailType = []; activeAvailFloorplan = []; activeAvailFloor = []; activeAvailBldg = []; activeAvailAmenity = [];
     [...availTypeBox.children, ...document.getElementById('availAmenityFilters').children].forEach(c => c.classList.remove('active'));
     rebuildAvailFilters();
@@ -9467,8 +9640,7 @@ function renderExpiringList() {
     const rows = list.map(r => {
         const isMtn = MOUNTAIN_VIEW_UNITS.has(r.unit);
         const isCorner = CORNER_UNITS.has(r.unit);
-        const renewalState = RENEWAL_STATE[r.unit];
-        const isRenewed = !!(renewalState && renewalState.renewed);
+        const isRenewed = renewalRenewedFor(r.unit, r.leaseTo);
         const isNotice = r.status === 'Notice';
         const statusLabel = isRenewed ? 'Renewed' : r.status;
         const statusClass = isRenewed ? 'status-renewed' : (isNotice ? 'status-notice' : 'status-current');
@@ -9598,6 +9770,7 @@ function restoreRenewals() {
         }
         const state = localStorage.getItem(RENEWAL_STATE_KEY);
         RENEWAL_STATE = state ? JSON.parse(state) : {};
+        if (renewalRollover()) saveRenewalState();
     } catch (e) { /* ignore corrupt cache, already reset above */ }
     renderRenewalStatus();
     renderRenewalTable();
@@ -9632,7 +9805,9 @@ document.getElementById('renewalFileInput').addEventListener('change', (e) => {
                 rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' });
             }
             const objRows = csvRowsToObjects(rows);
+            renewalStampFromReport(RENEWAL_UNITS);
             RENEWAL_UNITS = buildRenewalDataset(objRows);
+            if (renewalRollover()) saveRenewalState();
             RENEWAL_META = { filename: file.name, uploadedAt: new Date().toISOString(), count: RENEWAL_UNITS.length };
             persistRenewals();
             if (BACKEND_URL) backendPush('renewal-units', { units: RENEWAL_UNITS.map(u => Object.assign({}, u, { expiration: u.expiration ? u.expiration.toISOString() : null })), meta: RENEWAL_META });
@@ -9663,6 +9838,53 @@ document.getElementById('renewalClearBtn').addEventListener('click', () => {
 
 function renewalRowState(unit) {
     return RENEWAL_STATE[unit] || { renewed: false, notice: false, notes: '' };
+}
+/* Renewed / Notice / notes belong to one lease. Each record keeps the lease
+   end it was made for (exp, yyyy-mm-dd). When the report later shows the
+   unit with a later lease end (e.g. after a short-term renewal), it starts
+   fresh as Pending with blank notes, and the old record is kept as history
+   (shown in gray under the notes). */
+function renewalYmd(d) {
+    return d instanceof Date && !isNaN(d) ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` : '';
+}
+function renewalCurrentExp(unit) {
+    const u = RENEWAL_UNITS.find(x => x.unit === unit);
+    return u ? renewalYmd(u.expiration) : '';
+}
+function renewalHasContent(st) { return !!(st && (st.renewed || st.notice || String(st.notes || '').trim())); }
+function renewalArchive(unit, newExp) {
+    const st = RENEWAL_STATE[unit];
+    const history = renewalHasContent(st)
+        ? [{ exp: st.expGuessed ? '' : (st.exp || ''), renewed: !!st.renewed, notice: !!st.notice, notes: st.notes || '', closed: new Date().toISOString() }].concat(st.history || []).slice(0, 5)
+        : ((st && st.history) || []);
+    RENEWAL_STATE[unit] = { renewed: false, notice: false, notes: '', exp: newExp || '', history };
+}
+// Start a fresh record for any unit whose lease end moved later. -> changed?
+function renewalRollover() {
+    let changed = false;
+    RENEWAL_UNITS.forEach(u => {
+        const st = RENEWAL_STATE[u.unit], cur = renewalYmd(u.expiration);
+        if (!st || !st.exp || !cur || cur <= st.exp) return;
+        if (renewalHasContent(st)) renewalArchive(u.unit, cur); else st.exp = cur;
+        changed = true;
+    });
+    return changed;
+}
+// Before a new report replaces the old one: older records get the lease end
+// from the outgoing report, so a later date in the new one is noticed.
+function renewalStampFromReport(units) {
+    units.forEach(u => {
+        const st = RENEWAL_STATE[u.unit], d = renewalYmd(u.expiration);
+        if (st && !st.exp && d && renewalHasContent(st)) { st.exp = d; st.expGuessed = true; }   // borrowed date: history just says "Earlier lease"
+    });
+}
+// Is the unit marked Renewed for the lease ending on this date? (Expiring /
+// Waitlist / Tour use their own report's lease end.)
+function renewalRenewedFor(unit, leaseEnd) {
+    const st = RENEWAL_STATE[unit];
+    if (!st || !st.renewed) return false;
+    const d = renewalYmd(leaseEnd);
+    return !st.exp || !d || d <= st.exp;
 }
 
 // Per-month Pending/Renewed/Notice counts, only for months actually
@@ -9765,7 +9987,7 @@ function renderRenewalTable() {
             <td class="strike-cell">${mtmText}</td>
             <td class="renewal-check-cell"><input type="checkbox" class="renewal-checkbox" data-field="renewed" ${state.renewed ? 'checked' : ''}></td>
             <td class="renewal-check-cell"><input type="checkbox" class="renewal-checkbox" data-field="notice" ${state.notice ? 'checked' : ''}></td>
-            <td><div class="renewal-notes-wrap"><div class="renewal-notes-ghost" aria-hidden="true"></div><textarea class="renewal-notes-input" rows="2" data-field="notes" placeholder="Add a note&hellip;">${escapeHtml(state.notes)}</textarea></div></td>
+            <td><div class="renewal-notes-wrap"><div class="renewal-notes-ghost" aria-hidden="true"></div><textarea class="renewal-notes-input" rows="2" data-field="notes" placeholder="Add a note&hellip;">${escapeHtml(state.notes)}</textarea></div>${renewalHistoryHtml(u.unit, state)}</td>
         </tr>`;
     }).join('');
 
@@ -9781,6 +10003,7 @@ function renderRenewalTable() {
             const field = e.target.getAttribute('data-field');
             const state = RENEWAL_STATE[unit] = RENEWAL_STATE[unit] || { renewed: false, notice: false, notes: '' };
             state[field] = e.target.checked;
+            state.exp = renewalCurrentExp(unit) || state.exp || ''; delete state.expGuessed;
             // Mutually exclusive — a unit is either renewing or giving notice, not both.
             if (field === 'renewed' && e.target.checked) state.notice = false;
             if (field === 'notice' && e.target.checked) state.renewed = false;
@@ -9803,6 +10026,7 @@ function renderRenewalTable() {
             const unit = tr.getAttribute('data-unit');
             const state = RENEWAL_STATE[unit] = RENEWAL_STATE[unit] || { renewed: false, notice: false, notes: '' };
             state.notes = e.target.value;
+            state.exp = renewalCurrentExp(unit) || state.exp || ''; delete state.expGuessed;
             saveRenewalStateDebounced();
             updateNoteGhost(e.target, ghost);
         });
@@ -9815,6 +10039,7 @@ function renderRenewalTable() {
             const unit = tr.getAttribute('data-unit');
             const state = RENEWAL_STATE[unit] = RENEWAL_STATE[unit] || { renewed: false, notice: false, notes: '' };
             state.notes = full;
+            state.exp = renewalCurrentExp(unit) || state.exp || ''; delete state.expGuessed;
             saveRenewalStateDebounced();
             ghost.innerHTML = '';
             delete ghost.dataset.suggestion;
@@ -9824,6 +10049,31 @@ function renderRenewalTable() {
         inp.addEventListener('blur', () => { ghost.innerHTML = ''; delete ghost.dataset.suggestion; });
     });
 }
+
+// Gray line under the notes: the previous lease's decision and notes, and
+// a link to start fresh by hand (for records made before lease dates were kept).
+function renewalHistoryHtml(unit, state) {
+    const h = (state.history || [])[0];
+    const fmt = ymd => { const m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? `${+m[2]}/${+m[3]}/${m[1].slice(2)}` : ''; };
+    let html = '';
+    if (h) {
+        const what = h.renewed ? 'Renewed' : h.notice ? 'Notice' : 'No decision';
+        const all = (state.history || []).map(x => `${x.exp ? 'Lease to ' + fmt(x.exp) : 'Earlier lease'}: ${x.renewed ? 'Renewed' : x.notice ? 'Notice' : 'No decision'}${x.notes ? ' — ' + x.notes : ''}`).join('\n');
+        html += `<div class="renewal-history" title="${escapeAttr(all)}">${h.exp ? 'Lease to ' + escapeHtml(fmt(h.exp)) : 'Earlier lease'}: ${what}${h.notes ? ' — “' + escapeHtml(h.notes.length > 80 ? h.notes.slice(0, 80) + '…' : h.notes) + '”' : ''}</div>`;
+    }
+    if (renewalHasContent(state)) html += `<button type="button" class="renewal-fresh" data-rn-fresh="${escapeAttr(unit)}" title="This unit renewed and is back with a new lease end: clear Renewed/Notice and notes for the new lease (kept as history)">Start fresh for this lease</button>`;
+    return html;
+}
+document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-rn-fresh]');
+    if (!b) return;
+    const unit = b.getAttribute('data-rn-fresh');
+    const ok = await appDialog({ title: `Start fresh for Apt ${unit}?`, text: 'Renewed / Notice and the notes are cleared for the current lease. The old ones stay visible as history under the notes.', ok: 'Start fresh' });
+    if (!ok) return;
+    renewalArchive(unit, renewalCurrentExp(unit));
+    saveRenewalState();
+    renderRenewalTable(); renderExpiringList(); renderWaitlist();
+});
 
 // A short, growable list of common renewal-note phrases. Suggests a
 // completion once what's typed so far is an unambiguous prefix of one
@@ -10517,8 +10767,7 @@ function computePossibleUnits(row) {
         if (!waitlistBedsMatchesUnit(row.beds, u)) return false;
         if (window && (u.leaseTo < window.start || u.leaseTo > window.end)) return false;
         if (u.leaseTo < todayMidnight) return false; // already past — not actually upcoming
-        const state = RENEWAL_STATE[u.unit];
-        if (state && state.renewed) return false; // already renewing — not actually coming up
+        if (renewalRenewedFor(u.unit, u.leaseTo)) return false; // already renewing this lease — not actually coming up
         return true;
     }).sort((a, b) => a.leaseTo - b.leaseTo).slice(0, 10);
 }
@@ -24728,6 +24977,7 @@ async function pullAllFromBackend() {
 
     const renewalRemote = await backendPull('renewal-units');
     if (renewalRemote && renewalRemote.meta) {
+        renewalStampFromReport(RENEWAL_UNITS);
         RENEWAL_UNITS = (renewalRemote.units || []).map(u => Object.assign({}, u, { expiration: u.expiration ? new Date(u.expiration) : null }));
         RENEWAL_META = renewalRemote.meta;
         persistRenewals();
@@ -24745,6 +24995,7 @@ async function pullAllFromBackend() {
     if (stateRemote) {
         RENEWAL_STATE = stateRemote;
         try { localStorage.setItem(RENEWAL_STATE_KEY, JSON.stringify(RENEWAL_STATE)); } catch (e) {}
+        if (renewalRollover()) saveRenewalState();
     } else if (Object.keys(RENEWAL_STATE).length) {
         backendPush('renewal-state', RENEWAL_STATE);
     }
@@ -25029,7 +25280,7 @@ function seedHowToGuides() {
 // built-in leaves a { deleted: true } marker so it isn't re-added.
 const HOWTO_BUILTIN_GUIDES = {
     "builtin-app-tour": {"title": "Getting Around the App", "icon": "🧭", "category": "General", "steps": ["Top row: Tour (flyers and Today's Tours), Availability (calendar), Expiring (upcoming lease ends), Waitlist (prospects), Sitemap (site map, videos and DOOR Devices), Documents (printables, floorplans, Pricing rent lookup and Renewal Offers).", "Top right: Help (How-To guides and Questions) and Settings (Light/Dark, Refresh, Live/Test mode, Suggest Improvements, Market Rent Schedule and Carpet Measurements).", "Second row: Turns (unit turn tracker), Residents (move-in tracking), WL (Welcome Letter), Lease (new lease data), Renewals (renewal decisions & offers), and Admin (password-protected: INFO, MMR, Commissions, PCard, Deposit Accounting, Blueprints and Settings — the shared backend, property profile, Default Charges and Office Hours).", "Anything marked \"shared\" syncs for the whole team when the backend is connected in Admin › Settings — changes show up for everyone within about 25 seconds.", "Uploaded reports (pricing sheet, lease expirations, renewals) feed several tabs at once — upload them once and Tour, Availability, Expiring, Waitlist, Turns and Renewals all update.", "Not seeing a recent change? Go to Settings and click \"Refresh Site to Update\"."], "rev": 3},
-    "builtin-search-filters": {"title": "Use the Search Filters (Tour, Availability, Expiring)", "icon": "🔎", "category": "Tour", "steps": ["The round filter icons sit above the unit list on Tour, above the calendar on Availability, and above the list on Expiring.", "Click an icon to open its options, then click as many options as you like — the list updates as you pick. Click outside (or the icon again) to close it.", "Move-In: \"Move-in before\" shows units available on or before that date; add an optional \"Move-in after\" date for a range (e.g. after Dec 1, before Jan 15). On Expiring it filters by lease end date.", "Beds: Studio, 1-Bed, 2-Bed, 3-Bed, Townhome or Live/Work (A7 and A9 count as 1-Bed with Den). Floorplan: specific plans (e.g. B5). Floor and Building narrow by location.", "Price and Sq Ft (Tour and Availability): enter a Min, a Max, or both.", "Amenity: Mountain View, Corner Unit or Balcony.", "On Tour, once filters are set, matching units from the Expiring report also show — grayed — below the available ones, as possible upcoming options.", "An active filter shows your choice under its icon. Filters combine — a unit has to match all of them. Click \"Clear filters\" to reset everything, including the move-in dates.", "Tip: on Tour, typing an exact unit number always puts that unit at the top of the results, even if it is filtered out or not in today's pricing sheet."], "rev": 2},
+    "builtin-search-filters": {"title": "Use the Search Filters (Tour, Availability, Expiring)", "icon": "🔎", "category": "Tour", "steps": ["The round filter icons sit above the unit list on Tour, above the calendar on Availability, and above the list on Expiring.", "Click an icon to open its options, then click as many options as you like — the list updates as you pick. Click outside (or the icon again) to close it.", "Move-In: \"Move-in before\" shows units available on or before that date; add an optional \"Move-in after\" date for a range (e.g. after Dec 1, before Jan 15). On Expiring it filters by lease end date.", "Lease Term (Availability): pick a term (3–15 months) to switch the calendar to a list of every available unit with its rent for that term, the terms either side in smaller type, specs, availability, best price, $/sq ft and the concession's effective rent. Sort by rent, date, unit or size; click a unit to open it in Tour. With a term picked, Price filters on that term's rent. Click the term again or \"Back to calendar\" to return.", "Beds: Studio, 1-Bed, 2-Bed, 3-Bed, Townhome or Live/Work (A7 and A9 count as 1-Bed with Den). Floorplan: specific plans (e.g. B5). Floor and Building narrow by location.", "Price and Sq Ft (Tour and Availability): enter a Min, a Max, or both.", "Amenity: Mountain View, Corner Unit or Balcony.", "On Tour, once filters are set, matching units from the Expiring report also show — grayed — below the available ones, as possible upcoming options.", "An active filter shows your choice under its icon. Filters combine — a unit has to match all of them. Click \"Clear filters\" to reset everything, including the move-in dates.", "Tip: on Tour, typing an exact unit number always puts that unit at the top of the results, even if it is filtered out or not in today's pricing sheet."], "rev": 3},
     "builtin-pricing-concession": {"title": "Set the Current Concession", "icon": "🏷️", "category": "Tour", "steps": ["On the Tour tab, find \"Current Concession\" at the top of the left panel and click Edit.", "Concession Terms: the plain-language special shown on the Tour tab and flyers (e.g. \"6 weeks free on select units or $1500 free on all else\"). Additional Notes are for agents only.", "Up to 3 rules, checked in order. For each, pick Weeks or $ Off and enter the amount: a single digit is read as weeks, a bigger number as dollars (a $ is added). Click the other tile to switch, e.g. for 10 weeks.", "Qualifying Units: unit numbers separated by commas (e.g. 1204, 1338, 1239), floorplan types or codes (LW, 2-Bed, A9), \"All Immediate\" for units available now, or \"All else\" for every unit not covered by an earlier rule — put that one last.", "The line under each rule shows what it means and which units it covers, and flags any number that isn't a unit.", "Click \"Save Concession Settings\" — it's shared with the team and applies automatically when a matching unit is opened on Tour.", "On each flyer, \"Show concession calculator on flyer\" and \"Concession (weeks free, or $ amount off)\" control what that flyer shows; type 4 for weeks or $1500 for dollars.", "The calculator uses the unit's 3 cheapest 12–15 month rates: weeks free take that many weeks of rent off, a $ amount is taken off the whole lease, and both are shown as the effective monthly payment."], "rev": 2},
     "builtin-compare-units": {"title": "Put Several Units on One Flyer", "icon": "🗂️", "category": "Tour", "steps": ["Open the first unit on the Tour tab as usual.", "Click \"+ Add unit\", then search for and pick the next unit.", "The units appear under \"Units in this pamphlet\" — click one to edit its price, terms and links.", "Repeat for more units, or click \"Cancel add\" to stop adding.", "Download PDF or Download Printable PDF includes every unit you added."]},
     "builtin-todays-tours": {"title": "Run Today's Tours", "icon": "🚪", "category": "Tour", "steps": ["On the Tour tab, under the pricing sheet, click \"+ Add\" next to Today's Tours and enter the prospect's name. The list is kept on this device and starts empty each day.", "Click \"Edit Tour\" next to a name: the Tour tab switches to that person's own filters, units and flyer edits.", "Pick units as usual, or click \"+ Add a unit\" to add more — each unit is its own pamphlet.", "Click \"Done\" to go back to the regular Tour view; the tour is kept.", "Click \"Complete Tour\", enter their email (and any Specific Notes) and the app builds an email draft with one pamphlet PDF per unit, the fee sheet and the \"Tour follow-up\" template from Documents › Email Templates.", "Each completed tour is added once to MMR › Weekly Traffic Detail."], "rev": 2},
@@ -25037,7 +25288,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-unavailable-flyer": {"title": "Make a Flyer for a Unit That Isn't Available Yet", "icon": "⏳", "category": "Tour", "steps": ["Open the unit from the Expiring tab (click its row), from the site map, or type its number on the Tour tab.", "Units not in today's pricing sheet open in the \"not currently available\" layout.", "Availability, other lease terms and the concession section are hidden on the flyer automatically.", "Enter an estimated price in \"Best price\" — it shows as an estimate on the flyer.", "Download the PDF as usual."]},
     "builtin-availability-calendar": {"title": "Browse the Availability Calendar", "icon": "📅", "category": "Availability", "steps": ["Upload today's pricing sheet on the Tour tab first — the calendar uses it.", "Open the Availability tab. Each available unit appears on the date it becomes available.", "Use Month or Week to change the view, and ‹ › to move between months or weeks.", "Click a day to see its units, or click Today to jump straight to today.", "The line under the month title counts that month's availabilities by bed type.", "Use the filter icons (Beds, Price, Floor, etc.) to narrow what the calendar shows.", "Click any unit on the calendar to open it in the Tour tab and build its flyer."]},
     "builtin-expiring": {"title": "Find Upcoming Units on the Expiring Tab", "icon": "📆", "category": "Expiring", "steps": ["Export the lease expiration report and upload it on the Expiring tab (\"Upload file\").", "Every unit with an upcoming lease end is listed with a status: Notice, Current, or Renewed.", "Renewed comes from the Renewals tab — checking \"Renewed?\" there updates it here.", "Use \"Move-in before\" (and optionally \"Move-in after\") to show leases ending in a date range, plus Beds, Floorplan, Floor, Building or Amenity.", "Click a unit to open it in the Tour tab and make an \"available soon\" flyer.", "The same report suggests \"Possible upcoming units\" on the Waitlist, and grayed matches in Tour's search when filters are set."], "rev": 2},
-    "builtin-review-renewals": {"title": "Review Monthly Renewals", "icon": "🔁", "category": "Renewals", "steps": ["Export the Renewal Offer Analysis report and upload it on the Renewals tab (\"Upload file\").", "The cards at the top show each month's Pending, Renewed and Notice counts.", "The list defaults to Status: Pending. Use the Month dropdown to focus on one month.", "For each unit, check \"Renewed?\" when the resident renews or \"Notice?\" when they give notice — only one can be checked.", "Add notes in the Notes column (the box grows as you type). Tip: start typing \"leas\" and press Tab to fill in \"lease is out for signature\".", "A 🚩 flag means the lease ends within 30 days (or has already ended) with no decision recorded — follow up on those first.", "Generate Renewal Offer PDF downloads the offer and also saves it to Documents › Renewal Offers and the \"Renewal Offers\" Google Drive folder as \"Renewal Offer - Apartment <unit>_<Last name>\" (a newer one replaces the older).", "Re-uploading a newer report keeps all your checkboxes and notes; only dates and rates refresh.", "Renewed units also show as Renewed on the Expiring tab and stop being suggested on the Waitlist."], "rev": 2},
+    "builtin-review-renewals": {"title": "Review Monthly Renewals", "icon": "🔁", "category": "Renewals", "steps": ["Export the Renewal Offer Analysis report and upload it on the Renewals tab (\"Upload file\").", "The cards at the top show each month's Pending, Renewed and Notice counts.", "The list defaults to Status: Pending. Use the Month dropdown to focus on one month.", "For each unit, check \"Renewed?\" when the resident renews or \"Notice?\" when they give notice — only one can be checked.", "Add notes in the Notes column (the box grows as you type). Tip: start typing \"leas\" and press Tab to fill in \"lease is out for signature\".", "A 🚩 flag means the lease ends within 30 days (or has already ended) with no decision recorded — follow up on those first.", "Generate Renewal Offer PDF downloads the offer and also saves it to Documents › Renewal Offers and the \"Renewal Offers\" Google Drive folder as \"Renewal Offer - Apartment <unit>_<Last name>\" (a newer one replaces the older).", "Re-uploading a newer report keeps your checkboxes and notes for the same lease; only dates and rates refresh. If a unit comes back with a later lease end (e.g. after a short-term renewal), it starts fresh as Pending with blank notes, and the old decision and notes show in gray under the notes box. For older records made before this, click \"Start fresh for this lease\" under the notes.", "Renewed units also show as Renewed on the Expiring tab and stop being suggested on the Waitlist."], "rev": 3},
     "builtin-waitlist": {"title": "Add and Follow Up with Waitlist Prospects", "icon": "📝", "category": "Waitlist", "steps": ["Open the Waitlist tab and click \"+ Add Prospect\".", "Fill in Agent, Prospect name, Beds, Move-In Date, Phone and Email (Rent is optional).", "Use \"Prospect Details & Notes\" for preferences, and \"Agent Follow-Up Notes\" for each contact — include the date (e.g. \"Notified of 4420 on 7/2\").", "\"Possible upcoming units\" lists units from the Expiring tab that match the prospect's Beds and end before their Move-In Date.", "Check Cancel or Leased when they drop off or sign — they move to the Cancelled or Leased tab.", "Filter by Agent, Beds or Move-In Month; \"Clear filters\" resets them. The × button removes a prospect."]},
     "builtin-storage": {"title": "Track Storage Locker Interest", "icon": "📦", "category": "Waitlist", "steps": ["On the Waitlist tab, click the Storage tab on the right.", "Click \"+ Add Entry\" and fill in Name, Unit, and Email or phone.", "Check \"Contacted\" once you've reached out.", "Drag the ≡ handle at the left of a row to move it up or down (or focus it and use the arrow keys) — the order is shared with the team.", "Use the × button to remove an entry permanently."]},
     "builtin-site-map": {"title": "Use the Interactive Site Map", "icon": "🗺️", "category": "Sitemap", "steps": ["Open the Sitemap tab and pick a floor: 1st, 2nd, 3rd or 4th.", "Orange units are available now (from today's pricing sheet); gray units aren't currently available.", "Hover (or tap) a unit for options: \"Load in Tour\" opens it in the Tour tab, \"Watch Video\" plays its video tour when one is on file, and \"See Floorplan\" opens its floorplan from Documents \u203a Floorplans (a Measurements version first, otherwise any matching floorplan).", "Retail suites and the Leasing Office are clickable when they have a website — they open it in a new tab.", "\"E\" boxes mark elevators; light corridors show the interior hallways.", "On the 2nd floor, gray outlined numbers mark the upper floor of the two-story townhomes below."]},
@@ -25355,7 +25606,7 @@ function renderSuggestions() {
    ============================================================ */
 const QA_GLOSSARY = [
     ['Tour tab', 'Tour builds a tour pamphlet (flyer) for any unit: search a unit number or floorplan, check the auto-filled specs, price and availability, then Download PDF (clickable links) or Download Printable PDF.', 'tour', 'flyer pamphlet brochure build'],
-    ['Availability tab', 'Availability shows every unit from today’s pricing sheet on a Month or Week calendar on the date it becomes available. Click a unit to open it in Tour.', 'availability', 'calendar vacant open date'],
+    ['Availability tab', 'Availability shows every unit from today’s pricing sheet on a Month or Week calendar on the date it becomes available. The Lease Term filter switches to a list of available units priced for one term (with the terms either side). Click a unit to open it in Tour.', 'availability', 'calendar vacant open date lease term months rent price'],
     ['Carpet Measurements Needed', 'On the Turns tab, the "Carpet Measurements Needed" card lists each unit type with no measured unit yet, with its units that are vacant now (bold + underlined) or upcoming (with a date). One measured unit covers its whole type. Click a unit to add its entry in Settings › Carpet Measurements (Unit, Measurements? and Quote).', 'turns', 'carpet floor measure quote flooring'],
     ['Market Rent Schedule', 'Settings › Market Rent Schedule: upload the Yardi Market Rent Schedule (.xlsx) to see each unit type, its unit count and market rent (click a type for its units). Market Rent can be edited, and Download gives back the same file format with your edits.', 'settings', 'market rent schedule unit type yardi export'],
     ['Video Tours Needed', 'On the Turns tab, the "Video Tours Needed" card (right of TODAY) lists units whose Video Name doesn’t contain their own unit number. Bold + underlined = available now, plain with a date = available soon, gray = not available. Click one to open it in Tour.', 'turns', 'video film record shoot missing'],
