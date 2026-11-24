@@ -1,5 +1,16 @@
 [
  {
+  "v": "1.170",
+  "date": "2026-11-24",
+  "title": "Lease Term card, lease-term slots in Tour, clearer sections",
+  "notes": [
+   "Availability: Search by Lease Term is its own full-width card at the top of the left menu; each unit card shows the chosen term plus the four nearest (e.g. 6-mo with 4, 5, 7, 8), and the other filters still narrow the list.",
+   "Open in Tour opens the unit with the chosen term and its three nearest in the lease-term slots, and scrolls to them.",
+   "Tour: \"Other lease terms\" is four slots, each a dropdown of every term with its rent; picking one replaces that slot. \"Add blank term\" and \"Add term from pricing sheet\" are gone; \"Reset to default\" restores the best price and the next four best rates.",
+   "Clearer divider bars between the sections of Tour's left menu."
+  ]
+ },
+ {
   "v": "1.169",
   "date": "2026-11-24",
   "title": "New Info tab, Admin Reports and Settings, Suggest Improvements in Help",
