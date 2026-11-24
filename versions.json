@@ -1,5 +1,17 @@
 [
  {
+  "v": "1.169",
+  "date": "2026-11-24",
+  "title": "New Info tab, Admin Reports and Settings, Suggest Improvements in Help",
+  "notes": [
+   "Unit Info moved to a new Info tab next to Help; the other INFO sub-tabs stay in Admin.",
+   "Admin › Reports holds MMR, Commissions, PCard and Deposit Accounting behind one password (the former Commissions password); Commissions and PCard no longer ask separately.",
+   "Admin Settings is now the ⚙ Settings button at the top right of Admin, with the Change Admin Password / Owner password buttons inside.",
+   "Settings cards are uniform in three columns (one column on phones); Market Rent Schedule and Carpet Measurements open full width.",
+   "Suggest Improvements moved to Help as a sub-tab next to Questions."
+  ]
+ },
+ {
   "v": "1.168",
   "date": "2026-11-24",
   "title": "Backend Health in Admin › Settings",

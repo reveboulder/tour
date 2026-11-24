@@ -9,7 +9,7 @@ Blueprints, INFO). Live at <https://reveboulder.github.io/tour/>.
 
 - `index.html` — the whole app (HTML, CSS and JavaScript in one file).
 - `suggestions.js` — storage, file format and copy tracking for
-  Settings › Suggest Improvements (kept separate so it can be unit tested).
+  Help › Suggest Improvements (kept separate so it can be unit tested).
 - `documents/`, `floorplans/`, `MEDIA_Floorplans/`, `stickers/` — static files.
 - Shared data goes through a Google Apps Script web app (a Google Sheet
   key/value store, plus Google Drive for filed PDFs). Its URL is set in
@@ -36,7 +36,7 @@ someone else changed the same data meanwhile (then their copy is kept).
 
 ## Suggest Improvements
 
-Settings › Suggest Improvements lets you write down ideas for future updates
+Help › Suggest Improvements lets you write down ideas for future updates
 while using the app.
 
 - Each suggestion is saved to the browser's `localStorage` first, so it works

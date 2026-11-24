@@ -18,7 +18,7 @@ Single-page leasing office app for REVE Boulder: everything is in `index.html`
 
 ## Suggested improvements (do this at the start of every session)
 
-The app's Settings › Suggest Improvements section copies the user's ideas for
+The app's Help › Suggest Improvements section copies the user's ideas for
 future updates to Google Drive as a plain-text file:
 `REVE Office/Suggested improvements.md`.
 

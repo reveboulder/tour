@@ -1,4 +1,4 @@
-// End-to-end test for Settings › Suggest Improvements (Playwright + Chromium).
+// End-to-end test for Help › Suggest Improvements (Playwright + Chromium).
 // Run from the repo root:  node tests/e2e/suggestions.e2e.js
 // Needs the `playwright` package (set PLAYWRIGHT_PATH to its folder if it isn't
 // installed locally). CDN libraries are blocked unless LIB_DIR points at a
@@ -48,9 +48,10 @@ function serve() {
         });
         const page = await ctx.newPage();
         page.on('pageerror', e => errors.push(e.message));
+        // Help › Suggest Improvements
         const openSection = async () => {
-            await page.evaluate(() => switchTab('settings'));
-            if (await page.isHidden('#suggBody')) await page.click('#suggToggle');
+            await page.evaluate(() => switchTab('howto'));
+            await page.click('#helpSubtabs [data-help-sub="suggest"]');
         };
         const texts = () => page.$$eval('#suggList .sugg-item-text', els => els.map(e => e.textContent));
         const save = async t => { await page.fill('#suggText', t); await page.click('#suggSaveBtn'); };
@@ -85,7 +86,7 @@ function serve() {
         assert.match(driveFile, /^# REVE Office: suggested improvements\nUpdated \d{4}-\d{2}-\d{2}T[\d:.]+Z\.\n- \[ \] \d{4}-\d{2}-\d{2} \(s\w+\): Second idea \/ with two lines\n$/);
         assert.match(await page.textContent('#suggList'), /Copied/);
         const before = posts;
-        await page.click('#suggToggle'); await page.click('#suggToggle');   // reopening with nothing new: no copy
+        await page.click('#helpSubtabs [data-help-sub="howto"]'); await page.click('#helpSubtabs [data-help-sub="suggest"]');   // reopening with nothing new: no copy
         await page.waitForTimeout(200);
         assert.equal(posts, before, 'nothing re-copied when already up to date');
 
