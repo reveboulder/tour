@@ -1,5 +1,15 @@
 [
  {
+  "v": "1.171",
+  "date": "2026-11-24",
+  "title": "Tour: add units from the left menu, bar above each pamphlet",
+  "notes": [
+   "\"+ Add a unit\" in Tour's left menu (as well as above the preview).",
+   "A small bar above each pamphlet (on screen only, never printed or downloaded): drag ☰ (or ◀ ▶) to reorder, Concession on/off, Edit lease terms (scrolls the left menu to that unit's terms), and that unit's own PDF / Printable download.",
+   "The left menu's Download PDF / Printable still include every unit, in the order shown."
+  ]
+ },
+ {
   "v": "1.170",
   "date": "2026-11-24",
   "title": "Lease Term card, lease-term slots in Tour, clearer sections",
