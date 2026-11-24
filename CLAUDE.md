@@ -7,6 +7,10 @@ Single-page leasing office app for REVE Boulder: everything is in `index.html`
 - Never commit confidential files, resident or prospect data, or uploaded reports.
   User files stay out of the repo.
 - Deploy: work on a branch, open a PR to `main`, merge; Pages redeploys.
+- Every deploy is a new version: bump `APP_VERSION` in `index.html` (1.N, one
+  higher than the last) and add a matching entry at the top of `versions.json`
+  (`v`, `date`, `title`, `notes` — short, plain summaries; no resident,
+  prospect or report details). The app's top banner shows this history.
 - Tests: `node --test tests/suggestions.test.js` (unit) and
   `node tests/e2e/suggestions.e2e.js` (Playwright; see the header of that file).
 
