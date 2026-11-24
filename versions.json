@@ -1,5 +1,15 @@
 [
  {
+  "v": "1.167",
+  "date": "2026-11-24",
+  "title": "Turn status on Availability and Tour",
+  "notes": [
+   "Each available unit shows its turn status from the Turns tracker: Ready (green), In turn with what's left and the last scheduled date (amber), overdue (red), or Not on Turns.",
+   "Shown as a dot on the Availability calendar, a badge on the day view, the Lease Term list and Tour's preview bar (not printed).",
+   "⚠ warns when a move-in (on Turns or a pending Residents row) is on or before the turn's last date, or items aren't scheduled; the Turns Move In cell shows ⚠ too."
+  ]
+ },
+ {
   "v": "1.166",
   "date": "2026-11-24",
   "title": "Price history for each unit",

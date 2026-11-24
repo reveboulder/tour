@@ -18309,6 +18309,7 @@ function turnStatusFor(unit) {
     const left = open.map(i => i.label).join(', ');
     let label = `In turn: ${left} left`;
     if (last) label += ` · last ${turnFmt(last)}`;
+    if (late.length) label += ` · overdue: ${late.join(', ')}`;
     if (unscheduled.length) label += ' · not all scheduled';
     const warnText = warn ? `Move-in ${turnFmt(moveIn)} is ${unscheduled.length ? 'set but ' + unscheduled.join(', ') + ' isn’t scheduled' : 'on or before the turn’s last date (' + turnFmt(last) + ')'}` : '';
     return { state: late.length ? 'late' : 'turn', label, title: `Apt ${unit}: ${left} not done yet.${late.length ? ' Overdue: ' + late.join(', ') + '.' : ''}${unscheduled.length ? ' Not scheduled: ' + unscheduled.join(', ') + '.' : ''}${warnText ? ' ⚠ ' + warnText + '.' : ''}`, warn: warnText, moveIn, last };
