@@ -3065,6 +3065,16 @@
     body.dark-mode .pcard-calc, body.dark-mode .pcard-calc input { background: var(--dm-card-alt); color: inherit; }
     @media (max-width: 900px) { .pcard-calcs { flex: 0 0 auto; width: 100%; max-width: 420px; } }
 
+    /* -- Admin › Settings › Backend Health -- */
+    .bh-bar { height: 10px; background: #eee; border-radius: 999px; overflow: hidden; margin: 6px 0 4px; }
+    .bh-bar > div { height: 100%; background: #3fae5a; border-radius: 999px; }
+    .bh-bar.warn > div { background: #e7a23a; } .bh-bar.bad > div { background: #e0443a; }
+    .bh-body { font-size: 12.5px; }
+    .bh-body table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 12px; }
+    .bh-body td { padding: 3px 6px; border-bottom: 1px solid var(--line); }
+    .bh-body td:last-child { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+    .bh-warn { color: #a3261c; font-weight: 700; }
+
     /* -- Turn status badges (Availability, Tour) -- */
     .turn-badge { display: inline-block; font-size: 11px; font-weight: 600; line-height: 1.35; padding: 2px 8px; border-radius: 999px; background: #f1efe9; color: var(--ink-soft); }
     .turn-badge.ready { background: #e7f4ea; color: #2e7d32; }
@@ -5254,6 +5264,18 @@
             </div>
             <div class="empty-note" id="backendStatusNote" style="margin-top:10px;">Not configured &mdash; data stays local to this browser only.</div>
             <div class="empty-note" id="backendSetupHint" style="margin-top:10px;">Need this set up? Ask Claude for the Apps Script code and step-by-step deployment instructions &mdash; it's a one-time, ~5 minute setup on a Google Sheet you control.</div>
+        </div>
+
+        <div class="settings-card" style="margin-top:18px;" id="bhCard">
+            <div class="section-label" style="margin-top:0;"><span class="dot"></span>Backend Health</div>
+            <p class="empty-note" style="font-size:12.5px;">How full the shared backend spreadsheet is (Google Sheets stops working near its 10 million cell limit), what takes the most space, leftovers you can clean up, and weekly backups to Google Drive &rsaquo; REVE Office &rsaquo; Backups (the last 8 are kept; plain-text files in your Drive).</p>
+            <div id="bhBody" class="bh-body"><div class="empty-note">Open this tab while connected to check.</div></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                <button type="button" class="btn" id="bhRefreshBtn" style="width:auto;flex:none;padding:7px 14px;">Check now</button>
+                <button type="button" class="btn" id="bhCleanBtn" style="width:auto;flex:none;padding:7px 14px;" disabled>Clean up</button>
+                <button type="button" class="btn" id="bhBackupBtn" style="width:auto;flex:none;padding:7px 14px;">Back up now</button>
+            </div>
+            <div class="empty-note" id="bhNote" style="margin-top:8px;"></div>
         </div>
 
         <div class="settings-card" style="margin-top:18px;">
@@ -25062,7 +25084,7 @@ function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, '')
    be saved. Built on SAVE_TRACK (every backend write) plus the time of
    the last successful read.
    ============================================================ */
-const APP_VERSION = '1.167';
+const APP_VERSION = '1.168';
 let SYNC_LAST_OK = 0, SYNC_LAST_FAIL = 0;
 try { SYNC_LAST_OK = +localStorage.getItem('reve-sync-last-ok') || 0; } catch (e) {}
 function syncNoteOk() { SYNC_LAST_OK = Date.now(); try { localStorage.setItem('reve-sync-last-ok', String(SYNC_LAST_OK)); } catch (e) {} syncStatusRenderSoon(); }
@@ -25823,6 +25845,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-unit-info": {"title": "Update Unit Info (Videos, Mailbox, Commission)", "icon": "🏢", "category": "Admin", "steps": ["Go to Admin (enter the Admin password), open INFO, then the \"Unit Info\" sub-tab.", "Search for a unit by number.", "Edit any field — e.g. Video Name and Video Link, Mailbox, View, Amenity or Commission. Changes save automatically and are shared with the team.", "Video links here power the Tour flyers and \"Watch Video\" on the Sitemap tab's map."]},
     "builtin-retail-info": {"title": "Keep Retail Tenant Contacts and Websites Up to Date", "icon": "🏬", "category": "Admin", "steps": ["Go to Admin (enter the Admin password), open INFO, then the \"Retail\" sub-tab.", "Edit any cell directly, or click \"+ Add Suite\" for a new tenant.", "To load many at once, click \"Paste from Spreadsheet\", paste the rows (with the header row), and click Import.", "Add a Website for a suite and that suite becomes a clickable link on the Sitemap tab's map.", "Contacts are stored in the shared backend, not in the public site code."]},
     "builtin-backend": {"title": "Connect the Shared Backend", "icon": "🔗", "category": "Admin", "rev": 2, "steps": ["This is a one-time setup per device, usually already done for the team.", "On a device that isn't connected yet, open Admin: it asks for the Google Apps Script \"Web App URL\" first. Paste it and click Connect, then enter the Admin password.", "To change it later: Admin (password) › Settings › Shared Backend. Paste the URL, click Save, then \"Test Connection\" — it should say Connected.", "Once connected, Residents, Waitlist, Renewals notes, How-To guides, Documents and more are shared across agents.", "Without it, data stays in your browser only."]},
+    "builtin-backend-health": {"title": "Check Backend Health, Clean Up and Back Up", "icon": "🩺", "category": "Admin", "rev": 2, "steps": ["Go to Admin › Settings › Backend Health (needs the v8 backend script update, once).", "The bar shows how much of Google Sheets' 10 million cell limit the shared backend uses; it turns amber at 70% and red at 85%. Below it are the items using the most space.", "Clean up removes leftovers only — copies of replaced or removed documents and old pieces of large saves — after making a backup. Current data isn't touched.", "Back up now saves a copy of all shared data to Google Drive › REVE Office › Backups. It also runs automatically when the last backup is a week old; the newest 8 are kept."]},
     "builtin-market-rents": {"title": "Upload and Export the Market Rent Schedule", "icon": "🏷️", "category": "Settings", "steps": ["Export the Market Rent Schedule report (.xlsx) from Yardi.", "Go to Settings › Market Rent Schedule and click \"Upload Market Rent Schedule\". It's shared with the team.", "The table lists each unit type with its code, unit count, Market Rent, Sq Ft and Occupied units. Click a type to see its unit numbers.", "A red count means Unit Info has a different number of units for that type — fix the unit's Yardi type in Admin › INFO › Unit Info.", "Market Rent can be edited (edited cells turn yellow); \"Undo Rent Edits\" puts back the uploaded values.", "\"Download Market Rent Schedule\" gives back the same file and formatting, with your edited rents and the totals updated."], "rev": 2},
     "builtin-carpet": {"title": "Track Carpet Measurements", "icon": "📏", "category": "Turns", "steps": ["Carpet measurements are tracked per unit type: one measured unit covers every unit of that type (e.g. one RV-A1.1 covers all of them).", "On Turns, the \"Carpet Measurements Needed\" card lists the unit types still needed, with their units that are vacant now (bold + underlined) or upcoming (with a date). Types with no vacancy yet are listed at the bottom.", "Click a unit there, or go to Settings › Carpet Measurements and click \"+ Add New Entry\".", "Enter the Unit # (its unit type fills in), check Measurements? when it's measured, and enter the Quote.", "The Unit types list shows Measured or Needed for each type. Check N/A for a type with no carpet so it stops showing as needed.", "Uploading the Market Rent Schedule gives the full list of unit types; without it, the types come from Unit Info."], "rev": 2},
     "builtin-questions": {"title": "Ask the Questions Assistant", "icon": "💬", "category": "Help", "steps": ["Open Help and click the Questions sub-tab.", "Type a question and press Enter (or click Ask). Ask several at once by separating them with a question mark.", "It answers from the app's own data: a unit number (e.g. \"Tell me about 4334\"), a floorplan (\"B5\"), availability (\"2-beds available under $3000\"), fees (\"pet deposit\"), move-ins/move-outs (\"who is moving in this week\"), expiring leases, residents or prospects by name, retail suites, documents, and how to do things.", "Use the buttons under an answer to open the unit in Tour, jump to the right tab, or open the full guide.", "Answers are only as current as the uploaded reports — upload today's pricing sheet and lease expiration report for the best results.", "\"Clear chat\" empties the conversation. Nothing you ask leaves your browser."]},
@@ -26099,6 +26122,124 @@ function renderSuggestions() {
     window.addEventListener('online', () => { if (suggStore && suggStore.needsCopy()) suggSync(); });
     window.addEventListener('offline', () => { if (body.style.display !== 'none' && suggStore && suggStore.needsCopy()) suggShowStatus({ state: 'offline', message: 'Offline — will copy when back online.' }); });
     renderSuggestions();
+})();
+
+/* ============================================================
+   ADMIN › SETTINGS › BACKEND HEALTH — backend script v8 actions:
+   backendStats (size vs Google's cell limit, every key's size, chunk
+   manifests, empty rows, backups), deleteKeys (cleanup) and backupNow.
+   Cleanup only removes leftovers: rows emptied when a document was
+   replaced or removed, stored copies of documents no longer listed,
+   pieces of large saves from the slot not in use, and pieces past the
+   current count. A backup runs automatically when the last is 7+ days old.
+   ============================================================ */
+let BH_STATS = null, BH_ORPHANS = [], BH_LIVE = null;   // BH_LIVE: the uploads list as read just now (null = couldn't read)
+async function backendAction(action, payload) {
+    if (!BACKEND_URL || APP_MODE === 'test') return { ok: false, error: 'not connected' };
+    try {
+        const res = await fetch(BACKEND_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ action }, payload || {})) });
+        const j = res.ok ? await res.json().catch(() => null) : null;
+        if (!j) return { ok: false, error: 'no answer from the backend' };
+        if (!j.ok && (j.error === 'missing key' || /unknown action/i.test(j.error || ''))) return { ok: false, needsUpdate: true, error: 'the backend script needs the v8 update (Backend Health)' };
+        return j;
+    } catch (e) { return { ok: false, error: e.message || String(e) }; }
+}
+function bhSize(chars) { return chars >= 1e6 ? (chars / 1e6).toFixed(1) + ' MB' : chars >= 1e3 ? Math.round(chars / 1e3) + ' KB' : chars + ' B'; }
+function bhBaseKey(k) { return k.replace(/__(a|b|part)\d+$/, ''); }
+// Leftover rows that can safely go.
+function bhFindOrphans(stats) {
+    const byKey = {}; stats.keys.forEach(k => { byKey[k.key] = k; });
+    // Stored documents count as leftovers only against a freshly read, non-empty uploads list.
+    const live = BH_LIVE && BH_LIVE !== '[]' && BH_LIVE !== 'null' ? BH_LIVE : null;
+    const out = [];
+    stats.keys.forEach(k => {
+        const m = k.key.match(/^(.*)__(a|b|part)(\d+)$/);
+        if (m) {
+            const man = byKey[m[1]] && byKey[m[1]].manifest;
+            const slot = m[2] === 'part' ? '' : m[2];
+            if (!man || man.slot !== slot || +m[3] >= man.n) out.push({ key: k.key, chars: k.chars, why: 'old copy of a large item' });
+            return;
+        }
+        const d = k.key.match(/^document-(file|thumb)-(.+)$/);
+        if (d && (k.empty || (live && !live.includes(d[2])))) { out.push({ key: k.key, chars: k.chars, why: 'replaced or removed document' }); return; }
+        if (k.empty && /^document-/.test(k.key)) out.push({ key: k.key, chars: k.chars, why: 'empty entry' });
+    });
+    return out;
+}
+function bhRender() {
+    const body = document.getElementById('bhBody');
+    const st = BH_STATS;
+    if (!st) return;
+    if (!st.ok) { body.innerHTML = `<div class="${st.needsUpdate ? '' : 'bh-warn'}">${escapeHtml(st.needsUpdate ? 'Paste the v8 backend script update to see this (Backend Health). Your data is fine.' : 'Couldn’t check: ' + (st.error || 'unknown error'))}</div>`; document.getElementById('bhCleanBtn').disabled = true; return; }
+    const pct = st.cells / st.cellLimit * 100;
+    const groups = {};
+    st.keys.forEach(k => { const b = syncKeyName(bhBaseKey(k.key)); groups[b] = (groups[b] || 0) + k.chars; });
+    const top = Object.entries(groups).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    BH_ORPHANS = bhFindOrphans(st);
+    const orphanChars = BH_ORPHANS.reduce((t, o) => t + o.chars, 0);
+    const b = st.backups || {};
+    const lastAgo = b.last ? Math.floor((Date.now() - Date.parse(b.last)) / 86400000) : null;
+    body.innerHTML = `<div><b>${escapeHtml(st.name)}</b> &middot; ${st.rows.toLocaleString()} saved items &middot; ${bhSize(st.chars)} of data</div>
+        <div class="bh-bar ${pct >= 85 ? 'bad' : pct >= 70 ? 'warn' : ''}" role="img" aria-label="${pct.toFixed(1)}% of the cell limit"><div style="width:${Math.min(100, Math.max(1, pct)).toFixed(1)}%"></div></div>
+        <div>${st.cells.toLocaleString()} of ${st.cellLimit.toLocaleString()} cells used (${pct.toFixed(1)}%)${pct >= 70 ? ` &middot; <span class="bh-warn">⚠ Getting full — clean up, or ask Claude to move old data out</span>` : ''}</div>
+        <table><tbody>${top.map(([k, c]) => `<tr><td>${escapeHtml(k)}</td><td>${bhSize(c)}</td></tr>`).join('')}</tbody></table>
+        <div style="margin-top:8px;">${BH_ORPHANS.length ? `<b>${BH_ORPHANS.length} leftover item${BH_ORPHANS.length === 1 ? '' : 's'}</b> (${bhSize(orphanChars)}) can be cleaned up: ${escapeHtml([...new Set(BH_ORPHANS.map(o => o.why))].join(', '))}.` : 'Nothing to clean up.'}</div>
+        <div style="margin-top:6px;">Backups: ${b.count ? `last ${escapeHtml(new Date(b.last).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }))} (${lastAgo === 0 ? 'today' : lastAgo + ' day' + (lastAgo === 1 ? '' : 's') + ' ago'}) &middot; ${b.count} kept` : 'none yet'}${b.folderUrl ? ` &middot; <a href="${escapeAttr(b.folderUrl)}" target="_blank" rel="noopener">Open folder</a>` : ''}</div>`;
+    document.getElementById('bhCleanBtn').disabled = !BH_ORPHANS.length;
+}
+async function bhCheck(auto) {
+    const body = document.getElementById('bhBody');
+    if (!BACKEND_URL || APP_MODE === 'test') { body.innerHTML = '<div class="empty-note">Connect the shared backend (above) to check its health.</div>'; return null; }
+    if (navigator.onLine === false) { body.innerHTML = '<div class="empty-note">Offline — connect to check.</div>'; return null; }
+    if (!auto) body.innerHTML = '<div class="empty-note">Checking…</div>';
+    BH_STATS = await backendAction('backendStats');
+    const up = await backendPullChecked(DOCS_UPLOADS_BACKEND_KEY);
+    BH_LIVE = up === undefined ? null : JSON.stringify(up);
+    bhRender();
+    return BH_STATS;
+}
+async function bhBackup(btn) {
+    const note = document.getElementById('bhNote');
+    if (btn) { btn.disabled = true; btn.textContent = 'Backing up…'; }
+    const r = await backendAction('backupNow');
+    if (btn) { btn.disabled = false; btn.textContent = 'Back up now'; }
+    note.innerHTML = r.ok ? `Backed up: <a href="${escapeAttr(r.url)}" target="_blank" rel="noopener">${escapeHtml(r.name)}</a> (${r.kept} kept).` : `<span class="bh-warn">Backup didn’t run: ${escapeHtml(r.error || 'unknown error')}</span>`;
+    try { localStorage.setItem('reve-backup-check', String(Date.now())); } catch (e) {}
+    if (r.ok) bhCheck(true);
+    return r;
+}
+// Weekly backup: at most one check a day per device; backs up when the last is 7+ days old.
+async function bhAutoBackup() {
+    if (!BACKEND_URL || APP_MODE === 'test' || navigator.onLine === false) return;
+    let last = 0; try { last = +localStorage.getItem('reve-backup-check') || 0; } catch (e) {}
+    if (Date.now() - last < 86400000) return;
+    try { localStorage.setItem('reve-backup-check', String(Date.now())); } catch (e) {}
+    const st = await backendAction('backendStats');
+    if (!st.ok) return;
+    BH_STATS = st;
+    const lastBackup = st.backups && st.backups.last ? Date.parse(st.backups.last) : 0;
+    if (Date.now() - lastBackup >= 7 * 86400000) await bhBackup(null);
+}
+setTimeout(bhAutoBackup, 90000);
+(function bhWire() {
+    document.getElementById('bhRefreshBtn').addEventListener('click', () => bhCheck(false));
+    document.getElementById('bhBackupBtn').addEventListener('click', e => bhBackup(e.currentTarget));
+    document.getElementById('bhCleanBtn').addEventListener('click', async e => {
+        const btn = e.currentTarget;
+        if (!BH_ORPHANS.length) return;
+        const total = BH_ORPHANS.reduce((t, o) => t + o.chars, 0);
+        const ok = await appDialog({ title: `Clean up ${BH_ORPHANS.length} leftover item${BH_ORPHANS.length === 1 ? '' : 's'}?`, text: `Removes ${bhSize(total)} of leftovers (${[...new Set(BH_ORPHANS.map(o => o.why))].join(', ')}). Current data isn't touched. A backup is made first.`, ok: 'Back up & clean up' });
+        if (!ok) return;
+        btn.disabled = true; btn.textContent = 'Cleaning…';
+        const bk = await bhBackup(null);
+        const note = document.getElementById('bhNote');
+        if (!bk.ok) { btn.textContent = 'Clean up'; btn.disabled = false; note.innerHTML = `<span class="bh-warn">Not cleaned up: the backup didn’t run first (${escapeHtml(bk.error || '')}).</span>`; return; }
+        const r = await backendAction('deleteKeys', { keys: BH_ORPHANS.map(o => o.key) });
+        btn.textContent = 'Clean up';
+        note.innerHTML = r.ok ? `Cleaned up ${r.deleted} item${r.deleted === 1 ? '' : 's'} (backup made first).` : `<span class="bh-warn">Clean up didn’t run: ${escapeHtml(r.error || 'unknown error')}</span>`;
+        bhCheck(true);
+    });
+    document.querySelector('[data-admin-subtab="settings"]').addEventListener('click', () => bhCheck(false));
 })();
 
 /* ============================================================
