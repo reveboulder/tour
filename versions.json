@@ -1,5 +1,15 @@
 [
  {
+  "v": "1.168",
+  "date": "2026-11-24",
+  "title": "Backend Health in Admin › Settings",
+  "notes": [
+   "Shows how full the shared backend spreadsheet is against Google Sheets' 10 million cell limit (amber at 70%, red at 85%) and which items use the most space.",
+   "Clean up removes leftovers only (copies of replaced or removed documents, old pieces of large saves), after making a backup.",
+   "Weekly backups of all shared data to Google Drive › REVE Office › Backups (newest 8 kept), plus Back up now. Needs the v8 backend script update."
+  ]
+ },
+ {
   "v": "1.167",
   "date": "2026-11-24",
   "title": "Turn status on Availability and Tour",
