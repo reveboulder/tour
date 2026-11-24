@@ -3065,6 +3065,19 @@
     body.dark-mode .pcard-calc, body.dark-mode .pcard-calc input { background: var(--dm-card-alt); color: inherit; }
     @media (max-width: 900px) { .pcard-calcs { flex: 0 0 auto; width: 100%; max-width: 420px; } }
 
+    /* -- Turn status badges (Availability, Tour) -- */
+    .turn-badge { display: inline-block; font-size: 11px; font-weight: 600; line-height: 1.35; padding: 2px 8px; border-radius: 999px; background: #f1efe9; color: var(--ink-soft); }
+    .turn-badge.ready { background: #e7f4ea; color: #2e7d32; }
+    .turn-badge.turn { background: #fff3d6; color: #7a5a00; }
+    .turn-badge.late { background: #fde7e5; color: #a3261c; }
+    .turn-badge.warn b { color: #a3261c; font-weight: 700; }
+    .turn-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; background: #bbb; }
+    .turn-dot.ready { background: #3fae5a; } .turn-dot.turn { background: #e7a23a; } .turn-dot.late, .turn-dot.warn { background: #e0443a; }
+    .tour-turn-badge { margin-left: 8px; }
+    .tn-mi-warn button::after { content: ' \26a0'; color: #c0392b; }
+    body.dark-mode .turn-badge { background: #333; } body.dark-mode .turn-badge.ready { background: #1f3b26; color: #8fd19e; }
+    body.dark-mode .turn-badge.turn { background: #3b3220; color: #f0c674; } body.dark-mode .turn-badge.late { background: #3d2220; color: #f19c94; }
+
     /* -- Tour › Price history -- */
     .ph-open { display: block; margin-top: 5px; border: 0; background: none; padding: 0; font-size: 11.5px; color: var(--reve-orange-dark); cursor: pointer; text-decoration: underline; font-family: var(--sans); }
     .ph-page { --ph-line: #de5426; position: fixed; inset: 0; z-index: 2500; background: var(--bg, #f7f5f1); overflow: auto; }
@@ -3916,6 +3929,7 @@
     <div class="preview-pane">
         <div class="preview-toolbar">
             <span id="previewLabel">No unit selected</span>
+            <span id="tourTurnBadge" class="tour-turn-badge"></span>
             <span class="status" id="saveStatus"></span>
             <button type="button" class="add-unit-btn" id="addUnitBtn" title="Add another unit to compare side by side">+ Add unit</button>
         </div>
@@ -7052,6 +7066,7 @@ function populateEditorForUnit(unit) {
     previewLabel.textContent = selectedUnits.length > 1
         ? `${selectedUnits.length} units \u2014 editing Apt ${u.unit}`
         : `Apt ${u.unit} (${u.floorplan}) \u2014 ${u.bldg}`;
+    document.getElementById('tourTurnBadge').innerHTML = turnBadgeHtml(u.unit);
 
     specCard.innerHTML = `
         <div class="rc-row"><span>Floorplan / Yardi</span><b>${u.floorplan} &middot; ${u.yardi}</b></div>
@@ -7129,6 +7144,7 @@ function removeSelectedUnit(unit) {
         document.getElementById('exportPdfBtn').disabled = true;
         document.getElementById('exportPrintablePdfBtn').disabled = true;
         previewLabel.textContent = 'No unit selected';
+        document.getElementById('tourTurnBadge').innerHTML = '';
         document.getElementById('unitTabs').innerHTML = '';
         document.getElementById('flyerMount').classList.remove('multi');
         tourSaveActive();
@@ -9294,6 +9310,7 @@ function renderAvailTermList() {
         return `<div class="atc${r.rent === null ? ' none' : ''}">
             <div class="atc-top"><button type="button" class="atc-unit" data-atc-open="${escapeAttr(u.unit)}" title="Open in Tour">Apt ${escapeHtml(u.unit)}</button>
                 <div class="atc-avail${r.now ? ' now' : ''}">${r.now ? 'Available now' : 'Available ' + escapeHtml(p.available || '')}</div></div>
+            <div>${turnBadgeHtml(u.unit)}</div>
             <div class="atc-specs">${escapeHtml(u.floorplan)}${u.yardi ? ` <span>(${escapeHtml(u.yardi)})</span>` : ''} &middot; ${escapeHtml(specs.join(' · '))}</div>
             <div class="atc-price">${r.rent !== null ? `<b>${money(r.rent)}</b><span class="atc-term">/mo &middot; ${t}-month</span>${r.sqft ? `<span class="atc-psf">${'$' + (r.rent / r.sqft).toFixed(2)}/sq ft</span>` : ''}` : `<span class="atc-term">No ${t}-month rent on the pricing sheet</span>`}</div>
             ${near ? `<div class="atc-near">${near}</div>` : ''}
@@ -9406,7 +9423,7 @@ function renderMonthGrid(units) {
         const clickable = dayUnits.length > 0;
         html += `<div class="cal-day${isToday ? ' today' : ''}${clickable ? ' has-units' : ''}" data-day="${clickable ? day : ''}">
             <div class="cal-day-num">${day}</div>
-            ${shown.map(u => `<div class="cal-unit-pill" data-unit="${u.unit}" title="Apt ${u.unit} \u2014 ${u.floorplan} \u2014 ${u.sqft} sf">Apt ${u.unit} (${u.floorplan})</div>`).join('')}
+            ${shown.map(u => `<div class="cal-unit-pill" data-unit="${u.unit}" title="Apt ${u.unit} \u2014 ${u.floorplan} \u2014 ${u.sqft} sf">${turnBadgeHtml(u.unit, true)}Apt ${u.unit} (${u.floorplan})</div>`).join('')}
             ${extra > 0 ? `<div class="cal-day-more">+${extra} more</div>` : ''}
         </div>`;
     }
@@ -9469,7 +9486,7 @@ function renderWeekGrid(units) {
         const isToday = sameDay(cellDate, today);
         const dayUnits = dayUnitsArr[i].sort((a, b) => a.unit.localeCompare(b.unit, undefined, { numeric: true }));
         const unitsHtml = dayUnits.length
-            ? dayUnits.map(u => `<div class="cal-unit-pill" data-unit="${u.unit}" title="Apt ${u.unit} \u2014 ${u.floorplan} \u2014 ${u.sqft} sf">Apt ${u.unit} (${u.floorplan})</div>`).join('')
+            ? dayUnits.map(u => `<div class="cal-unit-pill" data-unit="${u.unit}" title="Apt ${u.unit} \u2014 ${u.floorplan} \u2014 ${u.sqft} sf">${turnBadgeHtml(u.unit, true)}Apt ${u.unit} (${u.floorplan})</div>`).join('')
             : '<div class="week-row-empty">Nothing available this day</div>';
         html += `<div class="week-row${isToday ? ' today' : ''}">
             <div class="week-row-date">
@@ -9506,6 +9523,7 @@ function renderDayView(dateObj, dayUnits) {
             <div>
                 <div class="cal-unit-card-main">Apt ${u.unit} (${u.floorplan})</div>
                 <div class="cal-unit-card-meta">${u.bedBath} &middot; ${u.sqft} sf &middot; ${u.bldg} &middot; Floor ${u.floor}</div>
+                <div style="margin-top:4px;">${turnBadgeHtml(u.unit)}</div>
             </div>
             <div class="cal-unit-card-price">${p.bestPrice || '\u2014'}<small>${p.bestTerm || ''}</small></div>
         </div>`;
@@ -18262,6 +18280,52 @@ function turnTradeState(row, t, today) {
 // Maintenance done (rows from before this column used Oven Clean for it).
 function turnMaintDone(row) { return 'maintDone' in row ? !!row.maintDone : !!row.oven; }
 function turnAllDone(row) { return turnMaintDone(row) && TURN_TRADES.every(t => row[t.id + 'Done']); }
+/* Turn status of a unit, for badges on Availability and Tour: from its most
+   recent row on Turns (latest Move Out). Ready = every item done. Otherwise
+   what's left, the last scheduled date, overdue items and whether any are
+   unscheduled. "Other" only counts when it has dates or a vendor. A move-in
+   (on Turns or a pending Residents row) on or before the turn's last open
+   date, or with items unscheduled, is flagged. */
+function turnStatusFor(unit) {
+    unit = String(unit || '').trim();
+    const rows = Object.keys(TURN_ROWS).map(id => TURN_ROWS[id]).filter(r => r && !r.deleted && String(r.unit || '').trim() === unit);
+    if (!rows.length) return { state: 'none', label: 'Not on Turns', title: `Apt ${unit} isn’t on the Turns list.` };
+    const row = rows.sort((a, b) => (turnDates(b.moveOut)[0] || '').localeCompare(turnDates(a.moveOut)[0] || ''))[0];
+    const today = turnTodayIso();
+    const items = [{ label: 'Maintenance', done: turnMaintDone(row), dates: turnDates(row.entry) }]
+        .concat(TURN_TRADES.map(t => ({ label: t.label, done: !!row[t.id + 'Done'], dates: turnDates(row[t.id + 'Dates']), id: t.id, vendor: row[t.id + 'Vendor'] })))
+        .filter(i => !(i.id === 'other' && !i.done && !i.dates.length && (!i.vendor || i.vendor === '-')));
+    const open = items.filter(i => !i.done);
+    const moveIns = [turnDates(row.moveIn)[0]].concat(typeof RESIDENT_ROWS !== 'undefined'
+        ? Object.values(RESIDENT_ROWS).filter(r => r && !r.deleted && !r.movedIn && String(r.unit || '').trim() === unit && r.moveInDate).map(r => r.moveInDate) : [])
+        .filter(d => d && d >= today).sort();
+    const moveIn = moveIns[0] || '';
+    if (!open.length) return { state: 'ready', label: 'Ready', title: `Apt ${unit}: every turn item is done.`, moveIn };
+    const ends = open.flatMap(i => i.dates.map(turnEnd)).sort();
+    const last = ends[ends.length - 1] || '';
+    const unscheduled = open.filter(i => !i.dates.length).map(i => i.label);
+    const late = open.filter(i => i.dates.length && turnEnd(i.dates[i.dates.length - 1]) < today).map(i => i.label);
+    const warn = moveIn && (unscheduled.length || (last && moveIn <= last));
+    const left = open.map(i => i.label).join(', ');
+    let label = `In turn: ${left} left`;
+    if (last) label += ` · last ${turnFmt(last)}`;
+    if (unscheduled.length) label += ' · not all scheduled';
+    const warnText = warn ? `Move-in ${turnFmt(moveIn)} is ${unscheduled.length ? 'set but ' + unscheduled.join(', ') + ' isn’t scheduled' : 'on or before the turn’s last date (' + turnFmt(last) + ')'}` : '';
+    return { state: late.length ? 'late' : 'turn', label, title: `Apt ${unit}: ${left} not done yet.${late.length ? ' Overdue: ' + late.join(', ') + '.' : ''}${unscheduled.length ? ' Not scheduled: ' + unscheduled.join(', ') + '.' : ''}${warnText ? ' ⚠ ' + warnText + '.' : ''}`, warn: warnText, moveIn, last };
+}
+// The badge (UI only; never printed). compact = a colored dot for calendar pills.
+function turnBadgeHtml(unit, compact) {
+    if (typeof TURN_ROWS === 'undefined') return '';
+    const st = turnStatusFor(unit);
+    if (compact) return st.state === 'none' ? '' : `<span class="turn-dot ${st.state}${st.warn ? ' warn' : ''}" title="${escapeAttr(st.title)}"></span>`;
+    return `<span class="turn-badge ${st.state}${st.warn ? ' warn' : ''}" title="${escapeAttr(st.title)}">${st.state === 'ready' ? '✓ ' : ''}${escapeHtml(st.label)}${st.warn ? ` <b>⚠ ${escapeHtml(st.warn)}</b>` : ''}</span>`;
+}
+function turnBadgesRefresh() {
+    const el = document.getElementById('tourTurnBadge');
+    if (el) el.innerHTML = currentUnit ? turnBadgeHtml(currentUnit) : '';
+    const av = document.getElementById('tab-availability');
+    if (av && av.classList.contains('active') && typeof renderCalendar === 'function') renderCalendar();
+}
 // On Turns' "Video Tours Needed" card as available now or upcoming
 // (any unit needing one, if no pricing sheet is loaded).
 function turnNeedsVideo(unit) {
@@ -18285,7 +18349,7 @@ function turnDateCell(id, field, value, multi, cls) {
 function turnCheck(id, field, value, cls) {
     return `<td class="tn-chk ${cls || ''}"><input type="checkbox" data-id="${id}" data-f="${field}"${value ? ' checked' : ''} aria-label="${field}"></td>`;
 }
-function renderTurns() { renderTurnsBody(); renderTurnSyncStatus(); renderVideoToursNeeded(); }
+function renderTurns() { renderTurnsBody(); renderTurnSyncStatus(); renderVideoToursNeeded(); try { turnBadgesRefresh(); } catch (e) {} }
 function renderTurnsBody() {
     const body = document.getElementById('turnsBody');
     if (!body) return;
@@ -18317,7 +18381,8 @@ function renderTurnsBody() {
         const maint = turnMaintDone(r) ? ' tn-maint-done' : '';
         const out = turnDates(r.moveOut)[0] || '', inn = turnDates(r.moveIn)[0] || '';
         const outCls = out && out < today ? 'tn-past' : '';
-        const inCls = !inn ? '' : inn < today ? 'tn-movedin' : inn <= weekEnd ? 'tn-mi-week' : '';
+        let inCls = !inn ? '' : inn < today ? 'tn-movedin' : inn <= weekEnd ? 'tn-mi-week' : '';
+        if (inn && inn >= today && !all) { const ts = turnStatusFor(r.unit); if (ts.warn) inCls += ' tn-mi-warn'; }
         let h = `<tr data-id="${id}" class="${r.flag ? 'tn-flag' : ''}">`;
         const vt = turnNeedsVideo(r.unit) ? '<span class="tn-vt" title="Video Tour Needed" aria-label="Video Tour Needed">*</span>' : '';
         h += `<td class="tn-unit${all ? ' tn-all-done' : ''}"><div class="tn-unit-in"><input class="tn-txt" data-id="${id}" data-f="unit" value="${escapeAttr(r.unit || '')}" aria-label="Unit">${vt}</div></td>`;
@@ -24996,7 +25061,7 @@ function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, '')
    be saved. Built on SAVE_TRACK (every backend write) plus the time of
    the last successful read.
    ============================================================ */
-const APP_VERSION = '1.166';
+const APP_VERSION = '1.167';
 let SYNC_LAST_OK = 0, SYNC_LAST_FAIL = 0;
 try { SYNC_LAST_OK = +localStorage.getItem('reve-sync-last-ok') || 0; } catch (e) {}
 function syncNoteOk() { SYNC_LAST_OK = Date.now(); try { localStorage.setItem('reve-sync-last-ok', String(SYNC_LAST_OK)); } catch (e) {} syncStatusRenderSoon(); }
@@ -25739,7 +25804,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-rent-lookup": {"title": "Look Up a Unit's Rent (Documents › Pricing)", "icon": "💵", "category": "Documents", "steps": ["Open Documents › Pricing. The Rent lookup is on the right.", "Enter a Unit #, and optionally a Lease term (3–15 months) and a Move-in date.", "Pricing sheet: the latest sheet, or All sheets to see how the rent changed over time.", "Click Search to see the matching rents."], "rev": 2},
     "builtin-manage-docs": {"title": "Upload, Replace or Reorder Documents", "icon": "📤", "category": "Documents", "steps": ["Open the section the document belongs in, then click \"+ Upload\" and pick a PDF, JPG or PNG (up to 10 MB).", "Give it a title, then choose OK for two half-sheets per page or Cancel for a full sheet.", "To update a document, click Replace under it and pick the new file — it keeps its title, spot and print setting.", "Drag the ≡ handle at the bottom right of any card to move it to a new spot (or focus it and use the arrow keys).", "Remove deletes an uploaded document, and Revert restores a built-in one — both need the Admin password.", "Uploads, order and replacements are shared with the whole team."]},
     "builtin-new-resident": {"title": "Add a New Resident and Track Move-In Steps", "icon": "🧑‍💼", "category": "Residents", "steps": ["Open the Residents tab and click \"+ New Resident\".", "Fill in Agent, Unit, First and Last name, Date Applied, Move-In date, Term, Rate and Promo.", "Update Screen as the application moves along: Applied → Screening → Approved → ↑ Uploaded.", "Work through the checklist (ID, WL, Lease, Deposit, Pet, Parking, Ins., M/I Pmt, Inv/Cond, M/I Folder, Walk-Thru, Moved In, Latch).", "Once Screen is Approved or Uploaded, any unfinished step is shaded pink. Ins. and M/I Pmt turn red until checked.", "The row turns green when all 8 checklist boxes are checked. Use Status for Notice, Renewed, Transfer, Early Term or Eviction.", "Move-Out and Notice Needed dates calculate automatically from the move-in date and term."]},
-    "builtin-turns": {"title": "Track Unit Turns", "icon": "🛠️", "category": "Turns", "steps": ["Open the Turns tab. Click \"+ Add Unit\" to add a unit being turned, with its Move Out, Move In and Lease Status.", "For Maintenance, Paint, Carpet, Clean and Other: pick dates (a single day or a start–end range), choose the vendor, and check Done when it's finished. \"Edit list…\" in a vendor dropdown changes the names offered.", "Colors: yellow = a vendor is scheduled today, red = the date passed and it isn't done, gray = done; a row turns green when every item is complete.", "The mini calendar and the day panel (TODAY) show what's scheduled; click a date to see that day, or Month / Weekly for the full calendar.", "Video Tours Needed lists units without their own video tour; Carpet Measurements Needed lists unit types still to measure.", "Search filters the list; \"Show completed\" brings back finished turns. Everything is shared with the team."], "rev": 2},
+    "builtin-turns": {"title": "Track Unit Turns", "icon": "🛠️", "category": "Turns", "steps": ["Open the Turns tab. Click \"+ Add Unit\" to add a unit being turned, with its Move Out, Move In and Lease Status.", "For Maintenance, Paint, Carpet, Clean and Other: pick dates (a single day or a start–end range), choose the vendor, and check Done when it's finished. \"Edit list…\" in a vendor dropdown changes the names offered.", "Colors: yellow = a vendor is scheduled today, red = the date passed and it isn't done, gray = done; a row turns green when every item is complete.", "The mini calendar and the day panel (TODAY) show what's scheduled; click a date to see that day, or Month / Weekly for the full calendar.", "Video Tours Needed lists units without their own video tour; Carpet Measurements Needed lists unit types still to measure.", "Each unit's turn status shows elsewhere too: a colored dot on the Availability calendar, a badge on its day view, the Lease Term list and Tour's preview bar — Ready (green), In turn with what's left and the last date (amber), overdue (red). A ⚠ warns when a move-in (here or a pending Residents row) is on or before the turn's last date, or items aren't scheduled; the Move In cell here shows ⚠ too.", "Search filters the list; \"Show completed\" brings back finished turns. Everything is shared with the team."], "rev": 3},
     "builtin-residents-views": {"title": "Find Residents: Tabs, Calendar and Search", "icon": "📋", "category": "Residents", "steps": ["Active: everyone not yet moved out. Pending: not moved in yet. Notice Req.: a notice-needed date in the next 30 days. Move-Outs: past residents.", "The calendar at the top shows move-ins for the month — use ‹ › to change months, and click a unit to jump to its row.", "Type in \"Search unit or resident name…\" to find someone fast.", "Use the filter on each column header to narrow the table, and \"Clear Filters\" to reset.", "Click \"Refresh to Update\" to pull the latest changes from other agents."]},
     "builtin-residents-backup": {"title": "Back Up or Restore Residents Data", "icon": "💾", "category": "Residents", "steps": ["On the Residents tab, click \"Export data\" to download a backup of the whole table.", "To restore from a backup, click \"Upload data\" and enter the Admin password — this replaces the current data for everyone.", "\"Clear all data\" permanently removes every resident and also needs the Admin password. Export a backup first."]},
     "builtin-welcome-letter": {"title": "Prepare a Welcome Letter", "icon": "✉️", "category": "Welcome Letter", "steps": ["Open the WL tab and search for the resident by unit or name (they need to be on the Residents tab first).", "Unit details fill in automatically. Complete Monthly Charges, Security & Other Deposits, Fees, Fees Paid, Concessions and Utilities.", "Click \"Download WL PDF\" for the letter.", "Click \"Create Email Draft\", enter the resident's email, and a new draft opens in your mail app with the subject and the welcome checklist filled in (also copied to the clipboard, in case your mail app cuts a long message short) — add the attachments there. The message comes from Documents › Email Templates, where it can be edited.", "For the move-in folder, click \"Download M/I Sticker\". \"Name on Sticker\" uses the resident's name unless you type a different one.", "Everything you enter here also fills the Lease tab."]},
