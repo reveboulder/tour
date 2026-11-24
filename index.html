@@ -3065,6 +3065,45 @@
     body.dark-mode .pcard-calc, body.dark-mode .pcard-calc input { background: var(--dm-card-alt); color: inherit; }
     @media (max-width: 900px) { .pcard-calcs { flex: 0 0 auto; width: 100%; max-width: 420px; } }
 
+    /* -- Tour › Price history -- */
+    .ph-open { display: block; margin-top: 5px; border: 0; background: none; padding: 0; font-size: 11.5px; color: var(--reve-orange-dark); cursor: pointer; text-decoration: underline; font-family: var(--sans); }
+    .ph-page { --ph-line: #de5426; position: fixed; inset: 0; z-index: 2500; background: var(--bg, #f7f5f1); overflow: auto; }
+    body.dark-mode .ph-page { --ph-line: #e8693b; background: #1a1a19; color: #eee; }
+    .ph-inner { max-width: 1100px; margin: 0 auto; padding: 18px 16px 40px; }
+    .ph-top { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 10px; }
+    .ph-top > div:first-child { flex: 1; min-width: 220px; }
+    .ph-title { font-family: 'Oswald', var(--sans); font-size: 24px; font-weight: 600; }
+    .ph-sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+    .ph-pick { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); display: flex; gap: 6px; align-items: center; }
+    .ph-pick select { font-size: 13px; padding: 6px 8px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+    .ph-status { font-size: 12.5px; color: var(--ink-soft); margin: 4px 0 10px; }
+    .ph-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .ph-tile { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+    .ph-tile > span { display: block; font-size: 11px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+    .ph-tile b { display: block; font-size: 20px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+    .ph-tile small { display: block; font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; }
+    .ph-chart-wrap { position: relative; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px 12px 6px; margin-bottom: 12px; }
+    .ph-chart-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .ph-chart svg { display: block; width: 100%; height: 280px; }
+    .ph-chart .grid line { stroke: var(--line); stroke-width: 1; }
+    .ph-chart .axis text { fill: var(--ink-soft); font-size: 11px; font-family: var(--sans); font-variant-numeric: tabular-nums; }
+    .ph-chart .line { fill: none; stroke: var(--ph-line); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    .ph-chart .pt { fill: var(--ph-line); stroke: #fff; stroke-width: 2; }
+    .ph-chart .pt.on { r: 6; }
+    .ph-chart .cross { stroke: var(--ink-soft); stroke-width: 1; stroke-dasharray: 3 3; }
+    .ph-tip { position: absolute; pointer-events: none; background: #2f2d2f; color: #fff; font-size: 12px; padding: 6px 9px; border-radius: 6px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .ph-tip b { font-size: 14px; }
+    .ph-table-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+    .ph-table { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+    .ph-table th, .ph-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+    .ph-table th { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); background: #faf8f4; position: sticky; top: 0; }
+    .ph-table td:first-child, .ph-table th:first-child, .ph-table td:nth-child(2), .ph-table th:nth-child(2) { text-align: left; }
+    .ph-table .sel { background: #fff3ec; font-weight: 700; }
+    .ph-down { color: #2e7d32; } .ph-up { color: #b3261e; }
+    body.dark-mode .ph-tile, body.dark-mode .ph-chart-wrap, body.dark-mode .ph-table-wrap { background: #242423; }
+    body.dark-mode .ph-table th { background: #2b2b2a; } body.dark-mode .ph-table .sel { background: #3a2a22; }
+    body.dark-mode .ph-chart .pt { stroke: #242423; }
+
     /* -- Availability › Search by Lease Term -- */
     .avail-term-note { font-size: 11px; color: var(--ink-soft); margin-bottom: 6px; line-height: 1.35; }
     .avail-term-chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
@@ -3628,6 +3667,20 @@
 <div class="hdr-panel" id="syncPanel" role="dialog" aria-label="Sync status" hidden></div>
 <div class="hdr-panel hdr-panel-wide" id="versionPanel" role="dialog" aria-label="Version history" hidden></div>
 
+<div class="ph-page" id="phPage" role="dialog" aria-modal="true" aria-labelledby="phTitle" hidden>
+    <div class="ph-inner">
+        <div class="ph-top">
+            <div><div class="ph-title" id="phTitle">Price history</div><div class="ph-sub" id="phSub"></div></div>
+            <label class="ph-pick">Show<select id="phTerm"></select></label>
+            <button type="button" class="btn" id="phClose" style="width:auto;flex:none;padding:7px 14px;">Close</button>
+        </div>
+        <div class="ph-status" id="phStatus"></div>
+        <div class="ph-tiles" id="phTiles"></div>
+        <div class="ph-chart-wrap"><div class="ph-chart-title" id="phChartTitle"></div><div class="ph-chart" id="phChart"></div><div class="ph-tip" id="phTip" hidden></div></div>
+        <div class="ph-table-wrap"><table class="ph-table" id="phTable"></table></div>
+    </div>
+</div>
+
 <div class="tab-panel active" id="tab-tour">
 <div class="app">
     <!-- ============ EDITOR ============ -->
@@ -3778,6 +3831,7 @@
                     <div class="field">
                         <label id="fBestPriceLabel">Best price</label>
                         <input type="text" id="fBestPrice" placeholder="$3738">
+                        <button type="button" class="ph-open" id="phOpenBtn" style="display:none;" title="Rent for this unit on every saved pricing sheet">&#128200; View price history</button>
                     </div>
                     <div class="field">
                         <label>Term</label>
@@ -7029,6 +7083,7 @@ function populateEditorForUnit(unit) {
     document.getElementById('fConcessionEnabled').checked = !!draft.concessionEnabled;
     document.getElementById('concessionWeeksField').style.display = draft.concessionEnabled ? 'block' : 'none';
     renderConcessionMeaning();
+    if (typeof phSyncBtn === 'function') phSyncBtn();
     renderTermList();
     populateTermPickers(u.unit);
 }
@@ -9029,6 +9084,163 @@ document.getElementById('vtnList').addEventListener('click', e => {
     switchTab('tour');
     selectUnit(b.getAttribute('data-vtn-unit'));
 });
+/* ============================================================
+   TOUR › PRICE HISTORY — a unit's rent on every pricing sheet saved in
+   Documents › Pricing: a line chart for best price or one lease term,
+   a summary, and a table (newest first) with every term. Each sheet uses
+   its earliest move-in date for the unit (like the daily pricing summary);
+   best price = cheapest 11–15 month rent at that date.
+   ============================================================ */
+let phUnit = null, phSeries = null;
+function phSyncBtn() { const b = document.getElementById('phOpenBtn'); if (b) b.style.display = currentUnit ? '' : 'none'; }
+async function phLoad(unit, onProgress) {
+    const sheets = plSheets().slice().reverse();   // oldest first
+    const out = [];
+    for (let i = 0; i < sheets.length; i++) {
+        const doc = sheets[i];
+        onProgress && onProgress(i, sheets.length);
+        let rows;
+        try { rows = await plRows(doc); } catch (e) { rows = null; }
+        if (!rows) continue;
+        const mine = rows.filter(r => r.apt === unit);
+        if (!mine.length) { out.push({ time: plSheetTime(doc), title: doc.title, listed: false }); continue; }
+        const sheetDate = new Date(plSheetTime(doc));
+        // Earliest move-in date on this sheet (year from the sheet's own date).
+        const dates = {};
+        mine.forEach(r => {
+            const key = r.dateKey;
+            let t = Infinity;
+            if (r.month && r.day) { let y = sheetDate.getFullYear(); if (r.month < sheetDate.getMonth() + 1 - 1) y++; t = new Date(y, r.month - 1, r.day).getTime(); }
+            (dates[key] = dates[key] || { t, terms: {} }).terms[r.term] = r.value;
+        });
+        const first = Object.keys(dates).sort((a, b) => dates[a].t - dates[b].t)[0];
+        const terms = dates[first].terms;
+        const ranked = MARKETED_TERMS.filter(t => terms[t] !== undefined).map(t => ({ term: t, price: terms[t] })).sort((a, b) => a.price - b.price);
+        out.push({ time: plSheetTime(doc), title: doc.title, listed: true, moveIn: first, terms, best: ranked[0] || null });
+    }
+    onProgress && onProgress(sheets.length, sheets.length);
+    return out;
+}
+function phValue(row, pick) { if (!row.listed) return null; if (pick === 'best') return row.best ? row.best.price : null; const v = row.terms[pick]; return v === undefined ? null : v; }
+function phMoney(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+function phDate(t, opts) { return new Date(t).toLocaleDateString('en-US', opts || { month: 'short', day: 'numeric', year: 'numeric' }); }
+async function phOpen(unit) {
+    const u = byUnit[unit];
+    if (!u) return;
+    phUnit = unit; phSeries = null;
+    const page = document.getElementById('phPage');
+    page.hidden = false; document.body.style.overflow = 'hidden';
+    document.getElementById('phTitle').textContent = `Apt ${unit} — price history`;
+    document.getElementById('phSub').textContent = [u.floorplan + (u.yardi ? ` (${u.yardi})` : ''), bedBathSqftLine(u), u.bldg, u.floor ? 'Floor ' + u.floor : ''].filter(Boolean).join(' · ');
+    const sel = document.getElementById('phTerm');
+    sel.innerHTML = '<option value="best">Best price (11–15 mo)</option>' + Array.from({ length: 13 }, (_, i) => i + 3).map(t => `<option value="${t}">${t}-month rent</option>`).join('');
+    ['phTiles', 'phChart', 'phTable'].forEach(id => { document.getElementById(id).innerHTML = ''; });
+    document.getElementById('phChartTitle').textContent = '';
+    const status = document.getElementById('phStatus');
+    if (!plSheets().length) { status.textContent = 'No pricing sheets saved yet — every sheet uploaded on the Tour tab is kept in Documents › Pricing and shows up here.'; return; }
+    const series = await phLoad(unit, (i, n) => { status.textContent = i < n ? `Reading pricing sheets… ${i} of ${n}` : ''; });
+    if (phUnit !== unit) return;
+    phSeries = series;
+    phRender();
+}
+function phRender() {
+    const series = phSeries || [];
+    const pick = document.getElementById('phTerm').value || 'best';
+    const label = pick === 'best' ? 'Best price' : `${pick}-month rent`;
+    const listed = series.filter(r => r.listed);
+    const pts = series.map(r => ({ t: r.time, v: phValue(r, pick), r })).filter(p => p.v !== null);
+    const status = document.getElementById('phStatus');
+    status.textContent = `${series.length} pricing sheet${series.length === 1 ? '' : 's'} on file · Apt ${phUnit} is on ${listed.length}${listed.length ? ` (${phDate(listed[0].time)} – ${phDate(listed[listed.length - 1].time)})` : ''}.`;
+    // Summary tiles
+    const tiles = document.getElementById('phTiles');
+    if (pts.length) {
+        const first = pts[0], last = pts[pts.length - 1];
+        const lo = pts.reduce((a, b) => b.v < a.v ? b : a), hi = pts.reduce((a, b) => b.v > a.v ? b : a);
+        const ch = last.v - first.v, pct = first.v ? ch / first.v * 100 : 0;
+        const prev = pts.length > 1 ? pts[pts.length - 2] : null;
+        tiles.innerHTML = [
+            ['Latest', phMoney(last.v), `${phDate(last.t)}${prev ? ` · <span class="${last.v < prev.v ? 'ph-down' : last.v > prev.v ? 'ph-up' : ''}">${last.v === prev.v ? 'no change' : (last.v < prev.v ? '−' : '+') + phMoney(Math.abs(last.v - prev.v)).slice(0) + ' vs previous'}</span>` : ''}`],
+            ['First on file', phMoney(first.v), phDate(first.t)],
+            ['Change', `${ch < 0 ? '−' : ch > 0 ? '+' : ''}${phMoney(Math.abs(ch))}`, `<span class="${ch < 0 ? 'ph-down' : ch > 0 ? 'ph-up' : ''}">${ch === 0 ? 'no change' : (ch < 0 ? '\u2212' : '+') + Math.abs(pct).toFixed(1) + '%'}</span> since ${phDate(first.t, { month: 'short', day: 'numeric' })}`],
+            ['Lowest', phMoney(lo.v), phDate(lo.t)],
+            ['Highest', phMoney(hi.v), phDate(hi.t)],
+            ['Listed', `${listed.length} sheet${listed.length === 1 ? '' : 's'}`, listed.length ? `about ${Math.max(1, Math.round((listed[listed.length - 1].time - listed[0].time) / 86400000) + 1)} days on the market` : '']
+        ].map(([k, v, sm]) => `<div class="ph-tile"><span>${k}</span><b>${v}</b><small>${sm}</small></div>`).join('');
+    } else tiles.innerHTML = `<div class="empty-note">No ${label.toLowerCase()} for Apt ${escapeHtml(phUnit)} on the saved sheets.</div>`;
+    document.getElementById('phChartTitle').textContent = `${label}, Apt ${phUnit}`;
+    phChart(pts, label);
+    // Table, newest first
+    const terms = Array.from({ length: 13 }, (_, i) => i + 3);
+    const rows = series.slice().reverse();
+    document.getElementById('phTable').innerHTML = `<thead><tr><th>Pricing sheet</th><th>Move-in</th><th${pick === 'best' ? ' class="sel"' : ''}>Best</th><th>Change</th>${terms.map(t => `<th${String(t) === pick ? ' class="sel"' : ''}>${t} mo</th>`).join('')}</tr></thead><tbody>${rows.map((r, i) => {
+        if (!r.listed) return `<tr><td>${escapeHtml(phDate(r.time))}</td><td colspan="${3 + terms.length}" style="text-align:left;color:var(--ink-soft);">Not on this sheet</td></tr>`;
+        const v = phValue(r, pick);
+        const older = rows.slice(i + 1).find(x => phValue(x, pick) !== null);
+        const pv = older ? phValue(older, pick) : null;
+        const d = v !== null && pv !== null ? v - pv : null;
+        return `<tr><td>${escapeHtml(phDate(r.time))}</td><td>${escapeHtml(r.moveIn || '')}</td><td${pick === 'best' ? ' class="sel"' : ''}>${r.best ? phMoney(r.best.price) + ` <small>(${r.best.term} mo)</small>` : '—'}</td>`
+            + `<td class="${d < 0 ? 'ph-down' : d > 0 ? 'ph-up' : ''}">${d === null ? '' : d === 0 ? '—' : (d < 0 ? '−' : '+') + phMoney(Math.abs(d))}</td>`
+            + terms.map(t => `<td${String(t) === pick ? ' class="sel"' : ''}>${r.terms[t] !== undefined ? phMoney(r.terms[t]) : ''}</td>`).join('') + '</tr>';
+    }).join('')}</tbody>`;
+}
+// Line chart: one series, thin line, 8px markers, recessive grid, crosshair + tooltip.
+function phChart(pts, label) {
+    const box = document.getElementById('phChart'), tip = document.getElementById('phTip');
+    tip.hidden = true;
+    if (!pts.length) { box.innerHTML = ''; return; }
+    const W = Math.max(320, box.clientWidth || 800), H = 280, m = { l: 58, r: 18, t: 12, b: 28 };
+    const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+    let lo = Math.min(...pts.map(p => p.v)), hi = Math.max(...pts.map(p => p.v));
+    const step = (() => { const span = Math.max(hi - lo, 50); const raw = span / 4; const mag = Math.pow(10, Math.floor(Math.log10(raw))); return [1, 2, 2.5, 5, 10].map(k => k * mag).find(k => k >= raw); })();
+    lo = Math.floor((lo - step * 0.3) / step) * step; hi = Math.ceil((hi + step * 0.3) / step) * step;
+    const x = t => t1 === t0 ? (m.l + (W - m.l - m.r) / 2) : m.l + (t - t0) / (t1 - t0) * (W - m.l - m.r);
+    const y = v => m.t + (hi - v) / (hi - lo) * (H - m.t - m.b);
+    let grid = '', axis = '';
+    for (let v = lo; v <= hi + 0.01; v += step) { grid += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`; axis += `<text x="${m.l - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${phMoney(v)}</text>`; }
+    const nx = Math.min(6, pts.length);
+    for (let i = 0; i < nx; i++) {
+        const t = nx === 1 ? t0 : t0 + (t1 - t0) * i / (nx - 1);
+        axis += `<text x="${x(t).toFixed(1)}" y="${H - 8}" text-anchor="${i === 0 && nx > 1 ? 'start' : i === nx - 1 && nx > 1 ? 'end' : 'middle'}">${phDate(t, { month: 'short', day: 'numeric', year: '2-digit' })}</text>`;
+    }
+    // Break the line where the unit wasn't listed for this series.
+    const all = (phSeries || []).map(r => ({ t: r.time, v: phValue(r, document.getElementById('phTerm').value || 'best') }));
+    let d = '', pen = false;
+    all.forEach(p => { if (p.v === null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`; pen = true; });
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeAttr(label)} over time"><g class="grid">${grid}</g><g class="axis">${axis}</g>
+        <path class="line" d="${d}"/><line class="cross" id="phCross" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" visibility="hidden"/>
+        ${pts.map((p, i) => `<circle class="pt" data-i="${i}" cx="${x(p.t).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="4"/>`).join('')}
+        <rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent" id="phHit"/></svg>`;
+    const svg = box.querySelector('svg'), cross = svg.querySelector('#phCross'), circles = [...svg.querySelectorAll('.pt')];
+    const show = clientX => {
+        const r = svg.getBoundingClientRect(), sx = (clientX - r.left) * W / r.width;
+        let best = 0; pts.forEach((p, i) => { if (Math.abs(x(p.t) - sx) < Math.abs(x(pts[best].t) - sx)) best = i; });
+        const p = pts[best], prev = best > 0 ? pts[best - 1] : null;
+        cross.setAttribute('x1', x(p.t)); cross.setAttribute('x2', x(p.t)); cross.setAttribute('visibility', 'visible');
+        circles.forEach((c, i) => c.classList.toggle('on', i === best));
+        const dv = prev ? p.v - prev.v : null;
+        tip.innerHTML = `${escapeHtml(phDate(p.t))}<br><b>${phMoney(p.v)}</b>${p.r.best && document.getElementById('phTerm').value === 'best' ? ` (${p.r.best.term} mo)` : ''}${dv !== null && dv !== 0 ? ` &middot; ${dv < 0 ? '−' : '+'}${phMoney(Math.abs(dv))}` : ''}`;
+        tip.hidden = false;
+        const wrap = box.parentElement.getBoundingClientRect();
+        const px = r.left - wrap.left + x(p.t) * r.width / W, py = r.top - wrap.top + y(p.v) * r.height / H;
+        tip.style.left = Math.min(Math.max(px - tip.offsetWidth / 2, 4), wrap.width - tip.offsetWidth - 4) + 'px';
+        tip.style.top = Math.max(py - tip.offsetHeight - 12, 4) + 'px';
+    };
+    const hide = () => { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); circles.forEach(c => c.classList.remove('on')); };
+    const hit = svg.querySelector('#phHit');
+    hit.addEventListener('mousemove', e => show(e.clientX));
+    hit.addEventListener('mouseleave', hide);
+    hit.addEventListener('touchstart', e => show(e.touches[0].clientX), { passive: true });
+    hit.addEventListener('touchmove', e => show(e.touches[0].clientX), { passive: true });
+}
+(function phWire() {
+    document.getElementById('phOpenBtn').addEventListener('click', () => { if (currentUnit) phOpen(currentUnit); });
+    const close = () => { document.getElementById('phPage').hidden = true; document.body.style.overflow = ''; phUnit = null; };
+    document.getElementById('phClose').addEventListener('click', close);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('phPage').hidden) close(); });
+    document.getElementById('phTerm').addEventListener('change', phRender);
+    window.addEventListener('resize', () => { if (!document.getElementById('phPage').hidden && phSeries) phRender(); });
+})();
+
 // One card per available unit (after the other filters): rent for the
 // picked term in large type, the terms either side in small type, plus
 // specs, availability, best price, $/sq ft, the concession that applies
@@ -24784,7 +24996,7 @@ function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, '')
    be saved. Built on SAVE_TRACK (every backend write) plus the time of
    the last successful read.
    ============================================================ */
-const APP_VERSION = '1.165';
+const APP_VERSION = '1.166';
 let SYNC_LAST_OK = 0, SYNC_LAST_FAIL = 0;
 try { SYNC_LAST_OK = +localStorage.getItem('reve-sync-last-ok') || 0; } catch (e) {}
 function syncNoteOk() { SYNC_LAST_OK = Date.now(); try { localStorage.setItem('reve-sync-last-ok', String(SYNC_LAST_OK)); } catch (e) {} syncStatusRenderSoon(); }
@@ -25513,6 +25725,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-compare-units": {"title": "Put Several Units on One Flyer", "icon": "🗂️", "category": "Tour", "steps": ["Open the first unit on the Tour tab as usual.", "Click \"+ Add unit\", then search for and pick the next unit.", "The units appear under \"Units in this pamphlet\" — click one to edit its price, terms and links.", "Repeat for more units, or click \"Cancel add\" to stop adding.", "Download PDF or Download Printable PDF includes every unit you added."]},
     "builtin-todays-tours": {"title": "Run Today's Tours", "icon": "🚪", "category": "Tour", "steps": ["On the Tour tab, under the pricing sheet, click \"+ Add\" next to Today's Tours and enter the prospect's name. The list is kept on this device and starts empty each day.", "Click \"Edit Tour\" next to a name: the Tour tab switches to that person's own filters, units and flyer edits.", "Pick units as usual, or click \"+ Add a unit\" to add more — each unit is its own pamphlet.", "Click \"Done\" to go back to the regular Tour view; the tour is kept.", "Click \"Complete Tour\", enter their email (and any Specific Notes) and the app builds an email draft with one pamphlet PDF per unit, the fee sheet and the \"Tour follow-up\" template from Documents › Email Templates.", "Each completed tour is added once to MMR › Weekly Traffic Detail."], "rev": 2},
     "builtin-lease-terms": {"title": "Fill Prices and Lease Terms from the Pricing Sheet", "icon": "💲", "category": "Tour", "steps": ["Make sure today's pricing sheet is uploaded (Tour tab > Daily pricing sheet > Upload CSV).", "Open a unit. Its earliest availability and best price fill in automatically.", "Use \"Autofill best price from a term…\" to set the best price and term from a specific lease length.", "Under \"Other lease terms\", pick \"+ Add term from pricing sheet…\" to add more terms, or \"+ Add blank term\" to type one in.", "Click \"Refill from pricing sheet\" to reload all terms if you've changed them.", "If the per-term options are missing, re-upload today's pricing sheet."]},
+    "builtin-price-history": {"title": "See a Unit's Price History", "icon": "📈", "category": "Tour", "rev": 2, "steps": ["On the Tour tab, open a unit and click \"View price history\" under Best price.", "The page reads every pricing sheet saved in Documents › Pricing (each sheet uploaded on the Tour tab is kept there).", "The chart shows the unit's best price (cheapest 11–15 month rent) on each sheet; use Show to switch to any lease term from 3 to 15 months. Hover a point for its date and price; gaps mean the unit wasn't on that sheet.", "The tiles show the latest price and the change since the previous sheet, the first price on file, the overall change, lowest and highest, and how long it's been listed.", "The table lists every sheet (newest first) with the move-in date used, best price, change, and every term's rent."]},
     "builtin-unavailable-flyer": {"title": "Make a Flyer for a Unit That Isn't Available Yet", "icon": "⏳", "category": "Tour", "steps": ["Open the unit from the Expiring tab (click its row), from the site map, or type its number on the Tour tab.", "Units not in today's pricing sheet open in the \"not currently available\" layout.", "Availability, other lease terms and the concession section are hidden on the flyer automatically.", "Enter an estimated price in \"Best price\" — it shows as an estimate on the flyer.", "Download the PDF as usual."]},
     "builtin-availability-calendar": {"title": "Browse the Availability Calendar", "icon": "📅", "category": "Availability", "steps": ["Upload today's pricing sheet on the Tour tab first — the calendar uses it.", "Open the Availability tab. Each available unit appears on the date it becomes available.", "Use Month or Week to change the view, and ‹ › to move between months or weeks.", "Click a day to see its units, or click Today to jump straight to today.", "The line under the month title counts that month's availabilities by bed type.", "Use the filter icons (Beds, Price, Floor, etc.) to narrow what the calendar shows.", "Click any unit on the calendar to open it in the Tour tab and build its flyer."]},
     "builtin-expiring": {"title": "Find Upcoming Units on the Expiring Tab", "icon": "📆", "category": "Expiring", "steps": ["Export the lease expiration report and upload it on the Expiring tab (\"Upload file\").", "Every unit with an upcoming lease end is listed with a status: Notice, Current, or Renewed.", "Renewed comes from the Renewals tab — checking \"Renewed?\" there updates it here.", "Use \"Move-in before\" (and optionally \"Move-in after\") to show leases ending in a date range, plus Beds, Floorplan, Floor, Building or Amenity.", "Click a unit to open it in the Tour tab and make an \"available soon\" flyer.", "The same report suggests \"Possible upcoming units\" on the Waitlist, and grayed matches in Tour's search when filters are set."], "rev": 2},
