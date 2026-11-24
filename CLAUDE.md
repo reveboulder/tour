@@ -11,6 +11,8 @@ Single-page leasing office app for REVE Boulder: everything is in `index.html`
   higher than the last) and add a matching entry at the top of `versions.json`
   (`v`, `date`, `title`, `notes` — short, plain summaries; no resident,
   prospect or report details). The app's top banner shows this history.
+  Also set `CACHE` in `sw.js` to `reve-office-<version>` so devices pick up
+  the new files (the offline copies of the old version are cleared).
 - Tests: `node --test tests/suggestions.test.js` (unit) and
   `node tests/e2e/suggestions.e2e.js` (Playwright; see the header of that file).
 

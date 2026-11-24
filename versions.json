@@ -1,5 +1,15 @@
 [
  {
+  "v": "1.165",
+  "date": "2026-11-24",
+  "title": "Offline touring and Install app",
+  "notes": [
+   "The app works offline: after one visit online it opens with no connection using the last synced data (pricing sheet, units, concession, Today's Tours, flyers and PDFs).",
+   "Floorplans and built-in documents are stored on the device automatically; Settings › Offline Use shows the status, Download for offline, and Install app (iPhone/iPad: Safari › Share › Add to Home Screen).",
+   "Edits made offline are kept and sent when you're back online (the top-banner dot shows how many are waiting). If a teammate changed the same thing meanwhile, their newer copy is kept and the dot's panel says so."
+  ]
+ },
+ {
   "v": "1.164",
   "date": "2026-11-24",
   "title": "Sync status, version history and Update button",
