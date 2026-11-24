@@ -24,6 +24,16 @@ the history from `versions.json`, with an "Update to latest version" button;
 a small Update flag appears when a newer version is deployed. Each deploy
 bumps `APP_VERSION` in `index.html` and adds an entry to `versions.json`.
 
+## Offline use
+
+`sw.js` (a service worker) and `manifest.webmanifest` make the app installable
+and usable offline: the page and `versions.json` load network-first with the
+last copy used offline; app files, web libraries and fonts are kept on the
+device; floorplans and built-in documents are stored ahead of time (the app
+sends the list). The shared backend is never cached — edits that can't be
+saved go to an outbox in `localStorage` and are sent when back online, unless
+someone else changed the same data meanwhile (then their copy is kept).
+
 ## Suggest Improvements
 
 Settings › Suggest Improvements lets you write down ideas for future updates
