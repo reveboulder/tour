@@ -16,6 +16,14 @@ Blueprints, INFO). Live at <https://reveboulder.github.io/tour/>.
   Admin › Settings › Shared Backend (a device with no URL yet is asked for it
   on the Admin sign-in screen); without it, data stays in the browser.
 
+## Versions and sync status
+
+The top banner shows a sync dot (green saved, amber saving, gray offline or
+not connected, red not saved) and the app version. Clicking the version opens
+the history from `versions.json`, with an "Update to latest version" button;
+a small Update flag appears when a newer version is deployed. Each deploy
+bumps `APP_VERSION` in `index.html` and adds an entry to `versions.json`.
+
 ## Suggest Improvements
 
 Settings › Suggest Improvements lets you write down ideas for future updates

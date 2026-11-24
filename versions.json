@@ -1,0 +1,1777 @@
+[
+ {
+  "v": "1.164",
+  "date": "2026-11-24",
+  "title": "Sync status, version history and Update button",
+  "notes": [
+   "A sync dot in the top banner on every page: green when everything is saved, amber while saving, gray offline or not connected, red when something couldn't save. Click it for the last sync time, anything not saved yet, and Sync now.",
+   "The version label next to it opens the full version history with a summary of each update, and an \"Update to latest version\" button. A small Update flag appears when a newer version is deployed."
+  ]
+ },
+ {
+  "v": "1.163",
+  "date": "2026-11-21",
+  "title": "Availability: Search by Lease Term; Renewals kept per lease",
+  "notes": [
+   "New Lease Term filter icon (3–15 months). Picking a term replaces the calendar with a list of every available unit (respecting the other filters) showing:",
+   "Sort by rent (either way), soonest available, unit number or size. Units without a rent for that term are listed last.",
+   "With a term picked, the Price filter uses that term's rent. \"Back to calendar\", picking the term again or Clear filters returns to the calendar.",
+   "Renewed / Notice / notes now record the lease end they were made for. When the report later shows the unit with a later lease end (e.g. after a short-term renewal), it starts fresh as Pending with blank notes, and the previous decision…",
+   "Expiring, Waitlist and Tour's expiring matches only treat a unit as Renewed for the lease that was renewed.",
+   "Older records without a lease date get one from the outgoing report on the next upload; a \"Start fresh for this lease\" link handles ones that are already stale."
+  ]
+ },
+ {
+  "v": "1.162",
+  "date": "2026-11-18",
+  "title": "PCard: split-receipt remaining hint and calculator card",
+  "notes": [
+   "Split receipts: when an item's To ends with the receipt total in parentheses (e.g. Home Depot ($70.76)) and the following rows have \" in To, the first row's amount is treated as part of that total. Once it's entered, the next empty \"…",
+   "The summary under the table shows each split receipt as \"✓ adds up\", \"$x left to assign\" or \"over by $x\".",
+   "Calculator card on the right, under the other two: + − × ÷ (× and ÷ first), %, ±, backspace, C, keyboard input when the card is focused, and \"+ Add as item\".",
+   "PCard how-to guide updated (new version)."
+  ]
+ },
+ {
+  "v": "1.161",
+  "date": "2026-11-18",
+  "title": "Admin › Settings: Shared Backend and Select Property",
+  "notes": [
+   "New Admin › Settings sub-tab holding the Shared Backend card (Web App URL, Save, Test Connection) and the Select Property card (property profile, Default Charges, Office Hours), moved from the Settings tab. Settings keeps a short note…",
+   "New devices: the Admin password lives in the backend, so a device with no backend URL used to offer \"Set Password & Unlock\" with a password stored only on that device. Now the Admin sign-in asks for the Web App URL first (checked to be…",
+   "Protected-action prompts explain when the device isn't connected yet.",
+   "Texts that pointed to Settings › Shared Backend / Default Charges / Office Hours now say Admin › Settings; the Connect the Shared Backend, Getting Around the App and Suggest Improvements guides are updated (new guide versions) and…"
+  ]
+ },
+ {
+  "v": "1.160",
+  "date": "2026-11-18",
+  "title": "Suggest Improvements in Settings, copied to Google Drive; CLAUDE.md, README, tests",
+  "notes": [
+   "Text box, Save suggestion, and the saved list (newest first) with date, copied / not copied yet, and delete.",
+   "Saved to localStorage first, so it works offline.",
+   "When online, the whole list is written to Google Drive as REVE Office/Suggested improvements.md through the Apps Script backend (new v7 action saveSuggestions, which overwrites the file in place). The file is plain text, not encrypted.",
+   "Copies when the section opens, after a save or delete, and on the online event. Status shows offline, not connected (no backend URL, Test mode, or the script lacks the v7 update) or the error.",
+   "suggestions.js: storage, Markdown formatting and copy tracking, separate from the screen code (a revision counter keeps a late copy from clearing a newer change).",
+   "tests/suggestions.test.js (node:test): adding, deleting, exact file format, tracking what needs copying, syncer states."
+  ]
+ },
+ {
+  "v": "1.159",
+  "date": "2026-11-10",
+  "title": "Concession weeks or $ off; updated and new Help guides",
+  "notes": [
+   "Each rule has a Weeks / $ Off tile toggle. Typing auto-picks: a single digit is weeks; a larger number (or a $) is dollars and gets a $ in front. Clicking a tile switches it and stops the auto-pick for that rule.",
+   "Qualifying Units accepts comma-separated unit numbers (also ;, /, &, \"and\", or space-separated numbers), floorplan types/codes, \"All Immediate\", and \"All else\" / \"All others\" / \"Everyone else\".",
+   "A line under each rule shows what it means and which units it covers (units already covered by an earlier rule aren't counted twice) and flags numbers that aren't units.",
+   "Tour's concession field takes 4 or $1500 and shows what it means; the flyer calculator takes a $ amount off the whole lease and shows the effective monthly payment. Saved weeks-only rules keep working.",
+   "Built-in how-to guides now carry a version: an updated built-in replaces the stored copy for the whole team, unless the team deleted it or edited it by hand (guides saved in the editor are now marked as edited).",
+   "Updated: Getting Around the App, Search Filters, Set the Current Concession, Expiring, Review Monthly Renewals, Record Weekly Traffic, Reconcile the PCard."
+  ]
+ },
+ {
+  "v": "1.158",
+  "date": "2026-11-05",
+  "title": "PCard: preview items being added; keep ditto rows with their purchase",
+  "notes": [
+   "Items being added preview: under \"Items already in the uploaded file\", a new table shows the new items as they'll appear in the file, with row numbers, the exact Date/To text and amounts. New rows are highlighted. A note appears when…",
+   "Ditto rows (\" in To): a row whose To is \" stays directly under the purchase above it when items are sorted by date, and its Date is written as \" as well (dates can't be typed as \" in the app).",
+   "Fix: existing rows in the uploaded file whose Date was \" were treated as undated and moved to the bottom on export. They now stay with their purchase.",
+   "The existing-items table also shows plain-number dates as dates."
+  ]
+ },
+ {
+  "v": "1.157",
+  "date": "2026-11-05",
+  "title": "PCard: GL Code File from PDF; better GL keyword matching",
+  "notes": [
+   "GL Code File as PDF: the PCard GL upload now accepts a PDF Chart of Accounts as well as .xls/.xlsx. It reads the PDF's text with positions, finds the Account / Account Name / Description columns from the header row (code and name can…",
+   "Better automatic GL matching:"
+  ]
+ },
+ {
+  "v": "1.156",
+  "date": "2026-11-04",
+  "title": "Market Rent Schedule in Settings; Carpet Measurements tracking",
+  "notes": [
+   "Settings › Market Rent Schedule: upload the Yardi Market Rent Schedule (.xlsx) to see unit types, unit counts and market rents (click a type for its units), with a check against Unit Info. Market Rent is editable; Download gives back…",
+   "Settings › Carpet Measurements: + Add New Entry (unit with unit type autofilled from Unit Info, Measurements? True/False, Quote), plus a per-type status list with an N/A (no carpet) toggle. One measured unit covers its whole unit type.",
+   "Turns › Carpet Measurements Needed: new card next to Video Tours Needed listing unit types still needing measurements, with their vacant-now and upcoming units; clicking a unit opens a prefilled entry in Settings.",
+   "Unit Info: one guest suite unit's Yardi type corrected to its TH2F type.",
+   "Help entries for both features."
+  ]
+ },
+ {
+  "v": "1.155",
+  "date": "2026-10-31",
+  "title": "MMR: Notes column, Rent Ready from Unit Vacancy, traffic match note",
+  "notes": [
+   "Weekly Stats table gets a fourth Notes column showing what the uploaded reports counted (unit lists in green, traffic prospect names), and the Reports column is narrowed to fit.",
+   "Rent Ready is autofilled from the Unit Vacancy report (Vacant Unrented Ready + Vacant Rented Ready).",
+   "Total Weekly Traffic shows whether it matches the shows counted in Weekly Traffic Detail.",
+   "Suggested Unit Renewals removed; Unit Renewals stay manual entry."
+  ]
+ },
+ {
+  "v": "1.154",
+  "date": "2026-10-31",
+  "title": "MMR: weekly reports auto-fill, Date alert, suggested leases/renewals",
+  "notes": [
+   "BoxScore Summary → Total Vacant (Vacant Rented + Vacant Unrented), Vacant Rented, Total Weekly Traffic (Show), Weekly Rentals (Applied); Date set to the report's Sunday. Model/Down shown for reference only (manual fields).",
+   "Notices export → Total Notices with move-out from Date through a month later less a day; Notice Rented = those units with a Pending (not moved in) resident in Residents.",
+   "Expiring leases export and scheduled renewals export → Leases Expiring = both in the same window; Leases Renewed = the renewals.",
+   "Filled fields are tinted green (typing clears the tint); date-based counts re-run when Date changes. Parsed reports are shared via a backend key; the files themselves are not stored in the repo."
+  ]
+ },
+ {
+  "v": "1.153",
+  "date": "2026-10-30",
+  "title": "Move-In Date filters: before + optional after",
+  "notes": [
+   "Move-in before — the existing date, unchanged, listed first.",
+   "Move-in after (optional) — for prospects moving well in the future: units available before it (Tour/Availability, by availability date) or leases ending before it (Expiring, and the Tour search's Expiring Leases matches) are left out.",
+   "Caption: 11/30/26, after 12/1/26, or 12/1/26–3/31/27.",
+   "Shared helpers moveInRange / moveInCaption / moveInOk.",
+   "Today's Tours saves and restores both dates; the MMR move-in month uses the before date, else the after date.",
+   "Clear filters clears both on every tab (Availability's Clear filters previously didn't clear the move-in date at all)."
+  ]
+ },
+ {
+  "v": "1.152",
+  "date": "2026-10-30",
+  "title": "Tour search: matching Expiring Leases units when filters are set",
+  "notes": [
+   "Only when at least one Tour filter is set (beds, floorplan, sq ft, price, floor, building, amenity or move-in date) — the default search is unchanged.",
+   "Under the regular results, a grayed group \"From Expiring Leases — not available yet (N)\" lists matching units from the uploaded Expiring Leases report: not on today's pricing sheet, not marked Renewed, matching the same filters (and the…",
+   "Price can't be matched (no pricing yet), so it's not applied to these; a Move-In Date keeps leases ending by then.",
+   "Clicking one opens its pamphlet as a non-available unit (estimated rent, no availability date or lease terms), like opening it from the Expiring tab. Works in Today's Tours too."
+  ]
+ },
+ {
+  "v": "1.151",
+  "date": "2026-10-30",
+  "title": "Today's Tours: A7/A9 as 1-Bedroom with Den",
+  "notes": [
+   "Tour follow-up email: {apartments} names them \"1-Bedroom with Den\" — e.g. \"the 1-Bedroom with Den apartment\", \"the 1-Bedroom with Den and 1-Bedroom apartments\".",
+   "MMR Weekly Traffic line: \"1-Bed w/ Den\" when the line is built from the units toured (a Beds or Floorplan filter, if set, is used as before)."
+  ]
+ },
+ {
+  "v": "1.150",
+  "date": "2026-10-30",
+  "title": "Today's Tours: detailed MMR traffic lines, rows and Specific Notes",
+  "notes": [
+   "What: floorplans picked (an A3 or A5), else beds (a 1-Bed), else the kinds of units toured.",
+   "Move-in month: in November (this year) / for July 2027 (other years).",
+   "Then: budget (under $2,500, over $2,000, $2,000–$2,800), sq ft (over 700 sq. ft., 700–1,250 sq. ft.), floor (4th floor only, on the 3rd or 4th floor), building (in Building 1 or 3), amenities (with Mountain views, in a corner unit, with…",
+   "Specific Notes are appended in the same sentence after a dash, so the line still counts as one show.",
+   "Future (over 90 Days) when the move-in date is more than 90 days out; otherwise Future (over 30 days) by default.",
+   "Specific Notes override by keyword (e.g. \"not sure\" → Not sure if moving yet, \"roommate\" → Roommate/relative needs to see, \"competitor\" → Leased at competitor, \"comparing/looking around\" → Other - Market Tour, \"job offer\", \"price\",…"
+  ]
+ },
+ {
+  "v": "1.149",
+  "date": "2026-10-29",
+  "title": "MMR: completed tours into Weekly Traffic; auto-clear Mondays 9:00",
+  "notes": [
+   "Completing a tour adds one sentence under Pending: Jane Doe - 1-Bed. (name capitalized; the kinds of units toured, e.g. Studio / 2-Bed). The two-word name makes it count as one show. Details can be added by hand.",
+   "Appended on top of the backend's latest copy (teammates' notes kept), never added twice; tours completed while the backend was unreachable are added on the next load.",
+   "Every Monday at 9:00 am Mountain Time the MMR clears for the new week — once for the whole team: the first browser open after that time claims the week in a shared key (mmr-auto-clear), backs up last week's MMR (mmr-last-week-backup:…",
+   "The very first run only starts the count (clears nothing). Checked on load and every 5 minutes.",
+   "Clear All and the auto clear share mmrClearAllNow."
+  ]
+ },
+ {
+  "v": "1.148",
+  "date": "2026-10-29",
+  "title": "Tour: move Today's Tours below pricing; clearer Add a unit",
+  "notes": [
+   "Order: the Today's Tours bar (and the \"Touring …\" strip) now sits below the Current Concession and Daily pricing sheet cards, right above Find a unit.",
+   "Adding several units to a tour: picking a unit in a tour already added it, but nothing showed that. Now:"
+  ]
+ },
+ {
+  "v": "1.147",
+  "date": "2026-10-29",
+  "title": "Tour: Today's Tours with per-person filters, pamphlets and follow-up email",
+  "notes": [
+   "Bar at the top of the editor: \"Today's Tours:\" with a chip per prospect and + Add (in-app name prompt). Each chip has Edit Tour and × (remove). Kept on this device; a new day starts an empty list.",
+   "Edit Tour switches the Tour tab to that person: their own filters (beds, floorplan, price, sq ft, floor, building, amenity, move-in date), units and flyer edits are saved with the tour and restored when you come back (also after a…",
+   "Complete Tour asks for the email (same dialog as the Welcome Letter), builds one pamphlet PDF per unit (REVE Boulder - Apt 1205 (A3).pdf, with clickable links), attaches the REVE fee sheet found in Documents (title/file name with…",
+   "The template uses {apartments}, worded from the units toured: \"the 1-Bedroom apartment\", \"the 1-Bedroom apartments\", \"the 1-Bedroom and Studio apartments\", \"the 2-Bedroom, Studio, and Live/Work apartments\"; and {videoTours} (\", as well…",
+   "Refactor: the flyer PDF builder is shared (buildFlyerPdf) by Download PDF and Complete Tour."
+  ]
+ },
+ {
+  "v": "1.146",
+  "date": "2026-10-29",
+  "title": "Turns header, 14-day Check In, Lease card, renewal notes, Balcony amenity",
+  "notes": [
+   "Turns › daily panel: the day label between the ‹ › arrows has a fixed width (10em — fits the longest day name in a year, checked for every day), so both arrows stay in place while clicking through days. The TODAY tag moves to the top…",
+   "Residents › Check In: move-ins for the next 14 days (was 7); labels updated.",
+   "Lease: the Sample Lease — Questions card has a light gray background (#ecebe7) so it stands out.",
+   "Renewals › Notes: boxes grow to fit their text as you type, when a suggestion is accepted, and when the table renders or the tab opens — every note shows in full; manual resize removed (it didn't persist).",
+   "Balcony amenity: unitHasBalcony — every apartment except floorplans S2 (1419) and S4 (19 units) and Apt 1422 (S3; 1322 has a balcony): 221 of 242 units. Added to the Amenity filters on Tour, Availability and Expiring, and to the unit…"
+  ]
+ },
+ {
+  "v": "1.145",
+  "date": "2026-10-28",
+  "title": "Renewal Offers: save to Documents and Google Drive",
+  "notes": [
+   "New Documents › Renewal Offers sub-tab, on the second row next to Pricing.",
+   "Generate Renewal Offer PDF now names the file Renewal Offer - Apartment <unit><Lastname> (download and saved copy match; was renewal-offer-apt-<unit>.pdf), saves it to Documents › Renewal Offers (a newer offer with the same name…",
+   "A status line under the button says where it was saved. Until the backend script has the v6 update (snippet given to the user, not in this repo), it reports that and the offer is still in Documents."
+  ]
+ },
+ {
+  "v": "1.144",
+  "date": "2026-10-27",
+  "title": "DOOR Devices: Wide → Standard → Device zoom; uniform unit numbers",
+  "notes": [
+   "Three views per device, linked by file name in Documents › Sitemaps › DOOR Devices: DOOR-<name>-wide.jpg (building-wide), DOOR-<name>.jpg (standard), DOOR-<name>-device.jpg (device up close).",
+   "Clicking a dot opens the viewer, then plays the views in order: each one zooms (1.4 s, eased) into the box where the next view sits and the next photo cross-fades in, settling on the closest view. Only views that exist are used; none →…",
+   "Chips jump to any view (zooming in or back out); Replay plays it again.",
+   "Zoom boxes (Admin password): for each step (Wide → Standard, Standard → Device) drag/resize a box over the outer photo; the next photo shows faintly inside to line it up, and the box keeps its shape so the zoom lands exactly. Saved for…",
+   "Uploader matches all three views (suffix -wide / -device), replaces per view, and Images Still Needed has a list per view.",
+   "Fix: a drag ending outside the viewer no longer closes it (backdrop closes only on a click that starts there)."
+  ]
+ },
+ {
+  "v": "1.143",
+  "date": "2026-10-27",
+  "title": "DOOR Devices: garage elevator icons and Pet Spa room",
+  "notes": [
+   "Elevator icons on P1 / P2: the same white \"E\" icon as the floor maps, placed at each elevator's spot on the garage plans — North Garage: Building 1's two elevators (P1 and P2); South Garage: the Building 2, 3 and 4 elevators and the…",
+   "Pet Spa room on South Garage P1: the plans' Dog Wash (P121), across from the Building 4 elevator lobby (P112) and next to Bikes & Lockers. The Pet Spa dot's default spot moves to its door (a position saved in Admin Edit still wins).…"
+  ]
+ },
+ {
+  "v": "1.142",
+  "date": "2026-10-27",
+  "title": "DOOR Devices: link photos only by DOOR- file names",
+  "notes": [
+   "Bug: after uploading an edited photo named DOOR-B1 Pearl - North Hallway Entry and renaming the old one to B1 Pearl - North Hallway Entry (dropping \"DOOR-\"), the dot still opened the old photo. The DOOR- prefix was optional when matching, s"
+  ]
+ },
+ {
+  "v": "1.141",
+  "date": "2026-10-27",
+  "title": "DOOR Devices: device photos and zoom-in viewer",
+  "notes": [
+   "Documents › Sitemaps › DOOR Devices: new sub-tab (a sub-tab row appears under Sitemaps: \"Sitemaps files\" / \"DOOR Devices\"). Device photos live here permanently.",
+   "Sitemap › DOOR Devices › Device Photos (temporary):",
+   "Viewer: clicking a dot opens a card that zooms out of the dot and shows the linked photo (Documents file, matched by name), or N/A with the file name to upload. Escape / × / backdrop closes. Dots with a photo get a green ring; list…",
+   "The temporary box is self-contained (#doorPhotos) so it can be removed later without touching the viewer or Documents sub-tab."
+  ]
+ },
+ {
+  "v": "1.140",
+  "date": "2026-10-27",
+  "title": "MMR: Clear All, next-Sunday date, Renovated default, New Leases match note",
+  "notes": [
+   "Clear All (next to Download New MMR, in-app confirm): resets Weekly Stats except Model/Guest Suite and Down Units (manual only, never reset), and clears New Leases, Unit Renewals and Weekly Traffic Detail for the team. If last week's…",
+   "Upload Previous Week's MMR sets Date to the following Sunday — read from the file name (20261018 → 10/25/2026; also 2026-10-18, 10.18.26) or else the file's Weekly Stats date (B1).",
+   "Renovated defaults to No on new New Leases / Unit Renewals rows, still editable; Tab from Unit skips it straight to Date Leased / Date Renewed.",
+   "New Leases shows \"Matches X Leased in Weekly Traffic Detail.\" or \"Does not match — …\", updating as either side changes.",
+   "The in-app dialog helper is now shared (appDialog)."
+  ]
+ },
+ {
+  "v": "1.139",
+  "date": "2026-10-27",
+  "title": "DOOR Devices: garages fitted under their buildings",
+  "notes": [
+   "Fitted onto the site map itself, using the plan scales and elevator positions as anchors:",
+   "The 1st-floor building outlines show dashed above the garages, with the building markers and street names, so the levels read in the same frame as the 1st Floor map.",
+   "Garage device dots recomputed with the same fit. Garage dot positions are stored under <id>@g2 so any positions saved for the old drawings don't misplace them; floor dot positions are unchanged."
+  ]
+ },
+ {
+  "v": "1.138",
+  "date": "2026-10-27",
+  "title": "DOOR Devices: key flow, Admin Edit, P1/P2 garages",
+  "notes": [
+   "Named Keys: + Add New Key starts picking doors (click dots or names), then Save Key (in-app name dialog), Clear or Cancel. The menu's first option is All (N) to show every door again; picking a key highlights its doors and offers Edit…",
+   "Admin Edit (renamed from \"Adjust dot positions\", Admin password): drag dots, + Add new device (in-app name + location, then click the map to place it), rename / delete buttons beside each name in the list, Reset positions, Cancel, Save.…",
+   "P1 / P2 levels: simplified North Garage (turned to line up with Building 1) and South Garage maps traced from the garage plans — outline, elevator/stair cores, bike rooms, ski lockers, ramps — with the 8 garage devices placed on them.…",
+   "All prompts are in-app dialogs."
+  ]
+ },
+ {
+  "v": "1.137",
+  "date": "2026-10-27",
+  "title": "Sitemap: DOOR Devices sub-tab",
+  "notes": [
+   "Map: the existing site map (1st / 2nd floor toggle, units gray) with a dot for each of the 40 mapped door devices from the Door Devices location sheet, all one color. Hover (or tap/focus) a dot to see its device name.",
+   "Legend: device names grouped by building and floor; the 8 garage-level devices (South Garage P1, North Garage P1/P2) are listed as \"not on the map\". Hovering a name highlights its dot; clicking selects it.",
+   "Search: highlights (orange, pulsing) every dot and legend name containing the text, with counts and a jump to the other floor when matches are there.",
+   "Named Keys: pick doors (click dots or names), Save Named Key with a name (e.g. \"Common Doors\", \"Retail Key\"); choosing a key highlights all its doors. Saved to the shared backend (door-keys), merged so teammates' keys aren't…",
+   "Adjust dot positions (Admin password): drag dots to correct placement, then Save (shared backend door-positions), Cancel, or Reset all."
+  ]
+ },
+ {
+  "v": "1.136",
+  "date": "2026-10-27",
+  "title": "Concession: edits no longer revert; Save under the terms",
+  "notes": [
+   "The page edits its own boxes; settings change only on Save. The sync leaves the page alone while it has unsaved changes.",
+   "Saves carry updatedAt and are verified with the backend; the sync never applies an older version over a newer local save and re-sends a save that never reached the backend.",
+   "New Save button directly under the Concession Terms box (same save as the bottom button; status shows next to both).",
+   "Back to Tour asks before discarding unsaved changes."
+  ]
+ },
+ {
+  "v": "1.135",
+  "date": "2026-10-23",
+  "title": "Tour: flyer edits last only for the editing session",
+  "notes": [
+   "Tour drafts now live in memory (SESSIONDRAFTS) for the current editing session: the unit picked from Find a unit plus any added with + Add unit.",
+   "Kept: switching between added units, background syncs, new pricing sheets (picked lease terms still take the new price).",
+   "Back to defaults: a new pick from Find a unit, Remove Unit, Reset, or reloading the page.",
+   "Drafts left in localStorage (reve-pamphlet:) by earlier versions are cleared on load."
+  ]
+ },
+ {
+  "v": "1.134",
+  "date": "2026-10-23",
+  "title": "Tour: keep every hand-edited flyer field",
+  "notes": [
+   "Any field changed by hand is recorded in draft.edited and kept on reload; defaults only fill fields nobody has touched. Replaces the narrower lease-term flags from the previous PR (old drafts are migrated).",
+   "Lease terms chosen from the menus keep the term and take the current sheet's price; a typed-in price is kept as typed.",
+   "Refill from pricing sheet resets the pricing fields; Reset resets everything."
+  ]
+ },
+ {
+  "v": "1.133",
+  "date": "2026-10-22",
+  "title": "Tour: keep hand-picked lease terms",
+  "notes": [
+   "Picking a term from the menus, typing in a price/term, adding or removing a row now marks the unit's Best Price / Other Lease Terms as hand-picked.",
+   "Hand-picked terms are kept on reload while the unit is on the pricing sheet; each term's price is refreshed from the current sheet so prices never go stale.",
+   "Refill from pricing sheet and Reset still return to the defaults."
+  ]
+ },
+ {
+  "v": "1.132",
+  "date": "2026-10-22",
+  "title": "Documents: in-app upload dialog and print layout setting",
+  "notes": [
+   "Upload: the browser popups (title prompt, \"Upload N files?\" and the half/full print confirm) are replaced by one in-app dialog: a title box per file and a Print layout choice (two half-sheets per page / full sheet). Print layout only…",
+   "File Management: new Print layout option to switch a document between half-sheet and full-sheet printing; saved for the whole team (works for built-in and uploaded documents).",
+   "Pricing › Rent lookup: lease-term menu limited to 3–15 months."
+  ]
+ },
+ {
+  "v": "1.131",
+  "date": "2026-10-22",
+  "title": "Pricing: rent lookup by unit, term and move-in date",
+  "notes": [
+   "Inputs: unit #, lease term (or any), move-in date (optional), and which pricing sheet (latest, a specific day, or all).",
+   "Reads the saved CSV sheets and shows the matching rent; with fewer filters it lists every matching move-in date / term, lowest highlighted.",
+   "When nothing matches, it says whether the unit isn't on the sheet or lists the move-in dates that are.",
+   "Stacks above the list on phones."
+  ]
+ },
+ {
+  "v": "1.130",
+  "date": "2026-10-22",
+  "title": "Admin: Owner password, Change Password for every locked section, Commissions/PCard locks",
+  "notes": [
+   "Lock icons: small gray locks on Commissions, PCard, DOOR Accounts and Passwords.",
+   "Owner password (owner-auth): hashed with the same salted, iterated SHA-256 scheme as the Admin password; never stored in plain text.",
+   "Changing any password now needs the current one plus the Owner password:",
+   "Commissions and PCard locks (comm-auth, pcard-auth): hashed passwords set on the first visit and asked for once per page load, with a Lock button. Their content is wrapped behind the lock.",
+   "Testing: done in Playwright with a mock backend."
+  ]
+ },
+ {
+  "v": "1.129",
+  "date": "2026-10-20",
+  "title": "Welcome Letters: Other Charges column with counts",
+  "notes": [
+   "New column: Documents › Welcome Letters gets an Other Charges column. The Parking / Pets / N/A tags move out of the name cell into it.",
+   "Counts: tags now show how many there are, from the letter's numbers. Two parking spaces (e.g. $300 at the per-space rate) show \"Parking x2\", and two pets show \"Pets x2\"; a single one stays \"Parking\" or \"Pets\". Letters saved before this…",
+   "Hidden duplicate: this view hides the file name under each title, because it matches the name exactly.",
+   "Testing: done in Playwright. 2 spaces + 2 pets → ['Parking x2','Pets x2']; 0 spaces + 1 pet → ['Pets']. Column layout checked in a screenshot."
+  ]
+ },
+ {
+  "v": "1.128",
+  "date": "2026-10-20",
+  "title": "Documents: Pricing sub-tab, second row of sub-tabs; Welcome Letter file names match",
+  "notes": [
+   "New Documents › Pricing sub-tab. Each pricing sheet uploaded on the Tour tab is now also kept here as M.D.YY.CSV, using the same Mountain Time date name as the Drive copy. A second upload the same day replaces that day's entry. Newest…",
+   "Second row of sub-tabs: Welcome Letters and Pricing move to a second row below the other Documents sub-tabs.",
+   "Welcome Letter file names: the downloaded PDF and the email draft attachment are now named exactly like the saved copy, \"Welcome Letter - Apartment <unit><Lastname>.pdf\" (previously welcome-letter-apt-<unit>.pdf).",
+   "Testing: done in Playwright with a mock backend. Two same-day pricing uploads gave one \"10.20.26\" entry (same id, new file, new size). The sub-tab rows came out as planned. The download and the email attachment were both \"Welcome Letter…"
+  ]
+ },
+ {
+  "v": "1.127",
+  "date": "2026-10-20",
+  "title": "Documents: Welcome Letters sub-tab; generated letters saved there and to Drive",
+  "notes": [
+   "New Documents › Welcome Letters sub-tab (a list view).",
+   "Saving: generating a Welcome Letter, by Download WL PDF or Create Email Draft, saves it in the background as \"Welcome Letter - Apartment <unit><Lastname>\". A newer letter with the same name replaces the older one: same entry, new file,…",
+   "Tags appear in the list only, never in the name:",
+   "Google Drive filing: the PDF is also filed in a Google Drive folder named \"Welcome Letters\" via a new backend action, archiveWelcomeLetter. This needs Apps Script v5; the app shows a note if the script isn't updated yet.",
+   "Layout: the Document column in list views is wider.",
+   "Testing: done in Playwright with a mock backend."
+  ]
+ },
+ {
+  "v": "1.126",
+  "date": "2026-10-20",
+  "title": "Floor maps: parking zones, garage QR codes, roads, addresses; QR code generator",
+  "notes": [
+   "Removed the \"Your apartment\" legend.",
+   "Added the yellow temporary truck parking zones in the same spots as on the printed 1st-floor sitemap. Their coordinates were mapped from that image to the site map by matching unit positions.",
+   "Added REVE Boulder - Garage and REVE Boulder - South Garage, each with a pin, a green label and a QR code for its Google Maps link (maps.app.goo.gl/Jnf7Aq4MBuyswwESA, maps.app.goo.gl/XgLZdKbbss7rJ41J9). The canvas is widened so the…",
+   "Public roads (asphalt band with a dashed yellow line) are drawn under 31st Street, Pearl Parkway and 30th Street.",
+   "Building addresses are shown for 1 (3000 Pearl Parkway), 3 (2130 30th Street) and 4 (2120 Junction Place). Building 2 has none.",
+   "Types: website link, contact card (vCard 3.0), email (mailto: with subject and body) and Wi-Fi (WIFI: with escaping). Includes a color picker and a live preview."
+  ]
+ },
+ {
+  "v": "1.125",
+  "date": "2026-10-20",
+  "title": "Documents layout fixes; unit floor maps in Welcome and Check In emails",
+  "notes": [
+   "Document cards: File Management and Edit now sit at the bottom left; Delete and Move (the drag handle) at the bottom right.",
+   "Details view: the actions column sizes to its buttons (max-content), so Open and Print no longer overlap the Added date.",
+   "Unit floor maps:",
+   "Testing: done in Playwright. Covered: card and Details layouts (screenshots), the map for 1206, the live sitemap still rendering 42 units, the Check In draft (map + DOOR App Access), and the Welcome draft (WL PDF + map + the 7 Move-in…"
+  ]
+ },
+ {
+  "v": "1.124",
+  "date": "2026-10-20",
+  "title": "Editors: Save to Documents asks for the name and the sub-tab",
+  "notes": [
+   "Save dialog: \"Save to Documents\" in both Edit Document and + Create now opens a dialog with:",
+   "Defaults: \"Copy of <name> - edited\" for an edited document (or the design name for a new + Create design) and the current sub-tab. Cancel or Esc returns to the editor.",
+   "After saving, Documents switches to the chosen sub-tab so the new file is visible.",
+   "Button label: Edit Document's button is renamed from \"Save as copy\" to \"Save to Documents\". It still always creates a new document and never changes the original.",
+   "Testing: done in Playwright. Covered: the Edit Document defaults, a custom name saved into Bulletin (the view followed), + Create defaults to the current sub-tab, Esc cancels with the designer still open, and a named + Create save."
+  ]
+ },
+ {
+  "v": "1.123",
+  "date": "2026-10-20",
+  "title": "Edit Document: Marker tool, bigger pen sizes, fill color for boxes and circles",
+  "notes": [
+   "New Marker tool (next to Pen): a thick pen with its own size range, 6–80 (default 24). Pen's maximum goes from 12 to 20. Each tool remembers its own size, and the current size number shows next to the slider.",
+   "Resizing a selected stroke: with a pen, marker or shape selected (Select tool), the Size slider resizes just that item.",
+   "Boxes and circles have two colors:",
+   "Testing: done in Playwright. Covered: slider ranges (Pen 1–20, Marker 6–80 starting at 24), a marker stroke at 80, a red-bordered box with green fill, a transparent circle later filled yellow while selected, the pen's size unaffected,…"
+  ]
+ },
+ {
+  "v": "1.122",
+  "date": "2026-10-20",
+  "title": "Much faster saving of + Create designs and document uploads",
+  "notes": [
+   "Saving a + Create design took 30+ minutes (\"576 parts\"). There were two causes:"
+  ]
+ },
+ {
+  "v": "1.121",
+  "date": "2026-10-20",
+  "title": "Create: tab buttons on two rows; Logos section",
+  "notes": [
+   "Tab buttons: the + Create side tabs (Elements, Logos, Uploads, Text, Shapes, Draw) are now clear buttons with icons in a 3×2 grid. The active one is filled orange.",
+   "New Logos section:",
+   "Testing: done in Playwright. Covered: the built-in logo and an existing \"LOGO - NorthCoast\" document listed with previews and added to the page; uploading a logo saved \"LOGO - Acme Partners.png\" to Other."
+  ]
+ },
+ {
+  "v": "1.120",
+  "date": "2026-10-20",
+  "title": "Edit Document: zoom, Select tool, snapping, Elements; saving always creates a copy",
+  "notes": [
+   "Zoom only the page: Ctrl/⌘ + scroll, trackpad or touch pinch, the −/Fit/+ buttons, and Ctrl +/−/0. The browser no longer zooms the whole app. This also applies to + Create.",
+   "Select tool: a pointer button, now the default tool, for clicking, moving and resizing any added item (icons, circles, boxes, lines, pen strokes, text). It comes with Duplicate, Delete, arrow-key nudging and recoloring from the swatches.",
+   "Snapping:",
+   "Shift moves in a straight line, here and in + Create. + Create also gains same-size snapping.",
+   "Elements panel in the editor, with the same searchable icon bank as + Create.",
+   "Saving never changes the original. \"Save as copy\" adds a new document named \"Copy of <name> - edited\" in the same section, keeping the print setting. Reopened + Create designs also save as a new copy."
+  ]
+ },
+ {
+  "v": "1.119",
+  "date": "2026-10-20",
+  "title": "Documents: Replace and Revert move into File Management",
+  "notes": [
+   "Removes the Replace and Revert links from the document cards and the preview pane.",
+   "The folder icon's File Management dialog (renamed from \"Edit Document\") now has a File row:",
+   "Floorplans' rename dialog is unchanged.",
+   "Tested in Playwright: no Replace links remain on the cards; File Management → Replace file… opens the file picker and replaces the document."
+  ]
+ },
+ {
+  "v": "1.118",
+  "date": "2026-10-20",
+  "title": "Documents: + Create designer for flyers and documents",
+  "notes": [
+   "+ Create (next to + Upload) opens a page designer. It defaults to letter portrait; letter landscape and a 5.5×8.5 half sheet are also available.",
+   "Adding content: text boxes (11 fonts, size, bold/italic, alignment, text color, optional fill), photos and PDFs (uploaded, or picked from Documents and Floorplans), shapes (rectangle, rounded box, circle, banner bar), lines and arrows,…",
+   "Move and resize with handles. Photos and icons keep their proportions from a corner (Shift resizes freely), and a text box's corner scales its font size.",
+   "Snapping: to page edges, ½\" margins, the half-way lines, an optional ¼\" grid, and other items' edges and centers, with guide lines shown. Alt skips snapping.",
+   "Elements: the Material Design Icons set (~7,600 icons, Apache 2.0) loaded from jsDelivr on first use. Search by name with friendly synonyms (\"sink\" also finds faucet; \"mouse click\" finds mouse and cursor icons), browse 61 categories,…",
+   "Other tools: forward/back layering, duplicate, center on the page, opacity, page background, undo/redo, and keyboard shortcuts (Delete, arrow keys, Ctrl+D, Ctrl+Z/Y, Enter to edit text)."
+  ]
+ },
+ {
+  "v": "1.117",
+  "date": "2026-10-20",
+  "title": "Bigger tab icon; Documents: File Management + Edit Document (photo & PDF editor)",
+  "notes": [
+   "Tab icon: the favicon is cropped so the R fills the icon. The phone home-screen icon is unchanged.",
+   "Documents icons: the folder icon is now File Management (rename / move), and the pencil is Edit Document, shown for PDFs and photos.",
+   "Edit Document editor:",
+   "Testing: done in Playwright with local pdf.js and pdf-lib. That covered a 3-page PDF (pen, box and text, a user page rotation, a page with /Rotate 90, and a page deleted), with the saved file re-rendered to check where the marks landed.…"
+  ]
+ },
+ {
+  "v": "1.116",
+  "date": "2026-10-17",
+  "title": "Settings: compact top cards, charges & hours inside Select Property, yearly holidays",
+  "notes": [
+   "Appearance, Refresh Site to Update and App Mode are now three smaller side-by-side cards, which stack on narrow screens.",
+   "Default Charges and Office Hours moved inside Select Property, and the toggle hints now read \"(Click to View)\".",
+   "Office Hours › Holidays:",
+   "\"+ Add Property\" now creates a fully blank profile (no name, logo, colors or counts) and focuses the name field."
+  ]
+ },
+ {
+  "v": "1.115",
+  "date": "2026-10-17",
+  "title": "Turns: hide completed by default; Settings: Select Property card",
+  "notes": [
+   "Turns: completed turns are now hidden by default, and the checkbox reads \"Show completed\". Jumping to a completed unit's row (for example from the calendar) turns it on.",
+   "Settings › Select Property (new card): per-property profiles shared through the backend (property-profiles), with a property picker and \"+ Add Property\". Each profile covers:",
+   "Stored only: nothing in the app reads these profiles yet."
+  ]
+ },
+ {
+  "v": "1.114",
+  "date": "2026-10-16",
+  "title": "Check In email: office hours, move-in requirements, Mover's Maps",
+  "notes": [
+   "Settings › Office Hours (shared via the backend). Editable weekly hours, defaulting to M–F 9:00 am–6:00 pm, Sat 10:00 am–5:00 pm and Sun closed. Special dates override a single day (holidays). \"Reset to Standard Hours\" restores the…",
+   "Office hours in the Check In email. {officeHours} becomes that day's hours, or a closed-office version of the sentence.",
+   "Move-in requirements in the Check In email. {requirements} is built from the Residents row: Lease = ↑ uploaded, Ins. checked, M/I Pmt checked. When all three are complete it says access will be set up for the move-in date; otherwise it…",
+   "Formatting. \"Using DOOR with an iPhone or with NFC settings turned off on Android:\" is italic and underlined in drafts.",
+   "Attachments. The draft now attaches the floor's Mover's Map (title containing \"Mover\" and the floor number) instead of the floor sitemap.",
+   "Saved template copy. Any saved copy of the Check In template is updated once to the new wording."
+  ]
+ },
+ {
+  "v": "1.113",
+  "date": "2026-10-16",
+  "title": "Residents: Check In card with DOOR how-to email drafts",
+  "notes": [
+   "New Check In card on Residents, between the tracker cards and the calendar. It lists move-ins from today through the next 7 days, skipping anyone already marked Moved In, and refreshes when the day changes.",
+   "Email draft on click. Clicking a unit opens the same email-address prompt as the Welcome Letter, then builds the \"Upcoming Move-in / How-to use DOOR App\" draft. The move-in date and apartment are filled in, and the addresses are saved…",
+   "Attachments. The draft attaches that unit's floor sitemap (from Documents › Sitemaps, matched by floor number in the title) and the DOOR App Access document. If either is missing, a confirm asks whether to continue without it.",
+   "Editable template. The message is a new built-in Email Template, \"Check In / How to use DOOR\", linked to the Check In card. Templates now support a {date} placeholder."
+  ]
+ },
+ {
+  "v": "1.112",
+  "date": "2026-10-16",
+  "title": "Save each uploaded daily pricing sheet to Google Drive",
+  "notes": [
+   "After a pricing CSV is uploaded on the Tour tab, the app sends it to the backend script (action: archivePricing).",
+   "The script saves it in the Daily Pricing Drive folder as <year>/<M.D.YY>.CSV, using today's date in Mountain Time. It creates the year folder when one is missing, and a second upload on the same day overwrites that day's file.",
+   "A note under the upload button shows the result, with a link to the file. If the backend is still on v3, the note says the script needs the v4 update.",
+   "Requires backend script v4, deployed separately in Apps Script. Until then the upload works as before and only the Drive copy is skipped."
+  ]
+ },
+ {
+  "v": "1.111",
+  "date": "2026-10-16",
+  "title": "Welcome email: apartment number in the subject, highlighted section headings",
+  "notes": [
+   "The Welcome Letter draft subject is now \"REVE Boulder Welcome Letter - Apartment {unit}\", for example \"… - Apartment 1102\". Saved copies of the template whose subject has no {unit} placeholder are updated once, and the draft falls back…",
+   "\"DO TODAY:\", \"DUE BEFORE MOVE-IN:\" and \"OTHER SETUP INFORMATION:\" are bold with a yellow highlight in the HTML draft."
+  ]
+ },
+ {
+  "v": "1.110",
+  "date": "2026-10-16",
+  "title": "Welcome Letter email draft: attach letter PDF, keep signature formatting at the bottom",
+  "notes": [
+   "The Welcome Letter PDF is generated from the current record and attached to the email draft, ahead of the Move-in Docs. \"Download WL PDF\" and the draft now share wlBuildPdf.",
+   ".eml drafts are now HTML with a plain-text alternative. Outlook keeps the formatting, and web links and email addresses become clickable.",
+   "New per-device \"Your email signature\" box in Documents › Email Templates. You paste your signature from Outlook; formatting is kept and a pasted logo is embedded as an inline image. It is added at the bottom of drafts."
+  ]
+ },
+ {
+  "v": "1.109",
+  "date": "2026-10-15",
+  "title": "PCard export: sort all items by date; center GL Code and To",
+  "notes": [
+   "In \"Add to the file's existing items\" mode, the file's existing items are read back (dates, GL codes, text and amounts) and sorted together with the new ones, and the item block is rewritten from its first row.",
+   "Undated items go last, and items with the same date keep their order.",
+   "If everything doesn't fit, the error says how many items are already in the file.",
+   "Values stored as <v xml:space=\"preserve\">…</v> (e.g. \"Amazon \" with a trailing space) are now read correctly.",
+   "xmlResolveSheetPath handles workbooks where the relationship attributes are in a different order or the Target is an absolute path (e.g. files saved by other tools).",
+   "3 new items added out of order were interleaved correctly with the 4 existing ones by date."
+  ]
+ },
+ {
+  "v": "1.108",
+  "date": "2026-10-15",
+  "title": "PCard: read the item rows, total and approval cell from each file",
+  "notes": [
+   "Item rows: start on the row below the header that has DATE in B and GL Code in C.",
+   "End and total: items end above the \"Total of Expenses\" row (or the row whose G cell is a SUM(G…) formula). Its G cell is the total, which supplies the currency format.",
+   "Approval date: the E cell in the row above \"MANAGER APPROVAL\".",
+   "Split Charges: that column (older template) is only removed when the file actually has one. In the 10-26 file, column K holds the auto-pay vendor list and is left alone.",
+   "GL codes: read from column L below the total.",
+   "Fallback: if detection fails, the older layout is used."
+  ]
+ },
+ {
+  "v": "1.107",
+  "date": "2026-10-15",
+  "title": "PCard: accept a previous PCard file in .xls format",
+  "notes": [
+   "Accepts .xls: the file picker allows .xlsx,.xls.",
+   "Conversion on upload: the export works by editing the .xlsx's XML directly. When the uploaded file isn't a zip (an older binary .xls), it's converted to .xlsx in the browser with SheetJS, and the existing items are read as before.",
+   "Formatting note: the status explains that some formatting (colors, borders, fonts) may not carry over from an .xls, and how to save the file as .xlsx in Excel for an exact copy.",
+   "Missing cells: a converted file has no blank placeholder cells, so the export now creates any missing item cell (B, C, E, G, H) and the approval-date cell (E98) in the right row and column before filling it. This is a no-op for normal…",
+   "Help: the How-To step mentions .xlsx/.xls."
+  ]
+ },
+ {
+  "v": "1.106",
+  "date": "2026-10-15",
+  "title": "Move Video Tours Needed from Availability to Turns, beside TODAY",
+  "notes": [
+   "Style: the card matches TODAY: white rounded card, same top and height, a title bar with the \"N now · N total\" count, the legend, and a scrollable unit list.",
+   "Behavior: clicking a unit still opens it in Tour.",
+   "Refreshes whenever Turns redraws, and still whenever Availability renders.",
+   "Availability: the list is removed from its sidebar.",
+   "Help: the Help answers now point to the new location."
+  ]
+ },
+ {
+  "v": "1.105",
+  "date": "2026-10-15",
+  "title": "Backend: damage-proof chunked saves; repair a damaged Residents copy",
+  "notes": [
+   "Smaller pieces: at most 20,000 characters, safely under the cell limit even when escaped.",
+   "No more half-saved damage: pieces alternate between two sets (keya0… / keyb0…). The index is switched only after every piece is saved, so a failed save leaves the previous copy intact and readable. Old-format copies (keypart0…) are…",
+   "Repair: when the shared Residents copy is found damaged (all pieces readable but they don't fit together), the browser rebuilds it from its full table. Other browsers then merge and re-send any newer edits of their own. A network…",
+   "the copy was rebuilt and a second browser reads all 300 rows with the edit",
+   "a save made to fail partway left the shared copy readable, and the retry saved",
+   "the earlier Residents, Turns, document sync and DOOR tests still pass"
+  ]
+ },
+ {
+  "v": "1.104",
+  "date": "2026-10-15",
+  "title": "Residents sync: stop false \"NOT confirmed\" warnings",
+  "notes": [
+   "The Residents table is large, so it's stored in pieces. Both the merge-before-save and the confirm-after-save read requested every piece at once, while the rest of the app was also syncing. The Apps Script turns away requests when too…",
+   "A change still pending for a row that no longer exists could never be confirmed.",
+   "Pieces are read gradually: backendPullParts() reads a chunked value's pieces three at a time instead of all at once.",
+   "Reads retry: every backend read (backendPullRawChecked) retries once after a short random pause.",
+   "Patient confirmation: Residents confirms a save by reading it back up to 3 times over a few seconds.",
+   "No stuck changes: a pending change whose row no longer exists is dropped."
+  ]
+ },
+ {
+  "v": "1.103",
+  "date": "2026-10-14",
+  "title": "WL email draft: in-app address dialog, all applicants, Move-in Docs attached",
+  "notes": [
+   "In-app address dialog replaces the browser prompt():",
+   "Greeting: {name} now lists every applicant's first name from Full Name 1–4 (e.g. \"Hi Katie & Jordan,\").",
+   "Attachments: every document in Documents › Move-in Docs is attached automatically, together with any attachments set on the template. The draft therefore downloads as an .eml that opens in Outlook ready to send.",
+   "Template text: the Bilt line now reads \"…/enter-email. Your contact information may not update in the BILT system until 4:00 am MT the morning after being approved.\" A saved (edited) copy of the built-in Welcome template gets only that…",
+   "The saved-template line is updated.",
+   "The dialog pre-fills, adds a second box, rejects an invalid address, and saves both addresses."
+  ]
+ },
+ {
+  "v": "1.102",
+  "date": "2026-10-14",
+  "title": "Welcome Letter: include every listed name",
+  "notes": [
+   "Greeting (under \"Welcome to Reve Boulder\"): names everyone, e.g. \"Katie Bell, Jordan Smith & Alex Lee, we are excited…\". The \"items are to be paid by …\" line uses the same list.",
+   "Applicant Name signature rows: unchanged; they already list all four, with N/A for empty slots.",
+   "Sticker: the default name is everyone's first name joined with \"&\" (e.g. \"Katie & Jordan & Alex\"). Typing in \"Name on sticker\" still overrides it.",
+   "The Create Email Draft prompt still shows the main resident's full name."
+  ]
+ },
+ {
+  "v": "1.101",
+  "date": "2026-10-14",
+  "title": "Commissions export: find section titles stored as inline text",
+  "notes": [
+   "New xmlFirstTextInRow() reads a row's text whether it's a shared string, an inline string or a formula string. It's used to find both section titles.",
+   "The title-count rewrite no longer requires a shared-string cell.",
+   "Files without xl/sharedStrings.xml are handled.",
+   "A data-validation dropdown on the Move-In data rows (e.g. the Agent list) is stretched to cover exactly the exported Move-In rows."
+  ]
+ },
+ {
+  "v": "1.100",
+  "date": "2026-10-10",
+  "title": "Email templates: attach documents from the app",
+  "notes": [
+   "A new Attachments section lists the attached documents as chips with ✕ to remove.",
+   "An \"+ Attach a document…\" picker is grouped by Documents section, plus Floorplans.",
+   "Adding or removing an attachment saves the template and syncs it like other edits.",
+   "No attachments: opens through mailto: exactly as before.",
+   "With attachments: mailto: links can't carry files, so the app builds an .eml file with the recipients, subject, message and the attached files, marked X-Unsent: 1, and downloads it. Opening it in Outlook shows it as a new message ready…",
+   "If an attachment can't be loaded, it asks whether to continue without it."
+  ]
+ },
+ {
+  "v": "1.99",
+  "date": "2026-10-10",
+  "title": "Unit Info: Key Blank Type column; Inventory › Guest Suites sub-tab",
+  "notes": [
+   "New editable column, placed before Tour Floorplan.",
+   "Prefilled from the provided list: 1646 for 89 units and 1646 R for 147 units. \"1107 GS\" and \"3106 GS\" map to units 1107 and 3106.",
+   "Six units aren't on the list and start blank: 1243, 1304, 1411, 4226, 4336, 4425.",
+   "Edits save and sync like the other Unit Info fields.",
+   "Inventory now has sub-tabs. The existing table is the Guest Suites sub-tab, using the same stored data, so nothing is lost."
+  ]
+ },
+ {
+  "v": "1.98",
+  "date": "2026-10-10",
+  "title": "Admin opens on INFO; Sq Ft filter on Expiring",
+  "notes": [
+   "Admin: INFO is now the first sub-tab and the one shown when Admin is unlocked. Unit Info loads right away. The other sub-tabs follow in the same order as before.",
+   "Expiring: adds a Sq Ft filter after Move-In Date. It uses the same Min/Max popover as Availability, and its label shows the range (e.g. \"1500–∞\"). Clear filters resets it. Square footage comes from Unit Info.",
+   "INFO is active and Unit Info has 242 rows on unlock, and switching to MMR still works.",
+   "A Sq Ft minimum of 1500 narrows a 4-unit list to 2, and Clear filters restores it."
+  ]
+ },
+ {
+  "v": "1.97",
+  "date": "2026-10-10",
+  "title": "Maintenance › Filters sub-tab with sheet upload; narrower Passwords table",
+  "notes": [
+   "Maintenance now has sub-tabs. The unit filter list is the Filters sub-tab.",
+   "+ Upload (above the table) opens a box to paste the filter sheet, or to choose an .xlsx/.csv file. The sheet's columns are Unit #, Yardi, Bed/Bath, Filter 1, Filter 2, Filter 3, Date.",
+   "Pasting the sample sheet: dates converted, the second filter set where given, a blank filter clearing a previous value, and an unknown unit skipped.",
+   "A CSV file upload, and syncing to the backend.",
+   "The Passwords width.",
+   "The earlier INFO, Passwords search, DOOR and list tests still pass."
+  ]
+ },
+ {
+  "v": "1.96",
+  "date": "2026-10-10",
+  "title": "INFO: Garden Beds, Maintenance, Inventory; Passwords links, edit and search",
+  "notes": [
+   "Garden Beds: Bed # 1–10 (fixed), Name and Unit. The page has a garden theme: a sun, a watering can, a flower-bed border, sprout icons per bed, and a \"N of 10 beds assigned\" banner.",
+   "Maintenance: every unit from Unit Info, with Unit #, Yardi and Bed/Bath filled in live from it. Each row has Filter 1–3 dropdowns (18x20x1, 10x30x1, 10x24x1, 10x24x9), a Date picker and a search box. Only units you edit are stored.",
+   "Inventory: Building, Location, Item, Price w/o Tax, Source, with add, remove and Paste from Spreadsheet.",
+   "Add Row opens a form: Website Name, Link, Username, Password, Other.",
+   "The Website column shows the name as a link to the URL.",
+   "An edit (pencil) button next to each ✕ reopens the form with that row's details."
+  ]
+ },
+ {
+  "v": "1.95",
+  "date": "2026-10-10",
+  "title": "Admin › INFO: encrypted Passwords table with its own passphrase",
+  "notes": [
+   "Columns: WEBSITE, USERNAME, PASSWORD, OTHER.",
+   "Same protection as DOOR Accounts:",
+   "Its own passphrase: separate from both the Admin password and the DOOR passphrase. The DOOR passphrase does not open it.",
+   "Refactor: DOOR Accounts' code is now a shared encrypted-table builder (makeVault) that both tables use. DOOR's stored data format, storage keys and behavior are unchanged.",
+   "All the earlier DOOR tests on the refactored code: two users, failed saves and recovery, slow backend, a device-only table.",
+   "Passwords setup and storage: only ciphertext is stored, and the password field is masked."
+  ]
+ },
+ {
+  "v": "1.94",
+  "date": "2026-10-10",
+  "title": "Birthdays: party theme, compact table, calendar dates, next-up order",
+  "notes": [
+   "Order: the next upcoming birthday comes first. Birthdays already past this year move to the end, wrapping around the year, and rows without a date go last.",
+   "Dates: still shown as \"Aug. 22nd\". Clicking a date opens the browser's calendar picker, and the chosen day is saved in the same \"Mon. Dth\" style.",
+   "Size: the table is only as wide as its text instead of filling the page.",
+   "Party theme, on this sub-tab only:",
+   "Data: no names or dates are in the code; everything still lives in the shared backend.",
+   "The full pasted list sorts correctly (on Oct 10: Nov 8 first, Sep 14 last)."
+  ]
+ },
+ {
+  "v": "1.93",
+  "date": "2026-10-10",
+  "title": "INFO: Services and Birthdays sub-tabs, new order, condensed unit counts",
+  "notes": [
+   "Sub-tab order: Unit Info (opens first), Retail, Services, DOOR Accounts, Birthdays. Only DOOR Accounts asks for a passphrase.",
+   "Services: Business, Website (with an ↗ open link), Customer Support, Business Contact, Phone, Alt Contact.",
+   "Birthdays: Date, Name, Favorite Cake as a plain table, sorted by calendar date. The next upcoming birthday is highlighted (\"Next — in N days\", \"Tomorrow\" or \"🎂 Today!\").",
+   "Data stays out of the repo: like Retail, the contents of both tables live only in the shared backend and the browser, never in the page source. They're filled in by hand or with Paste from Spreadsheet, which:",
+   "Sync: rows merge one by one, so two people editing different rows don't overwrite each other.",
+   "Unit Info counts: the cards now show as title buttons (BED / BATH, SQ. FT., MARKET RENT, YARDI TYPE…). Clicking one expands the full card. A dot marks the card behind an active filter, and each browser remembers which cards are open."
+  ]
+ },
+ {
+  "v": "1.92",
+  "date": "2026-10-10",
+  "title": "Move Unit Info and Retail into Admin › INFO as sub-tabs",
+  "notes": [
+   "New sub-tabs: Admin › INFO now has DOOR Accounts, Unit Info and Retail.",
+   "Passphrase: only DOOR Accounts asks for it. Unit Info and Retail open straight away; the Admin password still protects all of Admin.",
+   "Settings: both cards are removed from there.",
+   "Save status: saving Unit Info or Retail now shows \"Saving…\" / \"Changes saved\" under the Admin heading.",
+   "Help text: the Help guides, Questions answers and the Tour floorplan hint now point to Admin › INFO.",
+   "Settings no longer shows the two cards."
+  ]
+ },
+ {
+  "v": "1.91",
+  "date": "2026-10-10",
+  "title": "DOOR Accounts: share a table that only exists on this device",
+  "notes": [
+   "When the table is unlocked, and on each 20 s sync check, the device uploads its own table if the backend has none.",
+   "The setup screen now warns not to create a new table if one was already set up on another device."
+  ]
+ },
+ {
+  "v": "1.90",
+  "date": "2026-10-10",
+  "title": "Show \"Saving…\" / \"Changes saved\" wherever data syncs to the backend",
+  "notes": [
+   "Renewals: in a row just above the table's Notes column. It shows \"Saving…\" as soon as you type or tick a box.",
+   "Under each section heading: Expiring, Welcome Letter, New Lease, Waitlist (including Storage and Lockers), Admin (MMR, Commissions, PCard), Documents (including Email Templates), Settings (Unit Info, Retail), Concession and Help.",
+   "Tour: under the pricing sheet upload.",
+   "Unchanged: Turns, Residents, Admin › INFO, Blueprints and Documents uploads already show their own save status.",
+   "How it works: every save goes through one tracker, so all notes behave the same way.",
+   "Fix: a save the backend script reports as an error (for example, a full spreadsheet) now counts as failed instead of saved."
+  ]
+ },
+ {
+  "v": "1.89",
+  "date": "2026-10-10",
+  "title": "Verify backend saves patiently and report the real reason",
+  "notes": [
+   "Adds a shared helper, backendPushVerified(), which sends a value and reads the backend script's reply. It shows any error the script reports, or the start of the page if the script sends back a page instead of a reply.",
+   "The helper then reads the key back up to 4 times over about 5 s. A Google Sheet that lags a moment behind the write is no longer treated as a failed save; before, the Admin password got only one immediate read-back.",
+   "The Admin password (set and change) and DOOR Accounts both use it. The error messages now include the reason."
+  ]
+ },
+ {
+  "v": "1.88",
+  "date": "2026-10-10",
+  "title": "Admin password: set by the team, stored only as a salted hash",
+  "notes": [
+   "the Admin unlock screen",
+   "the hidden Games page (RÊVE logo)",
+   "Residents upload and Clear all",
+   "removing or reverting documents and floorplans"
+  ]
+ },
+ {
+  "v": "1.87",
+  "date": "2026-10-10",
+  "title": "DOOR Accounts: never mistake an existing table for first-time setup",
+  "notes": [
+   "If this device already has a copy of the table, it unlocks right away. The shared copy is merged in when it arrives, and any edits from this device that never reached the backend are sent up.",
+   "If this device has no copy, the form shows \"Checking…\" and can't be used until the backend answers. If the backend can't be reached, it offers Try again; it never falls back to setup.",
+   "Before creating a new table, the app checks the backend one more time. If a table already exists, it asks for that table's passphrase instead."
+  ]
+ },
+ {
+  "v": "1.86",
+  "date": "2026-10-10",
+  "title": "DOOR Accounts: confirm sync by read-back, retry with backoff",
+  "notes": [
+   "After each save, the table is read back from the backend. It counts as synced only when the backend holds it, so a save whose reply the browser blocked (a common Apps Script quirk) is no longer reported as failed.",
+   "When a save really fails, the status gives the reason, with a Retry now button, and it retries automatically every 5 s, doubling up to 2 min. The reason is also logged to the browser console.",
+   "Locking the table finishes any save still in progress, so the last edit isn't lost."
+  ]
+ },
+ {
+  "v": "1.85",
+  "date": "2026-10-10",
+  "title": "Admin › INFO tab with encrypted DOOR Accounts table",
+  "notes": [
+   "Add rows, edit cells inline, and delete rows (red X, with a confirm).",
+   "Password, Latch Password and CODE are masked until \"Show passwords & codes\" is checked.",
+   "The table is encrypted in the browser with its own passphrase (AES-GCM, PBKDF2 key) before it is saved locally or synced, so the shared backend only stores ciphertext. Decrypted rows stay in memory only while the table is unlocked; a…",
+   "Rows merge by edit time, and deleted rows are kept as empty markers, so two people editing different rows don't overwrite each other. The table checks for changes every 20 s while it is open."
+  ]
+ },
+ {
+  "v": "1.84",
+  "date": "2026-10-09",
+  "title": "Wider Settings, per-unit Tour floorplan picker, resizable room labels",
+  "notes": [
+   "Settings cards ~60% wider on desktop.",
+   "Settings › Unit Info: Tour Floorplan column with a searchable dropdown of Documents › Floorplans per unit (default = current print-archive image); PDFs render as their first page on the flyer.",
+   "Blueprints blank floorplan: room labels resizable (corners scale text, sides set box width so words wrap)."
+  ]
+ },
+ {
+  "v": "1.83",
+  "date": "2026-10-09",
+  "title": "Documents: tracked deletes and a progress card per upload",
+  "notes": [
+   "Deletes/reverts of uploaded documents run with their own progress card, are verified against the backend, stay hidden until confirmed, and retry automatically.",
+   "One status card (with progress bar) per upload/delete/move; several stack in the corner.",
+   "+ Upload accepts several files at once (parallel uploads, titled from file names).",
+   "Shared document-list updates from a browser are serialized so simultaneous uploads/deletes can't overwrite each other."
+  ]
+ },
+ {
+  "v": "1.82",
+  "date": "2026-10-09",
+  "title": "Half Laundry Door, TRANSFER agent, live measurements-needed list",
+  "notes": [
+   "Blueprints blank floorplan: new Half Laundry Door addition (one leaf, partly open; Flip and resize).",
+   "Residents: TRANSFER added to the Agent dropdown.",
+   "Blueprints: live \"Measurements still needed\" list of floorplan type + sq ft combinations without a Measurements-tagged floorplan in Documents › Floorplans; updates automatically as files are uploaded, renamed or hidden."
+  ]
+ },
+ {
+  "v": "1.81",
+  "date": "2026-10-07",
+  "title": "Blueprints blank floorplan: free rotation and Laundry Doors",
+  "notes": [
+   "Any addition/label (or group) can be turned to any angle: drag the round handle (Shift = 15° steps), type an angle, or Alt + scroll. Edit bar stays clear of the handle.",
+   "New Laundry Doors addition: two half-width doors, each shown partly open, resizable by width."
+  ]
+ },
+ {
+  "v": "1.80",
+  "date": "2026-10-07",
+  "title": "Blueprints blank floorplan: sink faucet, Double Sink, simpler door, solid Stove/Fridge",
+  "notes": [
+   "Sink: faucet off the back edge instead of the center circle.",
+   "New Double Sink (kitchen) addition: two narrower basins side by side, one faucet.",
+   "Door: just the door leaf and swing (no thin closed-position line).",
+   "Stove and Fridge are solid white, hiding wall/countertop lines beneath them."
+  ]
+ },
+ {
+  "v": "1.79",
+  "date": "2026-10-07",
+  "title": "Turns: fix rows breaking when an item is scheduled today",
+  "notes": [
+   "The Today panel's class .tn-today collided with the table's \"scheduled today\" cell class, turning those cells into flex boxes and misaligning the row. Renamed the panel class and locked table body cells to display: table-cell so a shared cl"
+  ]
+ },
+ {
+  "v": "1.78",
+  "date": "2026-10-07",
+  "title": "Blueprints blank floorplan: spawn on screen, see-through handles, copy/paste",
+  "notes": [
+   "New additions/labels appear in the middle of what's on screen (zoomed/scrolled), not the middle of the whole image.",
+   "Resize handles are outline-only (see-through).",
+   "Ctrl/⌘+C / Ctrl/⌘+V copy and paste selected items (offset each paste, kept on screen; groups paste as a new group)."
+  ]
+ },
+ {
+  "v": "1.77",
+  "date": "2026-10-07",
+  "title": "Turns: Today panel beside the small calendar; site title REVE - OFFICE",
+  "notes": [
+   "Today's turn items (or a picked day) show beside the small calendar, with day arrows and \"Back to today\"; Month/Weekly open the larger calendar.",
+   "Done checkboxes on each item sync both ways with the table.",
+   "Browser tab title is now \"REVE - OFFICE\"."
+  ]
+ },
+ {
+  "v": "1.76",
+  "date": "2026-10-07",
+  "title": "Turns: compact calendar by default, larger views in a pop-up",
+  "notes": [
+   "Small month calendar (count bubble per day, hover for units/vendors) beside the search bar by default.",
+   "Month / Weekly / Daily open the larger calendar in a pop-up; clicking a day opens Daily; clicking a unit jumps to its row.",
+   "Fixes the garbled hint text under the Turns table."
+  ]
+ },
+ {
+  "v": "1.75",
+  "date": "2026-10-07",
+  "title": "Turns: calendar (Month, Condensed, Weekly, Daily) and date ranges",
+  "notes": [
+   "Calendar above the Turns table: Month (units per day, hover for vendors, click to jump to row), Condensed (count bubble per day), Weekly and Daily (item cards with vendor and status), colored like the table.",
+   "Entry Date and trade dates support start–end ranges (\"Wed 10/7 - Thu 10/8\").",
+   "Paint/Carpet/Clean/Other legend merged into one cell."
+  ]
+ },
+ {
+  "v": "1.74",
+  "date": "2026-10-07",
+  "title": "Turns: maintenance Done column, legend over its columns, video tour flag",
+  "notes": [
+   "Removes Oven Clean and Paint Removed By; adds a Maintenance Done checkbox (existing Oven Clean state carries over).",
+   "Color legend moved into a row directly above the columns each color applies to.",
+   "Units on Availability's Video Tours Needed list (available now or upcoming) show a red with a \"Video Tour Needed\" tooltip."
+  ]
+ },
+ {
+  "v": "1.73",
+  "date": "2026-10-07",
+  "title": "Turns tab: shared unit turn tracker",
+  "notes": [
+   "Unit / FP split, Move Out / Move In, Lease Status, Maintenance (Entry Date, Turn, Oven Clean), Paint / Carpet / Clean / Other (Done checkbox, dates, vendor), Comments.",
+   "Checkboxes, editable shared dropdown lists, \"Ddd M/D\" date pickers (multi-date for trades).",
+   "Conditional formatting from the sheet (all-done green, maintenance pink, done gray, today yellow, late red, move-out/move-in tints, flagged rows).",
+   "Search, hide completed, sortable columns, add/remove units.",
+   "Synced like Residents (per-field timestamps, field-by-field merge, confirmed saves, polling)."
+  ]
+ },
+ {
+  "v": "1.72",
+  "date": "2026-10-07",
+  "title": "Documents: Email Templates sub-tab; WL email draft gets the welcome checklist",
+  "notes": [
+   "New Documents › Email Templates sub-tab: shared plain-text templates (name, subject, message with {name}/{unit}), each linkable to a \"Create Email Draft\" button; add, edit, delete, reset, copy, open as draft.",
+   "Built-in \"Welcome / Move-in Checklist\" template, linked to the WL tab's Create Email Draft, which now fills the draft's subject and body (and copies the message to the clipboard in case the mail app shortens long links)."
+  ]
+ },
+ {
+  "v": "1.71",
+  "date": "2026-10-06",
+  "title": "Blueprints: blank floorplan editor polish and W/I Closet",
+  "notes": [
+   "Edit bar hides while dragging/resizing and reappears when the item is let go.",
+   "Rename → text-cursor icon; Delete → red X.",
+   "Swinging door: thick open leaf, thin closed-position line.",
+   "New W/I Closet addition: gray dashed U, corner-resizable."
+  ]
+ },
+ {
+  "v": "1.70",
+  "date": "2026-10-06",
+  "title": "Blueprints: blank floorplan edit bar, more additions, grouping and layers",
+  "notes": [
+   "Edit buttons show in a banner just above the selected item.",
+   "Bath and Shower are corner-resizable; new Stove, Fridge, swinging Door (Flip for hinge side) and Sliding glass door additions.",
+   "The Balcony label is movable/deletable; \"Walk-in Closet\" label is now \"W/I Closet\".",
+   "Ctrl/⌘-click multi-select with Group / Ungroup (grouped items move, rotate, nudge and delete together).",
+   "Forward / Backward layer buttons."
+  ]
+ },
+ {
+  "v": "1.69",
+  "date": "2026-10-06",
+  "title": "Blueprints: closet as a dashed line; zoom in the blank floorplan editor",
+  "notes": [
+   "Closet addition is now a single gray dashed line; drag either end to set its length (whole inches).",
+   "The Create blank floorplan view zooms (−/+/Fit, Ctrl/⌘ + scroll around the pointer, +/− keys, 100–800%) and pans by dragging the background when zoomed in."
+  ]
+ },
+ {
+  "v": "1.68",
+  "date": "2026-10-06",
+  "title": "Blueprints: toilet, sink, resizable countertops and closets in blank floorplan",
+  "notes": [
+   "Renames \"Appliances\" to \"Additions\" in the Create blank floorplan menu.",
+   "Adds Toilet and Sink icons (true scale).",
+   "Adds gray Countertop (solid) and Closet (dashed) rectangles; drag a corner handle to set width and length (opposite corner stays fixed, whole inches)."
+  ]
+ },
+ {
+  "v": "1.67",
+  "date": "2026-10-06",
+  "title": "Blueprints: room labels and appliances in the blank floorplan window",
+  "notes": [
+   "Room labels (Primary Bedroom, Kitchen, etc., plus a custom label): click to add, drag to place, resize/rename/rotate/delete.",
+   "Appliances drawn to true scale: stackable W/D (2'5\" × 2'5\"), side-by-side W + D (two such boxes), Bath (tub icon) and Shower (shower icon).",
+   "Items are saved and synced with the unit and included in the downloaded / saved PNG."
+  ]
+ },
+ {
+  "v": "1.66",
+  "date": "2026-10-06",
+  "title": "Blueprints: Create blank floorplan from the traces",
+  "notes": [
+   "Replaces \"Create floorplan image\": draws a plain line floorplan straight from the unit's traces (outer = thick walls, inner = thin lines, inner beyond outer labeled \"Balcony\")",
+   "Download PNG, or \"Use as this unit's floorplan\": saved to Documents › Floorplans (shared) and set as the unit's floorplan with the traced shape placed exactly on its lines",
+   "How-To updated"
+  ]
+ },
+ {
+  "v": "1.65",
+  "date": "2026-10-04",
+  "title": "Sitemap: See Floorplan for each unit, linked to Documents › Floorplans",
+  "notes": [
+   "Unit hover menu: Load in Tour, Watch Video, See Floorplan",
+   "Floorplan chosen at hover time from Documents › Floorplans (folder + uploads, minus hidden): unit number in the name or floorplan code + sq ft; Measurements version first, otherwise any match",
+   "New floorplans link automatically; uploaded ones open from the backend; help text updated"
+  ]
+ },
+ {
+  "v": "1.64",
+  "date": "2026-10-04",
+  "title": "Documents: upload/move into Floorplans; Blueprints: load a trace, move unit, free rotation",
+  "notes": [
+   "+ Upload on Floorplans (saved to the shared backend like other uploads), listed with the MEDIAFloorplans files (filters, preview, download, edit, remove, ZIP)",
+   "\"Move to another tab\" can move documents into Floorplans; uploaded floorplans can move out",
+   "Blueprints' floorplan pickers include uploaded floorplans",
+   "Load a trace: copy a unit traced on any sheet onto the current sheet under a new name (same real size across scales); Move unit drags it with corner snapping; Rotate 90° / Mirror",
+   "Placement window: rotation handle (Shift = 15° steps) and an angle box"
+  ]
+ },
+ {
+  "v": "1.63",
+  "date": "2026-10-04",
+  "title": "Blueprints: sync traced units, scales and measurements through the shared backend",
+  "notes": [
+   "One backend record per blueprint file (matched by name + size); items: sheet scales, sheet measurements, each traced unit (outlines, known sq ft, placement, hidden lengths, alignment)",
+   "Per-item timestamps with newest-wins merge; deletions as tombstones; existing local traces uploaded on first sync",
+   "Syncs after changes, on open, and every 25s; waits during drawing/dragging/placing; never pushes after a failed pull; status line",
+   "The PDF itself is never synced; How-To updated"
+  ]
+ },
+ {
+  "v": "1.62",
+  "date": "2026-10-03",
+  "title": "Blueprints: zoom in the floorplan placement window; show every exported length",
+  "notes": [
+   "Placement window has its own zoom (−/+/Fit, Ctrl/⌘ + scroll or pinch, 50–1200%) around the pointer; scrolls when zoomed; drag/resize/length clicks work at any zoom",
+   "The window labels exactly the walls the download labels (same cut-off), so short walls are visible and can be hidden"
+  ]
+ },
+ {
+  "v": "1.61",
+  "date": "2026-10-03",
+  "title": "Blueprints: click a wall length to hide it from the floorplan download",
+  "notes": [
+   "In \"Place traced shape on floorplan\", clicking a length grays it out and excludes it from the downloaded image; clicking again shows it",
+   "Dragging from a length still moves the shape; hidden lengths saved per unit"
+  ]
+ },
+ {
+  "v": "1.60",
+  "date": "2026-10-03",
+  "title": "Blueprints: zoom to 3200% and reliable Ctrl/Shift clicks",
+  "notes": [
+   "Sheet drawn only where in view, at screen resolution: zoom up to 3200% (was capped ~200% by the browser canvas limit); redraws on scroll; stretched preview while rendering",
+   "Points placed on mouse release so Ctrl / Shift / Ctrl+Shift clicks work the same in every browser (incl. Mac Ctrl+click); no text selection on modifier clicks"
+  ]
+ },
+ {
+  "v": "1.59",
+  "date": "2026-10-03",
+  "title": "Blueprints: Round measurements toggle",
+  "notes": [
+   "\"Round measurements\" button (toolbar + placement window): every length shown rounded down to the whole inch (wall labels, measurements, perimeters, exported images); areas unchanged; saved in the browser"
+  ]
+ },
+ {
+  "v": "1.58",
+  "date": "2026-10-02",
+  "title": "Blueprints: Ctrl = free movement, Shift = straight lines, and an Edit tool",
+  "notes": [
+   "Snapping on by default; hold Ctrl (or Alt/⌘) for free movement; Shift for perfectly straight lines (snap sets only the length); Ctrl+Shift for both; preview updates on key press/release; Mac Ctrl+click works as a no-snap click",
+   "Edit tool: drag orange corners of the unit's outlines and measurements; click two corners on one outline to redraw the stretch between them; Delete removes a selected corner; Esc cancels",
+   "How-To updated"
+  ]
+ },
+ {
+  "v": "1.57",
+  "date": "2026-10-02",
+  "title": "Blueprints: place the traced shape with its measurements on a floorplan image",
+  "notes": [
+   "\"Place traced shape on floorplan\": the chosen floorplan (site or upload) opens full size with the unit's traced inner/outer outline at true blueprint proportions, every wall labeled",
+   "Auto-fit to the plan's walls (ignores color bands/logos/text) or start from a corner alignment; drag, resize handle, rotate 90°/1°, mirror, arrow-key nudge",
+   "Download PNG with outline, lengths and an area strip; placement saved per unit",
+   "Corner alignment kept as an optional step; How-To updated"
+  ]
+ },
+ {
+  "v": "1.56",
+  "date": "2026-10-02",
+  "title": "Blueprints 2D layout overlay; Lease sample-lease questions",
+  "notes": [
+   "Choose a layout (site floorplan or upload; image or PDF) and overlay it on the blueprint",
+   "Align by matching 2 corners (layout, then blueprint with snapping); Mirrored switch; optional 3rd corner; opacity/show",
+   "Export the original layout with dimension lines for the traced inner boundary (optionally outer) and an area strip",
+   "Alignment saved per unit; uploaded layouts kept in the browser",
+   "Upload sample lease (PDF read in the browser, split into sections/addenda)",
+   "Question bar with lease-specific keyword matching; answers quote sentences with section + page, full section, Open page, Also see"
+  ]
+ },
+ {
+  "v": "1.55",
+  "date": "2026-10-02",
+  "title": "Blueprints: unit area takeoff vs. known sq ft, measured floorplan image, floorplan images as a source",
+  "notes": [
+   "Unit area takeoff: trace outer (outside of walls) and inner (inside face) boundaries per unit, enter the known sq ft and what it's measured to; table shows areas at sheet scale, % vs. known, which boundary matches, and wall area",
+   "Known sq ft can size the drawing; every wall labeled with its length on the sheet",
+   "Create floorplan image: PNG crop of the unit with both outlines, wall lengths to 1/4\", and an area header; preview + download",
+   "Open floorplan images (upload, or pick from Documents › Floorplans) in the same viewer and trace the outer boundary with a known sq ft",
+   "How-To updated"
+  ]
+ },
+ {
+  "v": "1.54",
+  "date": "2026-10-02",
+  "title": "Residents layout polish; new Admin › Blueprints sub-tab",
+  "notes": [
+   "Save status text sits right of the search bar",
+   "Desktop calendar stretches to the bottom of the search bar",
+   "Table columns sized to their content (Unit, Term, Rate, Promo, dates, short dropdowns)",
+   "Blueprint PDF is opened manually in the browser with PDF.js and kept in that browser's IndexedDB only; never committed or sent to the backend",
+   "PDF check: vector vs scanned, real text vs stroked letters, readable dimension strings",
+   "Sheet list with title-block sheet numbers (A1-109, A3-101A…), zoom, pan"
+  ]
+ },
+ {
+  "v": "1.53",
+  "date": "2026-10-02",
+  "title": "Residents calendar beside trackers; Waitlist Leased starts a Residents row; Media renamed Sitemap",
+  "notes": [
+   "Residents: on desktop the calendar sits to the right of the tracker cards, sub-tabs and buttons; on narrow screens it stays on top, followed by the cards/buttons, then the table",
+   "Waitlist: checking Leased opens Residents with a new pinned row (name, agent, move-in date, Date Applied = today), focused on Unit; re-checking jumps to the same row",
+   "Media tab renamed Sitemap (labels and help text)"
+  ]
+ },
+ {
+  "v": "1.52",
+  "date": "2026-10-01",
+  "title": "Commissions export: keep the RV- unit type format",
+  "notes": [
+   "The uploaded-file export wrote the floorplan code (e.g. A3) in Unit Type; it now writes the same Yardi unit type shown in the app (e.g. RV-A3.1), matching the fresh-sheet export."
+  ]
+ },
+ {
+  "v": "1.51",
+  "date": "2026-10-01",
+  "title": "Commissions: sort Move-Ins and Renewals by Date, earliest first",
+  "notes": [
+   "Move-Ins and Renewals tables sorted by Date, earliest to latest (rows without a Date go last)",
+   "Same order in both Excel export paths"
+  ]
+ },
+ {
+  "v": "1.50",
+  "date": "2026-10-01",
+  "title": "Commissions export: widen Move Out column, name file by Current pay period",
+  "notes": [
+   "Move Out column made at least as wide as Move In in the uploaded file (narrow columns show dates as #####); fresh sheet widened too",
+   "File name uses the Current pay period, e.g. 9.5.20269.18.2026 Commissions.xlsx"
+  ]
+ },
+ {
+  "v": "1.49",
+  "date": "2026-10-01",
+  "title": "Commissions: Lease Term highlight, dated export name, Move Out date format",
+  "notes": [
+   "\"Fill next\" highlight skips auto-calculated dates, so it lands on Lease Term (Renewals and Move-Ins)",
+   "Export file named by the Date span, e.g. 9.5.20269.18.2026 Commissions.xlsx",
+   "Move Out exports with the Move In cell format (fresh sheet and uploaded-template paths); m/d/yyyy text exports as real dates"
+  ]
+ },
+ {
+  "v": "1.48",
+  "date": "2026-10-01",
+  "title": "Commissions Renewals: date and Residents autofill for Transfers",
+  "notes": [
+   "Autofill resident, move-in, lease term and rent from Residents (blank cells only)",
+   "Date and Lease Start = move-in date",
+   "Lease Expiration and Move Out = move-in + term − 1 day"
+  ]
+ },
+ {
+  "v": "1.47",
+  "date": "2026-10-01",
+  "title": "Questions reads calculations precisely; Commissions reliable saving + Move-In autofills",
+  "notes": [
+   "Help › Questions: parses calculation, measure, grouping, time range and filters (e.g. \"Average number of move-ins per month over the last year\"), shows how the question was read, a breakdown table, and leaves unfinished periods out of…",
+   "Shared table controller (Commissions, MMR, PCard): per-field edit timestamps, verified saves with retry, no overlapping pushes, unsaved edits survive refresh.",
+   "Commissions Move-Ins: autofill Resident/Move In/Term/Rent/Agent from Residents, Date from Move In, Lease Expiration & Move Out from Move In + Term, Bonus from Unit Info."
+  ]
+ },
+ {
+  "v": "1.46",
+  "date": "2026-10-01",
+  "title": "WL/Lease: tie records to the selected resident row, not the unit",
+  "notes": [
+   "Welcome Letter and Lease records were keyed by unit number, so selecting a new applicant loaded the unit's current resident. Records are now keyed by Residents row id; legacy unit records migrate to the row they were already showing. Search"
+  ]
+ },
+ {
+  "v": "1.45",
+  "date": "2026-10-01",
+  "title": "Documents: more file types, tab ZIP download, move between tabs",
+  "notes": [
+   "Uploads accept Word/Excel/PowerPoint/CSV/text/OpenDocument/iWork/email files, more image types and ZIP (SVG/HTML excluded). Non-previewable files show a type tile and open/download only.",
+   "Download icon next to + Upload zips the whole sub-tab.",
+   "Edit dialog: \"Move to another tab\" dropdown (built-ins/floorplans are copied, original hidden)."
+  ]
+ },
+ {
+  "v": "1.44",
+  "date": "2026-09-30",
+  "title": "Documents Sitemaps + unified Preview/Details; clear × in search boxes",
+  "notes": [
+   "New Documents › Sitemaps sub-tab (in-app uploads).",
+   "Every Documents sub-tab has Preview (cards) and Details (compact list + preview on click); replaces the old details view; Floorplans gets a card view.",
+   "Gray × clear button in every search box."
+  ]
+ },
+ {
+  "v": "1.43",
+  "date": "2026-09-30",
+  "title": "Documents × remove icon; PCard GL code matching",
+  "notes": [
+   "Documents: × icon on every document in all sub-tabs (uploads deleted; built-ins/GitHub floorplans hidden for everyone, with \"Show N hidden\" to restore). Admin password required.",
+   "PCard: \"Upload GL Code File\" (kept in the browser only). Items are matched from To + For; clear matches auto-fill, unclear ones get a yellow cell with a red alert and a dropdown of likely codes (\"code - description\", account name when…",
+   "Shared table controller (MMR/Commissions/PCard) no longer pushes after a failed pull."
+  ]
+ },
+ {
+  "v": "1.42",
+  "date": "2026-09-29",
+  "title": "Tour compare fix; verified document uploads with status; Other LOGO filter",
+  "notes": [
+   "Tour: background refreshes no longer reset a side-by-side comparison to one unit.",
+   "Documents: uploads/replacements are verified against the backend before reporting success; new status panel with steps, progress, Uploaded / Not shared yet + Retry; unconfirmed uploads stay on the device and retry automatically.",
+   "Documents › Other: LOGO filter."
+  ]
+ },
+ {
+  "v": "1.41",
+  "date": "2026-09-29",
+  "title": "Documents: edit names (pencil) on every document; reorder Other",
+  "notes": [
+   "Pencil Edit button on every document (cards, details view, Other and Floorplans lists) to change the card name and/or download file name; blank restores the original; file type kept; shared via the backend.",
+   "Floorplans: edited names are also used for tags, filters and duplicate checks (the GitHub file keeps its real name).",
+   "Other: drag-and-drop (and arrow-key) reordering, shared with the team."
+  ]
+ },
+ {
+  "v": "1.40",
+  "date": "2026-09-29",
+  "title": "Fix locker/storage duplicates and unsafe syncs; Maze game; Floorplans preview; Other docs",
+  "notes": [
+   "Shared row lists (Waitlist, Storage, Rented Lockers, Default Charges) never push after a failed pull; Rented Lockers no longer re-seeds starter rows on a failed pull; Waitlist/Storage no longer push their whole local list over the…",
+   "Automatic cleanup of duplicate lockers and duplicate storage requests (keeps the most complete row).",
+   "Games: prompt is just \"Enter Admin Password\"; new Maze game (random maze, timer, S/M/L with 1/2/4 wall-pass power balls, best time per size).",
+   "Documents › Floorplans: narrower left-aligned table, click-to-preview on the right, download icon, duplicate names highlighted red.",
+   "Documents › Other: in-app uploads in the same list + preview layout."
+  ]
+ },
+ {
+  "v": "1.39",
+  "date": "2026-09-29",
+  "title": "Floorplans letter-group filter; Deposit Accounting flat-rate fee",
+  "notes": [
+   "Documents › Floorplans: Floorplan filter shows S / A / B / C / TH / LW / PH; picking a group filters to all its plans and reveals its individual plans (e.g. S1–S4) to sub-filter. Un-clicking returns to the main view.",
+   "Admin › Deposit Accounting: Flat-rate Fee (not prorated) with optional description — adds a results line, counts toward the total, and appears in the email preview/copy/draft."
+  ]
+ },
+ {
+  "v": "1.38",
+  "date": "2026-09-29",
+  "title": "Deposit Accounting: generic email subject",
+  "notes": [
+   "Subject is now \"<Month> Prorated Charges – Turn Off Autopay on Bilt - REVE BOULDER\" (no unit or resident name) in both the preview and the email draft."
+  ]
+ },
+ {
+  "v": "1.37",
+  "date": "2026-09-29",
+  "title": "Floorplans: file-name tags with filters",
+  "notes": [
+   "Parses tags from MEDIAFloorplans file names in any order/case: 2D/3D, upper/lower/combined, mirror, measurements, balcony (e.g. LW1-1732-mirror-upper-3D.jpg).",
+   "Tags show as labels on each row, with Style, Floors and Tags filter rows; search also matches tags.",
+   "README naming guide updated."
+  ]
+ },
+ {
+  "v": "1.36",
+  "date": "2026-09-29",
+  "title": "Documents: Floorplans sub-tab + MEDIAFloorplans folder",
+  "notes": [
+   "New Documents › Floorplans sub-tab: compact list with Beds / Level / Building / Floorplan filter bubbles and search (floorplan or unit #); Open and Download only.",
+   "Files are listed live from the MEDIAFloorplans folder via GitHub's public API (cached 15 min, \"Refresh list\" to re-check) and matched to the unit roster by file name.",
+   "Adds MEDIAFloorplans/ with a naming guide README."
+  ]
+ },
+ {
+  "v": "1.35",
+  "date": "2026-09-26",
+  "title": "Storage waitlist drag reorder; Help tab with Questions assistant",
+  "notes": [
+   "Waitlist › Storage: ≡ drag handle (mouse/touch, arrow keys) to reorder rows; order is shared via the backend.",
+   "\"How-To\" tab renamed \"Help\" with How-To and Questions sub-tabs. Questions is an in-browser chat that answers from the app's own data (guides, glossary, Default Charges, Retail Info, Documents, concession,…"
+  ]
+ },
+ {
+  "v": "1.34",
+  "date": "2026-09-26",
+  "title": "Residents: per-field edit timestamps so saves can't be reverted",
+  "notes": [
+   "Every field edit records its time; merges keep the most recently edited value per field, so a stale copy in another tab/device can't overwrite newer edits.",
+   "Never pushes without a fresh pull to merge into; rows where this browser holds a newer edit are re-uploaded automatically.",
+   "Upload data / Clear all data now actually reach the shared backend.",
+   "A failed first pull no longer pushes an empty table.",
+   "Same-browser tabs merge each other's changes; other agents' changes redraw while you type (except the row being edited)."
+  ]
+ },
+ {
+  "v": "1.33",
+  "date": "2026-09-26",
+  "title": "Availability: Video Tours Needed dropdown",
+  "notes": [
+   "Collapsible \"Video Tours Needed\" list under Clear filters: units whose video name doesn't match their unit number (or have none)",
+   "Bold + underlined = available now (vacant, film now); plain with date = upcoming; gray = not available",
+   "Click a unit to open it in Tour; open/closed state remembered"
+  ]
+ },
+ {
+  "v": "1.32",
+  "date": "2026-09-26",
+  "title": "Residents Status Details; Waitlist typing fix; Unit Info statistics",
+  "notes": [
+   "Residents: Status Details column next to Status — Renewed = # months (extends Move-Out), Early Term = date (becomes Move-Out), TRANSFER = unit moving to; computed cells update in place",
+   "Waitlist: Move-In Date re-sorts only after leaving the field (no per-keystroke jumping)",
+   "Unit Info: compact live statistics (Bed/Bath + bed totals, Sq Ft ranges, Market Rent ranges, Yardi/Web Type) — click a count to filter and list units; new Market Rent column with paste import; broader search"
+  ]
+ },
+ {
+  "v": "1.31",
+  "date": "2026-09-26",
+  "title": "Settings: Default Charges table driving all fees; Deposit Accounting charges",
+  "notes": [
+   "Settings > Default Charges: editable, shared table of the property's standard fees from the REVE fee sheet, with + Add Charge and Reset to Fee Sheet",
+   "Welcome Letter / Lease rates, security deposit defaults (WL, Commissions) and hints now read from it and update live",
+   "Deposit Accounting: added Pet Fee, Storage, Other ($0), Garage defaults to $0; Bundle/Trash/Valet/Admin default from Default Charges"
+  ]
+ },
+ {
+  "v": "1.30",
+  "date": "2026-09-26",
+  "title": "Admin: Deposit Accounting sub-tab (move-out proration + email)",
+  "notes": [
+   "Move-out calculator: Unit, Resident, Email (optional), Move-Out Date, Rent, monthly fees (Garage/Bundle/Trash/Valet/Admin, remembered per browser) and Utilities; prorated from the 1st through the move-out date, each line rounded, total…",
+   "Email live preview filled from the results with highlighted total; copy button (keeps highlight) and draft-email button (mailto with subject)",
+   "Unit lookup fills resident name and rent from Residents when blank"
+  ]
+ },
+ {
+  "v": "1.29",
+  "date": "2026-09-26",
+  "title": "Waitlist: Rented Lockers list under Storage",
+  "notes": [
+   "New \"Rented Lockers\" button under Storage: shared table (Building, Location, Room, Locker #, Key Cylinder Code, Resident Name / Unit Number, # of Keys in HandyTrac, Status) with summary, + Add Locker and remove",
+   "Starts from the 24 lockers provided with resident names/units blank; fixed starter ids so it can't duplicate; uses the safe shared save routine",
+   "Waitlist sub-tab highlight follows Storage/Rented Lockers; sub-tab buttons wrap on phones"
+  ]
+ },
+ {
+  "v": "1.28",
+  "date": "2026-09-26",
+  "title": "Waitlist/Storage: fix edits lost or rows dropped while syncing; strike contacted rows",
+  "notes": [
+   "Shared save routine for Waitlist and Storage: only locally edited rows are sent, a row stays unsaved if it changed after being sent, saves never overlap, other agents' rows merge in without touching rows being edited, and the list isn't…",
+   "New storage entries save right away",
+   "Contacted strikes through every cell in the row"
+  ]
+ },
+ {
+  "v": "1.27",
+  "date": "2026-09-26",
+  "title": "Mobile Tour/WL layout, townhome uppers, amenity links, Waitlist tabs, Storage fix",
+  "notes": [
+   "Tour (phones/tablets): picking a unit in Find a Unit scrolls to the flyer preview; desktop unchanged",
+   "WL (phones/tablets): form stacks above the Welcome Letter preview",
+   "Media: grayed townhome-upper outlines on Level 2 also for 4116/4118 and 3103–3111 (not Building 1)",
+   "Media: Fitness Center, Pool and Lounge link to reveboulder.com/tours (text-fragment to the matching video title)",
+   "Waitlist: Active → Prospects; new Transfers tab (Transfer checkbox, + Add Transfer) and All tab with status pills",
+   "Storage waitlist: removed the built-in starter list that duplicated per browser (and held resident contact info); one-time reset of the shared list"
+  ]
+ },
+ {
+  "v": "1.26",
+  "date": "2026-09-25",
+  "title": "How-To: built-in guides for every tab",
+  "notes": [
+   "28 guides covering general navigation and each tab's common tasks (search filters, reviewing monthly renewals, waitlist, site map, documents, residents, welcome letter, lease, MMR traffic, commissions, PCard, test mode, unit/retail…",
+   "Added to the shared library under their own ids whenever one is missing, without touching existing or custom guides; deleting one leaves a marker so it isn't re-added",
+   "Guide search also matches step text"
+  ]
+ },
+ {
+  "v": "1.25",
+  "date": "2026-09-25",
+  "title": "Move Games to a hidden page opened from the Settings logo",
+  "notes": [
+   "Games removed from the Admin sub-tabs",
+   "Clicking the RÊVE logo next to \"Settings\" asks for the Admin password, then opens the Games page (Snake, Chess) with a Back to Settings button",
+   "Snake stops and releases the arrow keys when leaving the page"
+  ]
+ },
+ {
+  "v": "1.24",
+  "date": "2026-09-25",
+  "title": "Admin PCard section; Leasing Office links to reveboulder.com",
+  "notes": [
+   "Sitemap: the Leasing Office links to like the retail suites' website links",
+   "Admin > PCard: line items (Date, GL Code, To, Amount, For) entered row by row, synced via the backend; GL code suggestions from the uploaded file",
+   "Export edits the uploaded previous PCard Reconciliation .xlsx in place: items appended after the last used row in B33:H95 (or those rows cleared first), E98 set to today, Split Charges column removed; everything else keeps its…",
+   "Pre-Tax → Adjusted Total and $ per Item × # of Items calculators, each with \"+ Add as item\"",
+   "The uploaded file is held in memory for the tab only, never saved"
+  ]
+ },
+ {
+  "v": "1.23",
+  "date": "2026-09-25",
+  "title": "Documents: Replace link on every card",
+  "notes": [
+   "Replace (underlined, next to Remove) swaps in a new PDF/JPG/PNG while keeping the card's title, slot and print setting; shows \"Updated <date>\"",
+   "Works on built-in documents too: the new version is stored in the shared backend and served instead of the original until \"Revert\" (Admin password)",
+   "Each version gets its own storage key so every browser picks up the new file and preview; the old version is deleted from the backend"
+  ]
+ },
+ {
+  "v": "1.22",
+  "date": "2026-09-25",
+  "title": "Documents: \"+ Upload\" accepts JPG and PNG as well as PDF",
+  "notes": [
+   "\"+ Upload PDF\" is now \"+ Upload\" and accepts PDF, JPG and PNG",
+   "Images get a preview, open and download as themselves, and print via a PDF built on the fly: full sheet fits the image to a letter page (orientation to match); two-per-page uses the half-sheet layout"
+  ]
+ },
+ {
+  "v": "1.21",
+  "date": "2026-09-25",
+  "title": "Documents: Bulletin sub-tab; Preview / Details view toggle",
+  "notes": [
+   "New Bulletin sub-tab with the same upload feature",
+   "Preview (page-preview cards) or Details (compact rows: title, info with date added, Open/Print/Download, reorder handle; two per line on wide screens), chosen per sub-tab and remembered per browser",
+   "Date added shown for every document; sub-tabs scroll sideways on phones"
+  ]
+ },
+ {
+  "v": "1.20",
+  "date": "2026-09-25",
+  "title": "Documents: drag-to-reorder cards; Forms sub-tab",
+  "notes": [
+   "Three-bar handle at the bottom right of each card: press and drag (mouse or touch) to move the card to another slot; arrow keys on the focused handle move it one slot. Order is per section and shared via the backend.",
+   "New Forms sub-tab with the same upload feature"
+  ]
+ },
+ {
+  "v": "1.19",
+  "date": "2026-09-25",
+  "title": "Documents: previews for uploaded PDFs; Building Signs sub-tab",
+  "notes": [
+   "Uploaded PDFs get a page-1 preview like the built-in documents (pdf.js, loaded on first use), shared via the backend so teammates don't re-render; earlier uploads get theirs on next view",
+   "New Building Signs sub-tab with the same upload feature"
+  ]
+ },
+ {
+  "v": "1.18",
+  "date": "2026-09-25",
+  "title": "Documents: print as two half-sheets per page",
+  "notes": [
+   "Print builds a landscape letter PDF with each page twice side by side and a cut line between (pdf-lib, loaded on first use)",
+   "Quantum Fiber Internet and Trash Policies stay full sheets; uploads ask which on upload",
+   "Cards show how each document prints; Download still gives the original"
+  ]
+ },
+ {
+  "v": "1.17",
+  "date": "2026-09-25",
+  "title": "Documents tab with Move-in Docs; larger elevator icons; 1100 label fix",
+  "notes": [
+   "New Documents tab (next to Media) with a Move-in Docs sub-tab: open, print or download each PDF",
+   "Seven move-in handouts under documents/move-in with thumbnails (PDF metadata stripped)",
+   "Upload PDF: handouts that shouldn't be in the public repo are stored in the shared backend; removing one requires the Admin password",
+   "Elevator icons 50% larger; Building 3's moved just south of the narrow 3x12/3x14 gap",
+   "Suite numbers sit below a stepped top edge (1100 no longer clipped)"
+  ]
+ },
+ {
+  "v": "1.16",
+  "date": "2026-09-25",
+  "title": "Sitemap: E elevator icons, corrected retail suites, roof decks, townhome uppers",
+  "notes": [
+   "Elevator icons: white box with a bold E",
+   "Level 1 retail: 1200 Ultimate Longevity / 1250 LazerAway split the corner space; Curtis Park Deli and Discover Strength shift over one; Hotworx is the combined 1500/1600",
+   "Dog parks shaded light green",
+   "Level 1 hallway between 4122 and 4120 (4120 narrowed)",
+   "Level 2 shows the Level 1 townhome numbers (4144–4134) grayed above them",
+   "Level 4 roof decks beside 1403/1404 and 4429/4431"
+  ]
+ },
+ {
+  "v": "1.15",
+  "date": "2026-09-25",
+  "title": "Sitemap: Level 1 retail suites, elevators, Building 4 hallway; Retail Info settings",
+  "notes": [
+   "Leasing Office moved to upper-left of Building 1; retail suites 1100–1800 with small suite numbers and tenant names, plus the office/1100 hallway",
+   "Elevator icons on every floor; Building 4 continuous interior hallway on each floor",
+   "Unit polygons de-overlapped; labels placed so none cover another unit",
+   "New Settings → Retail Info table (suite, business, contacts, website) with spreadsheet paste import, synced via backend; sitemap suites link to the website from the table"
+  ]
+ },
+ {
+  "v": "1.14",
+  "date": "2026-09-25",
+  "title": "Media: Watch Video always uses the unit's current Unit Info link",
+  "notes": [
+   "The Media tab's Watch Video button now reads the unit's link from the Unit Info data when the hover menu opens, instead of a flag captured when the map was first drawn — so links added or changed in Unit Info (including edits synced…",
+   "Links saved without a scheme (\"www.dropbox.com/…\") get \" so they don't open as a broken page on this site; opened with noopener. Tooltip shows the video's name."
+  ]
+ },
+ {
+  "v": "1.13",
+  "date": "2026-09-24",
+  "title": "Residents: left-align calendar, search above table, mobile layout fix",
+  "notes": [
+   "Move-in calendar is left-aligned, directly above the Missing Holding Fee tracker.",
+   "Search bar moved out of the sub-tab row to its own row directly above the table (Agent column), left-aligned. In the sub-tab row it forced the page wider than the screen on phones (577px on a 390px screen), which is what made the whole…",
+   "Sub-tabs keep their shape and scroll sideways if they don't fit.",
+   "Phones: tracker cards sit side by side in one compact row, calendar and search go full width. The page now fits the screen exactly at 390/768/1440px; only the table scrolls horizontally, inside its box."
+  ]
+ },
+ {
+  "v": "1.12",
+  "date": "2026-09-24",
+  "title": "Compact Residents calendar; Lease renewal mode",
+  "notes": [
+   "Much smaller and centred (520px wide, ~177px tall): unit numbers only (name on hover), day number and units on one line, one-line header and legend. Seven table rows show below it at 1440×900 (10 at 1920×1080).",
+   "Checkbox saved per resident. A renewal starts the day after the Residents Move-Out date; Months and Monthly Rent become editable (defaulting to the current term and Residents rate) and all dates/amounts follow them.",
+   "Sections: Lease Terms, Cover Sheet, Animal Addendum, Buyout, Parking, Rent Concession (MER only), Special Provisions. Inventory and Condition hidden; Next buttons skip it; clearing the selection resets the view. Blank defaulted fields…"
+  ]
+ },
+ {
+  "v": "1.11",
+  "date": "2026-09-24",
+  "title": "Tour clear filters, filter click-off fix, Residents calendar + incomplete shading, WL action layout",
+  "notes": [
+   "Tour: \"Clear filters\" button resets every filter bubble, range and date.",
+   "Filter bubbles (all tabs): clicking empty space beside the centred bubble now closes the menu; only the bubble and its options box count as inside.",
+   "Waitlist: \"Other\" agent shown in purple.",
+   "Residents: move-in calendar at the top (month view, prev/next, unit + last name per day, moved-in greyed, monthly summary). Clicking a unit scrolls to and flashes its row, clearing search/filters or switching sub-tab if needed.",
+   "Residents: once Screen is Approved or Uploaded, unfinished steps from ID to Latch are shaded pink (unchecked box; Lease/Inv-Cond not Uploaded; Deposit not ✓; Pet/Parking blank). Insurance/M/I Pmt flags unchanged.",
+   "Welcome Letter: actions stacked vertically (Download WL PDF / Create Email Draft / Download M/I Sticker, then Name on Sticker), mirrored at the end of the editor with the two name boxes in sync."
+  ]
+ },
+ {
+  "v": "1.10",
+  "date": "2026-09-24",
+  "title": "Commissions card, focused filter menus, Expiring tags on mobile, agent colors",
+  "notes": [
+   "\"Current\" pay period: dropped \"(editable)\"; current dates now above the yellow date selector; date ranges stay on one line; \"Export to Excel\" button reads Export / to / Excel.",
+   "Opening a filter hides the other bubbles and centers that filter with its options directly beneath, so edge filters no longer open off-screen. Clicking outside (or the bubble again) restores the full row; multi-select picks keep it open.",
+   "Status & Tags show on phones, on their own line under each row.",
+   "Shared agent colors: Waitlist Agent dropdown (and \"Other\" name) colored like Residents; David Brooke is now blue in both.",
+   "Residents' Agent column is a dropdown of the same agent list; previously typed names stay selectable."
+  ]
+ },
+ {
+  "v": "1.9",
+  "date": "2026-09-24",
+  "title": "MMR Weekly Traffic Detail: auto show counts, bolded names, tidier table",
+  "notes": [
+   "Shows counted automatically from each row's Comments: one per sentence that starts with a prospect's name (two capitalized words) and ends in a period. Middle initials (\"T.\") and common abbreviations (\"res.\") don't end a sentence;…",
+   "Comments are an auto-growing, wrapping box that bolds the first two words (the prospect's name) of each counted sentence as you type. Plain text only (Enter = line break, paste drops formatting).",
+   "Table: Reason and Shows columns shrink to fit their text; table centered with its own styling; placeholder only shows in the box being edited. The Pending/Other \"comment required\" flag is dropped since shows now come from comments.",
+   "Counting checked against the 9/20 MMR's real comments and hand counts: 1, 2, 4 (total 7, matching that week's Total Weekly Traffic).",
+   "Headless Chromium: live typing keeps text order and caret (including inserting mid-text), bolds names only, box grows, count/total update, persists across reload.",
+   "MMR export still validates; Shows cells written from the computed counts."
+  ]
+ },
+ {
+  "v": "1.8",
+  "date": "2026-09-24",
+  "title": "Welcome Letter: Create Email Draft button",
+  "notes": [
+   "New \"Create Email Draft\" button next to \"Download Welcome Letter PDF\".",
+   "Prompts for the resident's email (several allowed, comma-separated; the last one used is remembered on the unit's Welcome Letter record and pre-filled next time), validates it, then opens a new draft in the computer's default mail app…"
+  ]
+ },
+ {
+  "v": "1.7",
+  "date": "2026-09-24",
+  "title": "Welcome Letter: Download Move-in Folder Sticker",
+  "notes": [
+   "New \"Download Move-in Folder Sticker\" button on the Welcome Letter page, with a \"Name on sticker\" override box (defaults to the resident's name; saved with the unit's Welcome Letter record).",
+   "Uses the approved artwork (stickers/move-in-folder-sticker.jpg: the original 182-dpi design cropped to the sticker with the sample name/unit text blanked). The three QR codes are unchanged (Facebook reviews, maintenance request,…",
+   "Name and \"Unit XXXX\" drawn in the original orange and size at 3× resolution; long names shrink, then wrap to two lines.",
+   "PDF is landscape US Letter with the sticker at the original's position and size (5.02 × 6.54 in, 0.115 in from the top-left). Print at 100% / Actual size."
+  ]
+ },
+ {
+  "v": "1.6",
+  "date": "2026-09-24",
+  "title": "Lease: copy buttons only on listed fields; resident name row; clear button",
+  "notes": [
+   "Copy buttons now appear only on the requested Lease fields; all other cells are back to plain.",
+   "Manual entries (animal details, vehicle details, MER) get a copy button that copies what's typed; MER falls back to its default (monthly rent); empty fields copy nothing.",
+   "New Resident Name row in Lease Terms; Address shows/copies the building address only (Apt No. has its own row).",
+   "Rabies Shot is a date field, copied as M/D/YYYY (older free-text values still display as text).",
+   "\"Assistance Animal Addendum\" renamed \"Animal Addendum\".",
+   "An × at the right of the Lease search bar clears the search and loaded resident."
+  ]
+ },
+ {
+  "v": "1.5",
+  "date": "2026-09-24",
+  "title": "Lease: copy-icon buttons on autofilled values; Next buttons on section headers",
+  "notes": [
+   "Every filled-in autofilled (green) cell on the Lease tab gets a copy button (standard overlapping-squares icon, borderless until hover) that copies the value to the clipboard and briefly shows a green checkmark. Falls back to…",
+   "Each black section header except the last gets a \"Next ›\" button at the right that smooth-scrolls the following section's header to the top of the window. Extra space below the form lets the last sections reach the top."
+  ]
+ },
+ {
+  "v": "1.4",
+  "date": "2026-09-24",
+  "title": "Media: horizontal unit numbers; drop Courtyard labels and upper-floor Dog Park",
+  "notes": [
+   "Every unit number on the Media site map now reads horizontally, shrinking to fit narrow units (smallest 9px; none overflow their box).",
+   "Removed the Courtyard marker from all levels and the Dog Park marker from Levels 2–4 (kept on Level 1)."
+  ]
+ },
+ {
+  "v": "1.3",
+  "date": "2026-09-24",
+  "title": "Media: lay out unit boxes to match the approved by-floor site maps",
+  "notes": [
+   "All 242 units (matched exactly against the roster on every floor) drawn as polygons at their real position and shape: Building 1's angled west wing around its courtyard, Building 3's row, Building 4's L, and the L-shaped corner units…",
+   "Building outlines (units plus corridors), the maps' amenity areas (retail/restaurant, leasing office, fitness center, courtyard, pool, lounge/work room, roof deck, dog parks), street names, building markers 1–4 and the Google office…",
+   "Availability colors and the Load in Tour / Watch Video hover menu unchanged; unit numbers auto-size (vertical in narrow units).",
+   "On phones the map scrolls sideways within its box instead of shrinking."
+  ]
+ },
+ {
+  "v": "1.2",
+  "date": "2026-09-24",
+  "title": "Residents: fix edits not saving; new rows at top; re-sort on move-in change",
+  "notes": [
+   "The Residents table (~130k characters) is past a Google Sheets cell's 50,000-character limit, so the Apps Script's write failed while still answering OK; the next 25s sync restored the old data. Values over 40,000 characters are now…",
+   "After each push the app re-reads the backend and only marks a row saved once the backend actually holds it.",
+   "The unsaved-row list is kept in localStorage, so a refresh mid-save can't let the first sync overwrite local edits; saving resumes after reload. \"Refresh to Update\" waits (up to 20s) for pending saves.",
+   "One sync at a time; a failed pull no longer pushes stale data over other agents' edits.",
+   "New status line on the Residents tab: saved / saving / not confirmed.",
+   "\"+ New Resident\" pins the blank row to the top (visible regardless of sub-tab, search or filters) until a move-in date is entered."
+  ]
+ },
+ {
+  "v": "1.1",
+  "date": "2026-09-24",
+  "title": "Residents save, concessions, multi-select filters, MMR Weekly Traffic Detail, Commissions clear-and-replace",
+  "notes": [
+   "Residents edits and new residents no longer lost on \"Refresh to Update\" (text fields no longer rebuild the whole table on blur; deletes save immediately)",
+   "\"Refresh to Update\" returns to the tab you were on",
+   "MMR export fills the template's pre-formatted empty rows instead of creating duplicate row numbers (the cause of Excel's \"Removed Records\" repair)",
+   "Fixed \"stuck on Generating…\": the 25-second backend sync replaced every record, so a resident selected but not yet saved lost their record; the PDF build then crashed before resetting the button. Syncs now merge, and the button always…",
+   "Removed the Lease End Date override (always from Residents)",
+   "Concessions now automated from the Residents Promo (overridable): post on the 1st of the first full month after move-in (one month later for move-ins on/after the 25th), max one month's rent per month, remainder rolls forward. 9/26…"
+  ]
+ }
+]

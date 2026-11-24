@@ -66,6 +66,35 @@
         border-radius: 4px;
     }
     .test-mode-badge.show { display: inline-block; }
+    /* Sync dot + version label (top banner, every page) */
+    .sync-dot-btn, .app-version-btn { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid rgba(255,255,255,0.18); border-radius: 999px; padding: 3px 9px; color: rgba(255,255,255,0.75); font-family: var(--sans); font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .sync-dot-btn:hover, .app-version-btn:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+    .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #3fae5a; flex: none; }
+    .sync-dot.saving { background: #e7a23a; animation: syncPulse 1s ease-in-out infinite; }
+    .sync-dot.pending { background: #e7a23a; }
+    .sync-dot.offline, .sync-dot.off { background: #8d8d8d; }
+    .sync-dot.error { background: #e0443a; }
+    @keyframes syncPulse { 50% { opacity: 0.35; } }
+    .app-update-flag { background: var(--reve-orange); color: #fff; border-radius: 999px; padding: 1px 6px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+    @media (max-width: 700px) { .sync-dot-text { display: none; } .sync-dot-btn { padding: 5px 7px; } }
+    .hdr-panel { position: fixed; top: 44px; right: 12px; z-index: 3000; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 70px); overflow: auto; background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); padding: 14px 16px; font-size: 12.5px; }
+    .hdr-panel-wide { width: min(560px, calc(100vw - 24px)); }
+    .hdr-panel h3 { margin: 0 0 8px; font-family: 'Oswald', var(--sans); font-size: 16px; font-weight: 600; letter-spacing: 0.02em; display: flex; align-items: center; gap: 8px; }
+    .hdr-panel .hp-row { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--line); }
+    .hdr-panel .hp-row span { color: var(--ink-soft); }
+    .hdr-panel .hp-list { margin: 6px 0 0; padding-left: 18px; }
+    .hdr-panel .hp-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .hdr-panel .hp-actions .btn { width: auto; flex: none; padding: 6px 12px; }
+    .vh-item { border-top: 1px solid var(--line); padding: 9px 0; }
+    .vh-item:first-of-type { border-top: 0; }
+    .vh-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+    .vh-v { font-weight: 800; font-variant-numeric: tabular-nums; }
+    .vh-date { color: var(--ink-soft); font-size: 11.5px; }
+    .vh-cur { background: #e7f4ea; color: #2e7d32; border-radius: 999px; padding: 1px 7px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    .vh-title { font-weight: 600; margin-top: 2px; }
+    .vh-notes { margin: 4px 0 0; padding-left: 18px; color: var(--ink-soft); font-size: 12px; line-height: 1.45; }
+    .vh-search { width: 100%; box-sizing: border-box; margin: 4px 0 8px; padding: 6px 9px; font-size: 12.5px; }
+    body.dark-mode .hdr-panel { background: var(--dm-card, #2b2b2b); color: inherit; }
     .top-tab {
         font-family: var(--sans);
         font-size: 12.5px;
@@ -3570,6 +3599,8 @@
         <button type="button" class="top-tab" data-tab="documents">Documents</button>
         <div class="top-tabs-right">
             <span class="test-mode-badge" id="testModeBadge">Test Mode</span>
+            <button type="button" class="sync-dot-btn" id="syncDotBtn" aria-haspopup="dialog" aria-controls="syncPanel" title="Sync status"><span class="sync-dot" id="syncDot"></span><span class="sync-dot-text" id="syncDotText">Saved</span></button>
+            <button type="button" class="app-version-btn" id="appVersionBtn" aria-haspopup="dialog" aria-controls="versionPanel" title="Version history"><span id="appVersionText"></span><span class="app-update-flag" id="appUpdateFlag" hidden>Update</span></button>
             <button type="button" class="top-tab" data-tab="howto">Help</button>
             <button type="button" class="top-tab settings-tab" data-tab="settings">Settings</button>
         </div>
@@ -3585,6 +3616,9 @@
         </div>
     </div>
 </div>
+
+<div class="hdr-panel" id="syncPanel" role="dialog" aria-label="Sync status" hidden></div>
+<div class="hdr-panel hdr-panel-wide" id="versionPanel" role="dialog" aria-label="Version history" hidden></div>
 
 <div class="tab-panel active" id="tab-tour">
 <div class="app">
@@ -24724,6 +24758,130 @@ const BACKEND_CORRUPT = {};
 // matches a prefix) shows "Saving…", then "Changes saved" or a failure.
 const SAVE_TRACK = {}; // base key -> { n, state, at }
 function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, ''); }
+/* ============================================================
+   SYNC STATUS + VERSION (top banner, every page)
+   The dot: green = everything saved, amber = saving / waiting to save,
+   gray = offline / not connected / Test mode, red = something couldn't
+   be saved. Built on SAVE_TRACK (every backend write) plus the time of
+   the last successful read.
+   ============================================================ */
+const APP_VERSION = '1.164';
+let SYNC_LAST_OK = 0, SYNC_LAST_FAIL = 0;
+try { SYNC_LAST_OK = +localStorage.getItem('reve-sync-last-ok') || 0; } catch (e) {}
+function syncNoteOk() { SYNC_LAST_OK = Date.now(); try { localStorage.setItem('reve-sync-last-ok', String(SYNC_LAST_OK)); } catch (e) {} syncStatusRenderSoon(); }
+function syncNoteFail() { SYNC_LAST_FAIL = Date.now(); syncStatusRenderSoon(); }
+const SYNC_KEY_NAMES = { 'residents': 'Residents', 'waitlist': 'Waitlist', 'renewal-state': 'Renewals notes', 'renewal-units': 'Renewal report', 'turns': 'Turns', 'pricing-summary': 'Pricing sheet', 'expiring-units': 'Expiring report', 'howto-guides': 'Help guides', 'concession-settings': 'Concession', 'mmr': 'MMR', 'mmr-traffic': 'MMR traffic', 'pcard-items': 'PCard items', 'unit-overrides': 'Unit Info', 'carpet-measurements': 'Carpet measurements', 'market-rent-schedule': 'Market Rent Schedule' };
+function syncKeyName(k) { return SYNC_KEY_NAMES[k] || (/^document-/.test(k) ? 'Documents' : k.replace(/-/g, ' ')); }
+function syncState() {
+    const track = typeof SAVE_TRACK !== 'undefined' ? SAVE_TRACK : {};
+    const keys = Object.keys(track);
+    const saving = keys.filter(k => track[k].state === 'saving');
+    const failed = keys.filter(k => track[k].state === 'failed');
+    const pendingResidents = typeof RESIDENT_DIRTY !== 'undefined' ? RESIDENT_DIRTY.size : 0;
+    if (typeof APP_MODE !== 'undefined' && APP_MODE === 'test') return { cls: 'off', text: 'Test mode', detail: 'Test mode: sample data, nothing is shared.', saving, failed };
+    if (navigator.onLine === false) return { cls: 'offline', text: 'Offline', detail: 'Offline. Changes are kept on this device and sent when you’re back online.', saving, failed, pendingResidents };
+    if (typeof BACKEND_URL === 'undefined' || !BACKEND_URL) return { cls: 'off', text: 'Not connected', detail: 'Not connected to the shared backend (Admin › Settings). Data stays on this device.', saving, failed };
+    if (saving.length) return { cls: 'saving', text: 'Saving…', detail: 'Saving changes to the shared backend…', saving, failed, pendingResidents };
+    if (failed.length) return { cls: 'error', text: 'Not saved', detail: `Couldn’t save ${failed.length} item${failed.length === 1 ? '' : 's'} to the shared backend. They’re kept on this device and retried.`, saving, failed, pendingResidents };
+    if (pendingResidents) return { cls: 'pending', text: 'Waiting', detail: 'Some Residents edits are waiting to save.', saving, failed, pendingResidents };
+    if (SYNC_LAST_FAIL > SYNC_LAST_OK && SYNC_LAST_FAIL > Date.now() - 120000) return { cls: 'error', text: 'Can’t reach', detail: 'The shared backend didn’t answer the last check. Showing the last data received.', saving, failed };
+    return { cls: '', text: 'Saved', detail: 'Everything is saved and up to date.', saving, failed };
+}
+function syncAgo(t) {
+    if (!t) return 'never';
+    const m = Math.round((Date.now() - t) / 60000);
+    return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : new Date(t).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+function syncStatusRender() {
+    const dot = document.getElementById('syncDot');
+    if (!dot) return;
+    const st = syncState();
+    dot.className = 'sync-dot' + (st.cls ? ' ' + st.cls : '');
+    document.getElementById('syncDotText').textContent = st.text;
+    document.getElementById('syncDotBtn').title = `${st.detail} Last synced ${syncAgo(SYNC_LAST_OK)}.`;
+    const panel = document.getElementById('syncPanel');
+    if (!panel.hidden) syncPanelRender(st);
+}
+let syncRenderTimer = null;
+function syncStatusRenderSoon() { if (!syncRenderTimer) syncRenderTimer = setTimeout(() => { syncRenderTimer = null; syncStatusRender(); }, 150); }
+function syncPanelRender(st) {
+    st = st || syncState();
+    const panel = document.getElementById('syncPanel');
+    const items = (st.failed || []).map(k => `<li>${escapeHtml(syncKeyName(k))}</li>`).join('');
+    panel.innerHTML = `<h3><span class="sync-dot${st.cls ? ' ' + st.cls : ''}"></span>${escapeHtml(st.text)}</h3>
+        <div>${escapeHtml(st.detail)}</div>
+        <div class="hp-row" style="margin-top:8px;"><span>Last synced</span><b>${escapeHtml(syncAgo(SYNC_LAST_OK))}</b></div>
+        ${(st.saving || []).length ? `<div class="hp-row"><span>Saving now</span><b>${escapeHtml(st.saving.map(syncKeyName).join(', '))}</b></div>` : ''}
+        ${st.pendingResidents ? `<div class="hp-row"><span>Residents edits waiting</span><b>${st.pendingResidents}</b></div>` : ''}
+        ${items ? `<div style="margin-top:8px;"><b>Not saved yet</b> (kept on this device):<ul class="hp-list">${items}</ul></div>` : ''}
+        <div class="hp-row"><span>Version</span><b>v${APP_VERSION}</b></div>
+        <div class="hp-actions"><button type="button" class="btn primary" id="syncNowBtn"${typeof BACKEND_URL === 'undefined' || !BACKEND_URL || APP_MODE === 'test' || navigator.onLine === false ? ' disabled' : ''}>Sync now</button></div>`;
+    const b = document.getElementById('syncNowBtn');
+    b.onclick = async () => {
+        b.disabled = true; b.textContent = 'Syncing…';
+        try { if (typeof residentSyncNow === 'function' && RESIDENT_DIRTY.size) await residentSyncNow(); await pullAllFromBackend(); } catch (e) {}
+        syncStatusRender();
+    };
+}
+// Version: the label shows this page's version; versions.json (deployed
+// with every update) holds the history and tells whether a newer one is out.
+let APP_VERSIONS = null;
+function versionNum(v) { return String(v || '').split('.').map(n => parseInt(n, 10) || 0).reduce((a, n) => a * 10000 + n, 0); }
+async function versionCheck() {
+    try {
+        const res = await fetch('versions.json?t=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) return;
+        const list = await res.json();
+        if (!Array.isArray(list) || !list.length) return;
+        APP_VERSIONS = list;
+        const newer = versionNum(list[0].v) > versionNum(APP_VERSION);
+        document.getElementById('appUpdateFlag').hidden = !newer;
+        document.getElementById('appVersionBtn').title = newer ? `Version ${list[0].v} is available — click to update` : 'Version history';
+        if (!document.getElementById('versionPanel').hidden) versionPanelRender();
+    } catch (e) { /* offline or file missing: keep the label as is */ }
+}
+function versionPanelRender() {
+    const panel = document.getElementById('versionPanel');
+    const list = APP_VERSIONS || [];
+    const latest = list[0];
+    const newer = latest && versionNum(latest.v) > versionNum(APP_VERSION);
+    const q = (document.getElementById('vhSearch') || {}).value || '';
+    const items = list.filter(x => !q || (x.v + ' ' + x.title + ' ' + (x.notes || []).join(' ')).toLowerCase().includes(q.toLowerCase()));
+    const fmt = d => { const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(+m[1], m[2] - 1, +m[3]).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''; };
+    panel.innerHTML = `<h3>Version history</h3>
+        <div>You’re on <b>v${APP_VERSION}</b>${newer ? ` &middot; <b style="color:var(--reve-orange-dark);">v${escapeHtml(latest.v)} is available</b>` : latest ? ' &middot; up to date' : ''}.</div>
+        <div class="hp-actions" style="margin:8px 0 10px;"><button type="button" class="btn${newer ? ' primary' : ''}" id="appUpdateBtn">Update to latest version</button></div>
+        ${list.length ? `<input type="search" class="wl-field vh-search" id="vhSearch" placeholder="Search updates…" value="${escapeAttr(q)}">` : '<div class="empty-note">The version history couldn’t load (offline?).</div>'}
+        <div id="vhList">${items.map(x => `<div class="vh-item"><div class="vh-head"><span class="vh-v">v${escapeHtml(x.v)}</span><span class="vh-date">${escapeHtml(fmt(x.date))}</span>${x.v === APP_VERSION ? '<span class="vh-cur">This version</span>' : ''}</div>
+            <div class="vh-title">${escapeHtml(x.title)}</div>${(x.notes || []).length ? `<ul class="vh-notes">${x.notes.map(n => `<li>${escapeHtml(n)}</li>`).join('')}</ul>` : ''}</div>`).join('')}</div>`;
+    document.getElementById('appUpdateBtn').onclick = e => appUpdateNow(e.currentTarget);
+    const search = document.getElementById('vhSearch');
+    if (search) search.oninput = () => { const pos = search.selectionStart; versionPanelRender(); const s2 = document.getElementById('vhSearch'); s2.focus(); s2.setSelectionRange(pos, pos); };
+}
+// Loads the newest deployed version (saves pending Residents edits first).
+async function appUpdateNow(btn) {
+    try { if (navigator.serviceWorker && navigator.serviceWorker.controller) { const reg = await navigator.serviceWorker.getRegistration(); if (reg) await reg.update(); if (reg && reg.waiting) reg.waiting.postMessage('skipWaiting'); } } catch (e) {}
+    forceSiteRefresh(btn);
+}
+(function wireHeader() {
+    document.getElementById('appVersionText').textContent = 'v' + APP_VERSION;
+    const toggle = (id, render) => {
+        const panel = document.getElementById(id);
+        const open = panel.hidden;
+        document.querySelectorAll('.hdr-panel').forEach(p => { p.hidden = true; });
+        if (open) { panel.hidden = false; render(); }
+    };
+    document.getElementById('syncDotBtn').addEventListener('click', e => { e.stopPropagation(); toggle('syncPanel', () => syncPanelRender()); });
+    document.getElementById('appVersionBtn').addEventListener('click', e => { e.stopPropagation(); toggle('versionPanel', () => { versionPanelRender(); versionCheck(); }); });
+    document.addEventListener('click', e => { if (!e.target.closest('.hdr-panel') && !e.target.closest('.sync-dot-btn, .app-version-btn')) document.querySelectorAll('.hdr-panel').forEach(p => { p.hidden = true; }); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.hdr-panel').forEach(p => { p.hidden = true; }); });
+    window.addEventListener('online', syncStatusRender);
+    window.addEventListener('offline', syncStatusRender);
+    setInterval(syncStatusRender, 20000);
+    setInterval(versionCheck, 30 * 60 * 1000);
+    setTimeout(() => { syncStatusRender(); versionCheck(); }, 0);
+})();
+
 function saveTrack(key, phase, ok) {
     const k = saveTrackBase(key);
     if (k === 'connection-test') return;
@@ -24733,6 +24891,7 @@ function saveTrack(key, phase, ok) {
     else { t.n = Math.max(0, t.n - 1); if (!t.n) t.state = ok ? 'saved' : 'failed'; }
     t.at = Date.now();
     saveNotesRender();
+    syncStatusRenderSoon();
 }
 function saveNoteMatches(pats, k) { return pats.some(p => p.endsWith('*') ? k.startsWith(p.slice(0, -1)) : p === k); }
 function saveNotesRender() {
@@ -24772,10 +24931,12 @@ async function backendPullRawOnce(key) {
     if (!BACKEND_URL) return { ok: false, value: null };
     try {
         const res = await fetch(`${BACKEND_URL}?key=${encodeURIComponent(key)}`);
-        if (!res.ok) return { ok: false, value: null };
+        if (!res.ok) { syncNoteFail(); return { ok: false, value: null }; }
         const data = await res.json();
+        syncNoteOk();
         return { ok: true, value: (data && data.value !== undefined && data.value !== null) ? data.value : null };
     } catch (e) {
+        syncNoteFail();
         return { ok: false, value: null };
     }
 }
