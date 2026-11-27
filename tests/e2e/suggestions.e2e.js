@@ -47,6 +47,8 @@ function serve() {
             return url.startsWith(base.replace('/index.html', '')) ? route.continue() : route.abort();
         });
         const page = await ctx.newPage();
+        // Start from an empty list: mark the ideas an update adds (SUGG_SEEDS) as already added.
+        await page.addInitScript(() => { if (!localStorage.getItem('reve-suggestions-seeded')) localStorage.setItem('reve-suggestions-seeded', JSON.stringify(['sfuture-compare'])); });
         page.on('pageerror', e => errors.push(e.message));
         // Help › Suggest Improvements
         const openSection = async () => {

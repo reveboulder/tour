@@ -111,3 +111,24 @@ test('syncer copies the whole list and reports offline / not connected / errors'
     assert.equal(err.state, 'error');
     assert.match(err.message, /network down/);
 });
+
+test('applyUpdates removes built suggestions and adds seeds once', () => {
+    const storage = memoryStorage();
+    const store = S.createStore(storage, { now: clock() });
+    const keep = store.add('Keep me');
+    const built = store.add('Already built');
+    store.markCopied(store.rev(), [keep.id, built.id]);
+    const seed = { id: 'sfuture1', text: 'Comparison page', created: '2026-11-27T12:00:00.000Z' };
+    const r = S.applyUpdates(store, storage, { built: [built.id], seeds: [seed] });
+    assert.deepEqual(r, { removed: [built.id], added: ['sfuture1'] });
+    assert.deepEqual(store.list().map(s => s.id).sort(), [keep.id, 'sfuture1'].sort());
+    assert.equal(store.needsCopy(), true);                       // the file gets rewritten
+    // Next load: nothing changes, and a deleted seed stays deleted.
+    assert.deepEqual(S.applyUpdates(store, storage, { built: [built.id], seeds: [seed] }), { removed: [], added: [] });
+    store.remove('sfuture1');
+    assert.deepEqual(S.applyUpdates(store, storage, { built: [built.id], seeds: [seed] }), { removed: [], added: [] });
+    assert.equal(store.list().some(s => s.id === 'sfuture1'), false);
+    // A seed that's already been built is never added.
+    const fresh = memoryStorage(), s2 = S.createStore(fresh, { now: clock() });
+    assert.deepEqual(S.applyUpdates(s2, fresh, { built: ['sfuture1'], seeds: [seed] }).added, []);
+});

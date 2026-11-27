@@ -1,5 +1,18 @@
 [
  {
+  "v": "1.175",
+  "date": "2026-11-27",
+  "title": "New navigation, global search, Tour phone layout, pricing reminder",
+  "notes": [
+   "Top row: Leasing, Residents and Property on the left; Help and Admin on the right. The second row shows the selected section's pages (Leasing: Tour, Availability, Expiring, Waitlist · Residents: Residents, WL, Lease, Renewals, Turns · Property: Sitemap, Documents, Info · Admin: Admin, Settings). Settings no longer needs a password; Admin's own settings are under ⚙ Admin Settings.",
+   "Search in the top banner finds a unit (open it in Tour, or jump to its turn or resident) or a resident by name.",
+   "Tour on phones: Pamphlet and Edit & filters views, with the unit search pinned at the top.",
+   "A reminder banner after 10 AM when today's pricing sheet hasn't been uploaded, with Get Pricing (RealPage sign-in) and Upload buttons. Get Pricing is also next to Upload CSV on Tour.",
+   "Dark mode fixes for the newer screens. Suggestions that have been built now drop off Help › Suggest Improvements automatically.",
+   "iPhone: Settings › Offline Use › Home-screen shortcuts lists links you can add as icons with the Shortcuts app."
+  ]
+ },
+ {
   "v": "1.174",
   "date": "2026-11-27",
   "title": "Tour unit setup: best price always stays",
