@@ -3234,6 +3234,17 @@
     .conc-rule-check { font-size: 11.5px; color: var(--ink-soft); margin-top: 6px; }
     .conc-rule-check b { color: var(--ink); }
     .conc-bad { color: #b3261e; font-weight: 700; }
+    .conc-hist-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .conc-hist-table th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+    .conc-hist-table td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .conc-hist-table .conc-hist-dates { white-space: nowrap; width: 1%; color: var(--ink-soft); }
+    .conc-hist-current td { background: rgba(222, 84, 38, 0.06); }
+    .conc-hist-rules { font-size: 11.5px; color: var(--ink-soft); margin-top: 3px; }
+    .res-sug-wrap { display: flex; align-items: center; gap: 3px; }
+    .res-sug-wrap input { min-width: 0; flex: 1; }
+    .res-sug-has::placeholder { color: #9a958e; font-style: italic; }
+    .res-sug-ok { flex: none; border: 1px solid #b9d8bb; background: #eef7ee; color: #2e7d32; border-radius: 4px; font-size: 11px; line-height: 1; padding: 3px 5px; cursor: pointer; }
+    .res-sug-ok:hover { background: #2e7d32; color: #fff; }
     body.dark-mode .conc-kind-btn:not(.active) { background: var(--dm-card-alt); }
 
     /* -- Carpet Measurements Needed (Turns) + Settings cards -- */
@@ -3762,7 +3773,7 @@
 
             <div class="concession-banner">
                 <div class="concession-banner-text"><b>Current Concession:</b> <span id="concessionSummaryText">None set</span></div>
-                <button type="button" class="btn" id="concessionEditBtn" style="width:auto;padding:6px 12px;">Edit</button>
+                <button type="button" class="btn" id="concessionEditBtn" style="width:auto;padding:6px 12px;">Update Concession</button>
             </div>
 
             <div class="section-label" style="margin-top:0;"><span class="dot"></span>Daily pricing sheet</div>
@@ -6135,8 +6146,13 @@
         <div class="section-label"><span class="dot"></span>Qualifying Units <span class="hint">up to 3 distinct concessions, evaluated in order</span></div>
         <div id="concessionRules"></div>
 
-        <button type="button" class="btn primary" id="concessionSaveBtn" style="width:100%;margin-top:16px;">Save Concession Settings</button>
+        <button type="button" class="btn primary" id="concessionSaveBtn" style="width:100%;margin-top:16px;">Save Updated Concession</button>
         <div class="empty-note concession-save-status" id="concessionSaveStatus" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="settings-card" style="margin-top:16px;">
+        <div class="section-label" style="margin-top:0;"><span class="dot"></span>Concession History <span class="hint">each saved change keeps the concession it replaced, with the dates it applied</span></div>
+        <div id="concessionHistory"></div>
     </div>
 </div>
 </div>
@@ -11872,6 +11888,49 @@ async function pullConcessionFromBackend() {
     }
 }
 
+// What makes two concessions "the same" (notes alone don't start a new one).
+function concessionSignature(c) {
+    return JSON.stringify([(c.terms || '').trim(), (c.rules || []).map(r => [(r.weeks || '').trim(), (r.qualifier || '').trim(), r.kind || ''])]);
+}
+function concessionHasContent(c) {
+    return !!(c && ((c.terms || '').trim() || (c.rules || []).some(r => (r.weeks || '').trim())));
+}
+function concessionDay(t) { return t ? new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'before history began'; }
+function concessionRulesText(rules) {
+    return (rules || []).filter(r => (r.weeks || '').trim()).map(r => {
+        const c = concessionParse(r.weeks, r.kind);
+        return `${c ? c.label : r.weeks} \u2192 ${r.qualifier || '(no units)'}`;
+    });
+}
+function renderConcessionHistory() {
+    const box = document.getElementById('concessionHistory');
+    if (!box) return;
+    const cur = CONCESSION_SETTINGS, hist = cur.history || [];
+    const row = (c, from, to, current) => {
+        const rules = concessionRulesText(c.rules);
+        return `<tr${current ? ' class="conc-hist-current"' : ''}><td class="conc-hist-dates">${escapeHtml(concessionDay(from))} &ndash; ${current ? '<b>now</b>' : escapeHtml(concessionDay(to))}</td>
+            <td>${escapeHtml(c.terms || '') || '<span class="muted-line">No terms</span>'}${rules.length ? `<div class="conc-hist-rules">${rules.map(escapeHtml).join('<br>')}</div>` : ''}</td></tr>`;
+    };
+    if (!hist.length && !concessionHasContent(cur)) { box.innerHTML = '<div class="empty-note">No concessions saved yet.</div>'; return; }
+    box.innerHTML = `<table class="conc-hist-table"><thead><tr><th>Applied</th><th>Concession</th></tr></thead><tbody>
+        ${concessionHasContent(cur) ? row(cur, cur.startedAt || cur.updatedAt, null, true) : ''}
+        ${hist.map(h => row(h, h.start, h.end, false)).join('')}</tbody></table>`
+        + (hist.length ? '' : '<div class="empty-note" style="margin-top:6px;">Older concessions appear here once the current one is updated.</div>');
+}
+// The concession in effect on a day (the current one or one from the
+// history); null when that day is before anything on record.
+function concessionActiveOn(dayStart, dayEnd) {
+    const cur = CONCESSION_SETTINGS, hist = cur.history || [];
+    const curStart = cur.startedAt || cur.updatedAt || 0;
+    // With no history yet, the current concession is all there is to go on.
+    if (!hist.length || dayEnd >= curStart) return concessionHasContent(cur) ? cur : null;
+    return hist.find(h => (h.start || 0) <= dayEnd && h.end > dayStart) || null;
+}
+function concessionRuleFor(settings, u) {
+    if (!settings || !u) return null;
+    return (settings.rules || []).find(r => (r.weeks || '').trim() && unitMatchesConcessionQualifier(u, r.qualifier)) || null;
+}
+
 function renderConcessionSummary() {
     const el = document.getElementById('concessionSummaryText');
     if (el) el.textContent = CONCESSION_SETTINGS.terms ? CONCESSION_SETTINGS.terms : 'None set';
@@ -11900,6 +11959,7 @@ function renderConcessionPage() {
         </div>`;
     }).join('');
     renderConcessionRuleChecks();
+    renderConcessionHistory();
     concessionDirty = false;
 }
 // Under each rule: what it means and which units it applies to (units an
@@ -11981,12 +12041,26 @@ document.getElementById('concessionSaveBtn').addEventListener('click', async () 
         const parsed = concessionParse(weeks, el ? el.getAttribute('data-kind') : r.kind);
         return Object.assign({}, r, { weeks, qualifier: val('qualifier'), kind: parsed ? parsed.kind : (el ? el.getAttribute('data-kind') : r.kind) || 'weeks', kindManual: manual });
     });
-    CONCESSION_SETTINGS = Object.assign({}, CONCESSION_SETTINGS, {
-        terms: document.getElementById('concessionTermsInput').value,
+    const prev = CONCESSION_SETTINGS, now = Date.now();
+    const terms = document.getElementById('concessionTermsInput').value;
+    const changed = concessionSignature({ terms, rules }) !== concessionSignature(prev);
+    const history = Array.isArray(prev.history) ? prev.history.slice() : [];
+    // "Update Concession": the one being replaced goes into the history
+    // with the dates it applied (added → replaced).
+    if (changed && concessionHasContent(prev)) {
+        history.unshift({ terms: prev.terms || '', notes: prev.notes || '', rules: (prev.rules || []).map(r => ({ weeks: r.weeks || '', qualifier: r.qualifier || '', kind: r.kind || '' })),
+            start: prev.startedAt || prev.updatedAt || null, end: now });
+        if (history.length > 200) history.length = 200;
+    }
+    CONCESSION_SETTINGS = Object.assign({}, prev, {
+        terms,
         notes: document.getElementById('concessionNotesInput').value,
         rules,
-        updatedAt: Date.now()
+        history,
+        startedAt: changed ? now : (prev.startedAt || prev.updatedAt || now),
+        updatedAt: now
     });
+    renderConcessionHistory();
     concessionDirty = false;
     persistConcessionLocal();
     renderConcessionSummary();
@@ -17344,6 +17418,104 @@ document.addEventListener('click', (e) => {
     }
 });
 
+/* ---- Suggested Rate and Promo for residents not yet moved in ----
+   Rate: the rent for the resident's unit and term on the latest saved
+   pricing sheet dated on or before the Date Applied (the row for their
+   Move-In date when the sheet has it, else the earliest move-in), or
+   today's pricing. Promo: the concession in effect on the Date Applied
+   (current or from Concession History) if a rule covers the unit — a $
+   amount as is, weeks free as weeks ÷ 4 × the rate. Shown as a grey
+   placeholder with a ✓ to accept it; typing a value overrides it. */
+const RES_SUGGEST_INPUTS = ['unit', 'dateApplied', 'leaseTerm', 'moveInDate', 'rate', 'promo'];
+const RES_SUGGEST = {};          // id -> { rate, promo } for the row as last worked out
+const resSuggestTimers = {};
+const resSheetLoads = {};
+function resIsoDayRange(iso) {
+    const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return null;
+    const a = new Date(+m[1], m[2] - 1, +m[3]).getTime();
+    return [a, a + 86400000 - 1];
+}
+function resMoney(v) { const n = parseFloat(String(v || '').replace(/[$,]/g, '')); return isNaN(n) ? null : n; }
+async function residentRateSuggestion(row) {
+    const unit = (String(row.unit || '').match(/\d{3,4}/) || [])[0];
+    const term = parseInt(row.leaseTerm, 10), day = resIsoDayRange(row.dateApplied);
+    if (!unit || !term || !day) return null;
+    const sheets = plSheets();
+    const sheet = sheets.find(d => plSheetTime(d) <= day[1]);
+    if (sheet) {
+        let rows = null;
+        // One fetch per sheet even when many rows ask at once.
+        try { rows = await (resSheetLoads[sheet.fileId] = resSheetLoads[sheet.fileId] || plRows(sheet).catch(() => null)); } catch (e) {}
+        if (!rows) delete resSheetLoads[sheet.fileId];
+        const mine = (rows || []).filter(r => r.apt === unit && r.term === term);
+        if (mine.length) {
+            const mi = resIsoDayRange(row.moveInDate) && new Date(row.moveInDate + 'T00:00:00');
+            let pick = mi ? mine.find(r => r.month === mi.getMonth() + 1 && r.day === mi.getDate()) : null;
+            if (!pick) {
+                const sd = new Date(plSheetTime(sheet));
+                const t = r => { if (!r.month || !r.day) return Infinity; let y = sd.getFullYear(); if (r.month < sd.getMonth()) y++; return new Date(y, r.month - 1, r.day).getTime(); };
+                pick = mine.slice().sort((a, b) => t(a) - t(b))[0];
+            }
+            return { value: pick.value, source: `pricing sheet ${sheet.title || concessionDay(plSheetTime(sheet))}${pick.dateKey ? `, move-in ${pick.dateKey}` : ''}` };
+        }
+    }
+    // Applied today or after the newest saved sheet: today's pricing.
+    if (!sheets.length || day[1] >= plSheetTime(sheets[0])) {
+        const p = PRICING_SUMMARY[unit];
+        if (p && p.allTerms && p.allTerms[term] !== undefined) return { value: p.allTerms[term], source: "today's pricing" };
+    }
+    return null;
+}
+function residentPromoSuggestion(row, rate) {
+    const unit = (String(row.unit || '').match(/\d{3,4}/) || [])[0], day = resIsoDayRange(row.dateApplied);
+    if (!unit || !day || !byUnit[unit]) return null;
+    const settings = concessionActiveOn(day[0], day[1]);
+    const rule = concessionRuleFor(settings, byUnit[unit]);
+    const c = rule && concessionParse(rule.weeks, rule.kind);
+    if (!c) return null;
+    const when = settings === CONCESSION_SETTINGS ? 'current concession' : `concession of ${concessionDay(settings.start)} \u2013 ${concessionDay(settings.end)}`;
+    if (c.kind === 'dollars') return { value: c.value, source: `${when}: ${c.label}` };
+    if (!rate) return null;
+    return { value: Math.round(c.value / 4 * rate), source: `${when}: ${c.label} (${c.value} \u00f7 4 \u00d7 ${formatResidentCurrency(rate)} rate)` };
+}
+function residentSuggestSoon(id) {
+    clearTimeout(resSuggestTimers[id]);
+    resSuggestTimers[id] = setTimeout(() => residentSuggestRefresh(id), 400);
+}
+async function residentSuggestRefresh(id) {
+    const row = RESIDENT_ROWS[id];
+    if (!row || row.deleted) return;
+    const want = !row.movedIn && (!String(row.rate || '').trim() || !String(row.promo || '').trim());
+    let rate = null, promo = null;
+    if (want) {
+        rate = String(row.rate || '').trim() ? null : await residentRateSuggestion(row);
+        if (!String(row.promo || '').trim()) promo = residentPromoSuggestion(row, resMoney(row.rate) || (rate && rate.value));
+    }
+    RES_SUGGEST[id] = { rate, promo };
+    const tr = document.querySelector(`#residentsBody tr[data-row="${id}"]`);
+    if (!tr) return;
+    [['rate', rate], ['promo', promo]].forEach(([f, sug]) => {
+        const inp = tr.querySelector(`input[data-field="${f}"]`), btn = tr.querySelector(`.res-sug-ok[data-sug="${f}"]`);
+        if (!inp || !btn) return;
+        const show = !!sug && !inp.value.trim();
+        inp.placeholder = show ? formatResidentCurrency(sug.value) : '';
+        inp.title = show ? `Suggested from ${sug.source}. Click \u2713 to use it, or type to enter your own.` : '';
+        inp.classList.toggle('res-sug-has', show);
+        btn.hidden = !show;
+    });
+}
+function residentSuggestAccept(id, field) {
+    const sug = RES_SUGGEST[id] && RES_SUGGEST[id][field];
+    if (!sug || !RESIDENT_ROWS[id]) return;
+    RESIDENT_ROWS[id][field] = formatResidentCurrency(sug.value);
+    residentTouch(RESIDENT_ROWS[id], field);
+    RESIDENT_DIRTY.add(id);
+    residentPersistLocal();
+    residentPushDebounced();
+    refreshResidentRow(id);
+}
+
 function renderResidentRow(id, row, derived) {
     const complete = RESIDENT_CHECKLIST_KEYS.every(k => row[k]);
     const isNotice = row.specialStatus === 'Notice';
@@ -17389,7 +17561,11 @@ function renderResidentRow(id, row, derived) {
         } else {
             const rawVal = row[f.key] === undefined ? '' : String(row[f.key]);
             const displayVal = f.currency ? formatResidentCurrency(rawVal) : rawVal;
-            cells += `<td><input type="text" class="mmr-lease-field" data-field="${f.key}" value="${escapeAttr(displayVal)}"></td>`;
+            if (f.key === 'rate' || f.key === 'promo') {
+                // Suggested from pricing / the concession on the Date Applied;
+                // filled in by residentSuggestRefresh() once it's worked out.
+                cells += `<td><div class="res-sug-wrap"><input type="text" class="mmr-lease-field" data-field="${f.key}" value="${escapeAttr(displayVal)}"><button type="button" class="res-sug-ok" data-sug="${f.key}" tabindex="-1" hidden title="Use the suggested amount">&#10003;</button></div></td>`;
+            } else cells += `<td><input type="text" class="mmr-lease-field" data-field="${f.key}" value="${escapeAttr(displayVal)}"></td>`;
         }
     });
     cells += `<td class="mmr-remove-cell"><button type="button" class="wl-remove" title="Remove">&times;</button></td>`;
@@ -17454,6 +17630,7 @@ function wireResidentRow(id) {
             RESIDENT_DIRTY.add(id);
             residentPersistLocal();
             residentPushDebounced();
+            if (RES_SUGGEST_INPUTS.includes(field)) residentSuggestSoon(id);
         }
         if (isCheckbox || isSelect) {
             el.addEventListener('change', (e) => { commit(e); refreshResidentRow(id); });
@@ -17486,6 +17663,8 @@ function wireResidentRow(id) {
             });
         }
     });
+    tr.querySelectorAll('.res-sug-ok').forEach(b => b.addEventListener('click', () => residentSuggestAccept(id, b.getAttribute('data-sug'))));
+    residentSuggestRefresh(id);
     tr.querySelector('.wl-remove').addEventListener('click', () => {
         if (!confirm('Remove this resident?')) return;
         RESIDENT_ROWS[id].deleted = true;
@@ -25287,7 +25466,7 @@ function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, '')
    be saved. Built on SAVE_TRACK (every backend write) plus the time of
    the last successful read.
    ============================================================ */
-const APP_VERSION = '1.171';
+const APP_VERSION = '1.172';
 let SYNC_LAST_OK = 0, SYNC_LAST_FAIL = 0;
 try { SYNC_LAST_OK = +localStorage.getItem('reve-sync-last-ok') || 0; } catch (e) {}
 function syncNoteOk() { SYNC_LAST_OK = Date.now(); try { localStorage.setItem('reve-sync-last-ok', String(SYNC_LAST_OK)); } catch (e) {} syncStatusRenderSoon(); }
@@ -26012,7 +26191,7 @@ function seedHowToGuides() {
 const HOWTO_BUILTIN_GUIDES = {
     "builtin-app-tour": {"title": "Getting Around the App", "icon": "🧭", "category": "General", "steps": ["Top row: Tour (flyers and Today's Tours), Availability (calendar), Expiring (upcoming lease ends), Waitlist (prospects), Sitemap (site map, videos and DOOR Devices), Documents (printables, floorplans, Pricing rent lookup and Renewal Offers).", "Top right: Info (Unit Info), Help (How-To guides, Questions and Suggest Improvements) and Settings (Light/Dark, Refresh, Live/Test mode, Offline Use, Market Rent Schedule and Carpet Measurements).", "Second row: Turns (unit turn tracker), Residents (move-in tracking), WL (Welcome Letter), Lease (new lease data), Renewals (renewal decisions & offers), and Admin (password-protected: INFO, Reports — MMR, Commissions, PCard and Deposit Accounting behind one more password — Blueprints, and ⚙ Settings at the top right: shared backend, Backend Health, passwords, property profile, Default Charges and Office Hours).", "Anything marked \"shared\" syncs for the whole team when the backend is connected in Admin › Settings — changes show up for everyone within about 25 seconds.", "Uploaded reports (pricing sheet, lease expirations, renewals) feed several tabs at once — upload them once and Tour, Availability, Expiring, Waitlist, Turns and Renewals all update.", "Not seeing a recent change? Go to Settings and click \"Refresh Site to Update\"."], "rev": 4},
     "builtin-search-filters": {"title": "Use the Search Filters (Tour, Availability, Expiring)", "icon": "🔎", "category": "Tour", "steps": ["The round filter icons sit above the unit list on Tour, above the calendar on Availability, and above the list on Expiring.", "Click an icon to open its options, then click as many options as you like — the list updates as you pick. Click outside (or the icon again) to close it.", "Move-In: \"Move-in before\" shows units available on or before that date; add an optional \"Move-in after\" date for a range (e.g. after Dec 1, before Jan 15). On Expiring it filters by lease end date.", "Search by Lease Term (Availability, top of the left menu): pick a term (3–15 months) to switch the calendar to a list of every available unit with its rent for that term, the four nearest terms in smaller type, specs, availability, turn status, best price, $/sq ft and the concession's effective rent. The filters below still narrow the list, and Price filters on that term's rent. Open in Tour opens the unit with that term and its three nearest in the lease-term slots. \"Back to calendar\" returns.", "Beds: Studio, 1-Bed, 2-Bed, 3-Bed, Townhome or Live/Work (A7 and A9 count as 1-Bed with Den). Floorplan: specific plans (e.g. B5). Floor and Building narrow by location.", "Price and Sq Ft (Tour and Availability): enter a Min, a Max, or both.", "Amenity: Mountain View, Corner Unit or Balcony.", "On Tour, once filters are set, matching units from the Expiring report also show — grayed — below the available ones, as possible upcoming options.", "An active filter shows your choice under its icon. Filters combine — a unit has to match all of them. Click \"Clear filters\" to reset everything, including the move-in dates.", "Tip: on Tour, typing an exact unit number always puts that unit at the top of the results, even if it is filtered out or not in today's pricing sheet."], "rev": 4},
-    "builtin-pricing-concession": {"title": "Set the Current Concession", "icon": "🏷️", "category": "Tour", "steps": ["On the Tour tab, find \"Current Concession\" at the top of the left panel and click Edit.", "Concession Terms: the plain-language special shown on the Tour tab and flyers (e.g. \"6 weeks free on select units or $1500 free on all else\"). Additional Notes are for agents only.", "Up to 3 rules, checked in order. For each, pick Weeks or $ Off and enter the amount: a single digit is read as weeks, a bigger number as dollars (a $ is added). Click the other tile to switch, e.g. for 10 weeks.", "Qualifying Units: unit numbers separated by commas (e.g. 1204, 1338, 1239), floorplan types or codes (LW, 2-Bed, A9), \"All Immediate\" for units available now, or \"All else\" for every unit not covered by an earlier rule — put that one last.", "The line under each rule shows what it means and which units it covers, and flags any number that isn't a unit.", "Click \"Save Concession Settings\" — it's shared with the team and applies automatically when a matching unit is opened on Tour.", "On each flyer, \"Show concession calculator on flyer\" and \"Concession (weeks free, or $ amount off)\" control what that flyer shows; type 4 for weeks or $1500 for dollars.", "The calculator uses the unit's 3 cheapest 12–15 month rates: weeks free take that many weeks of rent off, a $ amount is taken off the whole lease, and both are shown as the effective monthly payment."], "rev": 2},
+    "builtin-pricing-concession": {"title": "Set the Current Concession", "icon": "🏷️", "category": "Tour", "steps": ["On the Tour tab, find \"Current Concession\" at the top of the left panel and click Update Concession.", "Concession Terms: the plain-language special shown on the Tour tab and flyers (e.g. \"6 weeks free on select units or $1500 free on all else\"). Additional Notes are for agents only.", "Up to 3 rules, checked in order. For each, pick Weeks or $ Off and enter the amount: a single digit is read as weeks, a bigger number as dollars (a $ is added). Click the other tile to switch, e.g. for 10 weeks.", "Qualifying Units: unit numbers separated by commas (e.g. 1204, 1338, 1239), floorplan types or codes (LW, 2-Bed, A9), \"All Immediate\" for units available now, or \"All else\" for every unit not covered by an earlier rule — put that one last.", "The line under each rule shows what it means and which units it covers, and flags any number that isn't a unit.", "Click \"Save Updated Concession\" — it's shared with the team and applies automatically when a matching unit is opened on Tour.", "Concession History, at the bottom of the page, keeps every concession that was replaced, with the dates it applied (added to replaced). Residents uses it to suggest the Promo for the Date Applied.", "On each flyer, \"Show concession calculator on flyer\" and \"Concession (weeks free, or $ amount off)\" control what that flyer shows; type 4 for weeks or $1500 for dollars.", "The calculator uses the unit's 3 cheapest 12–15 month rates: weeks free take that many weeks of rent off, a $ amount is taken off the whole lease, and both are shown as the effective monthly payment."], "rev": 3},
     "builtin-compare-units": {"title": "Put Several Units on One Flyer", "icon": "🗂️", "category": "Tour", "rev": 2, "steps": ["Open the first unit on the Tour tab as usual.", "Click \"+ Add a unit\" (left menu, or \"+ Add unit\" above the preview), then search for and pick the next unit.", "Each pamphlet has a small bar above it (on screen only, never printed): click Apt to edit that unit, toggle Concession, Edit lease terms (scrolls the left menu to them), or download just that unit's PDF / Printable.", "Drag a pamphlet's bar (☰) onto another to change the order, or use ◀ ▶. The order is used in the downloads.", "Download PDF / Download Printable PDF in the left menu include every unit, in that order. Remove a unit under \"Units in this pamphlet\"."]},
     "builtin-todays-tours": {"title": "Run Today's Tours", "icon": "🚪", "category": "Tour", "steps": ["On the Tour tab, under the pricing sheet, click \"+ Add\" next to Today's Tours and enter the prospect's name. The list is kept on this device and starts empty each day.", "Click \"Edit Tour\" next to a name: the Tour tab switches to that person's own filters, units and flyer edits.", "Pick units as usual, or click \"+ Add a unit\" to add more — each unit is its own pamphlet.", "Click \"Done\" to go back to the regular Tour view; the tour is kept.", "Click \"Complete Tour\", enter their email (and any Specific Notes) and the app builds an email draft with one pamphlet PDF per unit, the fee sheet and the \"Tour follow-up\" template from Documents › Email Templates.", "Each completed tour is added once to MMR › Weekly Traffic Detail."], "rev": 2},
     "builtin-lease-terms": {"title": "Fill Prices and Lease Terms from the Pricing Sheet", "icon": "💲", "category": "Tour", "steps": ["Make sure today's pricing sheet is uploaded (Tour tab > Daily pricing sheet > Upload CSV).", "Open a unit. Its earliest availability and best price fill in automatically, with the next four best rates in the four \"Other lease terms\" slots.", "Use \"Autofill best price from a term…\" to set the best price and term from a specific lease length.", "To change a slot, pick a term from its dropdown (each shows that term's rent) — it replaces that slot's term and price. You can still type over a price.", "Click \"Reset to default\" to go back to the best price and the next four best rates.", "From Availability › Search by Lease Term, Open in Tour fills the slots with that term and its three nearest.", "If the per-term options are missing, re-upload today's pricing sheet."], "rev": 2},
@@ -26029,7 +26208,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-floorplan-files": {"title": "Find and Download Floorplan Images", "icon": "📐", "category": "Documents", "steps": ["Open Documents and click the Floorplans sub-tab.", "Narrow the list with the bubbles at the top: Beds, Level, Building and Floorplan (pick several in a row to include any of them).", "Or type a floorplan (e.g. B5) or a unit number (e.g. 4334) in the search box to find the plan for that unit.", "Click Open to view a floorplan in a new tab, or Download to save it.", "Tags in the file name show as labels and get their own filters: Style (2D / 3D), Floors (Upper / Lower / Combined) and Tags (Mirror, Measurements, Balcony).", "To add or update floorplans, upload files to the MEDIA_Floorplans folder on GitHub, named floorplan-sqft-tags in any tag order (e.g. \"B5-1211-3D.jpg\", \"LW1-1732-upper-mirror-2D.jpg\"), then click \"Refresh list\"."]},
     "builtin-rent-lookup": {"title": "Look Up a Unit's Rent (Documents › Pricing)", "icon": "💵", "category": "Documents", "steps": ["Open Documents › Pricing. The Rent lookup is on the right.", "Enter a Unit #, and optionally a Lease term (3–15 months) and a Move-in date.", "Pricing sheet: the latest sheet, or All sheets to see how the rent changed over time.", "Click Search to see the matching rents."], "rev": 2},
     "builtin-manage-docs": {"title": "Upload, Replace or Reorder Documents", "icon": "📤", "category": "Documents", "steps": ["Open the section the document belongs in, then click \"+ Upload\" and pick a PDF, JPG or PNG (up to 10 MB).", "Give it a title, then choose OK for two half-sheets per page or Cancel for a full sheet.", "To update a document, click Replace under it and pick the new file — it keeps its title, spot and print setting.", "Drag the ≡ handle at the bottom right of any card to move it to a new spot (or focus it and use the arrow keys).", "Remove deletes an uploaded document, and Revert restores a built-in one — both need the Admin password.", "Uploads, order and replacements are shared with the whole team."]},
-    "builtin-new-resident": {"title": "Add a New Resident and Track Move-In Steps", "icon": "🧑‍💼", "category": "Residents", "steps": ["Open the Residents tab and click \"+ New Resident\".", "Fill in Agent, Unit, First and Last name, Date Applied, Move-In date, Term, Rate and Promo.", "Update Screen as the application moves along: Applied → Screening → Approved → ↑ Uploaded.", "Work through the checklist (ID, WL, Lease, Deposit, Pet, Parking, Ins., M/I Pmt, Inv/Cond, M/I Folder, Walk-Thru, Moved In, Latch).", "Once Screen is Approved or Uploaded, any unfinished step is shaded pink. Ins. and M/I Pmt turn red until checked.", "The row turns green when all 8 checklist boxes are checked. Use Status for Notice, Renewed, Transfer, Early Term or Eviction.", "Move-Out and Notice Needed dates calculate automatically from the move-in date and term."]},
+    "builtin-new-resident": {"title": "Add a New Resident and Track Move-In Steps", "icon": "🧑‍💼", "category": "Residents", "steps": ["Open the Residents tab and click \"+ New Resident\".", "Fill in Agent, Unit, First and Last name, Date Applied, Move-In date, Term, Rate and Promo.", "Rate and Promo are suggested in grey once Unit, Date Applied and Term are in: Rate from the pricing saved for the Date Applied (the Move-In date's row when the sheet has it), Promo from the concession in effect that day (weeks free = weeks ÷ 4 × rate). Click ✓ to use a suggestion, or type your own amount.", "Update Screen as the application moves along: Applied → Screening → Approved → ↑ Uploaded.", "Work through the checklist (ID, WL, Lease, Deposit, Pet, Parking, Ins., M/I Pmt, Inv/Cond, M/I Folder, Walk-Thru, Moved In, Latch).", "Once Screen is Approved or Uploaded, any unfinished step is shaded pink. Ins. and M/I Pmt turn red until checked.", "The row turns green when all 8 checklist boxes are checked. Use Status for Notice, Renewed, Transfer, Early Term or Eviction.", "Move-Out and Notice Needed dates calculate automatically from the move-in date and term."], "rev": 2},
     "builtin-turns": {"title": "Track Unit Turns", "icon": "🛠️", "category": "Turns", "steps": ["Open the Turns tab. Click \"+ Add Unit\" to add a unit being turned, with its Move Out, Move In and Lease Status.", "For Maintenance, Paint, Carpet, Clean and Other: pick dates (a single day or a start–end range), choose the vendor, and check Done when it's finished. \"Edit list…\" in a vendor dropdown changes the names offered.", "Colors: yellow = a vendor is scheduled today, red = the date passed and it isn't done, gray = done; a row turns green when every item is complete.", "The mini calendar and the day panel (TODAY) show what's scheduled; click a date to see that day, or Month / Weekly for the full calendar.", "Video Tours Needed lists units without their own video tour; Carpet Measurements Needed lists unit types still to measure.", "Each unit's turn status shows elsewhere too: a colored dot on the Availability calendar, a badge on its day view, the Lease Term list and Tour's preview bar — Ready (green), In turn with what's left and the last date (amber), overdue (red). A ⚠ warns when a move-in (here or a pending Residents row) is on or before the turn's last date, or items aren't scheduled; the Move In cell here shows ⚠ too.", "Search filters the list; \"Show completed\" brings back finished turns. Everything is shared with the team."], "rev": 3},
     "builtin-residents-views": {"title": "Find Residents: Tabs, Calendar and Search", "icon": "📋", "category": "Residents", "steps": ["Active: everyone not yet moved out. Pending: not moved in yet. Notice Req.: a notice-needed date in the next 30 days. Move-Outs: past residents.", "The calendar at the top shows move-ins for the month — use ‹ › to change months, and click a unit to jump to its row.", "Type in \"Search unit or resident name…\" to find someone fast.", "Use the filter on each column header to narrow the table, and \"Clear Filters\" to reset.", "Click \"Refresh to Update\" to pull the latest changes from other agents."]},
     "builtin-residents-backup": {"title": "Back Up or Restore Residents Data", "icon": "💾", "category": "Residents", "steps": ["On the Residents tab, click \"Export data\" to download a backup of the whole table.", "To restore from a backup, click \"Upload data\" and enter the Admin password — this replaces the current data for everyone.", "\"Clear all data\" permanently removes every resident and also needs the Admin password. Export a backup first."]},
@@ -26557,7 +26736,7 @@ const QA_GLOSSARY = [
     ['Refresh Site to Update', 'Settings > "Refresh Site to Update" (or a hard refresh, Cmd/Ctrl+Shift+R) loads the newest version of the app. Do this after a new feature is deployed.', 'settings', 'update reload new version cache hard refresh'],
     ['Admin password', 'The Admin password isn\u2019t shown anywhere in the app \u2014 ask your manager. It unlocks the Admin tab and confirms Residents Upload/Clear, removing documents, and Games.', 'admin', 'password passcode unlock login locked'],
     ['Games', 'Games (Snake, Chess and Maze) are hidden: click the RÊVE logo on the Settings tab and enter the Admin password.', 'settings', 'snake chess fun hidden logo'],
-    ['Concession', 'The current concession is set from Tour > Current Concession > Edit: up to 3 rules, each Weeks free or $ Off, for unit numbers (1204, 1338), floorplan types or All else. It applies automatically to matching units’ flyers.', 'tour', 'special promo discount weeks free deal dollars off']
+    ['Concession', 'The current concession is set from Tour > Current Concession > Update Concession: up to 3 rules, each Weeks free or $ Off, for unit numbers (1204, 1338), floorplan types or All else. It applies automatically to matching units’ flyers.', 'tour', 'special promo discount weeks free deal dollars off']
 ];
 const QA_STOP = new Set('a an the is are was were be been am do does did to of in on at for from by with and or but if then than so as it its this that these those there here what whats which who whom whose how when where why can could should would will shall may might must i me my we our you your they them their he she his her us about into over under up out any some all please tell show give find know need want get got let lets im ive youre dont doesnt isnt one ones also just like much many'.split(' '));
 // Words that mean the same thing here, mapped to one canonical word.
