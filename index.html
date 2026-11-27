@@ -6278,7 +6278,7 @@
 
     <div class="settings-card">
         <div class="section-label" style="margin-top:0;"><span class="dot"></span>Face ID Unlock</div>
-        <p class="empty-note" style="font-size:12.5px;">Open Admin and Reports with Face ID (or this device&rsquo;s passkey) instead of typing the password. Set up per device; it stops working when the team changes that password, until the new one is entered once.</p>
+        <p class="empty-note" style="font-size:12.5px;">On phones and tablets, open Admin, Reports, Passwords and DOOR Accounts with Face ID (or the device&rsquo;s passkey) instead of typing the password. Set up per device; it stops working when the team changes that password, until the new one is entered once.</p>
         <div class="empty-note" id="pkSettingsState" style="font-size:12px;"></div>
         <div id="pkSettingsList" style="margin-top:6px;"></div>
     </div>
@@ -12558,11 +12558,13 @@ function sha256Bytes(msg) {
    ============================================================ */
 const PK_KEY = 'reve-passkeys';
 const PK_APPLE = /iPhone|iPad|Macintosh/.test(navigator.userAgent);
+// Phones and tablets only (desktops keep typing the password).
+const PK_MOBILE = /iPhone|iPad|iPod|Android/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const PK_WORD = PK_APPLE ? 'Face ID' : 'passkey';
 let PK_AVAILABLE = false;
 const pkReady = (async () => {
     try {
-        if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable && window.isSecureContext)
+        if (PK_MOBILE && window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable && window.isSecureContext)
             PK_AVAILABLE = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
     } catch (e) { PK_AVAILABLE = false; }
     return PK_AVAILABLE;
@@ -12604,11 +12606,19 @@ function pkDerToRaw(der) {
 async function pkVerify(area, bind) {
     const e = pkFor(area, bind);
     if (!e) return false;
+    return (await pkAssert(e)).ok;
+}
+// Ask for the passkey e (optionally with extensions, e.g. PRF) and check the
+// signed challenge. { ok, a } — a is the assertion (for extension results).
+async function pkAssert(e, extensions) {
     const challenge = crypto.getRandomValues(new Uint8Array(32));
     const a = await navigator.credentials.get({ publicKey: {
         challenge, allowCredentials: [{ type: 'public-key', id: pkBytes(e.id), transports: ['internal', 'hybrid'] }],
-        userVerification: 'required', timeout: 60000
+        userVerification: 'required', timeout: 60000, extensions
     } });
+    return { ok: await pkCheckAssertion(e, a, challenge), a };
+}
+async function pkCheckAssertion(e, a, challenge) {
     if (!a || pkB64(a.rawId) !== e.id) return false;
     const cdBytes = new Uint8Array(a.response.clientDataJSON);
     const cd = JSON.parse(new TextDecoder().decode(cdBytes));
@@ -12646,6 +12656,72 @@ function pkLockRender(root, cls, area, bind, ready) {
     btn.style.display = ready && PK_AVAILABLE && has ? '' : 'none';
     opt.style.display = ready && PK_AVAILABLE && !has ? '' : 'none';
 }
+/* Encrypted tables (Passwords, DOOR Accounts): their passphrase is the
+   encryption key, so Face ID can't simply "allow" them. Instead the
+   passkey's PRF secret (made inside the phone, released only after Face ID)
+   encrypts the passphrase on this device; Face ID later releases the secret,
+   which decrypts the passphrase and opens the table. Needs PRF support
+   (iPhone iOS 18+, recent Android Chrome). */
+async function pkPrfKey(out) { return crypto.subtle.importKey('raw', out, 'AES-GCM', false, ['encrypt', 'decrypt']); }
+async function pkVaultSeal(area, out, passphrase) {
+    const o = pkAll(), e = o[area];
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await pkPrfKey(out), new TextEncoder().encode(passphrase));
+    e.iv = pkB64(iv); e.ct = pkB64(ct); delete e.pending;
+    pkSaveAll(o);
+}
+// Step 1 (tap): create the passkey. { done } or { finish } when a second
+// Face ID is needed to read the secret.
+async function pkVaultSetup(area, label, passphrase) {
+    const prfSalt = crypto.getRandomValues(new Uint8Array(32));
+    const cred = await navigator.credentials.create({ publicKey: {
+        rp: { name: 'REVE Office' },
+        user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'reve-office-' + area, displayName: 'REVE Office ' + label },
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
+        timeout: 60000, attestation: 'none', extensions: { prf: { eval: { first: prfSalt } } }
+    } });
+    if (!cred) throw new Error('No passkey was created.');
+    const ext = (cred.getClientExtensionResults && cred.getClientExtensionResults().prf) || {};
+    if (!ext.enabled && !(ext.results && ext.results.first)) {
+        const err = new Error('This phone can’t use ' + PK_WORD + ' for encrypted tables yet (it needs iOS 18 or a recent Android). Keep using the passphrase.');
+        err.name = 'NoPrf'; throw err;
+    }
+    const r = cred.response;
+    const o = pkAll();
+    o[area] = { id: pkB64(cred.rawId), pub: typeof r.getPublicKey === 'function' && r.getPublicKey() ? pkB64(r.getPublicKey()) : '',
+        alg: typeof r.getPublicKeyAlgorithm === 'function' ? r.getPublicKeyAlgorithm() : -7,
+        bind: 'vault', label, prf: pkB64(prfSalt), pending: true, created: new Date().toISOString() };
+    pkSaveAll(o);
+    if (ext.results && ext.results.first) { await pkVaultSeal(area, ext.results.first, passphrase); return { done: true }; }
+    return { finish: true };
+}
+// Read the passkey's secret (one Face ID). Throws on cancel.
+async function pkVaultSecret(area) {
+    const e = pkAll()[area];
+    if (!e || !e.prf) return null;
+    const { ok, a } = await pkAssert(e, { prf: { eval: { first: pkBytes(e.prf) } } });
+    const ext = a && a.getClientExtensionResults && a.getClientExtensionResults().prf;
+    return ok && ext && ext.results && ext.results.first ? ext.results.first : null;
+}
+async function pkVaultFinish(area, passphrase) {
+    const out = await pkVaultSecret(area);
+    if (!out) throw new Error(PK_WORD + ' didn’t return its secret.');
+    await pkVaultSeal(area, out, passphrase);
+}
+// The stored passphrase, after Face ID; null if it can't be opened.
+async function pkVaultOpen(area) {
+    const e = pkAll()[area];
+    if (!e || !e.ct || e.pending) return null;
+    const out = await pkVaultSecret(area);
+    if (!out) return null;
+    try {
+        const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: pkBytes(e.iv) }, await pkPrfKey(out), pkBytes(e.ct));
+        return new TextDecoder().decode(pt);
+    } catch (x) { return null; }
+}
+function pkVaultReady(area) { const e = pkAll()[area]; return !!(e && e.ct && !e.pending); }
 function adminHash(pw, saltHex, iter) {
     const salt = Uint8Array.from(saltHex.match(/../g), x => parseInt(x, 16));
     const pwb = new TextEncoder().encode(pw);
@@ -13029,6 +13105,7 @@ function makeVault(cfg) {
             <input type="password" class="vault-pass" placeholder="Passphrase" autocomplete="new-password">
             <input type="password" class="vault-pass2" placeholder="Type the passphrase again" autocomplete="new-password" style="display:none;">
             <button type="button" class="btn primary vault-unlock" style="width:100%;">Unlock</button>
+            <button type="button" class="btn pk-unlock vault-pk" style="width:100%;margin-top:8px;display:none;"><span aria-hidden="true">&#128273;</span> Unlock with ${PK_WORD}</button>
             <div class="empty-note vault-lock-err" style="display:none;color:#c0392b;margin-top:8px;"></div>
         </div>
         <div class="vault-body" style="display:none;">
@@ -13037,7 +13114,8 @@ function makeVault(cfg) {
                 ${cfg.search ? '<input type="search" class="wl-field vault-search" placeholder="Search websites, usernames, notes\u2026" style="max-width:240px;padding:6px 10px;">' : ''}
                 <label class="info-show"><input type="checkbox" class="vault-show"> ${escapeHtml(cfg.showLabel)}</label>
                 <span class="empty-note vault-status" style="margin:0;font-weight:600;"></span>
-                <button type="button" class="btn small vault-changepw" style="margin-left:auto;">Change Password</button>
+                <button type="button" class="btn small vault-pksetup" style="margin-left:auto;display:none;" title="Open this table with ${PK_WORD} on this device">&#128273; Set up ${PK_WORD}</button>
+                <button type="button" class="btn small vault-changepw">Change Password</button>
                 <button type="button" class="btn small vault-lockbtn">Lock</button>
             </div>
             <div class="info-table-wrap${cfg.compact ? ' vault-compact' : ''}"><table class="info-table vault-table"></table></div>
@@ -13083,6 +13161,7 @@ function makeVault(cfg) {
         btn.textContent = isNew ? 'Create & Unlock' : mode === 'loading' ? 'Checking…' : mode === 'offline' ? 'Try again' : 'Unlock';
         btn.disabled = mode === 'loading';
         btn.dataset.mode = mode;
+        $('.vault-pk').style.display = mode === 'unlock' && PK_AVAILABLE && pkVaultReady('vault-' + cfg.id) ? '' : 'none';
         $('.vault-lock-err').style.display = 'none';
         $('.vault-lock').style.display = '';
         $('.vault-body').style.display = 'none';
@@ -13161,6 +13240,8 @@ function makeVault(cfg) {
             if (doorBackendOn()) pullMerge();
         }
         V.loadSeq++;
+        V.pass = p1;   // in memory only while unlocked, for "Set up Face ID"
+        pkVaultBar();
         $('.vault-pass').value = ''; $('.vault-pass2').value = '';
         $('.vault-lock').style.display = 'none';
         $('.vault-body').style.display = '';
@@ -13172,7 +13253,7 @@ function makeVault(cfg) {
         while (V.saving) await new Promise(r => setTimeout(r, 100));
         if (V.savePending) { clearTimeout(V.saveTimer); await saveNow(); }
         if (cfg.modal) closeModal();
-        V.key = null; V.rows = null; V.salt = null;
+        V.key = null; V.rows = null; V.salt = null; V.pass = null;
         clearInterval(V.pollTimer); V.pollTimer = null;
         clearTimeout(V.retryTimer); V.failCount = 0;
         tbl.innerHTML = '';
@@ -13300,6 +13381,45 @@ function makeVault(cfg) {
     }
 
     $('.vault-unlock').addEventListener('click', unlock);
+    // Face ID for this table (phones/tablets with PRF passkeys).
+    const pkArea = 'vault-' + cfg.id;
+    function pkVaultBar() {
+        const b = $('.vault-pksetup');
+        const e = pkAll()[pkArea];
+        b.style.display = PK_AVAILABLE && V.pass && !pkVaultReady(pkArea) ? '' : 'none';
+        b.innerHTML = e && e.pending ? '&#128273; Finish ' + PK_WORD + ' setup' : '&#128273; Set up ' + PK_WORD;
+    }
+    pkReady.then(() => { if (V.key) pkVaultBar(); else if ($('.vault-unlock').dataset.mode === 'unlock') $('.vault-pk').style.display = PK_AVAILABLE && pkVaultReady(pkArea) ? '' : 'none'; });
+    $('.vault-pksetup').addEventListener('click', async () => {
+        if (!V.pass) return;
+        const e = pkAll()[pkArea];
+        try {
+            if (e && e.pending) await pkVaultFinish(pkArea, V.pass);
+            else { const r = await pkVaultSetup(pkArea, cfg.title, V.pass); if (r.finish) { status('One more ' + PK_WORD + ' to finish — tap “Finish ' + PK_WORD + ' setup”.'); pkVaultBar(); return; } }
+            status(PK_WORD + ' is set up for ' + cfg.title + ' on this device.');
+        } catch (x) {
+            if (x && x.name === 'NoPrf') pkRemove(pkArea);
+            status(x && x.name === 'NotAllowedError' ? PK_WORD + ' setup was cancelled.' : (x.message || String(x)), true);
+        }
+        pkVaultBar();
+        if (typeof pkRenderSettings === 'function') pkRenderSettings();
+    });
+    $('.vault-pk').addEventListener('click', async () => {
+        const err = msg => { const el = $('.vault-lock-err'); el.textContent = msg; el.style.display = 'block'; };
+        let pass = null;
+        try { pass = await pkVaultOpen(pkArea); }
+        catch (x) { return err(x && x.name === 'NotAllowedError' ? PK_WORD + ' was cancelled — try again or enter the passphrase.' : PK_WORD + ' isn’t available right now — enter the passphrase.'); }
+        if (!pass) return err(PK_WORD + ' couldn’t open this table — enter the passphrase.');
+        $('.vault-pass').value = pass;
+        await unlock();
+        $('.vault-pass').value = '';
+        if (!V.key) {   // the passphrase changed since Face ID was set up
+            pkRemove(pkArea);
+            $('.vault-pk').style.display = 'none';
+            err('The passphrase has changed since ' + PK_WORD + ' was set up — enter the new one, then set up ' + PK_WORD + ' again.');
+            if (typeof pkRenderSettings === 'function') pkRenderSettings();
+        }
+    });
     ['.vault-pass', '.vault-pass2'].forEach(s => $(s).addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); }));
     $('.vault-lockbtn').addEventListener('click', lock);
     // Change the passphrase: the table is re-encrypted with the new one and
@@ -13492,7 +13612,8 @@ function pkRenderSettings() {
     if (!box) return;
     const all = pkAll(), areas = Object.keys(all);
     const st = document.getElementById('pkSettingsState');
-    if (st) st.textContent = PK_AVAILABLE ? `This device supports ${PK_WORD}. To set it up, unlock Admin or Reports with the password and keep \u201cUse ${PK_WORD} next time\u201d checked.`
+    if (st) st.textContent = PK_AVAILABLE ? `This device supports ${PK_WORD}. Admin and Reports: unlock with the password, keeping \u201cUse ${PK_WORD} next time\u201d checked. Passwords and DOOR Accounts: unlock with the passphrase, then tap \u201cSet up ${PK_WORD}\u201d.`
+        : !PK_MOBILE ? 'Face ID unlock is for phones and tablets; on a computer the passwords are used.'
         : 'This device or browser doesn\u2019t offer Face ID / passkeys for web apps, so the passwords are used.';
     box.innerHTML = areas.length ? areas.map(a => `<div class="pk-row"><span><b>${escapeHtml(all[a].label || a)}</b> <span class="muted-line">set up ${escapeHtml(new Date(all[a].created).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }))}</span></span><button type="button" class="btn small" data-pk-remove="${escapeAttr(a)}">Remove</button></div>`).join('')
         : '<div class="empty-note">Nothing set up on this device yet.</div>';
@@ -26061,7 +26182,7 @@ function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, '')
    be saved. Built on SAVE_TRACK (every backend write) plus the time of
    the last successful read.
    ============================================================ */
-const APP_VERSION = '1.177';
+const APP_VERSION = '1.178';
 let SYNC_LAST_OK = 0, SYNC_LAST_FAIL = 0;
 try { SYNC_LAST_OK = +localStorage.getItem('reve-sync-last-ok') || 0; } catch (e) {}
 function syncNoteOk() { SYNC_LAST_OK = Date.now(); try { localStorage.setItem('reve-sync-last-ok', String(SYNC_LAST_OK)); } catch (e) {} syncStatusRenderSoon(); }
@@ -26819,7 +26940,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-refresh-theme": {"title": "Update the App and Change Light/Dark Mode", "icon": "🌓", "category": "Settings", "steps": ["Go to Settings.", "Click Light or Dark to change the look.", "Click \"Refresh Site to Update\" to load the latest version of the app — do this if a new feature or fix isn't showing."]},
     "builtin-suggestions": {"title": "Suggest Improvements for Future Updates", "icon": "💡", "category": "Settings", "rev": 4, "steps": ["Go to Help › Suggest Improvements and type your idea, then click \"Save suggestion\". It's saved on this device right away, even offline.", "The list shows newest first, with the date and whether each one has been copied off the device yet. ✕ deletes one.", "When online, the whole list is copied to Google Drive › REVE Office/Suggested improvements.md (plain text, not encrypted), replacing the file each time, so Claude Code can read it in a later session.", "If it can't copy, the status says why: offline (it copies when you're back online), not connected (add the backend URL in Admin › Settings › Shared Backend, or the backend script needs the v7 update), or the error."]},
     "builtin-offline": {"title": "Use the App Offline (Tours Without a Connection)", "icon": "📶", "category": "Settings", "steps": ["Open the app once while online: it stores itself, the web libraries, floorplans and built-in documents on the device. Settings › Offline Use shows \"Ready offline\" when everything is stored (or click Download for offline).", "Optional: install it — Settings › Offline Use › Install app, or on iPhone/iPad: Safari › Share › Add to Home Screen.", "Offline, the app opens with the last synced data: pricing sheet, units, concession, Today's Tours, flyers and PDF downloads all work.", "The dot in the top banner turns gray (Offline). Edits are kept on the device and sent when you're back online; if a teammate changed the same thing meanwhile, their newer copy is kept and the dot's panel says so.", "Uploading reports, Google Drive filing and new data from the team need a connection."], "rev": 5},
-    "builtin-face-id": {"title": "Unlock Admin and Reports with Face ID", "icon": "🔑", "category": "Admin", "steps": ["Open Admin (or Admin › Reports) and enter the password as usual, leaving \"Use Face ID next time on this device\" checked. Your phone asks for Face ID once to set it up.", "Next time, tap \"Unlock with Face ID\" instead of typing the password. On other devices it says \"Unlock with passkey\" and uses that device's fingerprint, face or screen lock.", "It's set up per device and per area. If the team changes that password, Face ID stops working there until the new password is entered once (with the box checked).", "See or remove what's set up on this device in Admin › Settings › Face ID Unlock.", "The Passwords and DOOR Accounts tables still need their passphrase, because it's what unlocks their encryption."]},
+    "builtin-face-id": {"title": "Unlock Admin and Reports with Face ID", "icon": "🔑", "category": "Admin", "steps": ["Open Admin (or Admin › Reports) and enter the password as usual, leaving \"Use Face ID next time on this device\" checked. Your phone asks for Face ID once to set it up.", "Next time, tap \"Unlock with Face ID\" instead of typing the password. On other devices it says \"Unlock with passkey\" and uses that device's fingerprint, face or screen lock.", "It's set up per device and per area. If the team changes that password, Face ID stops working there until the new password is entered once (with the box checked).", "See or remove what's set up on this device in Admin › Settings › Face ID Unlock.", "Passwords and DOOR Accounts (Admin › INFO): unlock with the passphrase, then tap \"Set up Face ID\" in the table's bar (some phones ask for Face ID twice). Next time tap \"Unlock with Face ID\". This needs iOS 18 or a recent Android; if the passphrase changes, set it up again.", "Face ID unlock is only offered on phones and tablets; computers keep using the passwords."], "rev": 2},
     "builtin-unit-info": {"title": "Update Unit Info (Videos, Mailbox, Commission)", "icon": "🏢", "category": "Admin", "steps": ["Open the Info tab (top right, next to Help).", "Search for a unit by number.", "Edit any field — e.g. Video Name and Video Link, Mailbox, View, Amenity or Commission. Changes save automatically and are shared with the team.", "Video links here power the Tour flyers and \"Watch Video\" on the Sitemap tab's map."], "rev": 2},
     "builtin-retail-info": {"title": "Keep Retail Tenant Contacts and Websites Up to Date", "icon": "🏬", "category": "Admin", "steps": ["Go to Admin (enter the Admin password), open INFO, then the \"Retail\" sub-tab.", "Edit any cell directly, or click \"+ Add Suite\" for a new tenant.", "To load many at once, click \"Paste from Spreadsheet\", paste the rows (with the header row), and click Import.", "Add a Website for a suite and that suite becomes a clickable link on the Sitemap tab's map.", "Contacts are stored in the shared backend, not in the public site code."]},
     "builtin-backend": {"title": "Connect the Shared Backend", "icon": "🔗", "category": "Admin", "rev": 2, "steps": ["This is a one-time setup per device, usually already done for the team.", "On a device that isn't connected yet, open Admin: it asks for the Google Apps Script \"Web App URL\" first. Paste it and click Connect, then enter the Admin password.", "To change it later: Admin (password) › Settings › Shared Backend. Paste the URL, click Save, then \"Test Connection\" — it should say Connected.", "Once connected, Residents, Waitlist, Renewals notes, How-To guides, Documents and more are shared across agents.", "Without it, data stays in your browser only."]},

@@ -1,5 +1,14 @@
 [
  {
+  "v": "1.178",
+  "date": "2026-11-27",
+  "title": "Face ID for Passwords and DOOR Accounts; phones only",
+  "notes": [
+   "Passwords and DOOR Accounts can be opened with Face ID: unlock with the passphrase, then tap \"Set up Face ID\" in the table's bar. The passphrase is kept on the phone, encrypted with a secret only that phone's passkey can release (needs iOS 18 or a recent Android).",
+   "Face ID unlock is now offered only on phones and tablets; computers keep using the passwords."
+  ]
+ },
+ {
   "v": "1.177",
   "date": "2026-11-27",
   "title": "iPhone: zoom resets after typing",
