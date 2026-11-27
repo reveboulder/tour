@@ -1,5 +1,16 @@
 [
  {
+  "v": "1.173",
+  "date": "2026-11-27",
+  "title": "Tour: search above the pamphlet, unit setup with every lease term, cleaner pamphlet view; home-screen shortcuts",
+  "notes": [
+   "Tour's unit search now sits above the pamphlet; the filters stay in the left menu and narrow it. \"+ Add unit\" opens the full filtered unit list.",
+   "Picking a unit opens a setup page: the unit's details and every lease term from 3 to 15 months, with the default best rates highlighted. Continue uses the defaults, or pick your own terms (e.g. 3 / 6 / 9 / 12) to build the pamphlet with those.",
+   "Cleaner pamphlet header bar: unit, floorplan and size, a Concession switch, Lease terms (reopens the setup page) and the PDF downloads, evenly sized and spaced.",
+   "Installed app on Android: long-press the icon for Tour a unit, Availability, Check Residents and Suggest Improvements."
+  ]
+ },
+ {
   "v": "1.172",
   "date": "2026-11-27",
   "title": "Concession history and suggested Rate / Promo in Residents",
