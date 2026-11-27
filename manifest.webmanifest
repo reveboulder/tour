@@ -11,5 +11,11 @@
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
     { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Tour a unit", "short_name": "Tour", "description": "Open Tour with the unit search ready", "url": "./?go=tour", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Availability", "short_name": "Availability", "description": "Open the Availability page", "url": "./?go=availability", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Check Residents", "short_name": "Residents", "description": "Open the Residents page", "url": "./?go=residents", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Suggest Improvements", "short_name": "Suggest", "description": "Send an idea for the app", "url": "./?go=suggest", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
   ]
 }

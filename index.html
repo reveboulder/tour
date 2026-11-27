@@ -3104,18 +3104,85 @@
     /* -- Tour: bar above each pamphlet (screen only) -- */
     .add-unit-left { display: block; width: 100%; margin: 8px 0 4px; padding: 7px 10px; border: 1px dashed var(--reve-orange); border-radius: 8px; background: #fff; color: var(--reve-orange-dark); font-weight: 700; font-size: 12.5px; cursor: pointer; font-family: var(--sans); }
     .add-unit-left.active { background: var(--reve-orange); color: #fff; border-style: solid; }
-    .pam-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; margin: 0 0 8px; font-size: 12px; font-family: var(--sans); color: var(--ink); }
-    .pam-bar.current { border-color: var(--reve-orange); box-shadow: 0 0 0 1px rgba(222, 84, 38, 0.25); }
+    .pv-toolbar { flex-direction: column; align-items: stretch; gap: 8px; max-width: 540px; }
+    .pv-search-row { display: flex; gap: 8px; align-items: flex-start; }
+    .pv-search { position: relative; flex: 1; margin: 0; }
+    .pv-search-icon { position: absolute; left: 11px; top: 11px; width: 17px; height: 17px; color: var(--ink-soft); pointer-events: none; }
+    .pv-search #unitSearch { padding: 9px 12px 9px 36px; font-family: var(--sans); font-size: 14px; letter-spacing: 0; border-radius: 8px; box-shadow: 0 1px 2px rgba(20,15,5,0.06); }
+    .pv-search .unit-results { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 40; max-height: min(60vh, 460px); box-shadow: 0 14px 34px rgba(20,15,5,0.18); border-radius: 8px; }
+    .pv-toolbar .add-unit-btn { height: 39px; padding: 0 16px; font-size: 12px; border-radius: 8px; }
+    .pv-status-row { display: flex; align-items: center; gap: 8px; min-height: 22px; }
+    .pv-status-row .tour-turn-badge { margin-left: 0; }
+    .pv-status-row .status { margin-left: auto; }
+    .tour-setup { background: #fff; border-radius: 10px; padding: 26px 28px 22px; font-family: var(--sans); color: var(--ink); }
+    .ts-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding-bottom: 14px; border-bottom: 2px solid var(--reve-orange); }
+    .ts-kicker { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--reve-orange-dark); }
+    .ts-title { margin: 2px 0 2px; font-size: 26px; font-weight: 800; letter-spacing: 0.01em; }
+    .ts-sub { font-size: 12.5px; color: var(--ink-soft); }
+    .ts-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 0; border-bottom: 1px solid var(--line); }
+    .ts-facts > div { padding: 10px 0; border-bottom: 1px solid var(--line-soft, #eee); }
+    .ts-facts dt { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+    .ts-facts dd { margin: 2px 0 0; font-size: 14px; font-weight: 600; }
+    .ts-conc { margin-top: 12px; font-size: 12.5px; background: #fbeee8; border-radius: 6px; padding: 8px 10px; }
+    .ts-section { margin-top: 18px; }
+    .ts-section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .ts-section-head > span:first-child { font-size: 11px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; }
+    .ts-hint { font-size: 11.5px; color: var(--ink-soft); }
+    .ts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+    .ts-term { text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 10px 11px 9px; cursor: pointer; font-family: var(--sans); color: var(--ink); min-height: 86px; display: flex; flex-direction: column; gap: 2px; transition: border-color .12s, box-shadow .12s, background .12s; }
+    .ts-term:hover { border-color: var(--reve-orange); }
+    .ts-n { font-size: 11px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
+    .ts-p { font-size: 18px; font-weight: 800; }
+    .ts-p small { font-size: 11px; font-weight: 600; color: var(--ink-soft); margin-left: 1px; }
+    .ts-eff { font-size: 10.5px; color: var(--ink-soft); }
+    .ts-tags { margin-top: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+    .ts-tag { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 6px; border-radius: 999px; background: #f1efea; color: var(--ink-soft); }
+    .ts-tag.best { background: var(--reve-orange); color: #fff; }
+    .ts-tag.low { background: #e7f3e8; color: #2e7d32; }
+    .ts-term.ts-default { border-color: var(--reve-orange); background: #fdf5f1; box-shadow: 0 0 0 1px rgba(222,84,38,0.35); }
+    .ts-term.ts-picked { border-color: var(--ink); background: var(--ink); color: #fff; }
+    .ts-term.ts-picked .ts-n, .ts-term.ts-picked .ts-p small, .ts-term.ts-picked .ts-eff { color: rgba(255,255,255,0.75); }
+    .ts-term.ts-none { cursor: default; background: #faf9f7; color: #b5b0a8; border-style: dashed; }
+    .ts-term.ts-shake { animation: tsShake .35s; }
+    @keyframes tsShake { 0%,100% { transform: none; } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+    .ts-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .ts-actions .btn { width: auto; padding: 9px 18px; }
+    @media (max-width: 640px) {
+        .tour-setup { padding: 18px 16px; }
+        .ts-facts { grid-template-columns: repeat(2, 1fr); }
+        .ts-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+        .ts-term { padding: 9px 8px 8px; min-height: 78px; }
+        .ts-p { font-size: 15.5px; }
+        .ts-actions { flex-direction: column-reverse; }
+        .ts-actions .btn { width: 100%; }
+    }
+    .pam-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #fff; border-bottom: 1px solid var(--line); padding: 10px 14px; margin: 0; font-size: 12px; font-family: var(--sans); color: var(--ink); min-height: 52px; box-sizing: border-box; }
+    .pam-bar.current { box-shadow: inset 3px 0 0 var(--reve-orange); }
     .pam-bar[draggable="true"] { cursor: grab; }
     .pam-drag { color: var(--ink-soft); font-size: 14px; padding: 0 2px; }
-    .pam-unit { border: 0; background: none; padding: 0 4px; font-weight: 800; font-size: 12.5px; cursor: pointer; color: var(--ink); font-family: var(--sans); }
-    .pam-unit small { font-weight: 600; color: var(--reve-orange-dark); margin-left: 3px; }
-    .pam-btn { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 3px 8px; font-size: 11.5px; cursor: pointer; font-family: var(--sans); color: var(--ink); }
-    .pam-btn:hover:not(:disabled) { border-color: var(--reve-orange); }
+    .pam-unit { border: 0; background: none; padding: 0; cursor: pointer; color: var(--ink); font-family: var(--sans); display: flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; position: relative; }
+    .pam-apt { font-weight: 800; font-size: 14px; letter-spacing: 0.01em; }
+    .pam-meta { font-size: 11px; color: var(--ink-soft); font-weight: 500; }
+    .pam-editing { position: absolute; left: calc(100% + 6px); top: 1px; font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--reve-orange-dark); background: #fbeee8; border-radius: 999px; padding: 2px 6px; white-space: nowrap; }
+    .pam-actions { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+    .pam-btn { height: 28px; box-sizing: border-box; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 0 10px; font-size: 11.5px; font-weight: 600; cursor: pointer; font-family: var(--sans); color: var(--ink); white-space: nowrap; }
+    .pam-btn:hover:not(:disabled) { border-color: var(--reve-orange); color: var(--reve-orange-dark); }
     .pam-btn:disabled { opacity: 0.4; cursor: default; }
-    .pam-move { padding: 3px 6px; font-size: 9px; }
-    .pam-switch { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; cursor: pointer; }
-    .pam-out { margin-left: auto; display: inline-flex; gap: 4px; }
+    .pam-move { padding: 0 7px; font-size: 9px; }
+    .pam-switch { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; cursor: pointer; height: 28px; }
+    .pam-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .pam-switch-track { width: 28px; height: 16px; border-radius: 999px; background: #d6d1c8; position: relative; transition: background .15s; flex: none; }
+    .pam-switch-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform .15s; }
+    .pam-switch input:checked + .pam-switch-track { background: var(--reve-orange); }
+    .pam-switch input:checked + .pam-switch-track::after { transform: translateX(12px); }
+    .pam-switch input:focus-visible + .pam-switch-track { outline: 2px solid var(--reve-orange); outline-offset: 2px; }
+    .pam-out { display: inline-flex; gap: 6px; padding-left: 8px; border-left: 1px solid var(--line); }
+    .flyer-card-cell .pam-bar { padding: 8px 10px; gap: 6px; }
+    .flyer-card-cell .pam-actions { width: 100%; margin-left: 0; justify-content: space-between; }
+    .flyer-card-cell .pam-actions { flex-wrap: nowrap; gap: 6px; justify-content: flex-start; }
+    .flyer-card-cell .pam-out { border: 0; padding: 0; margin-left: auto; }
+    .flyer-card-cell .pam-btn { padding: 0 8px; }
+    body.dark-mode .tour-setup, body.dark-mode .ts-term:not(.ts-picked):not(.ts-default) { background: var(--dm-card-alt); color: inherit; }
     .flyer-card-cell.pam-dragging { opacity: 0.5; }
     .flyer-card-cell.pam-drop { outline: 2px dashed var(--reve-orange); outline-offset: 4px; }
     body.dark-mode .pam-bar, body.dark-mode .pam-btn, body.dark-mode .add-unit-left:not(.active) { background: var(--dm-card-alt); color: inherit; }
@@ -3802,11 +3869,7 @@
                 </span>
             </div>
 
-            <div class="section-label"><span class="dot"></span>Find a unit</div>
-            <div class="picker-block">
-                <input type="text" id="unitSearch" placeholder="Type unit # (e.g. 4334) or floorplan (e.g. B5)" autocomplete="off">
-                <div class="unit-results" id="unitResults"></div>
-            </div>
+            <div class="section-label"><span class="dot"></span>Unit filters <span class="hint">narrow the search above the pamphlet</span></div>
             <div class="filter-icon-bar">
                 <div class="filter-group icon-mode">
                     <button type="button" class="filter-caption icon-mode" data-target="moveInDateFilters" title="Move-In Date">
@@ -3985,14 +4048,23 @@
 
     <!-- ============ PREVIEW ============ -->
     <div class="preview-pane">
-        <div class="preview-toolbar">
-            <span id="previewLabel">No unit selected</span>
-            <span id="tourTurnBadge" class="tour-turn-badge"></span>
-            <span class="status" id="saveStatus"></span>
-            <button type="button" class="add-unit-btn" id="addUnitBtn" title="Add another unit to compare side by side">+ Add unit</button>
+        <div class="preview-toolbar pv-toolbar">
+            <div class="pv-search-row">
+                <div class="picker-block pv-search">
+                    <svg class="pv-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><line x1="16" y1="16" x2="21" y2="21"/></svg>
+                    <input type="text" id="unitSearch" placeholder="Find a unit &mdash; unit # (e.g. 4334) or floorplan (e.g. B5)" autocomplete="off" aria-label="Find a unit">
+                    <div class="unit-results" id="unitResults"></div>
+                </div>
+                <button type="button" class="add-unit-btn" id="addUnitBtn" title="Add another unit: opens the unit list (using the filters on the left)">+ Add unit</button>
+            </div>
+            <div class="pv-status-row">
+                <span id="previewLabel">No unit selected</span>
+                <span id="tourTurnBadge" class="tour-turn-badge"></span>
+                <span class="status" id="saveStatus"></span>
+            </div>
         </div>
         <div id="flyerMount">
-            <div class="no-unit">Search for a unit on the left to start building its tour pamphlet.<br><br>Specs, sq&nbsp;ft, bed/bath, address, and video link auto-fill from your roster. Pricing, availability, and images are entered per flyer since they change often.</div>
+            <div class="no-unit">Search for a unit above to start building its tour pamphlet. The filters on the left narrow the list.<br><br>Specs, sq&nbsp;ft, bed/bath, address, and video link auto-fill from your roster. Pricing, availability, and images are entered per flyer since they change often.</div>
         </div>
     </div>
 </div>
@@ -6969,7 +7041,7 @@ function runSearch() {
         list = [exact, ...list.filter(u => u.unit !== exact.unit)];
     }
 
-    list = list.slice(0, 40);
+    list = list.slice(0, 150);
     renderResults(list, marketed, tourExpiringMatches(q, marketed));
 }
 // With any filter set, units from the Expiring Leases report that match
@@ -7015,7 +7087,7 @@ function renderResults(list, marketed, expiring) {
         resultsBox.innerHTML = `<div class="unit-result"><span class="u-meta">No matching units in today\u2019s pricing sheet.</span></div>` + expHtml;
         resultsBox.classList.add('open');
         [...resultsBox.querySelectorAll('.unit-result[data-unit]')].forEach(row => {
-            row.addEventListener('click', () => { selectUnit(row.getAttribute('data-unit')); tourScrollToPreviewOnMobile(); });
+            row.addEventListener('click', () => tourPickUnit(row.getAttribute('data-unit')));
         });
         return;
     }
@@ -7039,7 +7111,7 @@ function renderResults(list, marketed, expiring) {
     }).join('') + expHtml;
     resultsBox.classList.add('open');
     [...resultsBox.querySelectorAll('.unit-result[data-unit]')].forEach(row => {
-        row.addEventListener('click', () => { selectUnit(row.getAttribute('data-unit')); tourScrollToPreviewOnMobile(); });
+        row.addEventListener('click', () => tourPickUnit(row.getAttribute('data-unit')));
     });
 }
 
@@ -7048,7 +7120,7 @@ searchInput.addEventListener('input', runSearch);
 searchInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         const exact = byUnit[searchInput.value.trim()];
-        if (exact) { selectUnit(exact.unit); tourScrollToPreviewOnMobile(); }
+        if (exact) tourPickUnit(exact.unit);
     }
 });
 // On phones/tablets the flyer preview sits below the whole editor, so
@@ -7066,7 +7138,7 @@ function tourScrollToPreviewOnMobile() {
 });
 ['moveInDateFilterInput', 'moveInAfterFilterInput'].forEach(id => document.getElementById(id).addEventListener('input', () => { updateFilterCaptionStates(); runSearch(); }));
 document.addEventListener('click', (e) => {
-    if (!e.target.closest('.picker-block')) resultsBox.classList.remove('open');
+    if (!e.target.closest('.picker-block, #addUnitBtn, #addUnitLeftBtn, #ttAddUnit')) resultsBox.classList.remove('open');
 });
 
 /* ============================================================
@@ -7258,8 +7330,9 @@ function setAddUnitArmed(on) {
     btn.textContent = on ? 'Cancel add' : '+ Add unit';
     const left = document.getElementById('addUnitLeftBtn');
     if (left) { left.classList.toggle('active', on); left.textContent = on ? 'Cancel add' : '+ Add a unit'; }
-    searchInput.placeholder = on ? 'Search a unit to add\u2026' : 'Type unit # (e.g. 4334) or floorplan (e.g. B5)';
-    if (on) searchInput.focus();
+    searchInput.placeholder = on ? 'Pick a unit to add, or type its number\u2026' : 'Find a unit \u2014 unit # (e.g. 4334) or floorplan (e.g. B5)';
+    if (on) { searchInput.value = ''; searchInput.focus(); runSearch(); }
+    else resultsBox.classList.remove('open');
 }
 
 document.getElementById('addUnitBtn').addEventListener('click', () => {
@@ -8025,20 +8098,146 @@ const FLYER_STYLE = `
 // Bar above each pamphlet (screen only — PDFs are built separately and never
 // include it): drag to reorder (or ◀ ▶), Concession on/off, Edit lease terms,
 // and this unit's own Download / Printable PDF.
+/* ---- Unit setup step (between picking a unit and its pamphlet) ----
+   The unit's details at the top and every lease term 3–15 below, with the
+   pamphlet's default terms highlighted (best price + the default slots).
+   Continue keeps the defaults; picking terms builds the pamphlet with just
+   those (the cheapest picked becomes Best price, the rest fill the slots). */
+let TOUR_SETUP = null;   // { unit, picks: [term numbers] }
+function tourHasTermPricing(unit) {
+    const p = PRICING_SUMMARY[unit];
+    return !!(p && p.allTerms && Object.keys(p.allTerms).length && byUnit[unit] && isUnitAvailable(byUnit[unit]));
+}
+// Picking a unit from the search list: its setup step first when it has rates.
+function tourPickUnit(unit) {
+    selectUnit(unit);
+    if (tourHasTermPricing(unit)) tourSetupOpen(unit);
+    tourScrollToPreviewOnMobile();
+}
+function tourSetupOpen(unit) {
+    if (unit !== currentUnit) populateEditorForUnit(unit);
+    TOUR_SETUP = { unit, picks: [] };
+    renderPreview();
+    const pane = document.querySelector('#tab-tour .preview-pane');
+    if (pane) pane.scrollTop = 0;
+}
+function tourSetupClose() {
+    TOUR_SETUP = null;
+    renderUnitTabs();
+    renderPreview();
+}
+function tourSetupDefaults(unit) {
+    const d = unit === currentUnit ? draft : loadDraft(unit);
+    const best = parseTermNum(d.bestTerm);
+    const others = (d.otherTerms || []).map(t => parseTermNum(t.term)).filter(Boolean);
+    return { best, others };
+}
+function renderTourSetup() {
+    const mount = document.getElementById('flyerMount');
+    const unit = TOUR_SETUP.unit, u = byUnit[unit], p = PRICING_SUMMARY[unit] || {};
+    const terms = p.allTerms || {};
+    const def = tourSetupDefaults(unit), picks = TOUR_SETUP.picks;
+    const dd = unit === currentUnit ? draft : loadDraft(unit);
+    const changed = !!(dd.edited && (dd.edited.otherTerms || dd.edited.bestTerm));   // terms already chosen by hand
+    const custom = picks.length > 0;
+    const prices = Object.values(terms);
+    const low = prices.length ? Math.min(...prices) : null;
+    const rule = findMatchingConcessionRule(u), conc = rule && concessionParse(rule.weeks, rule.kind);
+    const money = v => '$' + Math.round(v).toLocaleString('en-US');
+    const cards = [];
+    for (let n = 3; n <= 15; n++) {
+        const v = terms[n];
+        if (v === undefined) { cards.push(`<div class="ts-term ts-none"><div class="ts-n">${n} mo</div><div class="ts-p">&mdash;</div></div>`); continue; }
+        const isBest = n === def.best, isDef = isBest || def.others.includes(n), picked = picks.includes(n);
+        const eff = conc ? effectiveRent(v, n, conc) : null;
+        const cls = custom ? (picked ? ' ts-picked' : '') : (isDef ? ' ts-default' : '');
+        cards.push(`<button type="button" class="ts-term${cls}${v === low ? ' ts-low' : ''}" data-ts-term="${n}" aria-pressed="${picked}">
+            <div class="ts-n">${n} months</div><div class="ts-p">${money(v)}<small>/mo</small></div>
+            ${eff ? `<div class="ts-eff">${money(eff)}/mo effective</div>` : ''}
+            <div class="ts-tags">${isBest ? '<span class="ts-tag best">Best price</span>' : ''}${!isBest && isDef ? `<span class="ts-tag">${changed ? 'On pamphlet' : 'Default'}</span>` : ''}${v === low && !isBest ? '<span class="ts-tag low">Lowest</span>' : ''}</div>
+        </button>`);
+    }
+    const sorted = picks.slice().sort((a, b) => a - b);
+    const maxPicks = 1 + TERM_SLOTS;
+    const facts = [
+        ['Floorplan', `${u.floorplan}${u.yardi ? ` (${u.yardi})` : ''}`],
+        ['Bed / Bath', u.bedBath || '\u2014'],
+        ['Square feet', u.sqft ? `${u.sqft} sf` : '\u2014'],
+        ['Building', `${u.bldg}${u.floor ? ` \u00b7 ${ordinalFloor(u.floor)} floor` : ''}`],
+        ['View', u.view || '\u2014'],
+        ['Available', p.available || '\u2014']
+    ];
+    mount.classList.remove('multi');
+    mount.innerHTML = `<div class="tour-setup">
+        <div class="ts-head">
+            <div><div class="ts-kicker">Unit setup${selectedUnits.length > 1 ? ` &middot; unit ${selectedUnits.indexOf(unit) + 1} of ${selectedUnits.length}` : ''}</div>
+            <h2 class="ts-title">Apt ${escapeHtml(unit)}</h2>
+            <div class="ts-sub">${escapeHtml(u.address || '')}</div></div>
+            <div class="ts-badge">${turnBadgeHtml(unit)}</div>
+        </div>
+        <dl class="ts-facts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${escapeHtml(String(v))}</dd></div>`).join('')}</dl>
+        ${conc ? `<div class="ts-conc">Concession: <b>${escapeHtml(conc.label)}</b> &mdash; effective rents shown under each term.</div>` : ''}
+        <div class="ts-section">
+            <div class="ts-section-head"><span>Lease terms &amp; rates</span>
+                <span class="ts-hint">${custom ? `${picks.length} of up to ${maxPicks} picked: ${sorted.join(' / ')} months` : changed ? 'Highlighted: the terms on this pamphlet now. Click terms to choose different ones.' : 'Highlighted: the pamphlet\u2019s default best rates. Click terms to choose your own.'}</span></div>
+            <div class="ts-grid">${cards.join('')}</div>
+        </div>
+        <div class="ts-actions">
+            ${custom ? '<button type="button" class="btn" data-ts-clear>Back to defaults</button>' : ''}
+            <button type="button" class="btn primary" data-ts-go>${custom ? `Build pamphlet with ${sorted.join(' / ')} months` : changed ? 'Continue' : 'Continue with default rates'} &rarr;</button>
+        </div>
+    </div>`;
+}
+function tourSetupApply() {
+    const unit = TOUR_SETUP.unit, picks = TOUR_SETUP.picks.slice();
+    const p = PRICING_SUMMARY[unit];
+    if (picks.length && p && p.allTerms) {
+        if (unit !== currentUnit) populateEditorForUnit(unit);
+        const byPrice = picks.slice().sort((a, b) => p.allTerms[a] - p.allTerms[b] || a - b);
+        const best = byPrice[0];
+        const rest = picks.filter(n => n !== best).sort((a, b) => a - b);
+        draft.bestPrice = `$${Math.round(p.allTerms[best])}`;
+        draft.bestTerm = `${best}-Month Lease`;
+        draft.otherTerms = rest.slice(0, TERM_SLOTS).map(n => ({ price: `$${Math.round(p.allTerms[n])}`, term: `${n}-Month Lease` }));
+        markEdited('bestPrice', 'bestTerm', 'otherTerms');
+        fields.forEach(id => { document.getElementById(id).value = draft[fieldMap[id]] || ''; });
+        renderTermList();
+        saveDraft();
+        populateTermPickers(unit);
+    }
+    tourSetupClose();
+}
+document.getElementById('flyerMount').addEventListener('click', e => {
+    if (!TOUR_SETUP) return;
+    const t = e.target.closest('[data-ts-term]');
+    if (t) {
+        const n = parseInt(t.getAttribute('data-ts-term'), 10), picks = TOUR_SETUP.picks, i = picks.indexOf(n);
+        if (i >= 0) picks.splice(i, 1);
+        else if (picks.length < 1 + TERM_SLOTS) picks.push(n);
+        else { t.classList.add('ts-shake'); setTimeout(() => t.classList.remove('ts-shake'), 400); return; }
+        renderTourSetup();
+        return;
+    }
+    if (e.target.closest('[data-ts-clear]')) { TOUR_SETUP.picks = []; renderTourSetup(); return; }
+    if (e.target.closest('[data-ts-go]')) tourSetupApply();
+});
+
 function pamBarHtml(unit, d, i, n) {
     const multi = n > 1, isCur = unit === currentUnit;
     return `<div class="pam-bar${isCur ? ' current' : ''}" data-pam="${escapeAttr(unit)}"${multi ? ' draggable="true"' : ''}>
         ${multi ? `<span class="pam-drag" title="Drag to reorder" aria-hidden="true">☰</span>
         <button type="button" class="pam-btn pam-move" data-pam-move="-1" title="Move left" aria-label="Move Apt ${escapeAttr(unit)} left"${i === 0 ? ' disabled' : ''}>◀</button>
         <button type="button" class="pam-btn pam-move" data-pam-move="1" title="Move right" aria-label="Move Apt ${escapeAttr(unit)} right"${i === n - 1 ? ' disabled' : ''}>▶</button>` : ''}
-        <button type="button" class="pam-unit" data-pam-edit title="${isCur ? 'Editing this unit' : 'Edit this unit'}">Apt ${escapeHtml(unit)}${isCur ? ' <small>editing</small>' : ''}</button>
-        <label class="pam-switch" title="Show the concession calculator on this pamphlet"><input type="checkbox" data-pam-conc${d.concessionEnabled ? ' checked' : ''}> Concession</label>
-        <button type="button" class="pam-btn" data-pam-terms title="Edit this unit's lease terms (left menu)">Edit lease terms</button>
-        <span class="pam-out"><button type="button" class="pam-btn" data-pam-pdf="0" title="Download this unit's pamphlet">⤓ PDF</button><button type="button" class="pam-btn" data-pam-pdf="1" title="Download this unit's printable pamphlet">⤓ Printable</button></span>
+        <button type="button" class="pam-unit" data-pam-edit title="${isCur ? 'Editing this unit' : 'Edit this unit'}"><span class="pam-apt">Apt ${escapeHtml(unit)}</span>${byUnit[unit] ? `<span class="pam-meta">${escapeHtml(byUnit[unit].floorplan)} &middot; ${escapeHtml(byUnit[unit].bedBath || '')} &middot; ${escapeHtml(String(byUnit[unit].sqft || ''))} sf</span>` : ''}${isCur ? '<span class="pam-editing">Editing</span>' : ''}</button>
+        <span class="pam-actions"><label class="pam-switch" title="Show the concession calculator on this pamphlet"><input type="checkbox" data-pam-conc${d.concessionEnabled ? ' checked' : ''}><span class="pam-switch-track" aria-hidden="true"></span>Concession</label>
+        <button type="button" class="pam-btn" data-pam-terms title="Choose this unit's lease terms (all 3–15 month rates)">Lease terms</button>
+        <span class="pam-out"><button type="button" class="pam-btn" data-pam-pdf="0" title="Download this unit's pamphlet">⤓ PDF</button><button type="button" class="pam-btn" data-pam-pdf="1" title="Download this unit's printable pamphlet">⤓ Printable</button></span></span>
     </div>`;
 }
 function renderPreview() {
     if (!selectedUnits.length) return;
+    if (TOUR_SETUP && selectedUnits.includes(TOUR_SETUP.unit)) { renderTourSetup(); return; }
+    TOUR_SETUP = null;
     const mount = document.getElementById('flyerMount');
     const n = selectedUnits.length;
 
@@ -8082,6 +8281,7 @@ function pamMakeCurrent(unit) {
         if (e.target.closest('[data-pam-edit]')) { pamMakeCurrent(unit); return; }
         if (e.target.closest('[data-pam-terms]')) {
             pamMakeCurrent(unit);
+            if (tourHasTermPricing(unit)) { tourSetupOpen(unit); return; }
             const f = document.getElementById('otherTermsField');
             if (f) { f.scrollIntoView({ block: 'center', behavior: 'smooth' }); f.classList.add('term-flash'); setTimeout(() => f.classList.remove('term-flash'), 1800); }
             return;
@@ -25466,7 +25666,7 @@ function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, '')
    be saved. Built on SAVE_TRACK (every backend write) plus the time of
    the last successful read.
    ============================================================ */
-const APP_VERSION = '1.172';
+const APP_VERSION = '1.173';
 let SYNC_LAST_OK = 0, SYNC_LAST_FAIL = 0;
 try { SYNC_LAST_OK = +localStorage.getItem('reve-sync-last-ok') || 0; } catch (e) {}
 function syncNoteOk() { SYNC_LAST_OK = Date.now(); try { localStorage.setItem('reve-sync-last-ok', String(SYNC_LAST_OK)); } catch (e) {} syncStatusRenderSoon(); }
@@ -26172,7 +26372,7 @@ function seedHowToGuides() {
         },
         'seed-tour': {
             title: 'Build a Tour Pamphlet', icon: '\ud83c\udfe0', category: 'Leasing',
-            steps: ['Search for a unit number or floorplan in "Find a Unit".', 'Confirm the auto-filled specs, price, and availability.', 'Add a photo and video link if not already set.', 'Click "Download PDF" to get a flyer with clickable links, or "Download Printable PDF" for a handout copy.']
+            steps: ['Search for a unit number or floorplan in the search bar above the pamphlet.', 'On the unit setup page, click Continue for the default best rates, or pick your own lease terms first.', 'Confirm the auto-filled specs, price, and availability.', 'Add a photo and video link if not already set.', 'Click "Download PDF" to get a flyer with clickable links, or "Download Printable PDF" for a handout copy.']
         },
         'seed-renewal': {
             title: 'Generate a Renewal Offer', icon: '\ud83d\udcdd', category: 'Leasing',
@@ -26190,11 +26390,11 @@ function seedHowToGuides() {
 // built-in leaves a { deleted: true } marker so it isn't re-added.
 const HOWTO_BUILTIN_GUIDES = {
     "builtin-app-tour": {"title": "Getting Around the App", "icon": "🧭", "category": "General", "steps": ["Top row: Tour (flyers and Today's Tours), Availability (calendar), Expiring (upcoming lease ends), Waitlist (prospects), Sitemap (site map, videos and DOOR Devices), Documents (printables, floorplans, Pricing rent lookup and Renewal Offers).", "Top right: Info (Unit Info), Help (How-To guides, Questions and Suggest Improvements) and Settings (Light/Dark, Refresh, Live/Test mode, Offline Use, Market Rent Schedule and Carpet Measurements).", "Second row: Turns (unit turn tracker), Residents (move-in tracking), WL (Welcome Letter), Lease (new lease data), Renewals (renewal decisions & offers), and Admin (password-protected: INFO, Reports — MMR, Commissions, PCard and Deposit Accounting behind one more password — Blueprints, and ⚙ Settings at the top right: shared backend, Backend Health, passwords, property profile, Default Charges and Office Hours).", "Anything marked \"shared\" syncs for the whole team when the backend is connected in Admin › Settings — changes show up for everyone within about 25 seconds.", "Uploaded reports (pricing sheet, lease expirations, renewals) feed several tabs at once — upload them once and Tour, Availability, Expiring, Waitlist, Turns and Renewals all update.", "Not seeing a recent change? Go to Settings and click \"Refresh Site to Update\"."], "rev": 4},
-    "builtin-search-filters": {"title": "Use the Search Filters (Tour, Availability, Expiring)", "icon": "🔎", "category": "Tour", "steps": ["The round filter icons sit above the unit list on Tour, above the calendar on Availability, and above the list on Expiring.", "Click an icon to open its options, then click as many options as you like — the list updates as you pick. Click outside (or the icon again) to close it.", "Move-In: \"Move-in before\" shows units available on or before that date; add an optional \"Move-in after\" date for a range (e.g. after Dec 1, before Jan 15). On Expiring it filters by lease end date.", "Search by Lease Term (Availability, top of the left menu): pick a term (3–15 months) to switch the calendar to a list of every available unit with its rent for that term, the four nearest terms in smaller type, specs, availability, turn status, best price, $/sq ft and the concession's effective rent. The filters below still narrow the list, and Price filters on that term's rent. Open in Tour opens the unit with that term and its three nearest in the lease-term slots. \"Back to calendar\" returns.", "Beds: Studio, 1-Bed, 2-Bed, 3-Bed, Townhome or Live/Work (A7 and A9 count as 1-Bed with Den). Floorplan: specific plans (e.g. B5). Floor and Building narrow by location.", "Price and Sq Ft (Tour and Availability): enter a Min, a Max, or both.", "Amenity: Mountain View, Corner Unit or Balcony.", "On Tour, once filters are set, matching units from the Expiring report also show — grayed — below the available ones, as possible upcoming options.", "An active filter shows your choice under its icon. Filters combine — a unit has to match all of them. Click \"Clear filters\" to reset everything, including the move-in dates.", "Tip: on Tour, typing an exact unit number always puts that unit at the top of the results, even if it is filtered out or not in today's pricing sheet."], "rev": 4},
+    "builtin-search-filters": {"title": "Use the Search Filters (Tour, Availability, Expiring)", "icon": "🔎", "category": "Tour", "steps": ["The round filter icons sit in Tour's left menu (they narrow the search bar above the pamphlet), above the calendar on Availability, and above the list on Expiring.", "Click an icon to open its options, then click as many options as you like — the list updates as you pick. Click outside (or the icon again) to close it.", "Move-In: \"Move-in before\" shows units available on or before that date; add an optional \"Move-in after\" date for a range (e.g. after Dec 1, before Jan 15). On Expiring it filters by lease end date.", "Search by Lease Term (Availability, top of the left menu): pick a term (3–15 months) to switch the calendar to a list of every available unit with its rent for that term, the four nearest terms in smaller type, specs, availability, turn status, best price, $/sq ft and the concession's effective rent. The filters below still narrow the list, and Price filters on that term's rent. Open in Tour opens the unit with that term and its three nearest in the lease-term slots. \"Back to calendar\" returns.", "Beds: Studio, 1-Bed, 2-Bed, 3-Bed, Townhome or Live/Work (A7 and A9 count as 1-Bed with Den). Floorplan: specific plans (e.g. B5). Floor and Building narrow by location.", "Price and Sq Ft (Tour and Availability): enter a Min, a Max, or both.", "Amenity: Mountain View, Corner Unit or Balcony.", "On Tour, once filters are set, matching units from the Expiring report also show — grayed — below the available ones, as possible upcoming options.", "An active filter shows your choice under its icon. Filters combine — a unit has to match all of them. Click \"Clear filters\" to reset everything, including the move-in dates.", "Tip: on Tour, typing an exact unit number always puts that unit at the top of the results, even if it is filtered out or not in today's pricing sheet."], "rev": 5},
     "builtin-pricing-concession": {"title": "Set the Current Concession", "icon": "🏷️", "category": "Tour", "steps": ["On the Tour tab, find \"Current Concession\" at the top of the left panel and click Update Concession.", "Concession Terms: the plain-language special shown on the Tour tab and flyers (e.g. \"6 weeks free on select units or $1500 free on all else\"). Additional Notes are for agents only.", "Up to 3 rules, checked in order. For each, pick Weeks or $ Off and enter the amount: a single digit is read as weeks, a bigger number as dollars (a $ is added). Click the other tile to switch, e.g. for 10 weeks.", "Qualifying Units: unit numbers separated by commas (e.g. 1204, 1338, 1239), floorplan types or codes (LW, 2-Bed, A9), \"All Immediate\" for units available now, or \"All else\" for every unit not covered by an earlier rule — put that one last.", "The line under each rule shows what it means and which units it covers, and flags any number that isn't a unit.", "Click \"Save Updated Concession\" — it's shared with the team and applies automatically when a matching unit is opened on Tour.", "Concession History, at the bottom of the page, keeps every concession that was replaced, with the dates it applied (added to replaced). Residents uses it to suggest the Promo for the Date Applied.", "On each flyer, \"Show concession calculator on flyer\" and \"Concession (weeks free, or $ amount off)\" control what that flyer shows; type 4 for weeks or $1500 for dollars.", "The calculator uses the unit's 3 cheapest 12–15 month rates: weeks free take that many weeks of rent off, a $ amount is taken off the whole lease, and both are shown as the effective monthly payment."], "rev": 3},
-    "builtin-compare-units": {"title": "Put Several Units on One Flyer", "icon": "🗂️", "category": "Tour", "rev": 2, "steps": ["Open the first unit on the Tour tab as usual.", "Click \"+ Add a unit\" (left menu, or \"+ Add unit\" above the preview), then search for and pick the next unit.", "Each pamphlet has a small bar above it (on screen only, never printed): click Apt to edit that unit, toggle Concession, Edit lease terms (scrolls the left menu to them), or download just that unit's PDF / Printable.", "Drag a pamphlet's bar (☰) onto another to change the order, or use ◀ ▶. The order is used in the downloads.", "Download PDF / Download Printable PDF in the left menu include every unit, in that order. Remove a unit under \"Units in this pamphlet\"."]},
+    "builtin-compare-units": {"title": "Put Several Units on One Flyer", "icon": "🗂️", "category": "Tour", "rev": 3, "steps": ["Open the first unit on the Tour tab as usual.", "Click \"+ Add unit\" next to the search bar (or \"+ Add a unit\" in the left menu): the full unit list opens, narrowed by the filters on the left. Pick the next unit, then Continue on its setup page.", "Each pamphlet has a header bar (on screen only, never printed): click Apt to edit that unit, toggle Concession, Lease terms (reopens the setup page with every 3–15 month rate), or download just that unit's PDF / Printable.", "Drag a pamphlet's bar (☰) onto another to change the order, or use ◀ ▶. The order is used in the downloads.", "Download PDF / Download Printable PDF in the left menu include every unit, in that order. Remove a unit under \"Units in this pamphlet\"."]},
     "builtin-todays-tours": {"title": "Run Today's Tours", "icon": "🚪", "category": "Tour", "steps": ["On the Tour tab, under the pricing sheet, click \"+ Add\" next to Today's Tours and enter the prospect's name. The list is kept on this device and starts empty each day.", "Click \"Edit Tour\" next to a name: the Tour tab switches to that person's own filters, units and flyer edits.", "Pick units as usual, or click \"+ Add a unit\" to add more — each unit is its own pamphlet.", "Click \"Done\" to go back to the regular Tour view; the tour is kept.", "Click \"Complete Tour\", enter their email (and any Specific Notes) and the app builds an email draft with one pamphlet PDF per unit, the fee sheet and the \"Tour follow-up\" template from Documents › Email Templates.", "Each completed tour is added once to MMR › Weekly Traffic Detail."], "rev": 2},
-    "builtin-lease-terms": {"title": "Fill Prices and Lease Terms from the Pricing Sheet", "icon": "💲", "category": "Tour", "steps": ["Make sure today's pricing sheet is uploaded (Tour tab > Daily pricing sheet > Upload CSV).", "Open a unit. Its earliest availability and best price fill in automatically, with the next four best rates in the four \"Other lease terms\" slots.", "Use \"Autofill best price from a term…\" to set the best price and term from a specific lease length.", "To change a slot, pick a term from its dropdown (each shows that term's rent) — it replaces that slot's term and price. You can still type over a price.", "Click \"Reset to default\" to go back to the best price and the next four best rates.", "From Availability › Search by Lease Term, Open in Tour fills the slots with that term and its three nearest.", "If the per-term options are missing, re-upload today's pricing sheet."], "rev": 2},
+    "builtin-lease-terms": {"title": "Fill Prices and Lease Terms from the Pricing Sheet", "icon": "💲", "category": "Tour", "steps": ["Make sure today's pricing sheet is uploaded (Tour tab > Daily pricing sheet > Upload CSV).", "Pick a unit in the search bar above the pamphlet. The unit setup page shows its details and every lease term from 3 to 15 months, with the default best rates highlighted (Best price plus the next four).", "Click Continue to build the pamphlet with the defaults, or click the terms you want (e.g. 3, 6, 9 and 12, up to five) and click Build pamphlet: the cheapest one you picked becomes Best price and the rest fill the slots. \"Lease terms\" on the pamphlet's header bar reopens this page.", "Its earliest availability and best price fill in automatically, with the next four best rates in the four \"Other lease terms\" slots.", "Use \"Autofill best price from a term…\" to set the best price and term from a specific lease length.", "To change a slot, pick a term from its dropdown (each shows that term's rent) — it replaces that slot's term and price. You can still type over a price.", "Click \"Reset to default\" to go back to the best price and the next four best rates.", "From Availability › Search by Lease Term, Open in Tour fills the slots with that term and its three nearest.", "If the per-term options are missing, re-upload today's pricing sheet."], "rev": 3},
     "builtin-price-history": {"title": "See a Unit's Price History", "icon": "📈", "category": "Tour", "rev": 2, "steps": ["On the Tour tab, open a unit and click \"View price history\" under Best price.", "The page reads every pricing sheet saved in Documents › Pricing (each sheet uploaded on the Tour tab is kept there).", "The chart shows the unit's best price (cheapest 11–15 month rent) on each sheet; use Show to switch to any lease term from 3 to 15 months. Hover a point for its date and price; gaps mean the unit wasn't on that sheet.", "The tiles show the latest price and the change since the previous sheet, the first price on file, the overall change, lowest and highest, and how long it's been listed.", "The table lists every sheet (newest first) with the move-in date used, best price, change, and every term's rent."]},
     "builtin-unavailable-flyer": {"title": "Make a Flyer for a Unit That Isn't Available Yet", "icon": "⏳", "category": "Tour", "steps": ["Open the unit from the Expiring tab (click its row), from the site map, or type its number on the Tour tab.", "Units not in today's pricing sheet open in the \"not currently available\" layout.", "Availability, other lease terms and the concession section are hidden on the flyer automatically.", "Enter an estimated price in \"Best price\" — it shows as an estimate on the flyer.", "Download the PDF as usual."]},
     "builtin-availability-calendar": {"title": "Browse the Availability Calendar", "icon": "📅", "category": "Availability", "steps": ["Upload today's pricing sheet on the Tour tab first — the calendar uses it.", "Open the Availability tab. Each available unit appears on the date it becomes available.", "Use Month or Week to change the view, and ‹ › to move between months or weeks.", "Click a day to see its units, or click Today to jump straight to today.", "The line under the month title counts that month's availabilities by bed type.", "Use the filter icons (Beds, Price, Floor, etc.) to narrow what the calendar shows.", "Click any unit on the calendar to open it in the Tour tab and build its flyer."]},
@@ -26223,7 +26423,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
     "builtin-refresh-theme": {"title": "Update the App and Change Light/Dark Mode", "icon": "🌓", "category": "Settings", "steps": ["Go to Settings.", "Click Light or Dark to change the look.", "Click \"Refresh Site to Update\" to load the latest version of the app — do this if a new feature or fix isn't showing."]},
     "builtin-suggestions": {"title": "Suggest Improvements for Future Updates", "icon": "💡", "category": "Settings", "rev": 4, "steps": ["Go to Help › Suggest Improvements and type your idea, then click \"Save suggestion\". It's saved on this device right away, even offline.", "The list shows newest first, with the date and whether each one has been copied off the device yet. ✕ deletes one.", "When online, the whole list is copied to Google Drive › REVE Office/Suggested improvements.md (plain text, not encrypted), replacing the file each time, so Claude Code can read it in a later session.", "If it can't copy, the status says why: offline (it copies when you're back online), not connected (add the backend URL in Admin › Settings › Shared Backend, or the backend script needs the v7 update), or the error."]},
-    "builtin-offline": {"title": "Use the App Offline (Tours Without a Connection)", "icon": "📶", "category": "Settings", "rev": 2, "steps": ["Open the app once while online: it stores itself, the web libraries, floorplans and built-in documents on the device. Settings › Offline Use shows \"Ready offline\" when everything is stored (or click Download for offline).", "Optional: install it — Settings › Offline Use › Install app, or on iPhone/iPad: Safari › Share › Add to Home Screen.", "Offline, the app opens with the last synced data: pricing sheet, units, concession, Today's Tours, flyers and PDF downloads all work.", "The dot in the top banner turns gray (Offline). Edits are kept on the device and sent when you're back online; if a teammate changed the same thing meanwhile, their newer copy is kept and the dot's panel says so.", "Uploading reports, Google Drive filing and new data from the team need a connection."]},
+    "builtin-offline": {"title": "Use the App Offline (Tours Without a Connection)", "icon": "📶", "category": "Settings", "steps": ["Open the app once while online: it stores itself, the web libraries, floorplans and built-in documents on the device. Settings › Offline Use shows \"Ready offline\" when everything is stored (or click Download for offline).", "Optional: install it — Settings › Offline Use › Install app, or on iPhone/iPad: Safari › Share › Add to Home Screen.", "On Android, long-press the installed app's icon for shortcuts: Tour a unit (opens the unit search), Availability, Check Residents and Suggest Improvements.", "Offline, the app opens with the last synced data: pricing sheet, units, concession, Today's Tours, flyers and PDF downloads all work.", "The dot in the top banner turns gray (Offline). Edits are kept on the device and sent when you're back online; if a teammate changed the same thing meanwhile, their newer copy is kept and the dot's panel says so.", "Uploading reports, Google Drive filing and new data from the team need a connection."], "rev": 3},
     "builtin-unit-info": {"title": "Update Unit Info (Videos, Mailbox, Commission)", "icon": "🏢", "category": "Admin", "steps": ["Open the Info tab (top right, next to Help).", "Search for a unit by number.", "Edit any field — e.g. Video Name and Video Link, Mailbox, View, Amenity or Commission. Changes save automatically and are shared with the team.", "Video links here power the Tour flyers and \"Watch Video\" on the Sitemap tab's map."], "rev": 2},
     "builtin-retail-info": {"title": "Keep Retail Tenant Contacts and Websites Up to Date", "icon": "🏬", "category": "Admin", "steps": ["Go to Admin (enter the Admin password), open INFO, then the \"Retail\" sub-tab.", "Edit any cell directly, or click \"+ Add Suite\" for a new tenant.", "To load many at once, click \"Paste from Spreadsheet\", paste the rows (with the header row), and click Import.", "Add a Website for a suite and that suite becomes a clickable link on the Sitemap tab's map.", "Contacts are stored in the shared backend, not in the public site code."]},
     "builtin-backend": {"title": "Connect the Shared Backend", "icon": "🔗", "category": "Admin", "rev": 2, "steps": ["This is a one-time setup per device, usually already done for the team.", "On a device that isn't connected yet, open Admin: it asks for the Google Apps Script \"Web App URL\" first. Paste it and click Connect, then enter the Admin password.", "To change it later: Admin (password) › Settings › Shared Backend. Paste the URL, click Save, then \"Test Connection\" — it should say Connected.", "Once connected, Residents, Waitlist, Renewals notes, How-To guides, Documents and more are shared across agents.", "Without it, data stays in your browser only."]},
@@ -32606,6 +32806,31 @@ try {
         if (document.getElementById('tab-' + returnTab)) switchTab(returnTab);
     }
 } catch (e) {}
+
+// Home-screen shortcuts (long-press the installed app icon): the manifest
+// opens ./?go=tour | availability | residents | suggest.
+(function appShortcut() {
+    let go = '';
+    try { go = new URLSearchParams(location.search).get('go') || ''; } catch (e) {}
+    if (!go) return;
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
+    if (go === 'tour') {
+        switchTab('tour');
+        setTimeout(() => {
+            const inp = document.getElementById('unitSearch');
+            inp.scrollIntoView({ block: 'center' });
+            inp.focus();
+            runSearch();
+        }, 150);
+    } else if (go === 'availability') switchTab('availability');
+    else if (go === 'residents') switchTab('residents');
+    else if (go === 'suggest') {
+        switchTab('howto');
+        helpSubTab = 'suggest';
+        renderHelpSubTab();
+        setTimeout(() => { const t = document.getElementById('suggText'); if (t) t.focus(); }, 150);
+    }
+})();
 </script>
 </body>
 </html>
