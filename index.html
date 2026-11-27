@@ -9041,7 +9041,9 @@ const NAV_GROUP_OF = { tour: 'leasing', availability: 'leasing', expiring: 'leas
     howto: 'help', admin: 'admin', settings: 'admin' };
 const NAV_PARENT_TAB = { concession: 'tour' };
 const NAV_LAST = { turns: 'turns', leasing: 'tour', residents: 'residents', property: 'media', help: 'howto', admin: 'admin' };
-try { Object.assign(NAV_LAST, JSON.parse(localStorage.getItem('reve-nav-last') || '{}')); } catch (e) {}
+// Remembered pages only count if they still belong to that section (Turns
+// used to be under Residents, so an old "residents: turns" is ignored).
+try { const saved = JSON.parse(localStorage.getItem('reve-nav-last') || '{}') || {}; Object.keys(saved).forEach(g => { if (NAV_GROUP_OF[saved[g]] === g && NAV_LAST[g] !== undefined) NAV_LAST[g] = saved[g]; }); } catch (e) {}
 function navSync(name) {
     const group = NAV_GROUP_OF[name] || 'leasing';
     if (NAV_GROUP_OF[name] && !NAV_PARENT_TAB[name]) {
@@ -26193,7 +26195,7 @@ function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, '')
    be saved. Built on SAVE_TRACK (every backend write) plus the time of
    the last successful read.
    ============================================================ */
-const APP_VERSION = '1.179';
+const APP_VERSION = '1.180';
 let SYNC_LAST_OK = 0, SYNC_LAST_FAIL = 0;
 try { SYNC_LAST_OK = +localStorage.getItem('reve-sync-last-ok') || 0; } catch (e) {}
 function syncNoteOk() { SYNC_LAST_OK = Date.now(); try { localStorage.setItem('reve-sync-last-ok', String(SYNC_LAST_OK)); } catch (e) {} syncStatusRenderSoon(); }
