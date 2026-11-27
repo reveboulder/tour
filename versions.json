@@ -1,5 +1,15 @@
 [
  {
+  "v": "1.172",
+  "date": "2026-11-27",
+  "title": "Concession history and suggested Rate / Promo in Residents",
+  "notes": [
+   "Tour's concession button is now \"Update Concession\". Each update keeps the concession it replaced, with the dates it applied, in Concession History at the bottom of that page.",
+   "Residents: once Unit, Date Applied and Term are filled in, Rate is suggested from the pricing saved for the Date Applied (the Move-In date's row when the sheet has it) and Promo from the concession in effect that day (weeks free = weeks ÷ 4 × rate).",
+   "Click ✓ to use a suggestion, or type your own amount."
+  ]
+ },
+ {
   "v": "1.171",
   "date": "2026-11-24",
   "title": "Tour: add units from the left menu, bar above each pamphlet",
