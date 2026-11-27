@@ -54,10 +54,21 @@
         .top-tabs-groups .app-version-btn { font-size: 10px; padding: 3px 4px; }
         .top-tabs-groups .sync-dot-btn { padding: 4px 4px; }
     }
-    @media (max-width: 480px) {
+    @media (max-width: 600px) {
         .top-tabs-groups .nav-group[data-group="help"] .ng-text, .top-tabs-groups .nav-group[data-group="admin"] .ng-text { display: none; }
         .top-tabs-groups .ng-icon { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid currentColor; font-size: 11.5px; font-weight: 800; line-height: 1; }
         .top-tabs-groups .nav-group[data-group="admin"] .ng-icon { border: 0; font-size: 17px; }
+    }
+    /* Section icons: next to the word on computers, in place of it on phones. */
+    .nav-group { display: inline-flex; align-items: center; gap: 7px; }
+    .ng-svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .top-tabs-groups .nav-group { padding-top: 13px; padding-bottom: 13px; }
+    @media (max-width: 600px) {
+        .top-tabs-groups .nav-group .ng-text { display: none; }
+        .top-tabs-groups .ng-svg { width: 22px; height: 22px; }
+        .top-tabs-groups .nav-group { padding: 12px 8px; }
+        .top-tabs-groups .nav-group[data-group="help"], .top-tabs-groups .nav-group[data-group="admin"] { padding: 12px 6px; }
+        .top-tabs-groups .test-mode-badge.show { display: none; }
     }
     .nav-group { flex-shrink: 0; font-family: var(--sans); font-size: 13px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,0.62); background: none; border: none; padding: 9px 15px; cursor: pointer; border-bottom: 2px solid transparent; }
     .nav-group:hover { color: #fff; }
@@ -146,7 +157,7 @@
     @keyframes syncPulse { 50% { opacity: 0.35; } }
     .app-update-flag { background: var(--reve-orange); color: #fff; border-radius: 999px; padding: 1px 6px; font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
     @media (max-width: 700px) { .sync-dot-text { display: none; } .sync-dot-btn { padding: 5px 7px; } }
-    .hdr-panel { position: fixed; top: 44px; right: 12px; z-index: 3000; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 70px); overflow: auto; background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); padding: 14px 16px; font-size: 12.5px; }
+    .hdr-panel { position: fixed; top: 52px; right: 12px; z-index: 3000; width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 70px); overflow: auto; background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); padding: 14px 16px; font-size: 12.5px; }
     .hdr-panel-wide { width: min(560px, calc(100vw - 24px)); }
     .hdr-panel h3 { margin: 0 0 8px; font-family: 'Oswald', var(--sans); font-size: 16px; font-weight: 600; letter-spacing: 0.02em; display: flex; align-items: center; gap: 8px; }
     .hdr-panel .hp-row { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--line); }
@@ -3887,10 +3898,10 @@
 
 <div class="top-tabs-wrap">
     <div class="top-tabs top-tabs-groups" role="tablist" aria-label="Sections">
-        <button type="button" class="nav-group" data-group="turns">Turns</button>
-        <button type="button" class="nav-group active" data-group="leasing">Leasing</button>
-        <button type="button" class="nav-group" data-group="residents">Residents</button>
-        <button type="button" class="nav-group" data-group="property">Property</button>
+        <button type="button" class="nav-group" data-group="turns" aria-label="Turns" title="Turns"><svg class="ng-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3.5" width="14" height="5.5" rx="1.3"/><path d="M17 6.2h2.5a1 1 0 0 1 1 1V11a1 1 0 0 1-1 1H11v3"/><rect x="9.5" y="15" width="3" height="6" rx=".8"/></svg><span class="ng-text">Turns</span></button>
+        <button type="button" class="nav-group active" data-group="leasing" aria-label="Leasing" title="Leasing"><svg class="ng-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4.5" width="14" height="16.5" rx="1.5"/><rect x="9" y="2.8" width="6" height="3.4" rx=".8"/><path d="M8.5 11h7M8.5 14.5h7M8.5 18h4"/></svg><span class="ng-text">Leasing</span></button>
+        <button type="button" class="nav-group" data-group="residents" aria-label="Residents" title="Residents"><svg class="ng-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.3"/><path d="M2.8 20a6.2 6.2 0 0 1 12.4 0"/><circle cx="17" cy="9" r="2.6"/><path d="M16.2 14.2A5 5 0 0 1 21.5 19"/></svg><span class="ng-text">Residents</span></button>
+        <button type="button" class="nav-group" data-group="property" aria-label="Property" title="Property"><svg class="ng-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V10l5-2.5V21"/><path d="M10 21V4.5l9 3.5v13"/><path d="M13 10h1.5M13 13.5h1.5M16 11h1M16 14.5h1M7 13h1M7 16.5h1"/></svg><span class="ng-text">Property</span></button>
         <div class="top-tabs-right">
             <span class="test-mode-badge" id="testModeBadge">Test Mode</span>
             <button type="button" class="gs-btn" id="gsBtn" aria-haspopup="dialog" aria-controls="gsPanel" title="Search units and residents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><line x1="16" y1="16" x2="21" y2="21"/></svg><span class="gs-btn-text">Search</span></button>
@@ -26182,7 +26193,7 @@ function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, '')
    be saved. Built on SAVE_TRACK (every backend write) plus the time of
    the last successful read.
    ============================================================ */
-const APP_VERSION = '1.178';
+const APP_VERSION = '1.179';
 let SYNC_LAST_OK = 0, SYNC_LAST_FAIL = 0;
 try { SYNC_LAST_OK = +localStorage.getItem('reve-sync-last-ok') || 0; } catch (e) {}
 function syncNoteOk() { SYNC_LAST_OK = Date.now(); try { localStorage.setItem('reve-sync-last-ok', String(SYNC_LAST_OK)); } catch (e) {} syncStatusRenderSoon(); }
