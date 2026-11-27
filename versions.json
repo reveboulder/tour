@@ -1,5 +1,13 @@
 [
  {
+  "v": "1.180",
+  "date": "2026-11-27",
+  "title": "Fix: Residents section showing Turns",
+  "notes": [
+   "Tapping Residents could open Turns (remembered from when Turns was under Residents), hiding WL, Lease and Renewals. Residents now opens its own pages."
+  ]
+ },
+ {
   "v": "1.179",
   "date": "2026-11-27",
   "title": "Section icons in the top bar",
