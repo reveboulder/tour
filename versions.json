@@ -1,5 +1,13 @@
 [
  {
+  "v": "1.179",
+  "date": "2026-11-27",
+  "title": "Section icons in the top bar",
+  "notes": [
+   "Turns (paint roller), Leasing (clipboard), Residents (people) and Property (buildings) have icons: next to the word on computers, in place of it on phones. The top bar is slightly taller."
+  ]
+ },
+ {
   "v": "1.178",
   "date": "2026-11-27",
   "title": "Face ID for Passwords and DOOR Accounts; phones only",
