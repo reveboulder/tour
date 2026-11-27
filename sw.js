@@ -7,7 +7,7 @@
      ("warm" message with the list of files), then served from the device.
    - The shared backend (Google Apps Script) is never cached: the app
      handles offline saving itself. */
-const CACHE = 'reve-office-1.176';   // follows APP_VERSION; a new version clears the old copies
+const CACHE = 'reve-office-1.177';   // follows APP_VERSION; a new version clears the old copies
 const CORE = [
     './', './index.html', './suggestions.js', './versions.json', './manifest.webmanifest',
     './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" id="viewportMeta" content="width=device-width, initial-scale=1.0">
 <title>REVE - OFFICE</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#2f2d2f">
@@ -26061,7 +26061,7 @@ function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, '')
    be saved. Built on SAVE_TRACK (every backend write) plus the time of
    the last successful read.
    ============================================================ */
-const APP_VERSION = '1.176';
+const APP_VERSION = '1.177';
 let SYNC_LAST_OK = 0, SYNC_LAST_FAIL = 0;
 try { SYNC_LAST_OK = +localStorage.getItem('reve-sync-last-ok') || 0; } catch (e) {}
 function syncNoteOk() { SYNC_LAST_OK = Date.now(); try { localStorage.setItem('reve-sync-last-ok', String(SYNC_LAST_OK)); } catch (e) {} syncStatusRenderSoon(); }
@@ -33301,6 +33301,25 @@ try {
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) close(); });
 })();
 
+
+// iPhone/iPad: Safari zooms in on a text box while typing and stays zoomed.
+// When the typing is done (focus leaves the text boxes), snap back to the
+// normal page zoom; pinch-zoom still works as usual afterwards.
+(function iosZoomReset() {
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const meta = document.getElementById('viewportMeta');
+    if (!isIOS || !meta) return;
+    const base = meta.getAttribute('content');
+    const typing = el => !!el && (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable
+        || (el.tagName === 'INPUT' && !/^(button|submit|reset|checkbox|radio|range|color|file|image|hidden)$/i.test(el.type)));
+    document.addEventListener('focusout', () => {
+        setTimeout(() => {
+            if (typing(document.activeElement)) return;   // moved to another box: keep the zoom
+            meta.setAttribute('content', base + ', maximum-scale=1');
+            setTimeout(() => meta.setAttribute('content', base), 400);
+        }, 50);
+    });
+})();
 </script>
 </body>
 </html>

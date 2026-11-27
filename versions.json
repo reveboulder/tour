@@ -1,5 +1,13 @@
 [
  {
+  "v": "1.177",
+  "date": "2026-11-27",
+  "title": "iPhone: zoom resets after typing",
+  "notes": [
+   "On iPhone and iPad, the page still zooms in on a text box while you type, then returns to the normal view as soon as you tap out of it."
+  ]
+ },
+ {
   "v": "1.176",
   "date": "2026-11-27",
   "title": "Face ID unlock, Turns tab, sorted Passwords, Admin pages on the right",
