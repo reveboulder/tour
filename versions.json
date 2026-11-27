@@ -1,5 +1,17 @@
 [
  {
+  "v": "1.176",
+  "date": "2026-11-27",
+  "title": "Face ID unlock, Turns tab, sorted Passwords, Admin pages on the right",
+  "notes": [
+   "Admin and Reports can be unlocked with Face ID (or the device's passkey): enter the password once with \"Use Face ID next time\" checked, then tap \"Unlock with Face ID\". Set up per device; a password change for the team requires the new password once. Manage it in Admin › Settings › Face ID Unlock.",
+   "Turns is now its own tab, first in the top row.",
+   "Admin › INFO › Passwords rows are always listed A–Z by website name.",
+   "Admin's second-row pages (Admin, Settings) now sit on the right, under Admin.",
+   "The home-screen long-press shortcuts were removed (iPhone doesn't support them)."
+  ]
+ },
+ {
   "v": "1.175",
   "date": "2026-11-27",
   "title": "New navigation, global search, Tour phone layout, pricing reminder",
