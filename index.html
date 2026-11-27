@@ -3142,6 +3142,7 @@
     .ts-term.ts-default { border-color: var(--reve-orange); background: #fdf5f1; box-shadow: 0 0 0 1px rgba(222,84,38,0.35); }
     .ts-term.ts-picked { border-color: var(--ink); background: var(--ink); color: #fff; }
     .ts-term.ts-picked .ts-n, .ts-term.ts-picked .ts-p small, .ts-term.ts-picked .ts-eff { color: rgba(255,255,255,0.75); }
+    .ts-term.ts-best { cursor: default; border-color: var(--reve-orange); background: #fdf5f1; box-shadow: 0 0 0 1px rgba(222,84,38,0.35); }
     .ts-term.ts-none { cursor: default; background: #faf9f7; color: #b5b0a8; border-style: dashed; }
     .ts-term.ts-shake { animation: tsShake .35s; }
     @keyframes tsShake { 0%,100% { transform: none; } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
@@ -8101,8 +8102,8 @@ const FLYER_STYLE = `
 /* ---- Unit setup step (between picking a unit and its pamphlet) ----
    The unit's details at the top and every lease term 3–15 below, with the
    pamphlet's default terms highlighted (best price + the default slots).
-   Continue keeps the defaults; picking terms builds the pamphlet with just
-   those (the cheapest picked becomes Best price, the rest fill the slots). */
+   Continue keeps the defaults. Best price always stays the sheet's best
+   rate; picking up to four other terms fills the four slots with those. */
 let TOUR_SETUP = null;   // { unit, picks: [term numbers] }
 function tourHasTermPricing(unit) {
     const p = PRICING_SUMMARY[unit];
@@ -8128,7 +8129,8 @@ function tourSetupClose() {
 }
 function tourSetupDefaults(unit) {
     const d = unit === currentUnit ? draft : loadDraft(unit);
-    const best = parseTermNum(d.bestTerm);
+    const p = PRICING_SUMMARY[unit];
+    const best = parseTermNum(p && p.bestTerm) || parseTermNum(d.bestTerm);   // fixed: never a manual pick
     const others = (d.otherTerms || []).map(t => parseTermNum(t.term)).filter(Boolean);
     return { best, others };
 }
@@ -8149,6 +8151,13 @@ function renderTourSetup() {
         const v = terms[n];
         if (v === undefined) { cards.push(`<div class="ts-term ts-none"><div class="ts-n">${n} mo</div><div class="ts-p">&mdash;</div></div>`); continue; }
         const isBest = n === def.best, isDef = isBest || def.others.includes(n), picked = picks.includes(n);
+        if (isBest) {   // Best price is fixed: always on the pamphlet, not one of the picks
+            const effB = conc ? effectiveRent(v, n, conc) : null;
+            cards.push(`<div class="ts-term ts-best" title="Best price is always included"><div class="ts-n">${n} months</div><div class="ts-p">${money(v)}<small>/mo</small></div>
+                ${effB ? `<div class="ts-eff">${money(effB)}/mo effective</div>` : ''}
+                <div class="ts-tags"><span class="ts-tag best">Best price</span></div></div>`);
+            continue;
+        }
         const eff = conc ? effectiveRent(v, n, conc) : null;
         const cls = custom ? (picked ? ' ts-picked' : '') : (isDef ? ' ts-default' : '');
         cards.push(`<button type="button" class="ts-term${cls}${v === low ? ' ts-low' : ''}" data-ts-term="${n}" aria-pressed="${picked}">
@@ -8158,7 +8167,7 @@ function renderTourSetup() {
         </button>`);
     }
     const sorted = picks.slice().sort((a, b) => a - b);
-    const maxPicks = 1 + TERM_SLOTS;
+    const maxPicks = TERM_SLOTS;
     const facts = [
         ['Floorplan', `${u.floorplan}${u.yardi ? ` (${u.yardi})` : ''}`],
         ['Bed / Bath', u.bedBath || '\u2014'],
@@ -8179,12 +8188,12 @@ function renderTourSetup() {
         ${conc ? `<div class="ts-conc">Concession: <b>${escapeHtml(conc.label)}</b> &mdash; effective rents shown under each term.</div>` : ''}
         <div class="ts-section">
             <div class="ts-section-head"><span>Lease terms &amp; rates</span>
-                <span class="ts-hint">${custom ? `${picks.length} of up to ${maxPicks} picked: ${sorted.join(' / ')} months` : changed ? 'Highlighted: the terms on this pamphlet now. Click terms to choose different ones.' : 'Highlighted: the pamphlet\u2019s default best rates. Click terms to choose your own.'}</span></div>
+                <span class="ts-hint">${custom ? `Best price stays. ${picks.length} of ${maxPicks} other terms picked: ${sorted.join(' / ')} months` : changed ? 'Highlighted: the terms on this pamphlet now. Click terms to choose different ones.' : 'Highlighted: the pamphlet\u2019s default best rates. Best price always stays; click up to four other terms to choose your own.'}</span></div>
             <div class="ts-grid">${cards.join('')}</div>
         </div>
         <div class="ts-actions">
             ${custom ? '<button type="button" class="btn" data-ts-clear>Back to defaults</button>' : ''}
-            <button type="button" class="btn primary" data-ts-go>${custom ? `Build pamphlet with ${sorted.join(' / ')} months` : changed ? 'Continue' : 'Continue with default rates'} &rarr;</button>
+            <button type="button" class="btn primary" data-ts-go>${custom ? 'Build pamphlet' : changed ? 'Continue' : 'Continue with default rates'} &rarr;</button>
         </div>
     </div>`;
 }
@@ -8193,13 +8202,13 @@ function tourSetupApply() {
     const p = PRICING_SUMMARY[unit];
     if (picks.length && p && p.allTerms) {
         if (unit !== currentUnit) populateEditorForUnit(unit);
-        const byPrice = picks.slice().sort((a, b) => p.allTerms[a] - p.allTerms[b] || a - b);
-        const best = byPrice[0];
-        const rest = picks.filter(n => n !== best).sort((a, b) => a - b);
-        draft.bestPrice = `$${Math.round(p.allTerms[best])}`;
-        draft.bestTerm = `${best}-Month Lease`;
-        draft.otherTerms = rest.slice(0, TERM_SLOTS).map(n => ({ price: `$${Math.round(p.allTerms[n])}`, term: `${n}-Month Lease` }));
-        markEdited('bestPrice', 'bestTerm', 'otherTerms');
+        // Best price stays the sheet's best rate; the picks fill the four slots.
+        draft.bestPrice = p.bestPrice;
+        draft.bestTerm = p.bestTerm;
+        if (draft.edited) draft.edited = Object.assign({}, draft.edited, { bestPrice: false, bestTerm: false });
+        const bestN = parseTermNum(p.bestTerm);
+        draft.otherTerms = picks.filter(n => n !== bestN).sort((a, b) => a - b).slice(0, TERM_SLOTS).map(n => ({ price: `$${Math.round(p.allTerms[n])}`, term: `${n}-Month Lease` }));
+        markEdited('otherTerms');
         fields.forEach(id => { document.getElementById(id).value = draft[fieldMap[id]] || ''; });
         renderTermList();
         saveDraft();
@@ -8213,7 +8222,7 @@ document.getElementById('flyerMount').addEventListener('click', e => {
     if (t) {
         const n = parseInt(t.getAttribute('data-ts-term'), 10), picks = TOUR_SETUP.picks, i = picks.indexOf(n);
         if (i >= 0) picks.splice(i, 1);
-        else if (picks.length < 1 + TERM_SLOTS) picks.push(n);
+        else if (picks.length < TERM_SLOTS) picks.push(n);
         else { t.classList.add('ts-shake'); setTimeout(() => t.classList.remove('ts-shake'), 400); return; }
         renderTourSetup();
         return;
@@ -25666,7 +25675,7 @@ function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, '')
    be saved. Built on SAVE_TRACK (every backend write) plus the time of
    the last successful read.
    ============================================================ */
-const APP_VERSION = '1.173';
+const APP_VERSION = '1.174';
 let SYNC_LAST_OK = 0, SYNC_LAST_FAIL = 0;
 try { SYNC_LAST_OK = +localStorage.getItem('reve-sync-last-ok') || 0; } catch (e) {}
 function syncNoteOk() { SYNC_LAST_OK = Date.now(); try { localStorage.setItem('reve-sync-last-ok', String(SYNC_LAST_OK)); } catch (e) {} syncStatusRenderSoon(); }
@@ -26394,7 +26403,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-pricing-concession": {"title": "Set the Current Concession", "icon": "🏷️", "category": "Tour", "steps": ["On the Tour tab, find \"Current Concession\" at the top of the left panel and click Update Concession.", "Concession Terms: the plain-language special shown on the Tour tab and flyers (e.g. \"6 weeks free on select units or $1500 free on all else\"). Additional Notes are for agents only.", "Up to 3 rules, checked in order. For each, pick Weeks or $ Off and enter the amount: a single digit is read as weeks, a bigger number as dollars (a $ is added). Click the other tile to switch, e.g. for 10 weeks.", "Qualifying Units: unit numbers separated by commas (e.g. 1204, 1338, 1239), floorplan types or codes (LW, 2-Bed, A9), \"All Immediate\" for units available now, or \"All else\" for every unit not covered by an earlier rule — put that one last.", "The line under each rule shows what it means and which units it covers, and flags any number that isn't a unit.", "Click \"Save Updated Concession\" — it's shared with the team and applies automatically when a matching unit is opened on Tour.", "Concession History, at the bottom of the page, keeps every concession that was replaced, with the dates it applied (added to replaced). Residents uses it to suggest the Promo for the Date Applied.", "On each flyer, \"Show concession calculator on flyer\" and \"Concession (weeks free, or $ amount off)\" control what that flyer shows; type 4 for weeks or $1500 for dollars.", "The calculator uses the unit's 3 cheapest 12–15 month rates: weeks free take that many weeks of rent off, a $ amount is taken off the whole lease, and both are shown as the effective monthly payment."], "rev": 3},
     "builtin-compare-units": {"title": "Put Several Units on One Flyer", "icon": "🗂️", "category": "Tour", "rev": 3, "steps": ["Open the first unit on the Tour tab as usual.", "Click \"+ Add unit\" next to the search bar (or \"+ Add a unit\" in the left menu): the full unit list opens, narrowed by the filters on the left. Pick the next unit, then Continue on its setup page.", "Each pamphlet has a header bar (on screen only, never printed): click Apt to edit that unit, toggle Concession, Lease terms (reopens the setup page with every 3–15 month rate), or download just that unit's PDF / Printable.", "Drag a pamphlet's bar (☰) onto another to change the order, or use ◀ ▶. The order is used in the downloads.", "Download PDF / Download Printable PDF in the left menu include every unit, in that order. Remove a unit under \"Units in this pamphlet\"."]},
     "builtin-todays-tours": {"title": "Run Today's Tours", "icon": "🚪", "category": "Tour", "steps": ["On the Tour tab, under the pricing sheet, click \"+ Add\" next to Today's Tours and enter the prospect's name. The list is kept on this device and starts empty each day.", "Click \"Edit Tour\" next to a name: the Tour tab switches to that person's own filters, units and flyer edits.", "Pick units as usual, or click \"+ Add a unit\" to add more — each unit is its own pamphlet.", "Click \"Done\" to go back to the regular Tour view; the tour is kept.", "Click \"Complete Tour\", enter their email (and any Specific Notes) and the app builds an email draft with one pamphlet PDF per unit, the fee sheet and the \"Tour follow-up\" template from Documents › Email Templates.", "Each completed tour is added once to MMR › Weekly Traffic Detail."], "rev": 2},
-    "builtin-lease-terms": {"title": "Fill Prices and Lease Terms from the Pricing Sheet", "icon": "💲", "category": "Tour", "steps": ["Make sure today's pricing sheet is uploaded (Tour tab > Daily pricing sheet > Upload CSV).", "Pick a unit in the search bar above the pamphlet. The unit setup page shows its details and every lease term from 3 to 15 months, with the default best rates highlighted (Best price plus the next four).", "Click Continue to build the pamphlet with the defaults, or click the terms you want (e.g. 3, 6, 9 and 12, up to five) and click Build pamphlet: the cheapest one you picked becomes Best price and the rest fill the slots. \"Lease terms\" on the pamphlet's header bar reopens this page.", "Its earliest availability and best price fill in automatically, with the next four best rates in the four \"Other lease terms\" slots.", "Use \"Autofill best price from a term…\" to set the best price and term from a specific lease length.", "To change a slot, pick a term from its dropdown (each shows that term's rent) — it replaces that slot's term and price. You can still type over a price.", "Click \"Reset to default\" to go back to the best price and the next four best rates.", "From Availability › Search by Lease Term, Open in Tour fills the slots with that term and its three nearest.", "If the per-term options are missing, re-upload today's pricing sheet."], "rev": 3},
+    "builtin-lease-terms": {"title": "Fill Prices and Lease Terms from the Pricing Sheet", "icon": "💲", "category": "Tour", "steps": ["Make sure today's pricing sheet is uploaded (Tour tab > Daily pricing sheet > Upload CSV).", "Pick a unit in the search bar above the pamphlet. The unit setup page shows its details and every lease term from 3 to 15 months, with the default best rates highlighted (Best price plus the next four).", "Click Continue to build the pamphlet with the defaults, or click up to four other terms (e.g. 3, 6, 9 and 12) and click Build pamphlet: Best price always stays the sheet's best rate, and your picks fill the four other lease term slots. \"Lease terms\" on the pamphlet's header bar reopens this page.", "Its earliest availability and best price fill in automatically, with the next four best rates in the four \"Other lease terms\" slots.", "Use \"Autofill best price from a term…\" to set the best price and term from a specific lease length.", "To change a slot, pick a term from its dropdown (each shows that term's rent) — it replaces that slot's term and price. You can still type over a price.", "Click \"Reset to default\" to go back to the best price and the next four best rates.", "From Availability › Search by Lease Term, Open in Tour fills the slots with that term and its three nearest.", "If the per-term options are missing, re-upload today's pricing sheet."], "rev": 4},
     "builtin-price-history": {"title": "See a Unit's Price History", "icon": "📈", "category": "Tour", "rev": 2, "steps": ["On the Tour tab, open a unit and click \"View price history\" under Best price.", "The page reads every pricing sheet saved in Documents › Pricing (each sheet uploaded on the Tour tab is kept there).", "The chart shows the unit's best price (cheapest 11–15 month rent) on each sheet; use Show to switch to any lease term from 3 to 15 months. Hover a point for its date and price; gaps mean the unit wasn't on that sheet.", "The tiles show the latest price and the change since the previous sheet, the first price on file, the overall change, lowest and highest, and how long it's been listed.", "The table lists every sheet (newest first) with the move-in date used, best price, change, and every term's rent."]},
     "builtin-unavailable-flyer": {"title": "Make a Flyer for a Unit That Isn't Available Yet", "icon": "⏳", "category": "Tour", "steps": ["Open the unit from the Expiring tab (click its row), from the site map, or type its number on the Tour tab.", "Units not in today's pricing sheet open in the \"not currently available\" layout.", "Availability, other lease terms and the concession section are hidden on the flyer automatically.", "Enter an estimated price in \"Best price\" — it shows as an estimate on the flyer.", "Download the PDF as usual."]},
     "builtin-availability-calendar": {"title": "Browse the Availability Calendar", "icon": "📅", "category": "Availability", "steps": ["Upload today's pricing sheet on the Tour tab first — the calendar uses it.", "Open the Availability tab. Each available unit appears on the date it becomes available.", "Use Month or Week to change the view, and ‹ › to move between months or weeks.", "Click a day to see its units, or click Today to jump straight to today.", "The line under the month title counts that month's availabilities by bed type.", "Use the filter icons (Beds, Price, Floor, etc.) to narrow what the calendar shows.", "Click any unit on the calendar to open it in the Tour tab and build its flyer."]},
