@@ -39,7 +39,54 @@
 
     /* ---------- Top-level tabs ---------- */
     .top-tabs-wrap { background: var(--ink); }
-    .top-tabs-row2 { border-top: 1px solid rgba(255,255,255,0.08); }
+    .top-tabs-row2 { border-top: 1px solid rgba(255,255,255,0.08); background: #3a373a; }
+    .top-tabs-row2 .top-tab { display: none; font-size: 12px; padding: 6px 13px; }
+    .top-tabs-row2[data-group="leasing"] .top-tab[data-group="leasing"],
+    .top-tabs-row2[data-group="residents"] .top-tab[data-group="residents"],
+    .top-tabs-row2[data-group="property"] .top-tab[data-group="property"],
+    .top-tabs-row2[data-group="admin"] .top-tab[data-group="admin"] { display: inline-block; }
+    .top-tabs-row2[data-group="help"] { display: none; }
+    .nav-group { flex-shrink: 0; font-family: var(--sans); font-size: 13px; font-weight: 800; letter-spacing: 0.03em; color: rgba(255,255,255,0.62); background: none; border: none; padding: 9px 15px; cursor: pointer; border-bottom: 2px solid transparent; }
+    .nav-group:hover { color: #fff; }
+    .nav-group.active { color: #fff; border-bottom-color: var(--reve-orange); }
+    body.dark-mode .top-tabs-row2 { background: #1c1c1c; }
+    .pricing-fresh { display: flex; align-items: center; gap: 10px; padding: 7px 16px; background: #fff4e0; border-bottom: 1px solid #f0d9a8; color: #6d4b0f; font-size: 12.5px; }
+    .pricing-fresh[hidden] { display: none; }
+    .pf-text { flex: 1; min-width: 0; }
+    .pf-btn { border: 1px solid #d9a441; background: #fff; color: #6d4b0f; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: var(--sans); }
+    .pf-btn:hover { background: #d9a441; color: #fff; }
+    a.pf-btn { text-decoration: none; }
+    .pb-btns { display: inline-flex; flex-direction: column; gap: 6px; align-items: stretch; flex: none; }
+    .get-pricing-btn { display: inline-block; text-align: center; text-decoration: none; font-size: 12px; font-weight: 700; padding: 6px 12px; border: 1px solid var(--reve-orange); color: var(--reve-orange-dark); background: #fff; border-radius: 6px; white-space: nowrap; }
+    .get-pricing-btn:hover { background: #fbeee8; }
+    body.dark-mode .get-pricing-btn { background: transparent; color: #f2a07f; }
+    .pf-x { border: 0; background: none; color: #6d4b0f; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
+    body.dark-mode .pricing-fresh { background: #3a2f17; border-color: #5a4720; color: #f3d9a4; }
+    body.dark-mode .pf-btn { background: transparent; color: #f3d9a4; }
+    body.dark-mode .pf-x { color: #f3d9a4; }
+    @media (max-width: 560px) { .pricing-fresh { flex-wrap: wrap; padding: 7px 12px; } .pf-text { flex-basis: calc(100% - 40px); } }
+    .gs-btn { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); border-radius: 999px; padding: 3px 10px 3px 8px; color: rgba(255,255,255,0.8); font-family: var(--sans); font-size: 11px; font-weight: 600; cursor: pointer; }
+    .gs-btn:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+    .gs-btn svg { width: 13px; height: 13px; }
+    .gs-panel { width: min(460px, calc(100vw - 24px)); padding: 10px; }
+    .gs-panel #gsInput { width: 100%; box-sizing: border-box; font-size: 14px; }
+    .gs-results { margin-top: 8px; max-height: min(60vh, 440px); overflow: auto; }
+    .gs-group { font-size: 10px; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-soft); padding: 8px 4px 4px; }
+    .gs-item { display: flex; align-items: center; gap: 8px; padding: 7px 6px; border-radius: 6px; cursor: pointer; }
+    .gs-item:hover, .gs-item.active { background: #fbeee8; }
+    .gs-main { flex: 1; min-width: 0; }
+    .gs-title { font-weight: 700; font-size: 13px; }
+    .gs-sub { font-size: 11.5px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gs-acts { display: flex; gap: 4px; flex: none; }
+    .gs-act { border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: var(--sans); color: var(--ink); }
+    .gs-act:hover { border-color: var(--reve-orange); color: var(--reve-orange-dark); }
+    body.dark-mode .gs-item:hover, body.dark-mode .gs-item.active { background: rgba(222,84,38,0.18); }
+    body.dark-mode .gs-act { background: var(--dm-card-alt, #2b2b2b); color: inherit; }
+    .sc-links summary { cursor: pointer; font-size: 12.5px; font-weight: 700; }
+    .sc-link { display: grid; grid-template-columns: 130px 1fr auto; gap: 8px; align-items: center; padding: 5px 0; border-top: 1px solid var(--line); font-size: 12px; }
+    .sc-link code { font-size: 11px; color: var(--ink-soft); overflow-wrap: anywhere; }
+    .sc-link .btn { width: auto; padding: 4px 10px; }
+    @media (max-width: 560px) { .sc-link { grid-template-columns: 1fr auto; } .sc-link code { grid-column: 1 / -1; grid-row: 2; } }
     .top-tabs {
         display: flex;
         gap: 2px;
@@ -119,6 +166,18 @@
     .top-tab.active { color: #fff; border-bottom-color: var(--reve-orange); }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
+    @media (max-width: 560px) {
+        .top-tabs { padding: 0 6px; gap: 0; }
+        .top-tabs-right { gap: 3px; }
+        .nav-group { padding: 9px 6px; font-size: 11.5px; letter-spacing: 0; }
+        .sync-dot-btn { padding: 4px 5px; }
+        .gs-btn { padding: 4px 6px; background: none; }
+        .gs-btn-text { display: none; }
+        .app-version-btn { font-size: 10.5px; }
+        .top-tabs-groups .test-mode-badge.show { display: none; }
+        .app-version-btn { padding: 3px 7px; }
+        .top-tabs-row2 .top-tab { padding: 6px 9px; }
+    }
 
     /* ---------- App shell ---------- */
     .app {
@@ -146,6 +205,20 @@
         overflow: hidden;
     }
     @media (max-width: 980px) { .editor { max-height: none; } }
+    .tour-mview { display: none; }
+    @media (max-width: 980px) {
+        .tour-mview { display: flex; position: sticky; top: 0; z-index: 60; gap: 4px; padding: 8px 12px; background: var(--panel, #fff); border-bottom: 1px solid var(--line); }
+        .tour-mview-btn { flex: 1; border: 1px solid var(--line); background: #fff; color: var(--ink-soft); border-radius: 8px; padding: 8px 10px; font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; }
+        .tour-mview-btn.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+        #tab-tour.mv-pamphlet .editor { display: none; }
+        #tab-tour.mv-edit .preview-pane { display: none; }
+        #tab-tour .preview-pane { overflow: visible; padding: 0 12px 40px; }
+        #tab-tour .pv-toolbar { position: sticky; top: 53px; z-index: 55; background: #ece8e0; padding: 10px 0 6px; margin-bottom: 8px; max-width: none; }
+        body.dark-mode .tour-mview { background: var(--dm-card, #222); }
+        body.dark-mode .tour-mview-btn:not(.active) { background: var(--dm-card-alt, #2b2b2b); color: inherit; }
+        body.dark-mode .tour-mview-btn.active { background: var(--reve-orange); border-color: var(--reve-orange); color: #fff; }
+        body.dark-mode #tab-tour .pv-toolbar { background: #100f0d; }
+    }
 
     .brand-strip {
         padding: 18px 22px 16px;
@@ -3106,7 +3179,14 @@
     .add-unit-left.active { background: var(--reve-orange); color: #fff; border-style: solid; }
     .pv-toolbar { flex-direction: column; align-items: stretch; gap: 8px; max-width: 540px; }
     .pv-search-row { display: flex; gap: 8px; align-items: flex-start; }
-    .pv-search { position: relative; flex: 1; margin: 0; }
+    .pv-search { position: relative; flex: 1; min-width: 0; margin: 0; }
+    @media (max-width: 380px) {
+        .top-tabs-groups .nav-group { padding: 9px 4px; }
+        .top-tabs-groups .top-tabs-right { gap: 2px; }
+        .top-tabs-groups .app-version-btn { padding: 3px 5px; }
+        .top-tabs-groups .gs-btn { padding: 4px 4px; }
+    }
+    @media (max-width: 560px) { .pv-toolbar .add-unit-btn { padding: 0 11px; } .pv-search #unitSearch { font-size: 13.5px; } }
     .pv-search-icon { position: absolute; left: 11px; top: 11px; width: 17px; height: 17px; color: var(--ink-soft); pointer-events: none; }
     .pv-search #unitSearch { padding: 9px 12px 9px 36px; font-family: var(--sans); font-size: 14px; letter-spacing: 0; border-radius: 8px; box-shadow: 0 1px 2px rgba(20,15,5,0.06); }
     .pv-search .unit-results { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 40; max-height: min(60vh, 460px); box-shadow: 0 14px 34px rgba(20,15,5,0.18); border-radius: 8px; }
@@ -3183,7 +3263,19 @@
     .flyer-card-cell .pam-actions { flex-wrap: nowrap; gap: 6px; justify-content: flex-start; }
     .flyer-card-cell .pam-out { border: 0; padding: 0; margin-left: auto; }
     .flyer-card-cell .pam-btn { padding: 0 8px; }
-    body.dark-mode .tour-setup, body.dark-mode .ts-term:not(.ts-picked):not(.ts-default) { background: var(--dm-card-alt); color: inherit; }
+    body.dark-mode .tour-setup, body.dark-mode .ts-term:not(.ts-picked):not(.ts-default):not(.ts-best) { background: var(--dm-card-alt); color: inherit; }
+    body.dark-mode .ts-term.ts-default, body.dark-mode .ts-term.ts-best { background: rgba(222,84,38,0.18); color: inherit; }
+    body.dark-mode .ts-term.ts-picked { background: #f3efe8; color: #1d1b19; border-color: #f3efe8; }
+    body.dark-mode .ts-term.ts-picked .ts-n, body.dark-mode .ts-term.ts-picked .ts-p small, body.dark-mode .ts-term.ts-picked .ts-eff { color: #5f5a54; }
+    body.dark-mode .ts-tag:not(.best):not(.low) { background: rgba(255,255,255,0.1); color: inherit; }
+    body.dark-mode .ts-conc { background: rgba(222,84,38,0.18); }
+    body.dark-mode .add-unit-btn:not(.active) { background: var(--dm-card-alt); color: inherit; border-color: rgba(255,255,255,0.18); }
+    body.dark-mode .unit-row { background: var(--dm-card-alt); color: inherit; }
+    body.dark-mode .unit-row.active { background: rgba(222,84,38,0.18); }
+    body.dark-mode .unit-row-label { color: inherit; }
+    /* The pamphlet itself always prints dark text on white, in dark mode too. */
+    body.dark-mode .flyer-card { color: #2f2d2f; }
+    body.dark-mode .flyer-card p { color: inherit; }
     .flyer-card-cell.pam-dragging { opacity: 0.5; }
     .flyer-card-cell.pam-drop { outline: 2px dashed var(--reve-orange); outline-offset: 4px; }
     body.dark-mode .pam-bar, body.dark-mode .pam-btn, body.dark-mode .add-unit-left:not(.active) { background: var(--dm-card-alt); color: inherit; }
@@ -3780,34 +3872,50 @@
 <body>
 
 <div class="top-tabs-wrap">
-    <div class="top-tabs">
-        <button type="button" class="top-tab active" data-tab="tour">Tour</button>
-        <button type="button" class="top-tab" data-tab="availability">Availability</button>
-        <button type="button" class="top-tab" data-tab="expiring">Expiring</button>
-        <button type="button" class="top-tab" data-tab="waitlist">Waitlist</button>
-        <button type="button" class="top-tab" data-tab="media">Sitemap</button>
-        <button type="button" class="top-tab" data-tab="documents">Documents</button>
+    <div class="top-tabs top-tabs-groups" role="tablist" aria-label="Sections">
+        <button type="button" class="nav-group active" data-group="leasing">Leasing</button>
+        <button type="button" class="nav-group" data-group="residents">Residents</button>
+        <button type="button" class="nav-group" data-group="property">Property</button>
         <div class="top-tabs-right">
             <span class="test-mode-badge" id="testModeBadge">Test Mode</span>
+            <button type="button" class="gs-btn" id="gsBtn" aria-haspopup="dialog" aria-controls="gsPanel" title="Search units and residents"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><line x1="16" y1="16" x2="21" y2="21"/></svg><span class="gs-btn-text">Search</span></button>
             <button type="button" class="sync-dot-btn" id="syncDotBtn" aria-haspopup="dialog" aria-controls="syncPanel" title="Sync status"><span class="sync-dot" id="syncDot"></span><span class="sync-dot-text" id="syncDotText">Saved</span></button>
             <button type="button" class="app-version-btn" id="appVersionBtn" aria-haspopup="dialog" aria-controls="versionPanel" title="Version history"><span id="appVersionText"></span><span class="app-update-flag" id="appUpdateFlag" hidden>Update</span></button>
-            <button type="button" class="top-tab" data-tab="info">Info</button>
-            <button type="button" class="top-tab" data-tab="howto">Help</button>
-            <button type="button" class="top-tab settings-tab" data-tab="settings">Settings</button>
+            <button type="button" class="nav-group" data-group="help">Help</button>
+            <button type="button" class="nav-group" data-group="admin">Admin</button>
         </div>
     </div>
-    <div class="top-tabs top-tabs-row2">
-        <button type="button" class="top-tab" data-tab="turns">Turns</button>
-        <button type="button" class="top-tab" data-tab="residents">Residents</button>
-        <button type="button" class="top-tab" data-tab="wl">WL</button>
-        <button type="button" class="top-tab" data-tab="lease">Lease</button>
-        <button type="button" class="top-tab" data-tab="renewals">Renewals</button>
-        <div class="top-tabs-right">
-            <button type="button" class="top-tab" data-tab="admin">Admin</button>
-        </div>
+    <!-- Second row: only the selected section's pages (none for Help). -->
+    <div class="top-tabs top-tabs-row2" id="navRow2" data-group="leasing">
+        <button type="button" class="top-tab active" data-tab="tour" data-group="leasing">Tour</button>
+        <button type="button" class="top-tab" data-tab="availability" data-group="leasing">Availability</button>
+        <button type="button" class="top-tab" data-tab="expiring" data-group="leasing">Expiring</button>
+        <button type="button" class="top-tab" data-tab="waitlist" data-group="leasing">Waitlist</button>
+        <button type="button" class="top-tab" data-tab="residents" data-group="residents">Residents</button>
+        <button type="button" class="top-tab" data-tab="wl" data-group="residents">WL</button>
+        <button type="button" class="top-tab" data-tab="lease" data-group="residents">Lease</button>
+        <button type="button" class="top-tab" data-tab="renewals" data-group="residents">Renewals</button>
+        <button type="button" class="top-tab" data-tab="turns" data-group="residents">Turns</button>
+        <button type="button" class="top-tab" data-tab="media" data-group="property">Sitemap</button>
+        <button type="button" class="top-tab" data-tab="documents" data-group="property">Documents</button>
+        <button type="button" class="top-tab" data-tab="info" data-group="property">Info</button>
+        <button type="button" class="top-tab" data-tab="howto" data-group="help" hidden>Help</button>
+        <button type="button" class="top-tab" data-tab="admin" data-group="admin">Admin</button>
+        <button type="button" class="top-tab" data-tab="settings" data-group="admin" title="App settings (no password needed)">Settings</button>
     </div>
 </div>
 
+<div class="pricing-fresh" id="pricingFresh" role="status" hidden>
+    <span class="pf-icon" aria-hidden="true">&#9888;</span>
+    <span class="pf-text" id="pricingFreshText"></span>
+    <a class="pf-btn" href="https://www.realpage.com/login/identity/Account/SignIn" target="_blank" rel="noopener" title="Sign in to RealPage to export today's pricing">Get Pricing &#8599;</a>
+    <button type="button" class="pf-btn" id="pricingFreshUpload">Upload today&rsquo;s sheet</button>
+    <button type="button" class="pf-x" id="pricingFreshDismiss" title="Hide for today" aria-label="Hide for today">&times;</button>
+</div>
+<div class="hdr-panel gs-panel" id="gsPanel" role="dialog" aria-label="Search units and residents" hidden>
+    <input type="text" id="gsInput" placeholder="Unit #, floorplan or resident name" autocomplete="off" aria-label="Search units and residents">
+    <div class="gs-results" id="gsResults"><div class="empty-note">Type a unit number (e.g. 1204), a floorplan (e.g. B5) or a resident&rsquo;s name.</div></div>
+</div>
 <div class="hdr-panel" id="syncPanel" role="dialog" aria-label="Sync status" hidden></div>
 <div class="hdr-panel hdr-panel-wide" id="versionPanel" role="dialog" aria-label="Version history" hidden></div>
 
@@ -3825,7 +3933,12 @@
     </div>
 </div>
 
-<div class="tab-panel active" id="tab-tour">
+<div class="tab-panel active mv-pamphlet" id="tab-tour">
+<!-- Phones/tablets: one pane at a time (the desktop shows both side by side). -->
+<div class="tour-mview" id="tourMView" role="tablist" aria-label="Tour view">
+    <button type="button" class="tour-mview-btn active" data-mview="pamphlet" role="tab" aria-selected="true">Pamphlet</button>
+    <button type="button" class="tour-mview-btn" data-mview="edit" role="tab" aria-selected="false">Edit &amp; filters</button>
+</div>
 <div class="app">
     <!-- ============ EDITOR ============ -->
     <div class="editor">
@@ -3848,7 +3961,8 @@
             <div class="pricing-block">
                 <div class="pb-row">
                     <div class="pricing-status-text" id="pricingStatus">No pricing sheet loaded &mdash; upload today's export to auto-fill price &amp; availability.</div>
-                    <label class="file-label" for="pricingFileInput">Upload CSV</label>
+                    <span class="pb-btns"><a class="get-pricing-btn" href="https://www.realpage.com/login/identity/Account/SignIn" target="_blank" rel="noopener" title="Sign in to RealPage to export today's pricing">Get Pricing &#8599;</a>
+                    <label class="file-label" for="pricingFileInput">Upload CSV</label></span>
                     <input type="file" id="pricingFileInput" accept=".csv">
                 </div>
                 <button type="button" class="pricing-clear" id="pricingClearBtn" style="display:none;">Clear pricing sheet</button>
@@ -4935,7 +5049,7 @@
             <div class="tag">Restricted &mdash; INFO, Reports (MMR, Commissions, PCard, Deposits), Blueprints, Settings</div>
                 <div class="save-note" data-save-keys="mmr-* comm-* pcard-items pay-period-start unit-overrides retail-info info-services info-birthdays info-garden info-maintenance info-inventory" aria-live="polite"></div>
         </div>
-        <button type="button" class="btn admin-settings-btn" id="adminSettingsBtn" style="display:none;" aria-pressed="false">&#9881; Settings</button>
+        <button type="button" class="btn admin-settings-btn" id="adminSettingsBtn" style="display:none;" aria-pressed="false" title="Shared backend, Backend Health, backups and passwords">&#9881; Admin Settings</button>
     </div>
 
     <div class="settings-card" id="adminLockScreen">
@@ -6144,11 +6258,16 @@
             <button type="button" class="btn primary" id="offlineInstallBtn" style="width:auto;flex:none;padding:7px 14px;display:none;">Install app</button>
         </div>
         <div class="empty-note" id="offlineInstallHint" style="margin-top:8px;"></div>
+        <details class="sc-links" style="margin-top:10px;">
+            <summary>Home-screen shortcuts</summary>
+            <p class="empty-note" style="font-size:12px;margin:6px 0;">Android: long-press the installed app&rsquo;s icon. iPhone/iPad doesn&rsquo;t offer that menu for web apps; instead, give each link its own icon: open the <b>Shortcuts</b> app &rsaquo; <b>+</b> &rsaquo; Add Action &rsaquo; <b>Open URLs</b>, paste a link below, then tap the share button &rsaquo; <b>Add to Home Screen</b> and name it (these open in Safari).</p>
+            <div id="scLinkList"></div>
+        </details>
     </div>
 
     <div class="settings-card">
         <div class="section-label" style="margin-top:0;"><span class="dot"></span>Backend &amp; Property</div>
-        <p class="empty-note">The Shared Backend (Web App URL) and Select Property (property profile, Default Charges, Office Hours) are in <b>Admin &rsaquo; Settings</b> (Admin password).</p>
+        <p class="empty-note">The Shared Backend (Web App URL) and Select Property (property profile, Default Charges, Office Hours) are in <b>Admin &rsaquo; Admin &rsaquo; &#9881; Admin Settings</b> (Admin password).</p>
     </div>
 
     <div class="settings-card st-expand" id="mrsCard">
@@ -6548,7 +6667,36 @@ function sameCalendarDay(a, b) {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+/* Top-of-app reminder when today's pricing sheet hasn't been uploaded by
+   10 AM (Tour, Availability and the Residents rate suggestions use it).
+   Hidden for the rest of the day with ×; goes away once it's uploaded. */
+const PRICING_FRESH_HOUR = 10;
+function pricingFreshCheck() {
+    const bar = document.getElementById('pricingFresh');
+    if (!bar) return;
+    const now = new Date(), today = isoDate(now);
+    let dismissed = '';
+    try { dismissed = localStorage.getItem('reve-pricing-fresh-hide') || ''; } catch (e) {}
+    const when = PRICING_META && PRICING_META.uploadedAt ? new Date(PRICING_META.uploadedAt) : null;
+    const fresh = when && sameCalendarDay(when, now);
+    const show = !fresh && now.getHours() >= PRICING_FRESH_HOUR && dismissed !== today;
+    bar.hidden = !show;
+    if (show) document.getElementById('pricingFreshText').innerHTML = when
+        ? `Today&rsquo;s pricing sheet hasn&rsquo;t been uploaded yet &mdash; prices are from <b>${escapeHtml(when.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }))}</b>.`
+        : 'No pricing sheet is loaded &mdash; upload today&rsquo;s so Tour, Availability and the Residents rate suggestions have current prices.';
+}
+document.getElementById('pricingFreshDismiss').addEventListener('click', () => {
+    try { localStorage.setItem('reve-pricing-fresh-hide', isoDate(new Date())); } catch (e) {}
+    pricingFreshCheck();
+});
+document.getElementById('pricingFreshUpload').addEventListener('click', () => {
+    switchTab('tour');
+    if (typeof tourShowEditor === 'function') tourShowEditor(document.getElementById('pricingStatus'));
+    document.getElementById('pricingFileInput').click();
+});
+setInterval(pricingFreshCheck, 60000);
 function renderPricingStatus() {
+    pricingFreshCheck();
     const el = document.getElementById('pricingStatus');
     const clearBtn = document.getElementById('pricingClearBtn');
     if (PRICING_META) {
@@ -7127,12 +7275,33 @@ searchInput.addEventListener('keydown', (e) => {
 // On phones/tablets the flyer preview sits below the whole editor, so
 // jump to it after picking a unit from "Find a Unit" (desktop shows both
 // side by side). Scroll back up to edit.
+function tourIsPhone() { return window.matchMedia('(max-width: 980px)').matches; }
+// Phones/tablets: show the Pamphlet pane (search on top) or the Edit pane.
+function tourMView(view) {
+    const tab = document.getElementById('tab-tour');
+    tab.classList.toggle('mv-pamphlet', view === 'pamphlet');
+    tab.classList.toggle('mv-edit', view === 'edit');
+    document.querySelectorAll('#tourMView [data-mview]').forEach(b => {
+        const on = b.getAttribute('data-mview') === view;
+        b.classList.toggle('active', on); b.setAttribute('aria-selected', String(on));
+    });
+}
+document.getElementById('tourMView').addEventListener('click', e => {
+    const b = e.target.closest('[data-mview]');
+    if (!b) return;
+    tourMView(b.getAttribute('data-mview'));
+    window.scrollTo({ top: 0 });
+});
 function tourScrollToPreviewOnMobile() {
-    if (!window.matchMedia('(max-width: 980px)').matches) return;
-    const pane = document.querySelector('#tab-tour .preview-pane');
-    if (!pane) return;
+    if (!tourIsPhone()) return;
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // close the phone keyboard
-    requestAnimationFrame(() => pane.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    tourMView('pamphlet');
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+}
+// Phones: jump to a part of the editor (switching to the Edit pane first).
+function tourShowEditor(el) {
+    if (tourIsPhone()) tourMView('edit');
+    if (el) requestAnimationFrame(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }));
 }
 ['sqftMin', 'sqftMax', 'priceMin', 'priceMax'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => { updateFilterCaptionStates(); runSearch(); });
@@ -7341,7 +7510,7 @@ document.getElementById('addUnitBtn').addEventListener('click', () => {
 });
 document.getElementById('addUnitLeftBtn').addEventListener('click', () => {
     setAddUnitArmed(!addingUnit);
-    if (addingUnit) searchInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (addingUnit) { if (tourIsPhone()) tourMView('pamphlet'); searchInput.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
 });
 
 function videoBadgeRow(u) {
@@ -7829,7 +7998,7 @@ function tourOpenWithTerm(unit, t) {
     markEdited('otherTerms');
     renderTermList(); saveDraft(); renderPreview(); populateTermPickers(unit);
     const f = document.getElementById('otherTermsField');
-    if (f) { f.scrollIntoView({ block: 'center', behavior: 'smooth' }); f.classList.add('term-flash'); setTimeout(() => f.classList.remove('term-flash'), 1800); }
+    if (f) { tourShowEditor(f); f.classList.add('term-flash'); setTimeout(() => f.classList.remove('term-flash'), 1800); }
 }
 
 function escapeAttr(s) { return (s || '').replace(/"/g, '&quot;'); }
@@ -8287,12 +8456,12 @@ function pamMakeCurrent(unit) {
         const unit = bar.getAttribute('data-pam');
         const mv = e.target.closest('[data-pam-move]');
         if (mv) { pamReorder(unit, selectedUnits.indexOf(unit) + parseInt(mv.getAttribute('data-pam-move'), 10)); return; }
-        if (e.target.closest('[data-pam-edit]')) { pamMakeCurrent(unit); return; }
+        if (e.target.closest('[data-pam-edit]')) { pamMakeCurrent(unit); if (tourIsPhone()) tourShowEditor(document.getElementById('specCard')); return; }
         if (e.target.closest('[data-pam-terms]')) {
             pamMakeCurrent(unit);
             if (tourHasTermPricing(unit)) { tourSetupOpen(unit); return; }
             const f = document.getElementById('otherTermsField');
-            if (f) { f.scrollIntoView({ block: 'center', behavior: 'smooth' }); f.classList.add('term-flash'); setTimeout(() => f.classList.remove('term-flash'), 1800); }
+            if (f) { tourShowEditor(f); f.classList.add('term-flash'); setTimeout(() => f.classList.remove('term-flash'), 1800); }
             return;
         }
         const pdfBtn = e.target.closest('[data-pam-pdf]');
@@ -8835,10 +9004,30 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 /* ============================================================
    TOP-LEVEL TABS
    ============================================================ */
+// Which first-row section each page belongs to (pages without a button
+// of their own, like Concession, light up their section's parent page).
+const NAV_GROUP_OF = { tour: 'leasing', availability: 'leasing', expiring: 'leasing', waitlist: 'leasing', concession: 'leasing',
+    residents: 'residents', wl: 'residents', lease: 'residents', renewals: 'residents', turns: 'residents',
+    media: 'property', documents: 'property', info: 'property', games: 'property',
+    howto: 'help', admin: 'admin', settings: 'admin' };
+const NAV_PARENT_TAB = { concession: 'tour' };
+const NAV_LAST = { leasing: 'tour', residents: 'residents', property: 'media', help: 'howto', admin: 'admin' };
+try { Object.assign(NAV_LAST, JSON.parse(localStorage.getItem('reve-nav-last') || '{}')); } catch (e) {}
+function navSync(name) {
+    const group = NAV_GROUP_OF[name] || 'leasing';
+    if (NAV_GROUP_OF[name] && !NAV_PARENT_TAB[name]) {
+        NAV_LAST[group] = name;
+        try { localStorage.setItem('reve-nav-last', JSON.stringify(NAV_LAST)); } catch (e) {}
+    }
+    document.querySelectorAll('.nav-group').forEach(b => b.classList.toggle('active', b.getAttribute('data-group') === group));
+    document.getElementById('navRow2').setAttribute('data-group', group);
+}
 function switchTab(name) {
+    const lit = NAV_PARENT_TAB[name] || name;
     document.querySelectorAll('.top-tab').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-tab') === name);
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === lit);
     });
+    navSync(name);
     document.querySelectorAll('.tab-panel').forEach(panel => {
         panel.classList.toggle('active', panel.id === 'tab-' + name);
     });
@@ -8859,6 +9048,11 @@ function switchTab(name) {
 [...document.querySelectorAll('.top-tab')].forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
 });
+// A section opens the page last used in it.
+document.querySelectorAll('.nav-group').forEach(btn => btn.addEventListener('click', () => {
+    const g = btn.getAttribute('data-group');
+    switchTab(NAV_LAST[g] && document.getElementById('tab-' + NAV_LAST[g]) ? NAV_LAST[g] : ({ leasing: 'tour', residents: 'residents', property: 'media', help: 'howto', admin: 'admin' })[g]);
+}));
 
 /* Generic chip-row builder for the Availability/Expiring tabs — same
    look as the Tour tab's chips, but takes its own onChange callback
@@ -25675,7 +25869,7 @@ function saveTrackBase(key) { return String(key).replace(/__(part|a|b)\d+$/, '')
    be saved. Built on SAVE_TRACK (every backend write) plus the time of
    the last successful read.
    ============================================================ */
-const APP_VERSION = '1.174';
+const APP_VERSION = '1.175';
 let SYNC_LAST_OK = 0, SYNC_LAST_FAIL = 0;
 try { SYNC_LAST_OK = +localStorage.getItem('reve-sync-last-ok') || 0; } catch (e) {}
 function syncNoteOk() { SYNC_LAST_OK = Date.now(); try { localStorage.setItem('reve-sync-last-ok', String(SYNC_LAST_OK)); } catch (e) {} syncStatusRenderSoon(); }
@@ -26398,12 +26592,12 @@ function seedHowToGuides() {
 // guides still gets them, and nothing existing is overwritten. Deleting a
 // built-in leaves a { deleted: true } marker so it isn't re-added.
 const HOWTO_BUILTIN_GUIDES = {
-    "builtin-app-tour": {"title": "Getting Around the App", "icon": "🧭", "category": "General", "steps": ["Top row: Tour (flyers and Today's Tours), Availability (calendar), Expiring (upcoming lease ends), Waitlist (prospects), Sitemap (site map, videos and DOOR Devices), Documents (printables, floorplans, Pricing rent lookup and Renewal Offers).", "Top right: Info (Unit Info), Help (How-To guides, Questions and Suggest Improvements) and Settings (Light/Dark, Refresh, Live/Test mode, Offline Use, Market Rent Schedule and Carpet Measurements).", "Second row: Turns (unit turn tracker), Residents (move-in tracking), WL (Welcome Letter), Lease (new lease data), Renewals (renewal decisions & offers), and Admin (password-protected: INFO, Reports — MMR, Commissions, PCard and Deposit Accounting behind one more password — Blueprints, and ⚙ Settings at the top right: shared backend, Backend Health, passwords, property profile, Default Charges and Office Hours).", "Anything marked \"shared\" syncs for the whole team when the backend is connected in Admin › Settings — changes show up for everyone within about 25 seconds.", "Uploaded reports (pricing sheet, lease expirations, renewals) feed several tabs at once — upload them once and Tour, Availability, Expiring, Waitlist, Turns and Renewals all update.", "Not seeing a recent change? Go to Settings and click \"Refresh Site to Update\"."], "rev": 4},
+    "builtin-app-tour": {"title": "Getting Around the App", "icon": "🧭", "category": "General", "steps": ["Top row: Leasing, Residents and Property on the left; Help and Admin on the right, next to the sync dot and version. Click a section to see its pages in the second row (it opens the page you used last there).", "Leasing: Tour (pamphlets and Today's Tours), Availability (calendar and lease-term list), Expiring (upcoming lease ends) and Waitlist (prospects).", "Residents: Residents (move-in tracking), WL (Welcome Letter), Lease (new lease data), Renewals (renewal decisions & offers) and Turns (unit turn tracker).", "Property: Sitemap (site map, videos and DOOR Devices), Documents (printables, floorplans, Pricing rent lookup and Renewal Offers) and Info (Unit Info).", "Help: How-To guides, Questions and Suggest Improvements.", "Admin: Admin (password-protected: INFO, Reports — MMR, Commissions, PCard and Deposit Accounting behind one more password — Blueprints, and ⚙ Admin Settings for the shared backend, Backend Health, passwords and property profile) and Settings (no password: Light/Dark, Refresh, Live/Test mode, Offline Use, Market Rent Schedule and Carpet Measurements).", "Anything marked \"shared\" syncs for the whole team when the backend is connected — changes show up for everyone within about 25 seconds.", "Not seeing a recent change? Admin › Settings › \"Refresh Site to Update\", or click the version label and Update."], "rev": 5},
     "builtin-search-filters": {"title": "Use the Search Filters (Tour, Availability, Expiring)", "icon": "🔎", "category": "Tour", "steps": ["The round filter icons sit in Tour's left menu (they narrow the search bar above the pamphlet), above the calendar on Availability, and above the list on Expiring.", "Click an icon to open its options, then click as many options as you like — the list updates as you pick. Click outside (or the icon again) to close it.", "Move-In: \"Move-in before\" shows units available on or before that date; add an optional \"Move-in after\" date for a range (e.g. after Dec 1, before Jan 15). On Expiring it filters by lease end date.", "Search by Lease Term (Availability, top of the left menu): pick a term (3–15 months) to switch the calendar to a list of every available unit with its rent for that term, the four nearest terms in smaller type, specs, availability, turn status, best price, $/sq ft and the concession's effective rent. The filters below still narrow the list, and Price filters on that term's rent. Open in Tour opens the unit with that term and its three nearest in the lease-term slots. \"Back to calendar\" returns.", "Beds: Studio, 1-Bed, 2-Bed, 3-Bed, Townhome or Live/Work (A7 and A9 count as 1-Bed with Den). Floorplan: specific plans (e.g. B5). Floor and Building narrow by location.", "Price and Sq Ft (Tour and Availability): enter a Min, a Max, or both.", "Amenity: Mountain View, Corner Unit or Balcony.", "On Tour, once filters are set, matching units from the Expiring report also show — grayed — below the available ones, as possible upcoming options.", "An active filter shows your choice under its icon. Filters combine — a unit has to match all of them. Click \"Clear filters\" to reset everything, including the move-in dates.", "Tip: on Tour, typing an exact unit number always puts that unit at the top of the results, even if it is filtered out or not in today's pricing sheet."], "rev": 5},
     "builtin-pricing-concession": {"title": "Set the Current Concession", "icon": "🏷️", "category": "Tour", "steps": ["On the Tour tab, find \"Current Concession\" at the top of the left panel and click Update Concession.", "Concession Terms: the plain-language special shown on the Tour tab and flyers (e.g. \"6 weeks free on select units or $1500 free on all else\"). Additional Notes are for agents only.", "Up to 3 rules, checked in order. For each, pick Weeks or $ Off and enter the amount: a single digit is read as weeks, a bigger number as dollars (a $ is added). Click the other tile to switch, e.g. for 10 weeks.", "Qualifying Units: unit numbers separated by commas (e.g. 1204, 1338, 1239), floorplan types or codes (LW, 2-Bed, A9), \"All Immediate\" for units available now, or \"All else\" for every unit not covered by an earlier rule — put that one last.", "The line under each rule shows what it means and which units it covers, and flags any number that isn't a unit.", "Click \"Save Updated Concession\" — it's shared with the team and applies automatically when a matching unit is opened on Tour.", "Concession History, at the bottom of the page, keeps every concession that was replaced, with the dates it applied (added to replaced). Residents uses it to suggest the Promo for the Date Applied.", "On each flyer, \"Show concession calculator on flyer\" and \"Concession (weeks free, or $ amount off)\" control what that flyer shows; type 4 for weeks or $1500 for dollars.", "The calculator uses the unit's 3 cheapest 12–15 month rates: weeks free take that many weeks of rent off, a $ amount is taken off the whole lease, and both are shown as the effective monthly payment."], "rev": 3},
     "builtin-compare-units": {"title": "Put Several Units on One Flyer", "icon": "🗂️", "category": "Tour", "rev": 3, "steps": ["Open the first unit on the Tour tab as usual.", "Click \"+ Add unit\" next to the search bar (or \"+ Add a unit\" in the left menu): the full unit list opens, narrowed by the filters on the left. Pick the next unit, then Continue on its setup page.", "Each pamphlet has a header bar (on screen only, never printed): click Apt to edit that unit, toggle Concession, Lease terms (reopens the setup page with every 3–15 month rate), or download just that unit's PDF / Printable.", "Drag a pamphlet's bar (☰) onto another to change the order, or use ◀ ▶. The order is used in the downloads.", "Download PDF / Download Printable PDF in the left menu include every unit, in that order. Remove a unit under \"Units in this pamphlet\"."]},
     "builtin-todays-tours": {"title": "Run Today's Tours", "icon": "🚪", "category": "Tour", "steps": ["On the Tour tab, under the pricing sheet, click \"+ Add\" next to Today's Tours and enter the prospect's name. The list is kept on this device and starts empty each day.", "Click \"Edit Tour\" next to a name: the Tour tab switches to that person's own filters, units and flyer edits.", "Pick units as usual, or click \"+ Add a unit\" to add more — each unit is its own pamphlet.", "Click \"Done\" to go back to the regular Tour view; the tour is kept.", "Click \"Complete Tour\", enter their email (and any Specific Notes) and the app builds an email draft with one pamphlet PDF per unit, the fee sheet and the \"Tour follow-up\" template from Documents › Email Templates.", "Each completed tour is added once to MMR › Weekly Traffic Detail."], "rev": 2},
-    "builtin-lease-terms": {"title": "Fill Prices and Lease Terms from the Pricing Sheet", "icon": "💲", "category": "Tour", "steps": ["Make sure today's pricing sheet is uploaded (Tour tab > Daily pricing sheet > Upload CSV).", "Pick a unit in the search bar above the pamphlet. The unit setup page shows its details and every lease term from 3 to 15 months, with the default best rates highlighted (Best price plus the next four).", "Click Continue to build the pamphlet with the defaults, or click up to four other terms (e.g. 3, 6, 9 and 12) and click Build pamphlet: Best price always stays the sheet's best rate, and your picks fill the four other lease term slots. \"Lease terms\" on the pamphlet's header bar reopens this page.", "Its earliest availability and best price fill in automatically, with the next four best rates in the four \"Other lease terms\" slots.", "Use \"Autofill best price from a term…\" to set the best price and term from a specific lease length.", "To change a slot, pick a term from its dropdown (each shows that term's rent) — it replaces that slot's term and price. You can still type over a price.", "Click \"Reset to default\" to go back to the best price and the next four best rates.", "From Availability › Search by Lease Term, Open in Tour fills the slots with that term and its three nearest.", "If the per-term options are missing, re-upload today's pricing sheet."], "rev": 4},
+    "builtin-lease-terms": {"title": "Fill Prices and Lease Terms from the Pricing Sheet", "icon": "💲", "category": "Tour", "steps": ["Make sure today's pricing sheet is uploaded: Get Pricing (Tour › Daily pricing sheet, or the reminder banner) opens the RealPage sign-in to export it, then Upload CSV.", "Pick a unit in the search bar above the pamphlet. The unit setup page shows its details and every lease term from 3 to 15 months, with the default best rates highlighted (Best price plus the next four).", "Click Continue to build the pamphlet with the defaults, or click up to four other terms (e.g. 3, 6, 9 and 12) and click Build pamphlet: Best price always stays the sheet's best rate, and your picks fill the four other lease term slots. \"Lease terms\" on the pamphlet's header bar reopens this page.", "Its earliest availability and best price fill in automatically, with the next four best rates in the four \"Other lease terms\" slots.", "Use \"Autofill best price from a term…\" to set the best price and term from a specific lease length.", "To change a slot, pick a term from its dropdown (each shows that term's rent) — it replaces that slot's term and price. You can still type over a price.", "Click \"Reset to default\" to go back to the best price and the next four best rates.", "From Availability › Search by Lease Term, Open in Tour fills the slots with that term and its three nearest.", "If the per-term options are missing, re-upload today's pricing sheet."], "rev": 5},
     "builtin-price-history": {"title": "See a Unit's Price History", "icon": "📈", "category": "Tour", "rev": 2, "steps": ["On the Tour tab, open a unit and click \"View price history\" under Best price.", "The page reads every pricing sheet saved in Documents › Pricing (each sheet uploaded on the Tour tab is kept there).", "The chart shows the unit's best price (cheapest 11–15 month rent) on each sheet; use Show to switch to any lease term from 3 to 15 months. Hover a point for its date and price; gaps mean the unit wasn't on that sheet.", "The tiles show the latest price and the change since the previous sheet, the first price on file, the overall change, lowest and highest, and how long it's been listed.", "The table lists every sheet (newest first) with the move-in date used, best price, change, and every term's rent."]},
     "builtin-unavailable-flyer": {"title": "Make a Flyer for a Unit That Isn't Available Yet", "icon": "⏳", "category": "Tour", "steps": ["Open the unit from the Expiring tab (click its row), from the site map, or type its number on the Tour tab.", "Units not in today's pricing sheet open in the \"not currently available\" layout.", "Availability, other lease terms and the concession section are hidden on the flyer automatically.", "Enter an estimated price in \"Best price\" — it shows as an estimate on the flyer.", "Download the PDF as usual."]},
     "builtin-availability-calendar": {"title": "Browse the Availability Calendar", "icon": "📅", "category": "Availability", "steps": ["Upload today's pricing sheet on the Tour tab first — the calendar uses it.", "Open the Availability tab. Each available unit appears on the date it becomes available.", "Use Month or Week to change the view, and ‹ › to move between months or weeks.", "Click a day to see its units, or click Today to jump straight to today.", "The line under the month title counts that month's availabilities by bed type.", "Use the filter icons (Beds, Price, Floor, etc.) to narrow what the calendar shows.", "Click any unit on the calendar to open it in the Tour tab and build its flyer."]},
@@ -26432,7 +26626,7 @@ const HOWTO_BUILTIN_GUIDES = {
     "builtin-test-mode": {"title": "Practice Safely with Test Mode", "icon": "🧪", "category": "Settings", "steps": ["Go to Settings and click Test.", "Every tab switches to sample data, and a \"Test Mode\" badge appears at the top.", "Try anything — changes in Test mode stay in your browser and never touch real data.", "Click Live to go back to the real data, exactly as it was."]},
     "builtin-refresh-theme": {"title": "Update the App and Change Light/Dark Mode", "icon": "🌓", "category": "Settings", "steps": ["Go to Settings.", "Click Light or Dark to change the look.", "Click \"Refresh Site to Update\" to load the latest version of the app — do this if a new feature or fix isn't showing."]},
     "builtin-suggestions": {"title": "Suggest Improvements for Future Updates", "icon": "💡", "category": "Settings", "rev": 4, "steps": ["Go to Help › Suggest Improvements and type your idea, then click \"Save suggestion\". It's saved on this device right away, even offline.", "The list shows newest first, with the date and whether each one has been copied off the device yet. ✕ deletes one.", "When online, the whole list is copied to Google Drive › REVE Office/Suggested improvements.md (plain text, not encrypted), replacing the file each time, so Claude Code can read it in a later session.", "If it can't copy, the status says why: offline (it copies when you're back online), not connected (add the backend URL in Admin › Settings › Shared Backend, or the backend script needs the v7 update), or the error."]},
-    "builtin-offline": {"title": "Use the App Offline (Tours Without a Connection)", "icon": "📶", "category": "Settings", "steps": ["Open the app once while online: it stores itself, the web libraries, floorplans and built-in documents on the device. Settings › Offline Use shows \"Ready offline\" when everything is stored (or click Download for offline).", "Optional: install it — Settings › Offline Use › Install app, or on iPhone/iPad: Safari › Share › Add to Home Screen.", "On Android, long-press the installed app's icon for shortcuts: Tour a unit (opens the unit search), Availability, Check Residents and Suggest Improvements.", "Offline, the app opens with the last synced data: pricing sheet, units, concession, Today's Tours, flyers and PDF downloads all work.", "The dot in the top banner turns gray (Offline). Edits are kept on the device and sent when you're back online; if a teammate changed the same thing meanwhile, their newer copy is kept and the dot's panel says so.", "Uploading reports, Google Drive filing and new data from the team need a connection."], "rev": 3},
+    "builtin-offline": {"title": "Use the App Offline (Tours Without a Connection)", "icon": "📶", "category": "Settings", "steps": ["Open the app once while online: it stores itself, the web libraries, floorplans and built-in documents on the device. Settings › Offline Use shows \"Ready offline\" when everything is stored (or click Download for offline).", "Optional: install it — Settings › Offline Use › Install app, or on iPhone/iPad: Safari › Share › Add to Home Screen.", "On Android, long-press the installed app's icon for shortcuts: Tour a unit (opens the unit search), Availability, Check Residents and Suggest Improvements. iPhone/iPad doesn't have that menu for web apps: Settings › Offline Use › Home-screen shortcuts lists the same links, and the Shortcuts app (Open URLs › Add to Home Screen) can give each one its own icon.", "Offline, the app opens with the last synced data: pricing sheet, units, concession, Today's Tours, flyers and PDF downloads all work.", "The dot in the top banner turns gray (Offline). Edits are kept on the device and sent when you're back online; if a teammate changed the same thing meanwhile, their newer copy is kept and the dot's panel says so.", "Uploading reports, Google Drive filing and new data from the team need a connection."], "rev": 4},
     "builtin-unit-info": {"title": "Update Unit Info (Videos, Mailbox, Commission)", "icon": "🏢", "category": "Admin", "steps": ["Open the Info tab (top right, next to Help).", "Search for a unit by number.", "Edit any field — e.g. Video Name and Video Link, Mailbox, View, Amenity or Commission. Changes save automatically and are shared with the team.", "Video links here power the Tour flyers and \"Watch Video\" on the Sitemap tab's map."], "rev": 2},
     "builtin-retail-info": {"title": "Keep Retail Tenant Contacts and Websites Up to Date", "icon": "🏬", "category": "Admin", "steps": ["Go to Admin (enter the Admin password), open INFO, then the \"Retail\" sub-tab.", "Edit any cell directly, or click \"+ Add Suite\" for a new tenant.", "To load many at once, click \"Paste from Spreadsheet\", paste the rows (with the header row), and click Import.", "Add a Website for a suite and that suite becomes a clickable link on the Sitemap tab's map.", "Contacts are stored in the shared backend, not in the public site code."]},
     "builtin-backend": {"title": "Connect the Shared Backend", "icon": "🔗", "category": "Admin", "rev": 2, "steps": ["This is a one-time setup per device, usually already done for the team.", "On a device that isn't connected yet, open Admin: it asks for the Google Apps Script \"Web App URL\" first. Paste it and click Connect, then enter the Admin password.", "To change it later: Admin (password) › Settings › Shared Backend. Paste the URL, click Save, then \"Test Connection\" — it should say Connected.", "Once connected, Residents, Waitlist, Renewals notes, How-To guides, Documents and more are shared across agents.", "Without it, data stays in your browser only."]},
@@ -26639,6 +26833,19 @@ restoreHowToLocal();
    ============================================================ */
 const SUGG_APP = 'REVE Office', SUGG_FOLDER = 'REVE Office', SUGG_FILE = 'Suggested improvements.md';
 const suggStore = window.Suggestions ? Suggestions.createStore(window.localStorage) : null;
+/* Kept in the code and applied on every load (Suggestions.applyUpdates):
+   SUGG_BUILT — ids of suggestions now built into the app; they drop off the
+   list, and the copied Drive file is rewritten without them.
+   SUGG_SEEDS — ideas an update adds to the list for later (once per device). */
+const SUGG_BUILT = [
+    'smwzd1wgaa8b0',   // v1.172 Concession history + Residents Rate/Promo suggestions
+    'smwzdjb8ki8ht'    // v1.173 Tour search above the pamphlet + unit setup step
+];
+const SUGG_SEEDS = [
+    { id: 'sfuture-compare', created: '2026-11-27T21:30:00.000Z',
+      text: 'Tour: optional unit comparison table for multi-unit pamphlets - a summary page with the units side by side (rent per term, sq ft, available date, view, effective rent with the concession).' }
+];
+if (suggStore && Suggestions.applyUpdates) Suggestions.applyUpdates(suggStore, window.localStorage, { built: SUGG_BUILT, seeds: SUGG_SEEDS });
 const suggSyncer = suggStore ? Suggestions.createSyncer({
     store: suggStore,
     appName: SUGG_APP,
@@ -32815,6 +33022,107 @@ try {
         if (document.getElementById('tab-' + returnTab)) switchTab(returnTab);
     }
 } catch (e) {}
+
+/* ---- Search units and residents (top banner) ----
+   Units: number or floorplan → Tour (opens its setup / pamphlet), plus its
+   turn and current resident when there is one. Residents: by name or unit. */
+(function globalSearch() {
+    const btn = document.getElementById('gsBtn'), panel = document.getElementById('gsPanel');
+    const input = document.getElementById('gsInput'), out = document.getElementById('gsResults');
+    const norm = v => String(v || '').toLowerCase().trim();
+    let actions = [];   // [{ go: fn }] by result index, for Enter / arrows
+    let sel = -1;
+    function close() { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+    function open() {
+        document.querySelectorAll('.hdr-panel').forEach(p => { if (p !== panel) p.hidden = true; });
+        panel.hidden = false; btn.setAttribute('aria-expanded', 'true');
+        input.focus(); input.select(); render();
+    }
+    function goTour(unit) { close(); switchTab('tour'); tourPickUnit(unit); }
+    function goTurn(id) { close(); switchTab('turns'); setTimeout(() => turnJumpToRow(id), 60); }
+    function goResident(id) { close(); switchTab('residents'); setTimeout(() => residentJumpToRow(id), 60); }
+    function residentsOf(unit) {
+        return Object.keys(RESIDENT_ROWS).filter(id => { const r = RESIDENT_ROWS[id]; return r && !r.deleted && String(r.unit || '').trim() === unit; })
+            .sort((a, b) => String(RESIDENT_ROWS[b].moveInDate || '').localeCompare(String(RESIDENT_ROWS[a].moveInDate || '')));
+    }
+    function turnOf(unit) { return Object.keys(TURN_ROWS).find(id => !TURN_ROWS[id].deleted && TURN_ROWS[id].unit === unit); }
+    function render() {
+        const q = norm(input.value);
+        actions = []; sel = -1;
+        if (!q) { out.innerHTML = '<div class="empty-note">Type a unit number (e.g. 1204), a floorplan (e.g. B5) or a resident\u2019s name.</div>'; return; }
+        const units = UNITS.filter(u => norm(u.unit).startsWith(q) || norm(u.floorplan) === q || norm(u.yardi) === q).slice(0, 8);
+        const words = q.split(/\s+/);
+        const res = Object.keys(RESIDENT_ROWS).filter(id => {
+            const r = RESIDENT_ROWS[id];
+            if (!r || r.deleted) return false;
+            const hay = norm([r.first, r.last, r.unit].join(' '));
+            return words.every(w => hay.includes(w)) && !(units.length && /^\d+$/.test(q));
+        }).sort((a, b) => String(RESIDENT_ROWS[b].moveInDate || '').localeCompare(String(RESIDENT_ROWS[a].moveInDate || ''))).slice(0, 8);
+        let html = '';
+        if (units.length) {
+            html += '<div class="gs-group">Units</div>' + units.map(u => {
+                const p = PRICING_SUMMARY[u.unit], turn = turnOf(u.unit), resId = residentsOf(u.unit)[0];
+                const i = actions.push({ go: () => goTour(u.unit) }) - 1;
+                return `<div class="gs-item" data-gs="${i}"><div class="gs-main"><div class="gs-title">Apt ${escapeHtml(u.unit)} <span style="font-weight:500;color:var(--ink-soft)">${escapeHtml(u.floorplan)}</span></div>
+                    <div class="gs-sub">${escapeHtml(u.bedBath || '')} &middot; ${escapeHtml(String(u.sqft || ''))} sf &middot; ${escapeHtml(u.bldg || '')}${p && p.available ? ' &middot; available ' + escapeHtml(p.available) : ' &middot; not on today\u2019s sheet'}</div></div>
+                    <div class="gs-acts"><button type="button" class="gs-act" data-gs-tour="${escapeAttr(u.unit)}">Tour</button>${turn ? `<button type="button" class="gs-act" data-gs-turn="${escapeAttr(turn)}">Turn</button>` : ''}${resId ? `<button type="button" class="gs-act" data-gs-res="${escapeAttr(resId)}">Resident</button>` : ''}</div></div>`;
+            }).join('');
+        }
+        if (res.length) {
+            html += '<div class="gs-group">Residents</div>' + res.map(id => {
+                const r = RESIDENT_ROWS[id];
+                const i = actions.push({ go: () => goResident(id) }) - 1;
+                const name = [r.first, r.last].filter(Boolean).join(' ') || '(no name)';
+                const mi = r.moveInDate ? new Date(r.moveInDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+                return `<div class="gs-item" data-gs="${i}"><div class="gs-main"><div class="gs-title">${escapeHtml(name)}</div>
+                    <div class="gs-sub">${r.unit ? 'Apt ' + escapeHtml(String(r.unit)) : 'No unit'}${mi ? ' &middot; move-in ' + escapeHtml(mi) : ''}${r.specialStatus ? ' &middot; ' + escapeHtml(r.specialStatus) : ''}</div></div>
+                    <div class="gs-acts"><button type="button" class="gs-act" data-gs-res="${escapeAttr(id)}">Open</button></div></div>`;
+            }).join('');
+        }
+        out.innerHTML = html || '<div class="empty-note">No units or residents match.</div>';
+    }
+    function highlight(n) {
+        const items = [...out.querySelectorAll('[data-gs]')];
+        if (!items.length) return;
+        sel = (n + items.length) % items.length;
+        items.forEach((el, k) => el.classList.toggle('active', k === sel));
+        items[sel].scrollIntoView({ block: 'nearest' });
+    }
+    btn.addEventListener('click', e => { e.stopPropagation(); panel.hidden ? open() : close(); });
+    input.addEventListener('input', render);
+    input.addEventListener('keydown', e => {
+        if (e.key === 'ArrowDown') { e.preventDefault(); highlight(sel + 1); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(sel - 1); }
+        else if (e.key === 'Enter') { const a = actions[sel >= 0 ? sel : 0]; if (a) a.go(); }
+        else if (e.key === 'Escape') close();
+    });
+    out.addEventListener('click', e => {
+        const t = e.target.closest('[data-gs-tour]'), tn = e.target.closest('[data-gs-turn]'), r = e.target.closest('[data-gs-res]');
+        if (t) return goTour(t.getAttribute('data-gs-tour'));
+        if (tn) return goTurn(tn.getAttribute('data-gs-turn'));
+        if (r) return goResident(r.getAttribute('data-gs-res'));
+        const item = e.target.closest('[data-gs]');
+        if (item) actions[+item.getAttribute('data-gs')].go();
+    });
+    document.addEventListener('click', e => { if (!panel.hidden && !panel.contains(e.target) && !btn.contains(e.target)) close(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) close(); });
+})();
+
+// Settings › Offline Use › Home-screen shortcuts: the same links, to copy.
+(function scLinks() {
+    const box = document.getElementById('scLinkList');
+    if (!box) return;
+    const base = location.origin + location.pathname;
+    const links = [['Tour a unit', 'tour'], ['Availability', 'availability'], ['Check Residents', 'residents'], ['Suggest Improvements', 'suggest']];
+    box.innerHTML = links.map(([label, go]) => `<div class="sc-link"><span>${label}</span><code>${escapeHtml(base + '?go=' + go)}</code><button type="button" class="btn small" data-sc-copy="${escapeAttr(base + '?go=' + go)}">Copy</button></div>`).join('');
+    box.addEventListener('click', async e => {
+        const b = e.target.closest('[data-sc-copy]');
+        if (!b) return;
+        try { await navigator.clipboard.writeText(b.getAttribute('data-sc-copy')); b.textContent = 'Copied'; }
+        catch (err) { b.textContent = 'Select and copy'; }
+        setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+})();
 
 // Home-screen shortcuts (long-press the installed app icon): the manifest
 // opens ./?go=tour | availability | residents | suggest.

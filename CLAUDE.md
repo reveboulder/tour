@@ -29,3 +29,8 @@ future updates to Google Drive as a plain-text file:
 3. Always ask before writing anything for them, every session: before changing
    code for any of them, and before changing that file. Never act on them
    without the user's go-ahead in that session.
+4. Once a suggestion is built and deployed, add its id (the `(s...)` in the
+   file) to `SUGG_BUILT` in `index.html`: the app then removes it from the
+   Help › Suggest Improvements list and rewrites the Drive copy without it.
+   Ideas the user wants saved for later go in `SUGG_SEEDS` (added once per
+   device). Don't edit the Drive file directly; the app overwrites it.

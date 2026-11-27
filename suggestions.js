@@ -70,6 +70,14 @@
                 return state.deletedSinceCopy || state.items.some(function (s) { return !s.copied; });
             },
             rev: function () { return state.rev; },
+            // Adds an item with a fixed id (a suggestion added by an update); false if it's already there.
+            addItem: function (item) {
+                if (!item || !item.id || typeof item.text !== 'string' || state.items.some(function (s) { return s.id === item.id; })) return false;
+                state.items.push({ id: item.id, text: item.text, created: item.created || now().toISOString(), copied: false });
+                state.rev++;
+                persist();
+                return true;
+            },
             // After a successful copy of the list as it was at `rev`.
             markCopied: function (rev, ids) {
                 var set = {};
@@ -125,5 +133,29 @@
         return { sync: sync };
     }
 
-    return { createStore: createStore, formatMarkdown: formatMarkdown, createSyncer: createSyncer, dayOf: dayOf };
+    /* Run on every load, from lists kept in the app's code:
+       - built: ids of suggestions now built into the app. They're removed from
+         the list (and so from the copied file on the next copy).
+       - seeds: suggestions an update adds for later ({ id, text, created }).
+         Each is added once per device; deleting it keeps it gone.
+       Returns { removed: [ids], added: [ids] }. */
+    function applyUpdates(store, storage, opts) {
+        opts = opts || {};
+        var key = opts.seenKey || 'reve-suggestions-seeded';
+        var out = { removed: [], added: [] };
+        (opts.built || []).forEach(function (id) { if (store.remove(id)) out.removed.push(id); });
+        var seen = [];
+        try { seen = JSON.parse((storage && storage.getItem(key)) || '[]') || []; } catch (e) { seen = []; }
+        var built = {};
+        (opts.built || []).forEach(function (id) { built[id] = true; });
+        (opts.seeds || []).forEach(function (item) {
+            if (!item || seen.indexOf(item.id) >= 0 || built[item.id]) return;
+            if (store.addItem(item)) out.added.push(item.id);
+            seen.push(item.id);
+        });
+        try { if (storage) storage.setItem(key, JSON.stringify(seen)); } catch (e) { /* storage blocked */ }
+        return out;
+    }
+
+    return { createStore: createStore, formatMarkdown: formatMarkdown, createSyncer: createSyncer, dayOf: dayOf, applyUpdates: applyUpdates };
 });
