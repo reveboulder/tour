@@ -1,5 +1,14 @@
 [
  {
+  "v": "1.174",
+  "date": "2026-11-27",
+  "title": "Tour unit setup: best price always stays",
+  "notes": [
+   "On the unit setup page, Best price is always the pricing sheet's best rate and can't be unpicked.",
+   "Picking your own terms now chooses up to four other lease terms, which fill the four slots under Best price."
+  ]
+ },
+ {
   "v": "1.173",
   "date": "2026-11-27",
   "title": "Tour: search above the pamphlet, unit setup with every lease term, cleaner pamphlet view; home-screen shortcuts",
